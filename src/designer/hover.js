@@ -335,4 +335,6 @@ function initHover() {
   );
 }
 
-export { clearHover, drawHover, initHover };
+initHover();
+
+export { clearHover, drawHover };

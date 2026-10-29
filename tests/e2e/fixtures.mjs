@@ -4,6 +4,7 @@ import { test as base, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { blockRect, quiltMm } from '../../src/core/geometry.js';
+import { defaultDesign } from '../../src/core/design.js';
 import MCR from 'monocart-coverage-reports';
 import { coverageOptions } from './coverage.mjs';
 
@@ -26,7 +27,9 @@ const pageHtml = () =>
 export const test = base.extend({
   // set `firstVisit: true` in a test file to see the guided tour start by itself
   firstVisit: [false, { option: true }],
-  app: async ({ page, firstVisit }, use) => {
+  // where the page is served: http://localhost/ is a secure context (camera, Web Crypto), http://x/ is not
+  origin: ['http://x', { option: true }],
+  app: async ({ page, firstVisit, origin }, use) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     if (COVERAGE) await page.coverage.startJSCoverage({ resetOnNavigation: false });
@@ -49,15 +52,16 @@ export const test = base.extend({
         if (m) return r.fulfill({ path: path.join(NM, pkg, m[1]), contentType: 'text/javascript' });
       }
       if (u.startsWith('https://fonts.')) return r.fulfill({ body: '', contentType: 'text/css' });
-      if (u.startsWith('http://x/assets/')) return r.fulfill({ path: path.join(ROOT, u.slice(9).split('#')[0]) });
-      if (u.startsWith('http://x/')) return r.fulfill({ body: pageHtml(), contentType: 'text/html' });
+      if (u.startsWith(origin + '/assets/'))
+        return r.fulfill({ path: path.join(ROOT, u.slice(origin.length + 1).split('#')[0]) });
+      if (u.startsWith(origin + '/')) return r.fulfill({ body: pageHtml(), contentType: 'text/html' });
       return r.abort();
     });
     const app = {
       page,
       errors,
       async open(hash = 'design') {
-        await page.goto('http://x/#' + hash);
+        await page.goto(origin + '/#' + hash);
         await page.locator('#page-' + hash).waitFor();
         if (hash === 'design')
           await page.waitForFunction(() => document.querySelectorAll('#dz-fabrics2 .fab').length > 0);
@@ -70,9 +74,7 @@ export const test = base.extend({
           const c = s.getSession('current');
           return typeof c === 'string' ? JSON.parse(c) : c || null;
         });
-        return (
-          d || { cols: 5, rows: 5, blockMm: 458, backFabric: 'b0', blocks: Array.from({ length: 25 }, () => ({})) }
-        );
+        return d || defaultDesign();
       },
       /** the app's storage (storage/repo.js) after pending writes: run fn(storage) in the page */
       async storage(fn, arg) {

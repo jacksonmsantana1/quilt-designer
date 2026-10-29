@@ -1,5 +1,5 @@
 // Saving files (the artifact downloads capability, or a normal download).
-import '../designer/part-dialog.js'; // load order: runs after designer/part-dialog
+import '../designer/hover.js'; // load order: runs after designer/hover
 import { $ } from '../core/dom.js';
 
 // ------------------------------------------------------------- save image

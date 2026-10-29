@@ -7,7 +7,7 @@ export const coverageOptions = {
   outputDir: './coverage/e2e',
   reports: ['v8', 'console-summary', 'json-summary', 'lcovonly'],
   // only the app bundle (the inline module script of the page), mapped back to src/ by its source map
-  entryFilter: e => e.url.startsWith('http://x/') && (e.source || '').includes('sourceMappingURL=data:'),
+  entryFilter: e => /^http:\/\/(x|localhost)\//.test(e.url) && (e.source || '').includes('sourceMappingURL=data:'),
   sourceFilter: p => p.includes('src/') && !p.includes('node_modules'),
   sourcePath: p => p.replace(/^.*?src\//, 'src/'),
   cleanCache: false,

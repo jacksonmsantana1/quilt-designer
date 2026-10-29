@@ -13,7 +13,6 @@ import { renderSashUI } from './sashing-ui.js';
 import { renderBorderUI } from './borders-ui.js';
 import { syncSymUI } from './settings.js';
 import { tlEnsure } from '../timeline/timeline.js';
-import { updatePatPicker } from './pattern-picker.js';
 import { pieceFill } from '../render/fabric-fill.js';
 
 function drawPartsEditor() {
@@ -131,11 +130,6 @@ function renderDesigner() {
   syncSymUI();
   for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
   $('dz-rot').textContent = `Rotate 90° (${design.blocks[focusBlock].rot * 90}°)`;
-  $('dz-rot2').textContent = `Rotate 90° · now ${design.blocks[focusBlock].rot * 90}°`;
-  const ps = $('dz-patsel');
-  if (!ps.options.length) for (const [k, p] of Object.entries(PATTERNS)) ps.add(new Option(p.label, k));
-  ps.value = design.blocks[focusBlock].pattern;
-  updatePatPicker();
   drawDesignerCanvas();
   drawPartsEditor();
   drawPatternButtons();

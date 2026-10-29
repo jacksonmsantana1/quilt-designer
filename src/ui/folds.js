@@ -1,5 +1,5 @@
 // Side-panel cards that open and close from their title.
-import '../designer/pattern-picker.js'; // load order: runs after designer/pattern-picker
+import '../sim/panels.js'; // load order: runs after sim/panels
 import { $ } from '../core/dom.js';
 
 // ---- side-panel cards open and close from their title (remembered in this browser)

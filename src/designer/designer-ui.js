@@ -246,8 +246,6 @@ function initDesignerUI() {
   });
   const rotate = () => dispatch(rotateBlocks, selBlocks);
   $('dz-rot').addEventListener('click', rotate);
-  $('dz-rot2').addEventListener('click', rotate);
-  $('dz-patsel').addEventListener('change', e => choosePattern(e.target.value));
   $('dz-fabrics2').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (b) applyFabric(b.dataset.f);

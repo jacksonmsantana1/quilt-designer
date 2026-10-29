@@ -154,16 +154,21 @@ function renderMine() {
         nm.replaceWith(inp);
         inp.focus();
         inp.select();
-        const done = () => {
+        // Enter or leaving the field keeps the new name, Escape the old one (redrawing the cards removes the
+        // field, which also blurs it: `ended` stops that from saving again, or saving after Escape)
+        let ended = false;
+        const end = keep => {
+          if (ended) return;
+          ended = true;
           const name = inp.value.trim();
-          if (name && name !== m.name) designs.save({ id: m.id, name });
+          if (keep && name && name !== m.name) designs.save({ id: m.id, name });
           renderMine();
         };
         inp.addEventListener('keydown', ev => {
-          if (ev.key === 'Enter') done();
-          if (ev.key === 'Escape') renderMine();
+          if (ev.key === 'Enter') end(true);
+          if (ev.key === 'Escape') end(false);
         });
-        inp.addEventListener('blur', done);
+        inp.addEventListener('blur', () => end(true));
       } else if (a === 'dup') {
         const copy = designs.save({ id: designs.newId(), name: m.name + ' (copy)', design: m.design });
         tlCopy(m.id, copy.id);

@@ -176,8 +176,6 @@
   .dz-dialog h2 { font-family: var(--font-display); font-weight: 600; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
   .dlg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
   .dlg-x { font-size: 1.1rem; line-height: 1; padding: 4px 10px; }
-  .dlg-tools { margin-bottom: 10px; }
-  .dlg-tools select { flex: 1; min-width: 0; }
   .dlg-foot { display: flex; justify-content: flex-end; margin-top: 14px; }
   .dz-main { min-width: 0; }
   .dz-quiltwrap { width: 100%; max-width: 860px; }
@@ -349,28 +347,12 @@
   /* no side panel open: the 3D view takes the whole width, centred */
   .bench.one { grid-template-columns: minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
   /* block pattern picker with a sketch of every pattern */
-  .patpick { position: relative; flex: 1; min-width: 0; }
-  .patbtn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; text-align: left; }
-  .patbtn:hover { border-color: var(--accent); }
-  .patbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .patbtn canvas, .patopt canvas { flex: none; width: 34px; height: 34px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
-  .patbtn span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .patbtn::after { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-2px, -2px); }
-  .patlist { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); max-height: 340px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 14px 34px rgba(15,20,35,.25); padding: 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px; }
-  .patopt { display: flex; align-items: center; gap: 10px; padding: 5px 8px 5px 5px; border-radius: 6px; cursor: pointer; font-size: .9rem; color: var(--ink); background: none; border: 0; text-align: left; font-family: inherit; }
-  .patopt:hover, .patopt.active { background: rgba(224,89,42,.12); }
-  .patopt[aria-selected="true"] { font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--accent); }
-  .patopt:hover canvas { transform: scale(1.5); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
-  .patopt canvas { transition: transform .15s ease; position: relative; z-index: 1; transform-origin: left center; }
   .hover-layer { position: absolute; left: 0; top: 0; pointer-events: none; }
   .flipper.flipped .hover-layer, .flipper.flipped .hover-rot { display: none; }
   .hover-rot { position: absolute; z-index: 2; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); background: rgba(255,255,255,.95); color: #2f466f; display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: 0 2px 6px rgba(20,25,40,.3); transition: transform .12s ease; }
   .hover-rot[hidden] { display: none; }
   .hover-rot svg { width: 16px; height: 16px; }
   .hover-rot:hover { transform: scale(1.12) rotate(30deg); background: #2f466f; color: #fff; }
-  .partdlg-prev { display: flex; justify-content: center; margin-top: 10px; }
-  .partdlg-prev canvas { width: 160px; height: 160px; border-radius: 4px; box-shadow: 0 2px 10px rgba(20,25,40,.15); }
-  #dz-partall-row[hidden] { display: none; }
   .cam-view { position: relative; margin-top: 10px; background: #111; border-radius: 8px; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
   .cam-view video, .cam-view canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
   .cam-view canvas { width: auto; height: 100%; max-width: 100%; aspect-ratio: 1; }
@@ -381,7 +363,7 @@
   .fitopt small { display: block; color: var(--muted); margin-top: 2px; }
   .fitopt .tag { font-size: .72rem; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
   #dz-block { max-width: 100%; height: auto; aspect-ratio: 1; }
-  .dz-sideparts .dlg-x, .dz-sideparts .dlg-tools { display: none; }
+  .dz-sideparts .dlg-x { display: none; }
   .dz-sideparts .dlg-head h2 { margin: 0; }
   #dz-block { cursor: pointer; border-radius: 3px; box-shadow: 0 2px 10px rgba(20,25,40,.15); max-width: 100%; }
   .stepper { display: flex; align-items: center; gap: 4px; }
@@ -531,7 +513,6 @@
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
     .pats, .fabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
-    .dlg-tools .btn { white-space: nowrap; }
     details.model { padding: 12px; }
   }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
@@ -902,14 +883,6 @@
       <select id="dz-sym"><option value="off">Off</option><option value="lr">Mirror left–right</option><option value="tb">Mirror top–bottom</option><option value="both">Mirror both ways (4-way)</option><option value="kal">Kaleidoscope (8-way, square layouts)</option></select></div>
     <div class="symrow" title="Make this block bigger: it covers several grid cells (and the sashing between them)"><label for="dz-span">Block size</label>
       <select id="dz-span"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
-    <div class="row dlg-tools">
-      <select id="dz-patsel" aria-hidden="true" tabindex="-1" hidden></select>
-      <div class="patpick" id="dz-patpick">
-        <button type="button" class="patbtn" id="dz-patbtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Block pattern"></button>
-        <div class="patlist" id="dz-patlist" role="listbox" aria-label="Block patterns" hidden></div>
-      </div>
-      <button class="btn sm" type="button" id="dz-rot2">Rotate 90°</button>
-    </div>
     <div class="dz-blockwrap"><canvas id="dz-block" width="300" height="300" aria-label="Parts of the selected block. Click a part to select it; double-click to select every part in the same fabric."></canvas></div>
     <p class="fine" id="dz-parts-info"></p>
     <div class="row" style="margin-top:8px">
@@ -933,19 +906,6 @@
     <div class="blib" id="dz-library" aria-label="Distinct blocks in your quilt"></div>
     </div>
     <div class="dlg-foot"><button class="btn primary" type="button" id="dz-done">Done</button></div>
-  </dialog>
-  <dialog class="dz-dialog" id="dz-partdlg" aria-labelledby="dz-partdlg-title">
-    <div class="dlg-head">
-      <div><h2 id="dz-partdlg-title">Fabric</h2><p class="fine" id="dz-partdlg-sub" style="margin:2px 0 0"></p></div>
-      <button class="btn sm dlg-x" type="button" id="dz-partdlg-x" aria-label="Close">×</button>
-    </div>
-    <div class="partdlg-prev"><canvas id="dz-partdlg-cv" width="160" height="160" aria-hidden="true"></canvas></div>
-    <div class="fabs" id="dz-partfabs" style="margin-top:10px"></div>
-    <label style="display:flex;gap:6px;align-items:center;margin-top:10px" id="dz-partall-row"><input type="checkbox" id="dz-partall"> <span id="dz-partall-txt"></span></label>
-    <div class="row" style="margin-top:10px;justify-content:space-between">
-      <button class="btn sm" type="button" id="dz-partcam" hidden>Take a photo of a fabric</button>
-      <button class="btn primary" type="button" id="dz-partdone">Done</button>
-    </div>
   </dialog>
   <dialog class="dz-dialog cam-dialog" id="cam-dialog" aria-labelledby="cam-title">
     <div class="dlg-head">

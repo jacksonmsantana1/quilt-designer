@@ -176,8 +176,6 @@
   .dz-dialog h2 { font-family: var(--font-display); font-weight: 600; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
   .dlg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
   .dlg-x { font-size: 1.1rem; line-height: 1; padding: 4px 10px; }
-  .dlg-tools { margin-bottom: 10px; }
-  .dlg-tools select { flex: 1; min-width: 0; }
   .dlg-foot { display: flex; justify-content: flex-end; margin-top: 14px; }
   .dz-main { min-width: 0; }
   .dz-quiltwrap { width: 100%; max-width: 860px; }
@@ -350,28 +348,12 @@
   /* no side panel open: the 3D view takes the whole width, centred */
   .bench.one { grid-template-columns: minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
   /* block pattern picker with a sketch of every pattern */
-  .patpick { position: relative; flex: 1; min-width: 0; }
-  .patbtn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; text-align: left; }
-  .patbtn:hover { border-color: var(--accent); }
-  .patbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .patbtn canvas, .patopt canvas { flex: none; width: 34px; height: 34px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
-  .patbtn span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .patbtn::after { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-2px, -2px); }
-  .patlist { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); max-height: 340px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 14px 34px rgba(15,20,35,.25); padding: 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px; }
-  .patopt { display: flex; align-items: center; gap: 10px; padding: 5px 8px 5px 5px; border-radius: 6px; cursor: pointer; font-size: .9rem; color: var(--ink); background: none; border: 0; text-align: left; font-family: inherit; }
-  .patopt:hover, .patopt.active { background: rgba(224,89,42,.12); }
-  .patopt[aria-selected="true"] { font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--accent); }
-  .patopt:hover canvas { transform: scale(1.5); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
-  .patopt canvas { transition: transform .15s ease; position: relative; z-index: 1; transform-origin: left center; }
   .hover-layer { position: absolute; left: 0; top: 0; pointer-events: none; }
   .flipper.flipped .hover-layer, .flipper.flipped .hover-rot { display: none; }
   .hover-rot { position: absolute; z-index: 2; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); background: rgba(255,255,255,.95); color: #2f466f; display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: 0 2px 6px rgba(20,25,40,.3); transition: transform .12s ease; }
   .hover-rot[hidden] { display: none; }
   .hover-rot svg { width: 16px; height: 16px; }
   .hover-rot:hover { transform: scale(1.12) rotate(30deg); background: #2f466f; color: #fff; }
-  .partdlg-prev { display: flex; justify-content: center; margin-top: 10px; }
-  .partdlg-prev canvas { width: 160px; height: 160px; border-radius: 4px; box-shadow: 0 2px 10px rgba(20,25,40,.15); }
-  #dz-partall-row[hidden] { display: none; }
   .cam-view { position: relative; margin-top: 10px; background: #111; border-radius: 8px; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
   .cam-view video, .cam-view canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
   .cam-view canvas { width: auto; height: 100%; max-width: 100%; aspect-ratio: 1; }
@@ -382,7 +364,7 @@
   .fitopt small { display: block; color: var(--muted); margin-top: 2px; }
   .fitopt .tag { font-size: .72rem; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
   #dz-block { max-width: 100%; height: auto; aspect-ratio: 1; }
-  .dz-sideparts .dlg-x, .dz-sideparts .dlg-tools { display: none; }
+  .dz-sideparts .dlg-x { display: none; }
   .dz-sideparts .dlg-head h2 { margin: 0; }
   #dz-block { cursor: pointer; border-radius: 3px; box-shadow: 0 2px 10px rgba(20,25,40,.15); max-width: 100%; }
   .stepper { display: flex; align-items: center; gap: 4px; }
@@ -532,7 +514,6 @@
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
     .pats, .fabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
-    .dlg-tools .btn { white-space: nowrap; }
     details.model { padding: 12px; }
   }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
@@ -903,14 +884,6 @@
       <select id="dz-sym"><option value="off">Off</option><option value="lr">Mirror left–right</option><option value="tb">Mirror top–bottom</option><option value="both">Mirror both ways (4-way)</option><option value="kal">Kaleidoscope (8-way, square layouts)</option></select></div>
     <div class="symrow" title="Make this block bigger: it covers several grid cells (and the sashing between them)"><label for="dz-span">Block size</label>
       <select id="dz-span"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
-    <div class="row dlg-tools">
-      <select id="dz-patsel" aria-hidden="true" tabindex="-1" hidden></select>
-      <div class="patpick" id="dz-patpick">
-        <button type="button" class="patbtn" id="dz-patbtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Block pattern"></button>
-        <div class="patlist" id="dz-patlist" role="listbox" aria-label="Block patterns" hidden></div>
-      </div>
-      <button class="btn sm" type="button" id="dz-rot2">Rotate 90°</button>
-    </div>
     <div class="dz-blockwrap"><canvas id="dz-block" width="300" height="300" aria-label="Parts of the selected block. Click a part to select it; double-click to select every part in the same fabric."></canvas></div>
     <p class="fine" id="dz-parts-info"></p>
     <div class="row" style="margin-top:8px">
@@ -934,19 +907,6 @@
     <div class="blib" id="dz-library" aria-label="Distinct blocks in your quilt"></div>
     </div>
     <div class="dlg-foot"><button class="btn primary" type="button" id="dz-done">Done</button></div>
-  </dialog>
-  <dialog class="dz-dialog" id="dz-partdlg" aria-labelledby="dz-partdlg-title">
-    <div class="dlg-head">
-      <div><h2 id="dz-partdlg-title">Fabric</h2><p class="fine" id="dz-partdlg-sub" style="margin:2px 0 0"></p></div>
-      <button class="btn sm dlg-x" type="button" id="dz-partdlg-x" aria-label="Close">×</button>
-    </div>
-    <div class="partdlg-prev"><canvas id="dz-partdlg-cv" width="160" height="160" aria-hidden="true"></canvas></div>
-    <div class="fabs" id="dz-partfabs" style="margin-top:10px"></div>
-    <label style="display:flex;gap:6px;align-items:center;margin-top:10px" id="dz-partall-row"><input type="checkbox" id="dz-partall"> <span id="dz-partall-txt"></span></label>
-    <div class="row" style="margin-top:10px;justify-content:space-between">
-      <button class="btn sm" type="button" id="dz-partcam" hidden>Take a photo of a fabric</button>
-      <button class="btn primary" type="button" id="dz-partdone">Done</button>
-    </div>
   </dialog>
   <dialog class="dz-dialog cam-dialog" id="cam-dialog" aria-labelledby="cam-title">
     <div class="dlg-head">
@@ -6173,7 +6133,7 @@ function drawDesignerCanvas() {
   g.strokeStyle = "#2f466f";
   g.lineWidth = Math.max(3, cw * 6e-3);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
-  const editing = $("dz-dialog").open || $("dz-partdlg").open || editorInSide || selBlocks.size > 1;
+  const editing = $("dz-dialog").open || editorInSide || selBlocks.size > 1;
   if (editing)
     for (const bi of selBlocks) {
       const R2 = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), cw, ch);
@@ -6445,11 +6405,6 @@ function renderDesigner() {
   syncSymUI();
   for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
   $("dz-rot").textContent = `Rotate 90\xB0 (${design.blocks[focusBlock].rot * 90}\xB0)`;
-  $("dz-rot2").textContent = `Rotate 90\xB0 \xB7 now ${design.blocks[focusBlock].rot * 90}\xB0`;
-  const ps = $("dz-patsel");
-  if (!ps.options.length) for (const [k, p] of Object.entries(PATTERNS)) ps.add(new Option(p.label, k));
-  ps.value = design.blocks[focusBlock].pattern;
-  updatePatPicker();
   drawDesignerCanvas();
   drawPartsEditor();
   drawPatternButtons();
@@ -6780,8 +6735,6 @@ function initDesignerUI() {
   });
   const rotate = () => dispatch(rotateBlocks, selBlocks);
   $("dz-rot").addEventListener("click", rotate);
-  $("dz-rot2").addEventListener("click", rotate);
-  $("dz-patsel").addEventListener("change", (e) => choosePattern(e.target.value));
   $("dz-fabrics2").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (b) applyFabric(b.dataset.f);
@@ -8817,12 +8770,12 @@ for (const ev of [
   "touchstart"
 ])
   document.addEventListener(ev, tourBlock, true);
-for (const id of ["dz-dialog", "dz-partdlg", "save-dlg", "cam-dialog", "cg-pop"])
+for (const id of ["dz-dialog", "save-dlg", "cam-dialog", "cg-pop"])
   $(id).addEventListener("cancel", (e) => {
     if (tour.on && !(TOUR[tour.i].allow || []).includes("#dz-done")) e.preventDefault();
   });
 function tourHost() {
-  for (const id of ["dz-partdlg", "save-dlg", "cam-dialog", "cg-pop", "dz-dialog"]) {
+  for (const id of ["save-dlg", "cam-dialog", "cg-pop", "dz-dialog"]) {
     const d = $(id);
     if (d && d.open) return d;
   }
@@ -8978,7 +8931,7 @@ function tourBegin() {
   tour.i = 0;
   tour.userPos = null;
   document.body.classList.add("tour-active");
-  for (const id of ["dz-dialog", "dz-partdlg", "save-dlg", "cam-dialog", "cg-pop"]) if ($(id).open) $(id).close();
+  for (const id of ["dz-dialog", "save-dlg", "cam-dialog", "cg-pop"]) if ($(id).open) $(id).close();
   if (state.page !== "design") showPage("design");
   hideTools();
   const fresh = () => {
@@ -9021,7 +8974,7 @@ function tourEnd(how) {
     localStorage.setItem(TOUR_KEY, "done");
   } catch (e) {
   }
-  for (const id of ["dz-dialog", "dz-partdlg"]) if ($(id).open) $(id).close();
+  for (const id of ["dz-dialog"]) if ($(id).open) $(id).close();
   if (how === "keep") {
     tlCopy("tour", null);
     setMineCur(null);
@@ -9186,16 +9139,19 @@ function renderMine() {
         nm.replaceWith(inp);
         inp.focus();
         inp.select();
-        const done = () => {
+        let ended = false;
+        const end = (keep) => {
+          if (ended) return;
+          ended = true;
           const name = inp.value.trim();
-          if (name && name !== m.name) designs.save({ id: m.id, name });
+          if (keep && name && name !== m.name) designs.save({ id: m.id, name });
           renderMine();
         };
         inp.addEventListener("keydown", (ev) => {
-          if (ev.key === "Enter") done();
-          if (ev.key === "Escape") renderMine();
+          if (ev.key === "Enter") end(true);
+          if (ev.key === "Escape") end(false);
         });
-        inp.addEventListener("blur", done);
+        inp.addEventListener("blur", () => end(true));
       } else if (a === "dup") {
         const copy = designs.save({ id: designs.newId(), name: m.name + " (copy)", design: m.design });
         tlCopy(m.id, copy.id);
@@ -9714,119 +9670,6 @@ function updateSimSide() {
   btn.addEventListener("click", () => set(!shown));
   set(shown);
 })();
-
-// src/designer/pattern-picker.js
-function patternSketch(key, px = 34) {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), c = document.createElement("canvas");
-  c.width = c.height = Math.round(px * 1.5 * dpr);
-  const g = c.getContext("2d"), S = c.width, cols = ["#efe5cf", "#2f466f", "#c79a45"];
-  partsOf(key).forEach((part) => {
-    g.fillStyle = cols[part.role];
-    pathPoly(
-      g,
-      part.poly.map(([u, v]) => [u * S, v * S])
-    );
-    g.fill();
-    g.lineWidth = Math.max(1, S / 120);
-    g.strokeStyle = "rgba(0,0,0,.28)";
-    g.stroke();
-  });
-  return c;
-}
-function updatePatPicker() {
-  const btn = $("dz-patbtn");
-  if (!btn || !design) return;
-  const key = design.blocks[focusBlock].pattern;
-  if (btn.dataset.key !== key) {
-    btn.dataset.key = key;
-    btn.innerHTML = "";
-    const sp = document.createElement("span");
-    sp.textContent = PATTERNS[key].label;
-    btn.append(patternSketch(key), sp);
-  }
-  for (const o of $("dz-patlist").children) o.setAttribute("aria-selected", String(o.dataset.key === key));
-}
-function initPatPicker() {
-  const btn = $("dz-patbtn"), list = $("dz-patlist");
-  for (const [key, p] of Object.entries(PATTERNS)) {
-    const o = document.createElement("button");
-    o.type = "button";
-    o.className = "patopt";
-    o.role = "option";
-    o.dataset.key = key;
-    o.tabIndex = -1;
-    const sp = document.createElement("span");
-    sp.textContent = p.label;
-    o.append(patternSketch(key), sp);
-    list.appendChild(o);
-  }
-  const opts = () => [...list.children];
-  const open = () => {
-    list.hidden = false;
-    btn.setAttribute("aria-expanded", "true");
-    const cur = opts().find((o) => o.getAttribute("aria-selected") === "true") || opts()[0];
-    cur.scrollIntoView({ block: "nearest" });
-    cur.focus({ preventScroll: true });
-  };
-  const close = (refocus) => {
-    list.hidden = true;
-    btn.setAttribute("aria-expanded", "false");
-    if (refocus) btn.focus();
-  };
-  const choose = (key) => {
-    const ps = $("dz-patsel");
-    ps.value = key;
-    ps.dispatchEvent(new Event("change"));
-    close(true);
-  };
-  btn.addEventListener("click", () => list.hidden ? open() : close());
-  list.addEventListener("click", (e) => {
-    const o = e.target.closest(".patopt");
-    if (o) choose(o.dataset.key);
-  });
-  list.addEventListener("keydown", (e) => {
-    const all = opts(), i = all.indexOf(document.activeElement);
-    const cols = Math.max(1, Math.round(list.clientWidth / (all[0].offsetWidth || 150)));
-    const go = (j) => {
-      const o = all[Math.max(0, Math.min(all.length - 1, j))];
-      o.focus();
-      o.scrollIntoView({ block: "nearest" });
-    };
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      go(i + cols);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      go(i - cols);
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      go(i + 1);
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      go(i - 1);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      close(true);
-    } else if (e.key === "Tab") close(false);
-  });
-  btn.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowDown" && list.hidden) {
-      e.preventDefault();
-      open();
-    }
-  });
-  document.addEventListener("pointerdown", (e) => {
-    if (!list.hidden && !$("dz-patpick").contains(e.target)) close(false);
-  });
-  $("dz-dialog").addEventListener("cancel", (e) => {
-    if (!list.hidden) {
-      e.preventDefault();
-      close(true);
-    }
-  });
-}
-initPatPicker();
 
 // src/ui/folds.js
 var FOLD_KEY = "quilt-folds.v1";
@@ -10419,64 +10262,7 @@ function initHover() {
     true
   );
 }
-
-// src/designer/part-dialog.js
-var partEdit = { bi: -1, part: -1, twins: [] };
-function drawPartDialog() {
-  const b = design.blocks[partEdit.bi];
-  if (!b) return;
-  drawPaletteInto($("dz-partfabs"), b.fabrics[partEdit.part]);
-  const cv = $("dz-partdlg-cv"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 160;
-  cv.width = cv.height = S * dpr;
-  const g = cv.getContext("2d");
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const polys = blockPolys(b, 0, 0, S, S), pxPerCm = S / (design.blockMm / 10);
-  polys.forEach((p, i) => {
-    g.fillStyle = pieceFill(g, b, i, p, pxPerCm, partEdit.bi * 31 + i);
-    pathPoly(g, p);
-    g.fill();
-  });
-  g.save();
-  g.beginPath();
-  g.rect(0, 0, S, S);
-  pathPolyInto(g, polys[partEdit.part]);
-  g.fillStyle = "rgba(20,24,34,.35)";
-  g.fill("evenodd");
-  g.restore();
-  pathPoly(g, polys[partEdit.part]);
-  g.lineWidth = 3;
-  g.strokeStyle = "#fff";
-  g.stroke();
-  g.lineWidth = 1.5;
-  g.strokeStyle = "#e0592a";
-  g.stroke();
-}
-function setPartFabric2(fid) {
-  const targets = [partEdit.bi, ...$("dz-partall").checked ? partEdit.twins : []];
-  setActiveFabric(fid);
-  dispatch(setPartFabric, targets, design.blocks[partEdit.bi].pattern, [partEdit.part], fid);
-  drawPartDialog();
-  drawFabricPalette();
-}
-function initPartDialog() {
-  $("dz-partfabs").addEventListener("click", (e) => {
-    const b = e.target.closest("button.fab");
-    if (b) setPartFabric2(b.dataset.f);
-  });
-  const close = () => $("dz-partdlg").close();
-  $("dz-partdlg-x").addEventListener("click", close);
-  $("dz-partdone").addEventListener("click", close);
-  $("dz-partdlg").addEventListener("close", () => {
-    selParts.clear();
-    drawDesignerCanvas();
-  });
-  $("dz-partcam").addEventListener("click", () => {
-    setCamTarget((id) => setPartFabric2(id));
-    openCamera();
-  });
-}
 initHover();
-initPartDialog();
 
 // src/platform/downloads.js
 var downloads = null;

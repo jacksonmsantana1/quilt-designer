@@ -67,7 +67,7 @@ function drawDesignerCanvas() {
   g.lineWidth = Math.max(3, cw * 0.006);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
   // the selection frame shows only while blocks are being edited; otherwise only the hover marks a block
-  const editing = $('dz-dialog').open || $('dz-partdlg').open || editorInSide || selBlocks.size > 1;
+  const editing = $('dz-dialog').open || editorInSide || selBlocks.size > 1;
   if (editing)
     for (const bi of selBlocks) {
       const R = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), cw, ch);
