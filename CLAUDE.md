@@ -22,7 +22,7 @@ One `npm install` at the top. The built app is `app/quilt.html` (one file, three
 ## Commands (top folder unless noted)
 
 ```
-npm run build              # app/src -> app/dist/app.js -> app/quilt.html (python3 app/build.py)
+npm run build              # app/src -> app/dist/app.js -> app/quilt.html (app/build.py, via app/tools/python.mjs)
 npm run check              # prettier check, eslint, tsc (JSDoc types), unit tests of shared, app, server
 npm run test:e2e           # Playwright browser tests of the app (build first; ~5 min; workers: 1)
 npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e/index.html

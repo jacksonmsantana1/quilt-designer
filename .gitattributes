@@ -1,0 +1,2 @@
+# LF line endings everywhere, also on Windows (Prettier checks for LF; Git for Windows would otherwise check out CRLF)
+* text=auto eol=lf
