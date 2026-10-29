@@ -14,7 +14,6 @@ sim/        3D simulation: renderer, stage, bed/table, camera, quilt mesh, physi
 mine/       My designs and the sample designs
 timeline/   undo / redo and the film strip
 tour/       guided tour
-camera/     new fabric from the webcam
 storage/    IndexedDB: saved designs, fabric photos, undo timelines, the session (boot.js opens it first)
 platform/   saving files
 ui/         foldable cards

@@ -368,12 +368,6 @@
   .hover-rot[hidden] { display: none; }
   .hover-rot svg { width: 16px; height: 16px; }
   .hover-rot:hover { transform: scale(1.12) rotate(30deg); background: #2f466f; color: #fff; }
-  .cam-view { position: relative; margin-top: 10px; background: #111; border-radius: 8px; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
-  .cam-view video, .cam-view canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .cam-view canvas { width: auto; height: 100%; max-width: 100%; aspect-ratio: 1; }
-  .cam-guide { position: absolute; aspect-ratio: 1; height: 70%; border: 2px dashed rgba(255,255,255,.9); border-radius: 4px; box-shadow: 0 0 0 9999px rgba(0,0,0,.35); pointer-events: none; }
-  .cam-warn { color: #8a3b1f; font-weight: 600; margin: 0 0 10px; }
-  #cam-ask[hidden], #cam-viewbox[hidden], #cam-review[hidden], #cam-live-row[hidden], #cam-shot[hidden], #cam-video[hidden], #cam-guide[hidden] { display: none; }
   .fitopt { display: flex; gap: 10px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
   .fitopt small { display: block; color: var(--muted); margin-top: 2px; }
   .fitopt .tag { font-size: .72rem; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
@@ -835,7 +829,6 @@
         <p class="fine" style="margin:0 0 8px">Add photos of your own fabrics. They join the fabric list under Block parts.</p>
         <div class="row">
           <label class="btn filebtn sm" for="dz-upload">Add fabric photos</label>
-          <button class="btn sm cam-open" type="button">Take a photo</button>
           <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
         </div>
         <div class="param">
@@ -914,54 +907,12 @@
       <div class="fussy-row"><canvas id="dz-fussy-cv" aria-label="One repeat of the print: click to choose the part that shows in this piece"></canvas>
       <button type="button" class="btn sm" id="dz-fussy-clear" hidden>Cut it normally</button></div>
     </div>
-    <div class="row" style="margin-top:8px" hidden><button class="btn sm cam-open" type="button">Take a photo of a fabric</button></div>
     </div>
     <div id="dz-libbox">
     <p class="fine" style="margin:14px 0 6px">Blocks in your quilt · click one to copy it into the block you are editing</p>
     <div class="blib" id="dz-library" aria-label="Distinct blocks in your quilt"></div>
     </div>
     <div class="dlg-foot"><button class="btn primary" type="button" id="dz-done">Done</button></div>
-  </dialog>
-  <dialog class="dz-dialog cam-dialog" id="cam-dialog" aria-labelledby="cam-title">
-    <div class="dlg-head">
-      <div><h2 id="cam-title">New fabric from the camera</h2>
-        <p class="fine" style="margin:2px 0 0">Lay the fabric flat in even light and fill the square with it.</p></div>
-      <button class="btn sm dlg-x" type="button" id="cam-close" aria-label="Close the camera">×</button>
-    </div>
-    <div class="cam-ask" id="cam-ask" hidden>
-      <p style="margin:10px 0 6px"><b>Use your computer's webcam?</b></p>
-      <p class="fine" style="margin:0 0 10px">The webcam is used only to photograph a fabric. The picture stays in this page on your device; nothing is uploaded. Your browser will ask you to allow the camera.</p>
-      <p class="fine cam-warn" id="cam-ask-note" hidden></p>
-      <div class="row">
-        <button class="btn primary" type="button" id="cam-allow">Allow webcam</button>
-        <button class="btn" type="button" id="cam-newtab" hidden style="display:none"></button>
-        <label class="btn filebtn" for="cam-file2">Use a photo file instead</label>
-        <input id="cam-file2" type="file" accept="image/*" capture="environment" class="sr">
-      </div>
-    </div>
-    <div class="cam-view" id="cam-viewbox">
-      <video id="cam-video" playsinline muted autoplay></video>
-      <canvas id="cam-shot" hidden></canvas>
-      <div class="cam-guide" id="cam-guide" aria-hidden="true"></div>
-    </div>
-    <p class="fine" id="cam-msg" style="margin:8px 0 0"></p>
-    <div class="row" style="margin-top:8px" id="cam-live-row">
-      <button class="btn primary" type="button" id="cam-snap">Take picture</button>
-      <button class="btn sm" type="button" id="cam-flip" hidden>Switch camera</button>
-      <label class="btn sm filebtn" for="cam-file">Use the phone camera or a file</label>
-      <input id="cam-file" type="file" accept="image/*" capture="environment" class="sr">
-    </div>
-    <div id="cam-review" hidden>
-      <div class="two" style="margin-top:8px">
-        <div><label for="cam-name">Fabric name</label><input id="cam-name" type="text" maxlength="40"></div>
-        <div><label for="cam-cm">Width of the square (cm)</label><input id="cam-cm" type="number" min="3" max="100" step="1" value="15" inputmode="numeric"></div>
-      </div>
-      <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="cam-fix" checked> Even out the lighting and make it tile without seams</label>
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" type="button" id="cam-use">Add this fabric</button>
-        <button class="btn" type="button" id="cam-retake">Retake</button>
-      </div>
-    </div>
   </dialog>
 </section>
 
@@ -4434,13 +4385,13 @@ var orbit = { r: 4.3, az: 0.72, el: 0.38 };
 var ortho = new THREE7.OrthographicCamera(-1, 1, 1, -1, 0.05, 50);
 setActiveCam(camera);
 function placeCamera(keepRender) {
-  for (const cam2 of [camera, ortho]) {
-    cam2.position.set(
+  for (const cam of [camera, ortho]) {
+    cam.position.set(
       target.x + orbit.r * Math.cos(orbit.el) * Math.sin(orbit.az),
       target.y + orbit.r * Math.sin(orbit.el),
       target.z + orbit.r * Math.cos(orbit.el) * Math.cos(orbit.az)
     );
-    cam2.lookAt(target);
+    cam.lookAt(target);
   }
   const hh = orbit.r * Math.tan(THREE7.MathUtils.degToRad(camera.fov / 2));
   ortho.top = hh;
@@ -6613,8 +6564,6 @@ var hideTools = () => {
 var setHideTools = (f) => hideTools = f;
 var partTap = null;
 var setPartTap = (v) => partTap = v;
-var camTarget = null;
-var setCamTarget = (f) => camTarget = f;
 
 // src/designer/side-panel.js
 var editorInSide = false;
@@ -8898,12 +8847,12 @@ for (const ev of [
   "touchstart"
 ])
   document.addEventListener(ev, tourBlock, true);
-for (const id of ["dz-dialog", "save-dlg", "cam-dialog", "cg-pop"])
+for (const id of ["dz-dialog", "save-dlg", "cg-pop"])
   $(id).addEventListener("cancel", (e) => {
     if (tour.on && !(TOUR[tour.i].allow || []).includes("#dz-done")) e.preventDefault();
   });
 function tourHost() {
-  for (const id of ["save-dlg", "cam-dialog", "cg-pop", "dz-dialog"]) {
+  for (const id of ["save-dlg", "cg-pop", "dz-dialog"]) {
     const d = $(id);
     if (d && d.open) return d;
   }
@@ -9059,7 +9008,7 @@ function tourBegin() {
   tour.i = 0;
   tour.userPos = null;
   document.body.classList.add("tour-active");
-  for (const id of ["dz-dialog", "save-dlg", "cam-dialog", "cg-pop"]) if ($(id).open) $(id).close();
+  for (const id of ["dz-dialog", "save-dlg", "cg-pop"]) if ($(id).open) $(id).close();
   if (state.page !== "design") showPage("design");
   hideTools();
   const fresh = () => {
@@ -10216,246 +10165,6 @@ new ResizeObserver(() => {
   if (state.page === "cut" && lastPlan && design) drawCutQuilt(lastPlan);
 }).observe(document.querySelector(".cg-quilt"));
 initBedUI();
-
-// src/camera/fabric-camera.js
-var cam = { stream: null, facing: "environment", devices: 0, shot: null };
-function camMsg(t) {
-  $("cam-msg").textContent = t || "";
-}
-function camStop() {
-  if (cam.stream) {
-    for (const tr of cam.stream.getTracks()) tr.stop();
-    cam.stream = null;
-  }
-  $("cam-video").srcObject = null;
-}
-function camPolicyAllows() {
-  const pp = document.permissionsPolicy || document.featurePolicy;
-  try {
-    return pp && pp.allowsFeature ? pp.allowsFeature("camera") : true;
-  } catch (e) {
-    return true;
-  }
-}
-async function camPermissionState() {
-  try {
-    return (await navigator.permissions.query({ name: "camera" })).state;
-  } catch (e) {
-    return "unknown";
-  }
-}
-async function camAsk() {
-  camStop();
-  cam.shot = null;
-  $("cam-ask").hidden = false;
-  $("cam-viewbox").hidden = true;
-  $("cam-live-row").hidden = true;
-  $("cam-review").hidden = true;
-  camMsg("");
-  const note = $("cam-ask-note"), allow = $("cam-allow"), tab = $("cam-newtab");
-  note.hidden = true;
-  allow.hidden = false;
-  allow.disabled = false;
-  tab.hidden = true;
-  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    note.textContent = "This browser view does not offer a camera. Use a photo file (on a phone it opens the camera), or open the stand-alone copy of this site, quilt_designer.html, in Chrome, Edge or Firefox.";
-    note.hidden = false;
-    allow.hidden = true;
-    return;
-  }
-  if (!camPolicyAllows()) {
-    note.textContent = "Claude shows this page in a protected window that blocks webcams, so the browser cannot ask for permission here. Use a photo file (on a phone this opens the camera), or open the stand-alone copy of this site, quilt_designer.html, in Chrome, Edge or Firefox to use the webcam.";
-    note.hidden = false;
-    allow.hidden = true;
-    return;
-  }
-  const st = await camPermissionState();
-  if (st === "granted") {
-    camStart();
-    return;
-  }
-  if (st === "denied") {
-    note.textContent = 'The camera is blocked for this page. Click the camera or lock icon in the address bar, set Camera to "Allow", then press "Allow webcam" again.';
-    note.hidden = false;
-  }
-}
-async function camStart() {
-  camStop();
-  cam.shot = null;
-  $("cam-ask").hidden = true;
-  $("cam-viewbox").hidden = false;
-  $("cam-review").hidden = true;
-  $("cam-live-row").hidden = false;
-  $("cam-shot").hidden = true;
-  $("cam-video").hidden = false;
-  $("cam-guide").hidden = false;
-  camMsg("Waiting for permission to use the webcam\u2026");
-  $("cam-snap").disabled = true;
-  try {
-    cam.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: cam.facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    });
-    $("cam-video").srcObject = cam.stream;
-    await $("cam-video").play().catch(() => {
-    });
-    camMsg("Fill the dashed square with the fabric, hold steady, then take the picture.");
-    $("cam-snap").disabled = false;
-    cam.hadLive = true;
-    try {
-      cam.devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput").length;
-    } catch (e) {
-      cam.devices = 1;
-    }
-    $("cam-flip").hidden = cam.devices < 2;
-  } catch (e) {
-    await camAsk();
-    const note = $("cam-ask-note");
-    note.textContent = e && e.name === "NotAllowedError" ? camPolicyAllows() ? 'Permission was not given. To use the webcam, click the camera or lock icon in the address bar, set Camera to "Allow", then press "Allow webcam" again.' : note.textContent : e && e.name === "NotFoundError" ? "No webcam was found on this computer. Use a photo file instead." : e && e.name === "NotReadableError" ? 'The webcam is in use by another program. Close it and press "Allow webcam" again.' : `The webcam could not be started${e && e.name ? ` (${e.name})` : ""}. Press "Allow webcam" to try again, or use a photo file.`;
-    note.hidden = false;
-    if (e && e.name === "NotAllowedError" && !camPolicyAllows()) $("cam-allow").hidden = true;
-  }
-}
-function camCrop(src, w, h) {
-  const side = Math.round(Math.min(w, h) * (src instanceof HTMLVideoElement ? 0.7 : 1)), out = Math.min(1024, side);
-  const c = document.createElement("canvas");
-  c.width = c.height = out;
-  c.getContext("2d").drawImage(src, (w - side) / 2, (h - side) / 2, side, side, 0, 0, out, out);
-  return c;
-}
-function evenLighting(c) {
-  const n = c.width, g = c.getContext("2d"), img = g.getImageData(0, 0, n, n), d = img.data;
-  const s = document.createElement("canvas");
-  s.width = s.height = 8;
-  const sg = s.getContext("2d");
-  sg.imageSmoothingQuality = "high";
-  sg.drawImage(c, 0, 0, 8, 8);
-  const L = document.createElement("canvas");
-  L.width = L.height = n;
-  const lg = L.getContext("2d");
-  lg.imageSmoothingEnabled = true;
-  lg.imageSmoothingQuality = "high";
-  lg.drawImage(s, 0, 0, n, n);
-  const ld = lg.getImageData(0, 0, n, n).data;
-  let mr = 0, mg = 0, mb = 0;
-  const px = n * n;
-  for (let i = 0; i < d.length; i += 4) {
-    mr += ld[i];
-    mg += ld[i + 1];
-    mb += ld[i + 2];
-  }
-  mr /= px;
-  mg /= px;
-  mb /= px;
-  for (let i = 0; i < d.length; i += 4) {
-    const lum = (ld[i] + ld[i + 1] + ld[i + 2]) / 3 || 1, mean = (mr + mg + mb) / 3, k = mean / lum;
-    d[i] = Math.min(255, d[i] * k);
-    d[i + 1] = Math.min(255, d[i + 1] * k);
-    d[i + 2] = Math.min(255, d[i + 2] * k);
-  }
-  g.putImageData(img, 0, 0);
-  return c;
-}
-function makeSeamless(c) {
-  const n = c.width, h = n >> 1, g = c.getContext("2d"), A = g.getImageData(0, 0, n, n).data;
-  const out = g.createImageData(n, n), o = out.data;
-  const edge = (x, y) => Math.max(1e-3, Math.min(x, n - 1 - x, y, n - 1 - y) / h);
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) {
-      const xb = (x + h) % n, yb = (y + h) % n, ia = 4 * (y * n + x), ib = 4 * (yb * n + xb);
-      const wa = edge(x, y) ** 2, wb = edge(xb, yb) ** 2, t = wa + wb;
-      for (let k = 0; k < 3; k++) o[ia + k] = (A[ia + k] * wa + A[ib + k] * wb) / t;
-      o[ia + 3] = 255;
-    }
-  g.putImageData(out, 0, 0);
-  return c;
-}
-function camReview(c) {
-  cam.shot = c;
-  camStop();
-  const v = $("cam-shot");
-  v.width = c.width;
-  v.height = c.height;
-  v.getContext("2d").drawImage(c, 0, 0);
-  v.hidden = false;
-  $("cam-video").hidden = true;
-  $("cam-guide").hidden = true;
-  $("cam-live-row").hidden = true;
-  $("cam-review").hidden = false;
-  if (!$("cam-name").value)
-    $("cam-name").value = `Photo fabric ${fabricLib.filter((f) => !/^b\d+$/.test(f.id)).length + 1}`;
-  camMsg("Check the picture. Set how wide the square is on the real fabric, so the print shows at its true size.");
-}
-function openCamera() {
-  const dlg = $("cam-dialog");
-  $("cam-name").value = "";
-  if (!dlg.open) {
-    try {
-      dlg.showModal();
-    } catch (e) {
-      dlg.setAttribute("open", "");
-    }
-  }
-  camAsk();
-}
-function initCamera() {
-  for (const b of document.querySelectorAll(".cam-open")) b.addEventListener("click", openCamera);
-  $("cam-close").addEventListener("click", () => $("cam-dialog").close());
-  $("cam-dialog").addEventListener("close", () => {
-    camStop();
-    setTimeout(() => {
-      setCamTarget(null);
-    }, 0);
-  });
-  $("cam-flip").addEventListener("click", () => {
-    cam.facing = cam.facing === "environment" ? "user" : "environment";
-    camStart();
-  });
-  $("cam-snap").addEventListener("click", () => {
-    const v = $("cam-video");
-    if (!v.videoWidth) return;
-    camReview(camCrop(v, v.videoWidth, v.videoHeight));
-  });
-  $("cam-file").addEventListener("change", async (e) => {
-    const f = e.target.files[0];
-    e.target.value = "";
-    if (!f) return;
-    const im = await loadImage(URL.createObjectURL(f));
-    camReview(camCrop(im, im.naturalWidth, im.naturalHeight));
-  });
-  $("cam-retake").addEventListener("click", () => cam.hadLive ? camStart() : camAsk());
-  $("cam-allow").addEventListener("click", camStart);
-  $("cam-file2").addEventListener("change", async (e) => {
-    const f = e.target.files[0];
-    e.target.value = "";
-    if (!f) return;
-    const im = await loadImage(URL.createObjectURL(f));
-    $("cam-ask").hidden = true;
-    $("cam-viewbox").hidden = false;
-    camReview(camCrop(im, im.naturalWidth, im.naturalHeight));
-  });
-  $("cam-use").addEventListener("click", async () => {
-    if (!cam.shot) return;
-    const c = document.createElement("canvas");
-    c.width = c.height = cam.shot.width;
-    c.getContext("2d").drawImage(cam.shot, 0, 0);
-    if ($("cam-fix").checked) makeSeamless(evenLighting(c));
-    const cm = Math.max(3, Math.min(100, +$("cam-cm").value || 15));
-    $("cam-dialog").close();
-    const id = await addFabric(c, { name: ($("cam-name").value || "Photo fabric").slice(0, 40), cm });
-    if (camTarget) {
-      const f = camTarget;
-      setCamTarget(null);
-      f(id);
-    } else if (selParts.size) applyFabric(id);
-    else {
-      setActiveFabric(id);
-      drawFabricPalette();
-    }
-    $("dz-fabnote").textContent = "Fabric added from the camera. It is kept in this browser with your designs.";
-  });
-}
-initCamera();
 
 // src/designer/hover.js
 var hover = { bi: -1, part: -1, cand: -1, timer: 0, x: 0, y: 0, zone: null, zr: null, zi: -1 };

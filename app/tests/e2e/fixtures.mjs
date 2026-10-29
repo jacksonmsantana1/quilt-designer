@@ -27,7 +27,7 @@ const pageHtml = () =>
 export const test = base.extend({
   // set `firstVisit: true` in a test file to see the guided tour start by itself
   firstVisit: [false, { option: true }],
-  // where the page is served: http://localhost/ is a secure context (camera, Web Crypto), http://x/ is not
+  // where the page is served: http://localhost/ is a secure context (Web Crypto), http://x/ is not
   origin: ['http://x', { option: true }],
   app: async ({ page, firstVisit, origin }, use) => {
     const errors = [];

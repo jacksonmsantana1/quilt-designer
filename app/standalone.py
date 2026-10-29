@@ -1,5 +1,4 @@
-# Stand-alone copy: one HTML file with every asset inlined, for opening directly in a browser
-# (where the webcam permission prompt works).
+# Stand-alone copy: one HTML file with every asset inlined, for opening directly in a browser.
 import base64, re, mimetypes
 html = open('quilt.html').read()
 def uri(path):

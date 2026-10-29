@@ -22,7 +22,3 @@ export const setHideTools = f => (hideTools = f);
 export let partTap = null;
 /** @param {{ t: number, hit: number } | null} v */
 export const setPartTap = v => (partTap = v);
-/** @type {((id: string) => void) | null} what to do with a fabric made with the camera (null: add it to the palette) */
-export let camTarget = null;
-/** @param {((id: string) => void) | null} f */
-export const setCamTarget = f => (camTarget = f);

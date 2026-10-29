@@ -367,12 +367,6 @@
   .hover-rot[hidden] { display: none; }
   .hover-rot svg { width: 16px; height: 16px; }
   .hover-rot:hover { transform: scale(1.12) rotate(30deg); background: #2f466f; color: #fff; }
-  .cam-view { position: relative; margin-top: 10px; background: #111; border-radius: 8px; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
-  .cam-view video, .cam-view canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .cam-view canvas { width: auto; height: 100%; max-width: 100%; aspect-ratio: 1; }
-  .cam-guide { position: absolute; aspect-ratio: 1; height: 70%; border: 2px dashed rgba(255,255,255,.9); border-radius: 4px; box-shadow: 0 0 0 9999px rgba(0,0,0,.35); pointer-events: none; }
-  .cam-warn { color: #8a3b1f; font-weight: 600; margin: 0 0 10px; }
-  #cam-ask[hidden], #cam-viewbox[hidden], #cam-review[hidden], #cam-live-row[hidden], #cam-shot[hidden], #cam-video[hidden], #cam-guide[hidden] { display: none; }
   .fitopt { display: flex; gap: 10px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
   .fitopt small { display: block; color: var(--muted); margin-top: 2px; }
   .fitopt .tag { font-size: .72rem; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
@@ -834,7 +828,6 @@
         <p class="fine" style="margin:0 0 8px">Add photos of your own fabrics. They join the fabric list under Block parts.</p>
         <div class="row">
           <label class="btn filebtn sm" for="dz-upload">Add fabric photos</label>
-          <button class="btn sm cam-open" type="button">Take a photo</button>
           <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
         </div>
         <div class="param">
@@ -913,54 +906,12 @@
       <div class="fussy-row"><canvas id="dz-fussy-cv" aria-label="One repeat of the print: click to choose the part that shows in this piece"></canvas>
       <button type="button" class="btn sm" id="dz-fussy-clear" hidden>Cut it normally</button></div>
     </div>
-    <div class="row" style="margin-top:8px" hidden><button class="btn sm cam-open" type="button">Take a photo of a fabric</button></div>
     </div>
     <div id="dz-libbox">
     <p class="fine" style="margin:14px 0 6px">Blocks in your quilt · click one to copy it into the block you are editing</p>
     <div class="blib" id="dz-library" aria-label="Distinct blocks in your quilt"></div>
     </div>
     <div class="dlg-foot"><button class="btn primary" type="button" id="dz-done">Done</button></div>
-  </dialog>
-  <dialog class="dz-dialog cam-dialog" id="cam-dialog" aria-labelledby="cam-title">
-    <div class="dlg-head">
-      <div><h2 id="cam-title">New fabric from the camera</h2>
-        <p class="fine" style="margin:2px 0 0">Lay the fabric flat in even light and fill the square with it.</p></div>
-      <button class="btn sm dlg-x" type="button" id="cam-close" aria-label="Close the camera">×</button>
-    </div>
-    <div class="cam-ask" id="cam-ask" hidden>
-      <p style="margin:10px 0 6px"><b>Use your computer's webcam?</b></p>
-      <p class="fine" style="margin:0 0 10px">The webcam is used only to photograph a fabric. The picture stays in this page on your device; nothing is uploaded. Your browser will ask you to allow the camera.</p>
-      <p class="fine cam-warn" id="cam-ask-note" hidden></p>
-      <div class="row">
-        <button class="btn primary" type="button" id="cam-allow">Allow webcam</button>
-        <button class="btn" type="button" id="cam-newtab" hidden style="display:none"></button>
-        <label class="btn filebtn" for="cam-file2">Use a photo file instead</label>
-        <input id="cam-file2" type="file" accept="image/*" capture="environment" class="sr">
-      </div>
-    </div>
-    <div class="cam-view" id="cam-viewbox">
-      <video id="cam-video" playsinline muted autoplay></video>
-      <canvas id="cam-shot" hidden></canvas>
-      <div class="cam-guide" id="cam-guide" aria-hidden="true"></div>
-    </div>
-    <p class="fine" id="cam-msg" style="margin:8px 0 0"></p>
-    <div class="row" style="margin-top:8px" id="cam-live-row">
-      <button class="btn primary" type="button" id="cam-snap">Take picture</button>
-      <button class="btn sm" type="button" id="cam-flip" hidden>Switch camera</button>
-      <label class="btn sm filebtn" for="cam-file">Use the phone camera or a file</label>
-      <input id="cam-file" type="file" accept="image/*" capture="environment" class="sr">
-    </div>
-    <div id="cam-review" hidden>
-      <div class="two" style="margin-top:8px">
-        <div><label for="cam-name">Fabric name</label><input id="cam-name" type="text" maxlength="40"></div>
-        <div><label for="cam-cm">Width of the square (cm)</label><input id="cam-cm" type="number" min="3" max="100" step="1" value="15" inputmode="numeric"></div>
-      </div>
-      <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="cam-fix" checked> Even out the lighting and make it tile without seams</label>
-      <div class="row" style="margin-top:10px">
-        <button class="btn primary" type="button" id="cam-use">Add this fabric</button>
-        <button class="btn" type="button" id="cam-retake">Retake</button>
-      </div>
-    </div>
   </dialog>
 </section>
 

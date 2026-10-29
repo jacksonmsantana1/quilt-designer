@@ -159,13 +159,13 @@ for (const ev of [
   'touchstart',
 ])
   document.addEventListener(ev, tourBlock, true);
-for (const id of ['dz-dialog', 'save-dlg', 'cam-dialog', 'cg-pop'])
+for (const id of ['dz-dialog', 'save-dlg', 'cg-pop'])
   $(id).addEventListener('cancel', e => {
     if (tour.on && !(TOUR[tour.i].allow || []).includes('#dz-done')) e.preventDefault();
   });
 function tourHost() {
   // the tour card must sit inside an open modal pop-up, or it would be blocked by it
-  for (const id of ['save-dlg', 'cam-dialog', 'cg-pop', 'dz-dialog']) {
+  for (const id of ['save-dlg', 'cg-pop', 'dz-dialog']) {
     const d = $(id);
     if (d && d.open) return d;
   }
@@ -335,7 +335,7 @@ function tourBegin() {
   tour.i = 0;
   tour.userPos = null;
   document.body.classList.add('tour-active');
-  for (const id of ['dz-dialog', 'save-dlg', 'cam-dialog', 'cg-pop']) if ($(id).open) $(id).close();
+  for (const id of ['dz-dialog', 'save-dlg', 'cg-pop']) if ($(id).open) $(id).close();
   if (state.page !== 'design') showPage('design');
   hideTools();
   // the tour always starts from the same default quilt (5 × 5, 458 mm, Ohio star and nine patch), with its

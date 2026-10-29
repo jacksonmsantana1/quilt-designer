@@ -1,5 +1,5 @@
 // Hover highlight on blocks, parts, sashing and borders, with the rotate and mirror buttons.
-import '../camera/fabric-camera.js'; // load order: runs after camera/fabric-camera
+import '../app/layout.js'; // load order: runs after app/layout
 import { design, selBlocks, setFocusBlock, setSelBlocks, setSelParts } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { partsOf } from '@quilt/shared/patterns.js';

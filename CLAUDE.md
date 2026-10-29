@@ -93,9 +93,9 @@ claude.ai can only sync once the API is on https on the internet (Chrome blocks 
 the person's own computer).
 
 **Known gaps / ideas**
-- The "Add fabric photos" and "Take a photo" buttons sit in sections that are always hidden, so people can't add
-  their own fabrics (tests reach them through the code). Proposed: a "+ Add fabric" tile at the end of the
-  fabric list (photo file or webcam). Not done yet: ask first.
+- The "Add fabric photos" button sits in a section that is always hidden, so people can't add their own fabrics
+  (tests reach it through the code). Proposed: a "+ Add fabric" tile at the end of the fabric list (photo file).
+  Not done yet: ask first. The webcam fabric feature was removed at the owner's request: don't bring it back.
 - Photos added on a plain-http page get the simple `h…` fingerprint and are not synced (sync says so).
 - Undo timelines are all loaded into memory at start; load per design if people have hundreds of designs.
 - Later: "fabrics like this one" with pgvector (image embeddings in a background job) and dominant-colour palettes.
