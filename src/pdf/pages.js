@@ -1,6 +1,7 @@
 // Cutting guide PDF: the A4 pages and the PDF writer.
 import '../sim/save-image.js'; // load order: runs after sim/save-image
-import { shared } from '../core/shared.js';
+import { cgHi, fabHi, setCgHi, setFabHi } from '../render/hi-state.js';
+import { design } from '../core/store.js';
 import { fabricById } from '../designer/fabric-library.js';
 import { BORDER_TYPES, bordersOf, quiltMm, sashOf } from '../core/geometry.js';
 import { drawBordersExploded } from '../render/quilt-draw.js';
@@ -131,7 +132,7 @@ function pdfFabricPage(P, pages) {
     g,
     P,
     'Cutting guide',
-    `${shared.design.cols} × ${shared.design.rows} blocks · ${P.blocks.length} distinct block${P.blocks.length > 1 ? 's' : ''}`,
+    `${design.cols} × ${design.rows} blocks · ${P.blocks.length} distinct block${P.blocks.length > 1 ? 's' : ''}`,
     1,
     pages,
   );
@@ -217,13 +218,13 @@ function pdfFabricPage(P, pages) {
 function pdfQuiltPage(P, page, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12,
-    s = sashOf(shared.design),
-    nb = bordersOf(shared.design).length;
+    s = sashOf(design),
+    nb = bordersOf(design).length;
   pdfHeader(
     g,
     P,
     'Whole quilt',
-    `${shared.design.cols} × ${shared.design.rows} blocks${s.mm ? ` · ${s.mm} mm sashing` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''}` : ''} · every piece with its ID`,
+    `${design.cols} × ${design.rows} blocks${s.mm ? ` · ${s.mm} mm sashing` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''}` : ''} · every piece with its ID`,
     page,
     pages,
   );
@@ -231,16 +232,16 @@ function pdfQuiltPage(P, page, pages) {
   const top = M + 24,
     availW = A4.w - 2 * M,
     availH = A4.h - top - 26;
-  const keepHi = shared.cgHi,
-    keepFab = shared.fabHi;
-  shared.cgHi = -1;
-  shared.fabHi = null;
+  const keepHi = cgHi,
+    keepFab = fabHi;
+  setCgHi(-1);
+  setFabHi(null);
   const tmp = document.createElement('canvas');
   try {
     drawCutQuilt(P, { cv: tmp, w: availW * PX, h: availH * PX, u: 2.4, dpr: 1 });
   } finally {
-    shared.cgHi = keepHi;
-    shared.fabHi = keepFab;
+    setCgHi(keepHi);
+    setFabHi(keepFab);
   }
   const k = Math.min(availW / (tmp.width / PX), availH / (tmp.height / PX), 1),
     QW = (tmp.width / PX) * k,
@@ -264,7 +265,7 @@ function pdfQuiltPage(P, page, pages) {
 function pdfSashPage(P, page, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12,
-    s = sashOf(shared.design),
+    s = sashOf(design),
     cuts = (P.sashing || []).filter(x => x.group === 'sash');
   pdfHeader(
     g,
@@ -304,9 +305,9 @@ function pdfSashPage(P, page, pages) {
 function pdfBorderPage(P, bi, page, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12,
-    bs = bordersOf(shared.design),
+    bs = bordersOf(design),
     bd = bs[bi],
-    q = quiltMm(shared.design);
+    q = quiltMm(design);
   const cuts = (P.sashing || []).filter(x => x.group === 'b' + bi);
   const where =
     bs.length > 1 ? (bi === 0 ? ' · the innermost border' : bi === bs.length - 1 ? ' · the outermost border' : '') : '';
@@ -323,8 +324,8 @@ function pdfBorderPage(P, bi, page, pages) {
   const gapMm = bs.length > 1 ? 3 : 0,
     side = Math.min(A4.w - 2 * M - 30, ((A4.h - top - tH - 30) * q.W) / q.H),
     x0 = (A4.w - side) / 2;
-  const keepFab = shared.fabHi;
-  shared.fabHi = null;
+  const keepFab = fabHi;
+  setFabHi(null);
   let Hpx;
   g.save();
   g.translate(x0, top);
@@ -332,7 +333,7 @@ function pdfBorderPage(P, bi, page, pages) {
   try {
     Hpx = drawBordersExploded(g, side * PX, gapMm * PX, bs.length > 1 ? bi : -1);
   } finally {
-    shared.fabHi = keepFab;
+    setFabHi(keepFab);
   }
   g.restore();
   const H = Hpx / PX;

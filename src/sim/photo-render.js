@@ -3,7 +3,7 @@ import './analysis.js'; // load order: runs after sim/analysis
 import * as THREE from 'three';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
-import { shared } from '../core/shared.js';
+import { ptBroken, ptCheck, renderT0, setActiveCam, setPtBroken, setPtCheck, setRenderT0 } from './sim-state.js';
 import { $ } from '../core/dom.js';
 import { N, state } from './config.js';
 import { camera, canvas, renderer, scene, sun } from './renderer.js';
@@ -33,12 +33,9 @@ const GPU_NAME = (() => {
 let pathTracer = null,
   ptError = null,
   wasRunning = true;
-shared.renderT0 = 0;
-shared.ptCheck = null;
-shared.ptBroken = null;
 try {
   const saved = JSON.parse(localStorage.getItem(PT_KEY) || 'null');
-  if (saved && saved.gpu === GPU_NAME) shared.ptBroken = saved.reason;
+  if (saved && saved.gpu === GPU_NAME) setPtBroken(saved.reason);
 } catch (e) {}
 
 function ensurePathTracer() {
@@ -99,9 +96,10 @@ const blendQuad = new FullScreenQuad(
 const showQuad = new FullScreenQuad(
   new THREE.MeshBasicMaterial({ toneMapped: true, depthTest: false, depthWrite: false }),
 );
-const halton = (i, b) => {
+const halton = (n, b) => {
   let f = 1,
-    r = 0;
+    r = 0,
+    i = n;
   while (i > 0) {
     f /= b;
     r += f * (i % b);
@@ -240,10 +238,10 @@ function stepRaster() {
 
 // ---- engine selection and failure handling
 function usePathTracing() {
-  return look.engine === 'path' || (look.engine === 'auto' && !shared.ptBroken);
+  return look.engine === 'path' || (look.engine === 'auto' && !ptBroken);
 }
 function renderFailed(reason, permanent = true) {
-  shared.ptBroken = reason;
+  setPtBroken(reason);
   if (permanent) {
     try {
       localStorage.setItem(PT_KEY, JSON.stringify({ gpu: GPU_NAME, reason }));
@@ -263,7 +261,7 @@ function renderFailed(reason, permanent = true) {
 async function startRender() {
   if ($('ortho').checked) {
     $('ortho').checked = false;
-    shared.activeCam = camera;
+    setActiveCam(camera);
   }
   wasRunning = state.running;
   if (state.running) setRunning(false, true);
@@ -289,8 +287,8 @@ async function startRender() {
     renderFailed('the scene could not be prepared (' + (e.message || e) + ')');
     return;
   }
-  shared.renderT0 = performance.now();
-  shared.ptCheck = { done: false };
+  setRenderT0(performance.now());
+  setPtCheck({ done: false });
 }
 function stopRender() {
   stopRaster();
@@ -301,17 +299,17 @@ function stopRender() {
 function restartSamples() {
   if (!pathTracer || state.view !== 'render' || raster.active) return;
   pathTracer.pausePathTracing = false;
-  shared.renderT0 = performance.now();
+  setRenderT0(performance.now());
   pathTracer.reset();
-  shared.ptCheck = { done: false };
+  setPtCheck({ done: false });
 }
 // After a few samples, read the accumulated image where the quilt is. On a
 // working GPU those pixels are lit fabric; on a broken driver they come back
 // black, NaN, or exactly the background colour (the rays missed the geometry).
 const _p = new THREE.Vector3();
 function verifyRender() {
-  if (!shared.ptCheck || shared.ptCheck.done || pathTracer.samples < 4) return;
-  shared.ptCheck.done = true;
+  if (!ptCheck || ptCheck.done || pathTracer.samples < 4) return;
+  ptCheck.done = true;
   const t = pathTracer.target;
   if (!t) return;
   const bg = scene.background && scene.background.isColor ? scene.background : new THREE.Color(0, 0, 0);
@@ -360,7 +358,7 @@ function stepRender() {
   verifyRender();
   if (raster.active || state.view !== 'render') return raster.active;
   const s = Math.floor(pathTracer.samples),
-    secs = (performance.now() - shared.renderT0) / 1000;
+    secs = (performance.now() - renderT0) / 1000;
   const done = pathTracer.samples >= look.target;
   $('rstat').textContent = pathTracer.isCompiling
     ? `Compiling the path tracer for your GPU… ${secs.toFixed(0)} s (first time only)`

@@ -9,7 +9,11 @@ import {
   setFussy,
   setBlockSpan,
   setSashing,
-  setBorders,
+  addBorder,
+  moveBorder,
+  removeBorder,
+  setBorderFabric,
+  updateBorder,
   setQuilting,
   setBlockMm,
   setBackFabric,
@@ -108,7 +112,7 @@ test('sashing, borders, quilting, block size, backing', () => {
   const d = frozen(2, 2);
   assert.deepEqual(setSashing(d, { mm: 50 }).sashing, { mm: 50, fabric: 'b0', corner: 'b3', border: false });
   assert.equal(setSashing(d, { mm: -3 }).sashing.mm, 0);
-  const b = setBorders(d, bs => bs.push({ type: 'plain', mm: 40, fabrics: ['b1'] }));
+  const b = addBorder(d, { type: 'plain', mm: 40, fabrics: ['b1'] });
   assert.equal(b.borders.length, 1);
   assert.equal('quilting' in setQuilting(setQuilting(d, 'fans'), 'ditch'), false);
   assert.equal(setBlockMm(d, 300).blockMm, 300);
@@ -147,4 +151,30 @@ test('turning a symmetry on mirrors the top-left part straight away', () => {
     ['hst', 'hst', 'hst'],
   );
   assert.equal('sym' in setSymmetry(n, 'off'), false);
+});
+
+test('border edits: add, change, move, fabric slots, remove', () => {
+  const deepFreeze = o => (
+    Object.values(o).forEach(v => v && typeof v === 'object' && deepFreeze(v)),
+    Object.freeze(o)
+  );
+  const d = deepFreeze(
+    addBorder(addBorder(frozen(2, 2), { type: 'plain', mm: 40, fabrics: ['b1'] }), {
+      type: 'piano',
+      mm: 60,
+      fabrics: ['b2'],
+    }),
+  );
+  assert.equal(updateBorder(d, 0, { mm: 50 }).borders[0].mm, 50);
+  assert.equal(updateBorder(d, 0, { mm: 50 }).borders[1], d.borders[1]); // the other border is shared
+  assert.deepEqual(
+    moveBorder(d, 0, 1).borders.map(b => b.type),
+    ['piano', 'plain'],
+  );
+  assert.equal(moveBorder(d, 1, 1), d); // already outermost
+  assert.deepEqual(setBorderFabric(d, 0, 2, 'b5').borders[0].fabrics, ['b1', 'b1', 'b5']);
+  assert.deepEqual(
+    removeBorder(d, 0).borders.map(b => b.type),
+    ['piano'],
+  );
 });

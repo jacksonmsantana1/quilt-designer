@@ -1,7 +1,7 @@
 // Camera orbit, views and pointer interaction in the 3D view.
 import './quilt-mesh.js'; // load order: runs after sim/quilt-mesh
 import * as THREE from 'three';
-import { shared } from '../core/shared.js';
+import { activeCam, havePos, setActiveCam, setGrabMsg } from './sim-state.js';
 import { N, state } from './config.js';
 import { send } from './worker-link.js';
 import { camera, canvas, renderer } from './renderer.js';
@@ -12,7 +12,7 @@ import { pathTracer, raster, resetRaster } from './photo-render.js';
 const target = new THREE.Vector3(0, 0.5, 0.15);
 const orbit = { r: 4.3, az: 0.72, el: 0.38 };
 const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.05, 50);
-shared.activeCam = camera;
+setActiveCam(camera);
 function placeCamera(keepRender) {
   for (const cam of [camera, ortho]) {
     cam.position.set(
@@ -61,14 +61,13 @@ const ndc = new THREE.Vector2();
 const pointers = new Map();
 let drag = null,
   pinchD = 0;
-shared.grabMsg = null;
 function setNdc(e) {
   const r = canvas.getBoundingClientRect();
   ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  ray.setFromCamera(ndc, shared.activeCam);
+  ray.setFromCamera(ndc, activeCam);
 }
 function pickQuilt(e) {
-  if (!shared.havePos || state.view === 'render') return null;
+  if (!havePos || state.view === 'render') return null;
   setNdc(e);
   const hit = ray.intersectObjects([quiltTop, quiltBot], false)[0];
   if (!hit || !hit.uv) return null;
@@ -89,9 +88,9 @@ canvas.addEventListener('pointerdown', e => {
     const p = pickQuilt(e);
     if (p) {
       const n = new THREE.Vector3();
-      shared.activeCam.getWorldDirection(n);
+      activeCam.getWorldDirection(n);
       drag = { kind: 'grab', i: p.i, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n.negate(), p.point) };
-      shared.grabMsg = { type: 'grab', i: p.i, target: p.point.toArray() };
+      setGrabMsg({ type: 'grab', i: p.i, target: p.point.toArray() });
       canvas.classList.add('grabbing');
       return;
     }
@@ -125,7 +124,7 @@ canvas.addEventListener('pointermove', e => {
     const p = new THREE.Vector3();
     if (ray.ray.intersectPlane(drag.plane, p)) {
       p.y = Math.max(0.03, p.y);
-      shared.grabMsg = { type: 'grab', i: drag.i, target: p.toArray() };
+      setGrabMsg({ type: 'grab', i: drag.i, target: p.toArray() });
     }
   }
 });
@@ -133,7 +132,7 @@ const endPointer = e => {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pinchD = 0;
   if (drag && drag.kind === 'grab') {
-    shared.grabMsg = null;
+    setGrabMsg(null);
     send({ type: 'grab', i: null });
   }
   drag = null;

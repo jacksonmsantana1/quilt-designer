@@ -1,6 +1,7 @@
 // Pop-up to change the fabric of one part.
 import './hover.js'; // load order: runs after designer/hover
-import { shared } from '../core/shared.js';
+import { design, selParts, setActiveFabric } from '../core/store.js';
+import { setCamTarget } from './ui-state.js';
 import { $ } from '../core/dom.js';
 import { blockPolys, pathPoly, pathPolyInto } from '../core/geometry.js';
 import { drawDesignerCanvas } from './canvas.js';
@@ -14,7 +15,7 @@ import { setPartFabric as setPartFabricEdit } from '../core/edits.js';
 // ---- the fabric-only pop-up for one part
 const partEdit = { bi: -1, part: -1, twins: [] };
 function drawPartDialog() {
-  const b = shared.design.blocks[partEdit.bi];
+  const b = design.blocks[partEdit.bi];
   if (!b) return;
   drawPaletteInto($('dz-partfabs'), b.fabrics[partEdit.part]);
   const cv = $('dz-partdlg-cv'),
@@ -24,7 +25,7 @@ function drawPartDialog() {
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const polys = blockPolys(b, 0, 0, S, S),
-    pxPerCm = S / (shared.design.blockMm / 10);
+    pxPerCm = S / (design.blockMm / 10);
   polys.forEach((p, i) => {
     g.fillStyle = pieceFill(g, b, i, p, pxPerCm, partEdit.bi * 31 + i);
     pathPoly(g, p);
@@ -47,8 +48,8 @@ function drawPartDialog() {
 }
 function setPartFabric(fid) {
   const targets = [partEdit.bi, ...($('dz-partall').checked ? partEdit.twins : [])];
-  shared.activeFabric = fid;
-  dispatch(setPartFabricEdit, targets, shared.design.blocks[partEdit.bi].pattern, [partEdit.part], fid);
+  setActiveFabric(fid);
+  dispatch(setPartFabricEdit, targets, design.blocks[partEdit.bi].pattern, [partEdit.part], fid);
   drawPartDialog();
   drawFabricPalette();
 }
@@ -61,11 +62,11 @@ function initPartDialog() {
   $('dz-partdlg-x').addEventListener('click', close);
   $('dz-partdone').addEventListener('click', close);
   $('dz-partdlg').addEventListener('close', () => {
-    shared.selParts.clear();
+    selParts.clear();
     drawDesignerCanvas();
   });
   $('dz-partcam').addEventListener('click', () => {
-    shared.camTarget = id => setPartFabric(id);
+    setCamTarget(id => setPartFabric(id));
     openCamera();
   });
 }

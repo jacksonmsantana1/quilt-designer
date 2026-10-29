@@ -1,6 +1,6 @@
 // Drawing the whole quilt top: blocks, sashing and borders.
 import './fabric-fill.js'; // load order: runs after render/fabric-fill
-import { shared } from '../core/shared.js';
+import { design } from '../core/store.js';
 import { dimUnlessHi } from './highlight.js';
 import { fabricById } from '../designer/fabric-library.js';
 import {
@@ -81,8 +81,8 @@ function drawBorders(g, d, W, H, pxPerCm, seams, biBase = 0) {
 // The quilt with its borders pulled apart: each border is drawn as its own ring with a gap around it,
 // so several borders read separately. W is the width in px; gap the space between rings (px). Returns the height.
 function explodedH(W, gap) {
-  const q = quiltMm(shared.design),
-    n = bordersOf(shared.design).length,
+  const q = quiltMm(design),
+    n = bordersOf(design).length,
     k = (W - 2 * gap * n) / q.W;
   return Math.round(q.H * k + 2 * gap * n);
 }
@@ -137,9 +137,9 @@ function drawRingPx(g, b, bi, X, Y, BW, BH, k) {
   }
 }
 function drawBordersExploded(g, W, gap, focus = -1) {
-  const bs = bordersOf(shared.design),
+  const bs = bordersOf(design),
     n = bs.length,
-    q = quiltMm(shared.design),
+    q = quiltMm(design),
     k = (W - 2 * gap * n) / q.W,
     H = explodedH(W, gap);
   const fade = (x, y, w, h, t) => {
@@ -167,7 +167,7 @@ function drawBordersExploded(g, W, gap, focus = -1) {
   // the quilt inside all the borders
   g.save();
   g.translate(off, off);
-  drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...shared.design, borders: [] } });
+  drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...design, borders: [] } });
   if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
   g.restore();
   return H;
@@ -178,7 +178,7 @@ function drawBordersExploded(g, W, gap, focus = -1) {
  * @param {{ seams?: boolean, design?: import('../core/types.js').Design }} [opts] design: the one being edited by default
  */
 function drawQuilt(g, W, H, opts = {}) {
-  const d = opts.design || shared.design;
+  const d = opts.design || design;
   if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
   const q = quiltMm(d),
     pxPerCm = W / (q.W / 10),

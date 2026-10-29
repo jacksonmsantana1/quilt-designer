@@ -1,6 +1,7 @@
 // Start-up.
 import './loop.js'; // load order: runs after app/loop
-import { shared } from '../core/shared.js';
+import { setCavityImg } from '../sim/sim-state.js';
+import { activeFabric, design, setActiveFabric } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { startSim } from '../sim/worker-link.js';
 import { IS_PHONE } from '../sim/renderer.js';
@@ -34,13 +35,13 @@ else if (location.hash === '#mine') showPage('mine');
 else showPage('design');
 (async () => {
   try {
-    shared.cavityImg = await loadImage('assets/quilt_cavity.png');
+    setCavityImg(await loadImage('assets/quilt_cavity.png'));
     await Promise.all([useSwatches(BUNDLED), applyLook()]);
     // the quilt on the bed is your design from the start (the designer keeps it in this browser)
     await initFabricLib();
-    if (!shared.design) {
+    if (!design) {
       ensureDesign();
-      shared.activeFabric = shared.activeFabric || 'b0';
+      setActiveFabric(activeFabric || 'b0');
     }
     syncSimulation();
   } catch (e) {

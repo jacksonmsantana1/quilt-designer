@@ -1,6 +1,7 @@
 // Cutting guide page.
 import './draw.js'; // load order: runs after cutting/draw
-import { shared } from '../core/shared.js';
+import { cgHi, fabHi, lastPlan, setCgHi, setFabHi, setLastPlan } from '../render/hi-state.js';
+import { design } from '../core/store.js';
 import { $, esc } from '../core/dom.js';
 import { PATTERNS, partsOf } from '../core/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -35,14 +36,13 @@ import {
 
 // The whole quilt as on the PDF's quilt page: blocks a little apart, each turned as designed,
 // every piece labelled with its ID, rows and columns numbered.
-shared.cgHi = -1;
 // double-clicking a block opens the whole quilt in a pop-up with that block's squares highlighted
 function openQuiltPop(P, i) {
   const d = $('cg-pop'),
     b = P.blocks[i];
   $('cg-pop-title').textContent = `Block ${i + 1} · ${b.label}`;
   $('cg-pop-sub').textContent =
-    `${b.count} in the quilt, marked in orange · ${shared.design.cols} × ${shared.design.rows} blocks, ${P.quiltW} × ${P.quiltH} mm`;
+    `${b.count} in the quilt, marked in orange · ${design.cols} × ${design.rows} blocks, ${P.quiltW} × ${P.quiltH} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -58,8 +58,8 @@ function cgRowHover(div, makeTest) {
   for (const tr of div.querySelectorAll('.cg-list tbody tr')) {
     tr.classList.add('cutrow');
     tr.title = 'Hover to light up these pieces in the pictures';
-    tr.addEventListener('mouseenter', () => setFabHi(makeTest(tr), tr));
-    tr.addEventListener('mouseleave', () => setFabHi(null));
+    tr.addEventListener('mouseenter', () => lightFabric(makeTest(tr), tr));
+    tr.addEventListener('mouseleave', () => lightFabric(null));
   }
 }
 function cgCardBehaviour(div, key, pick, hint) {
@@ -117,11 +117,11 @@ function cgCardBehaviour(div, key, pick, hint) {
 }
 function openPartPop(kind) {
   const d = $('cg-pop'),
-    q = quiltMm(shared.design),
-    nb = bordersOf(shared.design).length,
-    s = sashOf(shared.design);
+    q = quiltMm(design),
+    nb = bordersOf(design).length,
+    s = sashOf(design);
   const bi = kind[0] === 'b' && kind !== 'brd' ? +kind.slice(1) : -1,
-    b = bi >= 0 ? bordersOf(shared.design)[bi] : null;
+    b = bi >= 0 ? bordersOf(design)[bi] : null;
   $('cg-pop-title').textContent =
     kind === 'sash' ? 'Sashing' : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : 'Border';
   $('cg-pop-sub').textContent =
@@ -129,7 +129,7 @@ function openPartPop(kind) {
       ? `${s.mm} mm strips between the blocks${s.border ? ' and around the outside' : ''}, marked in orange · finished quilt ${q.W} × ${q.H} mm`
       : b
         ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? (bi === 0 ? ' · the innermost border' : bi === nb - 1 ? ' · the outermost border' : '') : ''}, marked in orange · finished quilt ${q.W} × ${q.H} mm`
-        : `${borderTotal(shared.design)} mm all round, marked in orange · finished quilt ${q.W} × ${q.H} mm`;
+        : `${borderTotal(design)} mm all round, marked in orange · finished quilt ${q.W} × ${q.H} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -141,15 +141,15 @@ function openPartPop(kind) {
 }
 const cgOpen = new Set(); // blocks whose cutting list is open          // distinct block picked on the cutting guide (double-click), -1 = none
 function renderCut() {
-  if (!shared.design) return;
+  if (!design) return;
   cgRedraws.length = 0;
-  shared.fabHi = null;
-  const sz = sashOf(shared.design),
-    qm = quiltMm(shared.design),
+  setFabHi(null);
+  const sz = sashOf(design),
+    qm = quiltMm(design),
     extra = [];
   if (sz.mm) {
     // counted from the drawn sashing, so strips hidden under large blocks are left out
-    const sr = sashRects(shared.design, 1000, 1000),
+    const sr = sashRects(design, 1000, 1000),
       strips = sr.filter(x => x.kind === 'sash').length,
       corners = sr.filter(x => x.kind === 'corner').length;
     if (strips)
@@ -157,15 +157,15 @@ function renderCut() {
         group: 'sash',
         what: 'Sashing strips',
         fabric: sz.fabric,
-        w: shared.design.blockMm,
+        w: design.blockMm,
         h: sz.mm,
         n: strips,
       });
     if (corners) extra.push({ group: 'sash', what: 'Cornerstones', fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
   }
   // borders: every piece of every side, classified into standard cuts (or long strips cut across the width)
-  const bs = bordersOf(shared.design),
-    cm = centreMm(shared.design);
+  const bs = bordersOf(design),
+    cm = centreMm(design);
   let innerW = cm.W,
     innerH = cm.H;
   bs.forEach((b, bi) => {
@@ -205,9 +205,9 @@ function renderCut() {
     innerW += 2 * T;
     innerH += 2 * T;
   });
-  const P = CG.plan(shared.design, {
-    blockMm: shared.design.blockMm,
-    sizeOf: k => blockSizeMm(shared.design, k),
+  const P = CG.plan(design, {
+    blockMm: design.blockMm,
+    sizeOf: k => blockSizeMm(design, k),
     seam: cutOpts.seam,
     fabricWidth: cutOpts.fabricWidth,
     selvage: cutOpts.selvage,
@@ -219,10 +219,10 @@ function renderCut() {
     quiltW: qm.W,
     quiltH: qm.H,
   });
-  shared.lastPlan = P;
+  setLastPlan(P);
   $('cg-facts').innerHTML = [
     ['Finished quilt', `${P.quiltW} × ${P.quiltH} mm`],
-    ['Blocks', `${shared.design.cols} × ${shared.design.rows}`],
+    ['Blocks', `${design.cols} × ${design.rows}`],
     [
       'Block',
       `${P.blockW} × ${P.blockH} mm finished · ${P.blockW + 2 * P.seam} × ${P.blockH + 2 * P.seam} mm with seam allowance`,
@@ -244,7 +244,7 @@ function renderCut() {
     tr.querySelector('.sw').appendChild(swatchCanvas(fab));
     tb.appendChild(tr);
   }
-  const backFab = fabricById(shared.design.backFabric);
+  const backFab = fabricById(design.backFabric);
   tb.insertAdjacentHTML(
     'beforeend',
     `<tr class="extra backrow"><td class="sw"></td><td class="letter small">Backing<span class="fname">${esc(backFab.name)}</span></td><td class="req">${P.backing.w} × ${P.backing.h} mm<small>${P.backing.widths} width${P.backing.widths > 1 ? 's' : ''} of fabric sewn together · buy ≈ ${P.backing.buy}</small></td></tr>
@@ -273,7 +273,7 @@ function renderCut() {
       cgRedraws.push(draw);
     }
     const pick = () => {
-      shared.cgHi = i;
+      setCgHi(i);
       drawCutQuilt(P);
       openQuiltPop(P, i);
     };
@@ -298,9 +298,10 @@ function renderCut() {
   if (sashCuts.length) {
     // piece IDs like the blocks' D2.3: fabric letter + S (sashing) . form
     sashCuts.forEach((x, k) => {
+      // eslint-disable-next-line no-param-reassign -- the ids go on the plan's pieces, for the PDF too
       x.id = `${x.letter}S.${k + 1}`;
     });
-    const sz = sashOf(shared.design),
+    const sz = sashOf(design),
       div = document.createElement('div');
     div.className = 'cgblock cg-sash';
     const rows = sashCuts
@@ -338,7 +339,7 @@ function renderCut() {
       div,
       'sash',
       () => {
-        shared.cgHi = 'sash';
+        setCgHi('sash');
         drawCutQuilt(P);
         openPartPop('sash');
       },
@@ -356,7 +357,7 @@ function renderCut() {
     }
   }
   // one card per border (border 1 is the innermost): the quilt with that border lit and the others faded, and its cutting list
-  const bs2 = bordersOf(shared.design);
+  const bs2 = bordersOf(design);
   bs2.forEach((bd, bi) => {
     const cuts = brdCuts.filter(x => x.group === 'b' + bi);
     if (!cuts.length) return;
@@ -403,31 +404,31 @@ function renderCut() {
       div,
       key,
       () => {
-        shared.cgHi = key;
+        setCgHi(key);
         drawCutQuilt(P);
         openPartPop(key);
       },
       `Click to show or hide the cutting list · double-click to see border ${bi + 1} in the whole quilt`,
     );
   });
-  if (typeof shared.cgHi === 'number' && shared.cgHi >= P.blocks.length) shared.cgHi = -1;
+  if (typeof cgHi === 'number' && cgHi >= P.blocks.length) setCgHi(-1);
   if (
-    (shared.cgHi === 'sash' && !sashCuts.length) ||
-    (typeof shared.cgHi === 'string' && shared.cgHi[0] === 'b' && !brdCuts.some(x => x.group === shared.cgHi))
+    (cgHi === 'sash' && !sashCuts.length) ||
+    (typeof cgHi === 'string' && cgHi[0] === 'b' && !brdCuts.some(x => x.group === cgHi))
   )
-    shared.cgHi = -1;
+    setCgHi(-1);
   drawCutQuilt(P);
   $('cg-note').textContent =
     `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, of which ${P.usable / 10} cm is usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre. Requirements add 50 mm to straighten the edge; "buy" rounds up to 5 cm.`;
 }
 // hovering a line of a cutting list lights up those pieces in every picture
-function setFabHi(test, tr) {
-  if (shared.fabHi === test) return;
-  shared.fabHi = test;
+function lightFabric(test, tr) {
+  if (fabHi === test) return;
+  setFabHi(test);
   document.querySelectorAll('#cg-blocks tr.cut-on').forEach(x => x.classList.remove('cut-on'));
   if (tr) tr.classList.add('cut-on');
   for (const f of cgRedraws) f();
-  if (shared.lastPlan) drawCutQuilt(shared.lastPlan);
+  if (lastPlan) drawCutQuilt(lastPlan);
 }
 function initCutUI() {
   $('cg-seam').addEventListener('change', e => {
@@ -450,8 +451,8 @@ $('cg-pop').addEventListener('click', e => {
   if (e.target === $('cg-pop')) $('cg-pop').close();
 }); // click outside closes
 $('cg-pop').addEventListener('close', () => {
-  shared.cgHi = -1;
-  if (shared.lastPlan) drawCutQuilt(shared.lastPlan);
+  setCgHi(-1);
+  if (lastPlan) drawCutQuilt(lastPlan);
 });
 
 export { renderCut };

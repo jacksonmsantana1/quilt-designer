@@ -1,6 +1,7 @@
 // Layout that follows the window size.
 import '../ui/folds.js'; // load order: runs after ui/folds
-import { shared } from '../core/shared.js';
+import { cgHi, lastPlan, setCgHi } from '../render/hi-state.js';
+import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { drawDesignerCanvas } from '../designer/canvas.js';
@@ -20,16 +21,16 @@ function fitSimSide() {
 }
 window.addEventListener('resize', fitSimSide);
 window.addEventListener('resize', () => {
-  if (state.page === 'design' && shared.design) drawDesignerCanvas();
+  if (state.page === 'design' && design) drawDesignerCanvas();
 });
 $('cg-quilt-meta').addEventListener('click', () => {
-  if (shared.cgHi !== -1 && shared.lastPlan) {
-    shared.cgHi = -1;
-    drawCutQuilt(shared.lastPlan);
+  if (cgHi !== -1 && lastPlan) {
+    setCgHi(-1);
+    drawCutQuilt(lastPlan);
   }
 });
 new ResizeObserver(() => {
-  if (state.page === 'cut' && shared.lastPlan && shared.design) drawCutQuilt(shared.lastPlan);
+  if (state.page === 'cut' && lastPlan && design) drawCutQuilt(lastPlan);
 }).observe(document.querySelector('.cg-quilt'));
 initBedUI();
 

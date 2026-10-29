@@ -1,6 +1,7 @@
 // Making and saving the PDF.
 import './templates.js'; // load order: runs after pdf/templates
-import { shared } from '../core/shared.js';
+import { design } from '../core/store.js';
+import { lastPlan } from '../render/hi-state.js';
 import { $ } from '../core/dom.js';
 import { bordersOf } from '../core/geometry.js';
 import { renderCut } from '../cutting/page.js';
@@ -17,9 +18,9 @@ import {
 import { templateJobs } from './templates.js';
 
 async function makeCutPdf() {
-  if (!shared.design) return null;
-  if (!shared.lastPlan) renderCut();
-  const P = shared.lastPlan,
+  if (!design) return null;
+  if (!lastPlan) renderCut();
+  const P = lastPlan,
     jobs = [];
   jobs.push(
     n => pdfFabricPage(P, n),
@@ -30,7 +31,7 @@ async function makeCutPdf() {
     jobs.push(...templateJobs(P, b, i));
   });
   if ((P.sashing || []).some(x => x.group === 'sash')) jobs.push((n, p) => pdfSashPage(P, p, n));
-  bordersOf(shared.design).forEach((_, bi) => {
+  bordersOf(design).forEach((_, bi) => {
     if ((P.sashing || []).some(x => x.group === 'b' + bi)) jobs.push((n, p) => pdfBorderPage(P, bi, p, n));
   });
   const total = jobs.length,

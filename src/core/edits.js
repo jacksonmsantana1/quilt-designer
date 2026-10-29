@@ -86,20 +86,39 @@ function setSashing(d, patch) {
   if (!(next.mm > 0)) next.mm = 0;
   return { ...d, sashing: next };
 }
-/** Changes the borders: `fn` gets a copy of the list and changes it. @param {Design} d @param {(bs: import('./types.js').Border[]) => void} fn */
-function setBorders(d, fn) {
-  const bs = clone(d.borders || []);
-  fn(bs);
+/** @typedef {import('./types.js').Border} Border */
+/** Adds a border outside the others. @param {Design} d @param {Border} b */
+const addBorder = (d, b) => ({ ...d, borders: [...(d.borders || []), b] });
+/** @param {Design} d @param {number} i */
+const removeBorder = (d, i) => ({ ...d, borders: (d.borders || []).filter((_, k) => k !== i) });
+/** Changes border i; `patch` is merged into it. @param {Design} d @param {number} i @param {Partial<Border>} patch */
+const updateBorder = (d, i, patch) => ({
+  ...d,
+  borders: (d.borders || []).map((b, k) => (k === i ? { ...b, ...patch } : b)),
+});
+/** Swaps border i with its neighbour `by` places out (+1) or in (-1). @param {Design} d @param {number} i @param {number} by */
+function moveBorder(d, i, by) {
+  const bs = (d.borders || []).slice(),
+    j = i + by;
+  if (j < 0 || j >= bs.length) return d;
+  [bs[i], bs[j]] = [bs[j], bs[i]];
   return { ...d, borders: bs };
+}
+/** Puts fabric `fid` in a slot of border i (the slots before it are filled with the first). @param {Design} d @param {number} i @param {number} slot @param {string} fid */
+function setBorderFabric(d, i, slot, fid) {
+  const fb = (d.borders[i].fabrics || []).slice();
+  while (fb.length <= slot) fb.push(fb[0] || 'b0');
+  fb[slot] = fid;
+  return updateBorder(d, i, { fabrics: fb });
 }
 /**
  * Changes the number of columns and rows. Existing blocks keep their place; new ones copy the nearest
  * existing block, so the checkerboard carries on.
- * @param {Design} d @param {number} cols @param {number} rows
+ * @param {Design} d @param {number} cols0 @param {number} rows0
  */
-function resize(d, cols, rows) {
-  cols = Math.max(1, Math.min(20, cols | 0));
-  rows = Math.max(1, Math.min(20, rows | 0));
+function resize(d, cols0, rows0) {
+  const cols = Math.max(1, Math.min(20, cols0 | 0)),
+    rows = Math.max(1, Math.min(20, rows0 | 0));
   if (cols === d.cols && rows === d.rows) return d;
   const blocks = [];
   for (let r = 0; r < rows; r++)
@@ -111,6 +130,8 @@ function resize(d, cols, rows) {
 }
 // resizing is never mirrored: every block changes place
 resize.mirror = false;
+// typing a number or holding a stepper makes one timeline step, not one per change
+resize.merge = setBlockMm.merge = setSashing.merge = updateBorder.merge = true;
 
 export {
   copyBlock,
@@ -121,7 +142,11 @@ export {
   setBackFabric,
   setBlockMm,
   setBlockSpan,
-  setBorders,
+  addBorder,
+  moveBorder,
+  removeBorder,
+  setBorderFabric,
+  updateBorder,
   setFussy,
   setPartFabric,
   setPattern,

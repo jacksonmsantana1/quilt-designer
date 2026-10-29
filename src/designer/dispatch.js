@@ -2,12 +2,12 @@
 // this order: mirrors the changed blocks (symmetry), repairs large blocks, saves (storage, timeline, simulation)
 // and redraws the designer.
 import './design-state.js'; // load order: runs after designer/design-state
-import { shared } from '../core/shared.js';
+import { design, focusBlock, selBlocks, selParts, setDesign, setFocusBlock, setSelBlocks } from '../core/store.js';
 import { normalizeSpans } from '../core/geometry.js';
 import { withSymmetry } from '../core/symmetry.js';
 import { resize } from '../core/edits.js';
 import { loadDesign, saveDesign } from './design-state.js';
-import { tlSwitch } from '../timeline/timeline.js';
+import { tlRecord, tlSwitch } from '../timeline/timeline.js';
 import { drawFabricPalette, renderDesigner } from './parts-editor.js';
 /** @typedef {import('../core/types.js').Design} Design */
 
@@ -26,7 +26,7 @@ const deepFreeze = o => {
 };
 /** Makes a design the one being edited. @param {Design} d */
 function setCurrent(d) {
-  shared.design = freezeOn ? deepFreeze(d) : d;
+  setDesign(freezeOn ? deepFreeze(d) : d);
 }
 
 /** The blocks an edit changed (a new object in the same place), not counting cells covered by a large block. */
@@ -41,19 +41,21 @@ function changedBlocks(prev, next) {
 
 /**
  * Applies an edit to the design being edited. Returns true when the design changed.
- * An edit marked `edit.mirror = false` (resizing, turning symmetry on) is not mirrored.
+ * An edit marked `edit.mirror = false` (resizing, turning symmetry on) is not mirrored. Each edit is one timeline
+ * step; an edit marked `edit.merge = true` (typing a size, holding a stepper) updates its step while repeated.
  * @template {any[]} A
- * @param {((d: Design, ...args: A) => Design) & { mirror?: boolean }} edit
+ * @param {((d: Design, ...args: A) => Design) & { mirror?: boolean, merge?: boolean }} edit
  * @param {A} args
  */
 function dispatch(edit, ...args) {
-  const prev = shared.design;
+  const prev = design;
   if (!prev) return false;
   let next = edit(prev, ...args);
   if (next === prev) return false;
   if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
   setCurrent(normalizeSpans(next));
   saveDesign();
+  tlRecord(edit.merge ? edit.name : null);
   renderDesigner();
   drawFabricPalette();
   return true;
@@ -61,12 +63,12 @@ function dispatch(edit, ...args) {
 
 /** Changes the number of columns and rows; the selection follows. @param {number} cols @param {number} rows */
 function resizeTo(cols, rows) {
-  const d = shared.design;
+  const d = design;
   if (!d) return false;
   const n = Math.max(1, Math.min(20, cols | 0)) * Math.max(1, Math.min(20, rows | 0));
-  shared.selBlocks = new Set([Math.min(shared.focusBlock, n - 1)]);
-  shared.focusBlock = [...shared.selBlocks][0];
-  shared.selParts.clear();
+  setSelBlocks(new Set([Math.min(focusBlock, n - 1)]));
+  setFocusBlock([...selBlocks][0]);
+  selParts.clear();
   return dispatch(resize, cols, rows);
 }
 
@@ -78,20 +80,21 @@ function resizeTo(cols, rows) {
  */
 function replaceDesign(d, opts = {}) {
   setCurrent(normalizeSpans(d));
-  const f = opts.keepFocus ? Math.min(shared.focusBlock, d.blocks.length - 1) : 0;
-  shared.selBlocks = new Set([f]);
-  shared.focusBlock = f;
-  shared.selParts.clear();
+  const f = opts.keepFocus ? Math.min(focusBlock, d.blocks.length - 1) : 0;
+  setSelBlocks(new Set([f]));
+  setFocusBlock(f);
+  selParts.clear();
   if ('timeline' in opts) tlSwitch(opts.timeline);
   saveDesign();
+  tlRecord(null);
   renderDesigner();
 }
 /** Loads the saved design the first time it is needed (at start-up, or the first page that shows it). */
 function ensureDesign() {
-  if (shared.design) return;
+  if (design) return;
   setCurrent(loadDesign());
-  shared.selBlocks = new Set([0]);
-  shared.focusBlock = 0;
+  setSelBlocks(new Set([0]));
+  setFocusBlock(0);
 }
 
 export { dispatch, ensureDesign, replaceDesign, resizeTo };

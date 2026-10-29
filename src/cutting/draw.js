@@ -1,6 +1,7 @@
 // Drawings for the Cutting guide: labelled blocks, sashing, borders and the whole quilt.
 import '../app/pages.js'; // load order: runs after app/pages
-import { shared } from '../core/shared.js';
+import { cgHi, fabHi } from '../render/hi-state.js';
+import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { dimUnlessHi } from '../render/highlight.js';
 import { orientPoly, partsOf } from '../core/patterns.js';
@@ -74,11 +75,11 @@ function drawBlockArt(g, b, P, num, W, H) {
     pathPoly(g, p);
     g.stroke();
   });
-  if (shared.fabHi) {
+  if (fabHi) {
     g.lineWidth = 2.2 * k;
     g.strokeStyle = '#e0592a';
     b.pieces.forEach((pc, i) => {
-      if (shared.fabHi({ t: 'piece', num, letter: pc.letter, form: pc.form, fabric: pc.fabric })) {
+      if (fabHi({ t: 'piece', num, letter: pc.letter, form: pc.form, fabric: pc.fabric })) {
         pathPoly(g, polys[i]);
         g.stroke();
       }
@@ -121,22 +122,21 @@ function swatchCanvas(fab, w = 72, h = 48) {
   g.fillRect(0, 0, w, h);
   return c;
 }
-shared.lastPlan = null;
 const cgRedraws = []; // redraw functions for the Cutting guide pictures (used when a fabric row is hovered)
 // the sashing picture: a 2 × 2 corner of the quilt with every strip and cornerstone labelled with its ID.
 // S is the width in px; u scales the labels (1 on screen, more for the PDF at print resolution)
 function sashMini() {
-  const c = Math.min(2, shared.design.cols),
-    r = Math.min(2, shared.design.rows);
+  const c = Math.min(2, design.cols),
+    r = Math.min(2, design.rows);
   return {
-    ...shared.design,
+    ...design,
     cols: c,
     rows: r,
-    blocks: [0, 1, shared.design.cols, shared.design.cols + 1]
-      .filter(i => i < shared.design.blocks.length)
+    blocks: [0, 1, design.cols, design.cols + 1]
+      .filter(i => i < design.blocks.length)
       .slice(0, c * r)
       .map(i => {
-        const b = { ...shared.design.blocks[i] };
+        const b = { ...design.blocks[i] };
         delete b.span;
         delete b.under;
         return b;
@@ -198,8 +198,8 @@ function drawSashPic(g, S, sashCuts, u) {
 }
 // a border ring in px on a W-wide drawing at k px/mm: 'brd' = all borders, 'b<i>' = border i (1 is the innermost)
 function borderRing(kind, k) {
-  const bs = bordersOf(shared.design);
-  if (kind === 'brd') return { o: 0, t: borderTotal(shared.design) * k };
+  const bs = bordersOf(design);
+  if (kind === 'brd') return { o: 0, t: borderTotal(design) * k };
   const i = +kind.slice(1);
   return { o: bs.slice(i + 1).reduce((a, b) => a + b.mm, 0) * k, t: (bs[i] ? bs[i].mm : 0) * k };
 }
@@ -261,13 +261,13 @@ function hasChiralPiece(pattern) {
 function mirroredCount(pb) {
   if (!hasChiralPiece(pb.block.pattern)) return 0;
   const k = pb.block.pattern + '|' + pb.span + '|' + pb.block.fabrics.join(',');
-  return shared.design.blocks.filter(
+  return design.blocks.filter(
     b => b.flip && b.under == null && b.pattern + '|' + spanOf(b) + '|' + b.fabrics.join(',') === k,
   ).length;
 }
 // the real quilt (sashing and borders included) with the sashing or the borders outlined and the rest dimmed
 function drawQuiltHi(cv, maxW, maxH, kind) {
-  const q = quiltMm(shared.design),
+  const q = quiltMm(design),
     k = Math.min(maxW / q.W, maxH / q.H),
     W = Math.round(q.W * k),
     H = Math.round(q.H * k);
@@ -281,7 +281,7 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
   drawQuilt(g, W, H, { seams: true });
   g.save();
   if (kind === 'sash') {
-    const rs = sashRects(shared.design, W, H);
+    const rs = sashRects(design, W, H);
     g.beginPath();
     g.rect(0, 0, W, H);
     for (const r of rs) g.rect(r.x, r.y, r.w, r.h);
@@ -311,16 +311,14 @@ function drawCutQuilt(P, into) {
     lab = 22 * u;
   // lay the quilt out at its real proportions, sashing and borders included; with no sashing the blocks
   // still sit a little apart (an empty gap) so each one reads on its own
-  const s = sashOf(shared.design),
-    gapMm = Math.round(shared.design.blockMm * 0.05);
-  const d2 = s.mm
-    ? shared.design
-    : { ...shared.design, sashing: { mm: gapMm, fabric: 'b0', corner: 'b0', border: false } };
+  const s = sashOf(design),
+    gapMm = Math.round(design.blockMm * 0.05);
+  const d2 = s.mm ? design : { ...design, sashing: { mm: gapMm, fabric: 'b0', corner: 'b0', border: false } };
   const q = quiltMm(d2);
   const availW = (into ? into.w : Math.min(1100, box.clientWidth || 900)) - lab;
   let k = availW / q.W;
   if (into) k = Math.min(k, (into.h - lab) / q.H);
-  k = Math.max(k, (60 * u) / shared.design.blockMm);
+  k = Math.max(k, (60 * u) / design.blockMm);
   const W = Math.round(q.W * k),
     H = Math.round(q.H * k),
     TW = W + lab,
@@ -336,7 +334,7 @@ function drawCutQuilt(P, into) {
   g.translate(lab, lab);
   const pxPerCm = k * 10;
   // borders and sashing in their fabrics
-  if (bordersOf(shared.design).length) drawBorders(g, d2, W, H, pxPerCm, true);
+  if (bordersOf(design).length) drawBorders(g, d2, W, H, pxPerCm, true);
   const sr = s.mm ? sashRects(d2, W, H) : [];
   sr.forEach((rc, i) => {
     g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + i);
@@ -351,12 +349,12 @@ function drawCutQuilt(P, into) {
   // blocks, each turned as designed, every piece labelled with its ID
   const numOf = new Map(P.blocks.map((b, i) => [b.block.pattern + '|' + b.span + '|' + b.block.fabrics.join(','), i]));
   const rects = [];
-  shared.design.blocks.forEach((blk, bi) => {
+  design.blocks.forEach((blk, bi) => {
     if (blk.under != null) return;
     const i = numOf.get(blk.pattern + '|' + spanOf(blk) + '|' + blk.fabrics.join(',')),
       pb = P.blocks[i];
-    const r = Math.floor(bi / shared.design.cols),
-      c = bi % shared.design.cols,
+    const r = Math.floor(bi / design.cols),
+      c = bi % design.cols,
       R = blockRect(d2, c, r, W, H);
     rects.push({ ...R, i });
     const turned = {
@@ -417,7 +415,7 @@ function drawCutQuilt(P, into) {
       } else if (long > 40 * u) tag(t, rc.x + rc.w / 2, rc.y + rc.h / 2, fs, rc.h > rc.w);
     }
   }
-  const bs = bordersOf(shared.design);
+  const bs = bordersOf(design);
   bs.forEach((b, i) => {
     const o = bs.slice(i + 1).reduce((a, x) => a + x.mm, 0) * k,
       t = b.mm * k;
@@ -432,9 +430,9 @@ function drawCutQuilt(P, into) {
     tag(ids, W / 2, H - o - t / 2, Math.min(11 * u, t * 0.7), false);
   });
   // highlight: a block (number), the sashing ('sash') or the borders ('brd'); everything else is dimmed
-  if (shared.cgHi !== -1) {
-    const ring = typeof shared.cgHi === 'string' && shared.cgHi !== 'sash';
-    const tgt = shared.cgHi === 'sash' ? sr : ring ? [] : rects.filter(R => R.i === shared.cgHi);
+  if (cgHi !== -1) {
+    const ring = typeof cgHi === 'string' && cgHi !== 'sash';
+    const tgt = cgHi === 'sash' ? sr : ring ? [] : rects.filter(R => R.i === cgHi);
     const outline = (x, y, w, h, wide) => {
       g.lineWidth = wide ? 6 : 3;
       g.strokeStyle = '#fff';
@@ -444,7 +442,7 @@ function drawCutQuilt(P, into) {
       g.strokeRect(x, y, w, h);
     };
     if (ring) {
-      const r = borderRing(shared.cgHi, k);
+      const r = borderRing(cgHi, k);
       dimOutsideRing(g, W, H, r);
       outlineRing(g, W, H, r);
     } else {
@@ -457,11 +455,11 @@ function drawCutQuilt(P, into) {
     if (!ring)
       for (const R of tgt)
         outline(
-          R.x - (shared.cgHi === 'sash' ? 0 : 1),
-          R.y - (shared.cgHi === 'sash' ? 0 : 1),
-          R.w + (shared.cgHi === 'sash' ? 0 : 2),
-          R.h + (shared.cgHi === 'sash' ? 0 : 2),
-          shared.cgHi !== 'sash',
+          R.x - (cgHi === 'sash' ? 0 : 1),
+          R.y - (cgHi === 'sash' ? 0 : 1),
+          R.w + (cgHi === 'sash' ? 0 : 2),
+          R.h + (cgHi === 'sash' ? 0 : 2),
+          cgHi !== 'sash',
         );
   }
   g.restore();
@@ -470,26 +468,24 @@ function drawCutQuilt(P, into) {
   g.font = `${12 * u}px system-ui, sans-serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  for (let c = 0; c < shared.design.cols; c++) {
+  for (let c = 0; c < design.cols; c++) {
     const R = cellRect(d2, c, 0, W, H);
     g.fillText(String(c + 1), lab + R.x + R.w / 2, lab / 2);
   }
-  for (let r = 0; r < shared.design.rows; r++) {
+  for (let r = 0; r < design.rows; r++) {
     const R = cellRect(d2, 0, r, W, H);
     g.fillText(String(r + 1), lab / 2, lab + R.y + R.h / 2);
   }
   if (into) return;
-  const nHi = typeof shared.cgHi === 'number' && shared.cgHi >= 0 ? P.blocks[shared.cgHi].count : 0;
+  const nHi = typeof cgHi === 'number' && cgHi >= 0 ? P.blocks[cgHi].count : 0;
   $('cg-quilt-meta').textContent =
-    typeof shared.cgHi === 'string'
-      ? `Showing the ${shared.cgHi === 'sash' ? 'sashing' : shared.cgHi === 'brd' ? 'borders' : 'border ' + (+shared.cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.`
-      : shared.cgHi >= 0
-        ? `Showing block ${shared.cgHi + 1} (${P.blocks[shared.cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.`
-        : `${shared.design.cols} × ${shared.design.rows} blocks${s.mm ? ` · ${s.mm} mm sashing` : ''}${bs.length ? ` · ${bs.length} border${bs.length > 1 ? 's' : ''}` : ''} · finished ${P.quiltW} × ${P.quiltH} mm · each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
-  $('cg-quilt-meta').classList.toggle('cg-hi-on', shared.cgHi !== -1);
-  document
-    .querySelectorAll('.cgblock')
-    .forEach(el => el.classList.toggle('picked', el.dataset.key === String(shared.cgHi)));
+    typeof cgHi === 'string'
+      ? `Showing the ${cgHi === 'sash' ? 'sashing' : cgHi === 'brd' ? 'borders' : 'border ' + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.`
+      : cgHi >= 0
+        ? `Showing block ${cgHi + 1} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.`
+        : `${design.cols} × ${design.rows} blocks${s.mm ? ` · ${s.mm} mm sashing` : ''}${bs.length ? ` · ${bs.length} border${bs.length > 1 ? 's' : ''}` : ''} · finished ${P.quiltW} × ${P.quiltH} mm · each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
+  $('cg-quilt-meta').classList.toggle('cg-hi-on', cgHi !== -1);
+  document.querySelectorAll('.cgblock').forEach(el => el.classList.toggle('picked', el.dataset.key === String(cgHi)));
 }
 
 export {

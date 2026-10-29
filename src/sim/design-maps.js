@@ -1,7 +1,8 @@
 // Turns the design into the 3D quilt texture, quilting relief and backing.
 import '../designer/designer-ui.js'; // load order: runs after designer/designer-ui
 import * as THREE from 'three';
-import { shared } from '../core/shared.js';
+import { designNormalTex, patchTex, setDesignNormalTex } from './sim-state.js';
+import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { quilt, state } from './config.js';
 import { maxAniso } from './textures.js';
@@ -22,11 +23,11 @@ import { fabricFill } from '../render/fabric-fill.js';
 // batting puffs between them; that relief becomes a normal map.
 const designNormalCanvas = document.createElement('canvas');
 designNormalCanvas.width = designNormalCanvas.height = 1024;
-shared.designNormalTex = new THREE.CanvasTexture(designNormalCanvas);
-shared.designNormalTex.colorSpace = THREE.NoColorSpace;
-shared.designNormalTex.anisotropy = maxAniso;
+setDesignNormalTex(new THREE.CanvasTexture(designNormalCanvas));
+designNormalTex.colorSpace = THREE.NoColorSpace;
+designNormalTex.anisotropy = maxAniso;
 function buildDesignMaps() {
-  const qm = quiltMm(shared.design);
+  const qm = quiltMm(design);
   setQuiltDims(qm.W / 1000, qm.H / 1000);
   const W = patchCanvas.width,
     H = patchCanvas.height,
@@ -54,7 +55,7 @@ function buildDesignMaps() {
   g.fillStyle = fabricFill(g, fabricById('b1'), W / quiltCm, 3);
   g.fillRect(0, 0, W, H);
   g.restore();
-  shared.patchTex.needsUpdate = true;
+  patchTex.needsUpdate = true;
   // quilting relief -> normal map
   const NW = designNormalCanvas.width,
     NH = designNormalCanvas.height,
@@ -88,8 +89,8 @@ function buildDesignMaps() {
       o[i + 3] = 255;
     }
   designNormalCanvas.getContext('2d').putImageData(out, 0, 0);
-  shared.designNormalTex.needsUpdate = true;
-  QM.top.normalMap = shared.designNormalTex;
+  designNormalTex.needsUpdate = true;
+  QM.top.normalMap = designNormalTex;
   QM.top.needsUpdate = true;
   applyBacking();
   if (pathTracer && state.view === 'render') pathTracer.updateMaterials();
@@ -98,7 +99,7 @@ function buildDesignMaps() {
 let backTex = null;
 const BACK_DEFAULT = { map: QM.back.map, color: QM.back.color.clone(), normalMap: QM.back.normalMap };
 function applyBacking() {
-  const fab = fabricById(shared.design.backFabric);
+  const fab = fabricById(design.backFabric);
   if (backTex) backTex.dispose();
   backTex = new THREE.CanvasTexture(fab.canvas);
   backTex.colorSpace = THREE.SRGBColorSpace;
@@ -107,7 +108,7 @@ function applyBacking() {
   backTex.repeat.set((quilt.w * 100) / fab.cm, (quilt.l * 100) / ((fab.cm * fab.canvas.height) / fab.canvas.width));
   QM.back.map = backTex;
   QM.back.color.set(0xffffff);
-  QM.back.normalMap = shared.designNormalTex;
+  QM.back.normalMap = designNormalTex;
   QM.back.needsUpdate = true;
 }
 function restoreBacking() {
@@ -126,7 +127,7 @@ function scheduleSync() {
   syncTimer = setTimeout(syncSimulation, 350);
 }
 function syncSimulation() {
-  if (!shared.design) return;
+  if (!design) return;
   const w0 = quilt.w,
     l0 = quilt.l;
   if (state.view === 'render') setView('photo');

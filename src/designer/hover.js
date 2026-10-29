@@ -1,6 +1,6 @@
 // Hover highlight on blocks, parts, sashing and borders, with the rotate and mirror buttons.
 import '../camera/fabric-camera.js'; // load order: runs after camera/fabric-camera
-import { shared } from '../core/shared.js';
+import { design, selBlocks, setFocusBlock, setSelBlocks, setSelParts } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { partsOf } from '../core/patterns.js';
 import { fabricById } from './fabric-library.js';
@@ -36,26 +36,26 @@ function hoverGeom() {
 }
 function partAt(bi, x, y) {
   const { w, h } = hoverGeom(),
-    R = blockRect(shared.design, bi % shared.design.cols, Math.floor(bi / shared.design.cols), w, h);
-  return blockPolys(shared.design.blocks[bi], R.x, R.y, R.w, R.h).findIndex(p => pointInPoly(x, y, p));
+    R = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), w, h);
+  return blockPolys(design.blocks[bi], R.x, R.y, R.w, R.h).findIndex(p => pointInPoly(x, y, p));
 }
 // what lies under (x, y) outside the blocks: a sashing strip / cornerstone, or one of the borders
 function zoneAt(x, y) {
   const { w: W, h: H } = hoverGeom(),
-    q = quiltMm(shared.design),
+    q = quiltMm(design),
     k = W / q.W,
     mx = x / k,
     my = y / k;
-  const bs = bordersOf(shared.design),
+  const bs = bordersOf(design),
     d = Math.min(mx, my, q.W - mx, q.H - my);
-  if (bs.length && d >= 0 && d < borderTotal(shared.design)) {
+  if (bs.length && d >= 0 && d < borderTotal(design)) {
     let o = 0;
     for (let i = bs.length - 1; i >= 0; i--) {
       if (d < o + bs[i].mm) return { zone: 'brd', zi: i, zr: { o: o * k, t: bs[i].mm * k } };
       o += bs[i].mm;
     }
   }
-  for (const r of sashRects(shared.design, W, H))
+  for (const r of sashRects(design, W, H))
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { zone: 'sash', zi: -1, zr: r };
   return null;
 }
@@ -74,7 +74,7 @@ function hoverLabel(g, txt, W) {
 }
 function drawHover() {
   const cv = $('dz-hover');
-  if (!cv || !shared.design) return;
+  if (!cv || !design) return;
   const g = cv.getContext('2d'),
     dpr = cv.width / (parseFloat(cv.style.width) || 1);
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -92,7 +92,7 @@ function drawHover() {
     if (hover.zone === 'brd') {
       g.rect(z.o, z.o, W - 2 * z.o, H - 2 * z.o);
       g.rect(z.o + z.t, z.o + z.t, W - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
-    } else for (const r of sashRects(shared.design, W, H)) g.rect(r.x, r.y, r.w, r.h);
+    } else for (const r of sashRects(design, W, H)) g.rect(r.x, r.y, r.w, r.h);
     g.fillStyle = 'rgba(255,255,255,.26)';
     g.fill('evenodd');
     g.lineJoin = 'round';
@@ -108,8 +108,8 @@ function drawHover() {
       } else g.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2);
     }
     g.restore();
-    const s = sashOf(shared.design),
-      b = hover.zone === 'brd' ? bordersOf(shared.design)[hover.zi] : null;
+    const s = sashOf(design),
+      b = hover.zone === 'brd' ? bordersOf(design)[hover.zi] : null;
     hoverLabel(
       g,
       hover.zone === 'brd'
@@ -119,13 +119,13 @@ function drawHover() {
     );
     return;
   }
-  if (hover.bi < 0 || hover.bi >= shared.design.blocks.length) {
+  if (hover.bi < 0 || hover.bi >= design.blocks.length) {
     if (rb) rb.hidden = true;
     if ($('dz-hflip')) $('dz-hflip').hidden = true;
     return;
   }
   const { w: HW, h: HH } = hoverGeom(),
-    RR = blockRect(shared.design, hover.bi % shared.design.cols, Math.floor(hover.bi / shared.design.cols), HW, HH),
+    RR = blockRect(design, hover.bi % design.cols, Math.floor(hover.bi / design.cols), HW, HH),
     x = RR.x,
     y = RR.y,
     bw = RR.w,
@@ -156,7 +156,7 @@ function drawHover() {
     g.strokeRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
     return;
   }
-  const polys = blockPolys(shared.design.blocks[hover.bi], x, y, bw, bh),
+  const polys = blockPolys(design.blocks[hover.bi], x, y, bw, bh),
     p = polys[hover.part];
   if (!p) return;
   // dim the rest of the block a little so the part stands out
@@ -178,7 +178,7 @@ function drawHover() {
   g.strokeStyle = '#e0592a';
   g.stroke();
   // label: part name and fabric
-  const b = shared.design.blocks[hover.bi],
+  const b = design.blocks[hover.bi],
     txt = `${partsOf(b.pattern)[hover.part].name} · ${fabricById(b.fabrics[hover.part]).name}`;
   g.font = '600 12px system-ui, sans-serif';
   const tw = g.measureText(txt).width + 14;
@@ -206,7 +206,7 @@ function clearHover() {
 function initHover() {
   const qcv = $('dz-quilt');
   qcv.addEventListener('pointermove', e => {
-    if (e.pointerType !== 'mouse' || flipped || !shared.design || e.buttons) {
+    if (e.pointerType !== 'mouse' || flipped || !design || e.buttons) {
       if (e.buttons) clearHover();
       return;
     }
@@ -214,7 +214,7 @@ function initHover() {
       x = e.clientX - r.left,
       y = e.clientY - r.top;
     const { w: HW, h: HH } = hoverGeom(),
-      bi = blockAt(shared.design, x, y, HW, HH);
+      bi = blockAt(design, x, y, HW, HH);
     if (bi < 0) {
       const z = zoneAt(x, y);
       if (!z) {
@@ -285,8 +285,8 @@ function initHover() {
   hflip.addEventListener('click', e => {
     e.stopPropagation();
     const bi = hover.bi;
-    if (bi < 0 || !shared.design) return;
-    const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
+    if (bi < 0 || !design) return;
+    const targets = selBlocks.size > 1 && selBlocks.has(bi) ? [...selBlocks] : [bi];
     dispatch(flipBlocks, targets);
     hover.bi = bi;
     drawHover();
@@ -302,9 +302,9 @@ function initHover() {
   hrot.addEventListener('click', e => {
     e.stopPropagation();
     const bi = hover.bi;
-    if (bi < 0 || !shared.design) return;
+    if (bi < 0 || !design) return;
     // rotate the hovered block, or every selected block when it is one of several selected
-    const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
+    const targets = selBlocks.size > 1 && selBlocks.has(bi) ? [...selBlocks] : [bi];
     dispatch(rotateBlocks, targets);
     hover.bi = bi;
     drawHover();
@@ -323,9 +323,9 @@ function initHover() {
       e.stopImmediatePropagation();
       const bi = hover.bi,
         part = hover.part;
-      shared.selBlocks = new Set([bi]);
-      shared.focusBlock = bi;
-      shared.selParts = new Set([part]);
+      setSelBlocks(new Set([bi]));
+      setFocusBlock(bi);
+      setSelParts(new Set([part]));
       clearHover();
       renderDesigner();
       openBlockEditor();

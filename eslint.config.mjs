@@ -33,7 +33,7 @@ export default [
             'img',
             'tex',
             'cam',
-            'leg',
+            'leg', 'dst', 'div',
           ],
         },
       ],

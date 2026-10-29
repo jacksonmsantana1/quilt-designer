@@ -1,12 +1,11 @@
 // The fabric library used by the designer.
 import '../sim/controls.js'; // load order: runs after sim/controls
-import { shared } from '../core/shared.js';
+
 import { BUNDLED, prepareSwatch } from '../sim/patchwork.js';
 
 // ---- fabric library (bundled scans + the user's photos)
 const fabricLib = []; // {id, name, canvas, cm}
 const fabricById = id => fabricLib.find(f => f.id === id) || fabricLib[0];
-shared.activeFabric = null;
 async function initFabricLib() {
   if (fabricLib.length) return;
   const preps = await Promise.all(BUNDLED.map(prepareSwatch));

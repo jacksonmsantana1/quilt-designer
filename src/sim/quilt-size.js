@@ -1,7 +1,7 @@
 // Resizing the simulated quilt to the design.
 import './bed.js'; // load order: runs after sim/bed
 import * as THREE from 'three';
-import { shared } from '../core/shared.js';
+import { designNormalTex, patchTex, setDesignNormalTex, setPatchTex } from './sim-state.js';
 import { bedM, quilt } from './config.js';
 import { send } from './worker-link.js';
 import { maxAniso } from './textures.js';
@@ -22,23 +22,23 @@ function setQuiltDims(w, l) {
   if (patchCanvas.width !== pw || patchCanvas.height !== ph) {
     patchCanvas.width = pw;
     patchCanvas.height = ph;
-    shared.patchTex.dispose();
-    shared.patchTex = new THREE.CanvasTexture(patchCanvas);
-    shared.patchTex.colorSpace = THREE.SRGBColorSpace;
-    shared.patchTex.anisotropy = maxAniso;
-    QM.top.map = shared.patchTex;
+    patchTex.dispose();
+    setPatchTex(new THREE.CanvasTexture(patchCanvas));
+    patchTex.colorSpace = THREE.SRGBColorSpace;
+    patchTex.anisotropy = maxAniso;
+    QM.top.map = patchTex;
     QM.top.needsUpdate = true;
   }
   if (designNormalCanvas.width !== nw || designNormalCanvas.height !== nh) {
     designNormalCanvas.width = nw;
     designNormalCanvas.height = nh;
-    const wasDesign = QM.top.normalMap === shared.designNormalTex;
-    shared.designNormalTex.dispose();
-    shared.designNormalTex = new THREE.CanvasTexture(designNormalCanvas);
-    shared.designNormalTex.colorSpace = THREE.NoColorSpace;
-    shared.designNormalTex.anisotropy = maxAniso;
+    const wasDesign = QM.top.normalMap === designNormalTex;
+    designNormalTex.dispose();
+    setDesignNormalTex(new THREE.CanvasTexture(designNormalCanvas));
+    designNormalTex.colorSpace = THREE.NoColorSpace;
+    designNormalTex.anisotropy = maxAniso;
     if (wasDesign) {
-      QM.top.normalMap = shared.designNormalTex;
+      QM.top.normalMap = designNormalTex;
       QM.top.needsUpdate = true;
     }
   }

@@ -1,6 +1,6 @@
 // My designs: saved quilts.
 import '../tour/tour.js'; // load order: runs after tour/tour
-import { shared } from '../core/shared.js';
+import { design, mineCur, setMineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { quiltMm } from '../core/geometry.js';
@@ -17,14 +17,13 @@ let mine = [];
 try {
   mine = JSON.parse(localStorage.getItem(MINE_KEY) || '[]');
 } catch (e) {}
-shared.mineCur = null;
 try {
-  shared.mineCur = localStorage.getItem(MINE_CUR) || null;
+  setMineCur(localStorage.getItem(MINE_CUR) || null);
 } catch (e) {}
 function mineSave() {
   try {
     localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    if (shared.mineCur) localStorage.setItem(MINE_CUR, shared.mineCur);
+    if (mineCur) localStorage.setItem(MINE_CUR, mineCur);
     else localStorage.removeItem(MINE_CUR);
   } catch (e) {
     alertMine('Your browser storage is full: delete a design to save new ones.');
@@ -53,13 +52,13 @@ function quiltPicture(d, width) {
 }
 let saveForceNew = false;
 function openSaveDialog(forceNew) {
-  if (!shared.design) return;
+  if (!design) return;
   saveForceNew = !!forceNew;
-  const cur = !saveForceNew && mine.find(m => m.id === shared.mineCur);
+  const cur = !saveForceNew && mine.find(m => m.id === mineCur);
   $('save-name').value = cur ? cur.name : `Quilt ${mine.length + 1}`;
   $('save-title').textContent = cur ? 'Save changes' : 'Save design';
   $('save-asnew').hidden = !cur;
-  const pic = quiltPicture(shared.design, 300),
+  const pic = quiltPicture(design, 300),
     cv = $('save-cv');
   cv.width = pic.width;
   cv.height = pic.height;
@@ -78,9 +77,9 @@ function openSaveDialog(forceNew) {
 function doSave(asNew) {
   const name = ($('save-name').value || '').trim() || `Quilt ${mine.length + 1}`,
     now = Date.now(),
-    d = JSON.stringify(shared.design);
-  let cur = !asNew && !saveForceNew && mine.find(m => m.id === shared.mineCur);
-  const prev = shared.mineCur;
+    d = JSON.stringify(design);
+  let cur = !asNew && !saveForceNew && mine.find(m => m.id === mineCur);
+  const prev = mineCur;
   if (cur) {
     cur.name = name;
     cur.d = d;
@@ -98,7 +97,7 @@ function doSave(asNew) {
     tl.key = tlKeyFor(cur.id);
   }
   saveForceNew = false;
-  shared.mineCur = cur.id;
+  setMineCur(cur.id);
   mineSave();
   $('save-dlg').close();
   const b = $('dz-save');
@@ -112,7 +111,7 @@ function doSave(asNew) {
 function openMine(id) {
   const m = mine.find(x => x.id === id);
   if (!m) return;
-  shared.mineCur = id;
+  setMineCur(id);
   mineSave();
   replaceDesign(JSON.parse(m.d), { timeline: id });
   showPage('design');
@@ -137,7 +136,7 @@ function renderMine() {
       continue;
     }
     const pin = document.createElement('article');
-    pin.className = 'pin' + (m.id === shared.mineCur ? ' current' : '');
+    pin.className = 'pin' + (m.id === mineCur ? ' current' : '');
     const img = document.createElement('div');
     img.className = 'img';
     img.title = 'Open in the Quilt designer';
@@ -210,8 +209,8 @@ function renderMine() {
         try {
           localStorage.removeItem(tlKeyFor(m.id));
         } catch (e) {}
-        if (shared.mineCur === m.id) {
-          shared.mineCur = null;
+        if (mineCur === m.id) {
+          setMineCur(null);
           tlCopy(undefined, null);
           tl.key = tlKeyFor(null);
           tlSave();
@@ -226,7 +225,7 @@ function initMine() {
   $('dz-save').addEventListener('click', () => openSaveDialog(false));
   // New design: always the same default quilt (5 × 5 Ohio star / nine patch, 458 mm); the timeline keeps the previous one
   $('dz-new').addEventListener('click', () => {
-    shared.mineCur = null;
+    setMineCur(null);
     mineSave();
     if ($('dz-dialog').open) $('dz-dialog').close();
     try {

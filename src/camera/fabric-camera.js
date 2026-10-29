@@ -1,6 +1,7 @@
 // New fabric from the webcam.
 import '../app/layout.js'; // load order: runs after app/layout
-import { shared } from '../core/shared.js';
+import { camTarget, setCamTarget } from '../designer/ui-state.js';
+import { selParts, setActiveFabric } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { loadImage } from '../sim/textures.js';
 import { fabricLib } from '../designer/fabric-library.js';
@@ -13,7 +14,6 @@ import { applyFabric } from '../designer/edits.js';
 // evened out (divided by a heavily blurred copy) and its edges cross-faded with a half-offset copy
 // so it repeats without visible seams.
 const cam = { stream: null, facing: 'environment', devices: 0, shot: null };
-shared.camTarget = null; // set by a caller that wants the new fabric applied its own way
 function camMsg(t) {
   $('cam-msg').textContent = t || '';
 }
@@ -236,7 +236,7 @@ function initCamera() {
   $('cam-dialog').addEventListener('close', () => {
     camStop();
     setTimeout(() => {
-      shared.camTarget = null;
+      setCamTarget(null);
     }, 0);
   });
   $('cam-flip').addEventListener('click', () => {
@@ -277,13 +277,13 @@ function initCamera() {
     fabricLib.push({ id, name: ($('cam-name').value || 'Photo fabric').slice(0, 40), canvas: c, cm });
     $('cam-dialog').close();
     // pick it straight away: applies to the selected parts, or waits for a selection
-    if (shared.camTarget) {
-      const f = shared.camTarget;
-      shared.camTarget = null;
+    if (camTarget) {
+      const f = camTarget;
+      setCamTarget(null);
       f(id);
-    } else if (shared.selParts.size) applyFabric(id);
+    } else if (selParts.size) applyFabric(id);
     else {
-      shared.activeFabric = id;
+      setActiveFabric(id);
       drawFabricPalette();
     }
     $('dz-fabnote').textContent = 'Fabric added from the camera. Photos are kept only until you reload the page.';

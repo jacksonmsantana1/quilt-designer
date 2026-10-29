@@ -1,7 +1,8 @@
 // Fabric swatches and the patchwork texture of the bundled sample quilt.
 import './lighting.js'; // load order: runs after sim/lighting
 import * as THREE from 'three';
-import { shared } from '../core/shared.js';
+import { cavityImg, patchTex, setPatchTex } from './sim-state.js';
+import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { SIZE, quilt, state } from './config.js';
 import { loadImage, maxAniso, tex, weaveMap, weaveNormal } from './textures.js';
@@ -138,11 +139,10 @@ const PW = 2048,
   PX_PER_CM = PW / 228.6;
 const patchCanvas = document.createElement('canvas');
 patchCanvas.width = patchCanvas.height = PW;
-shared.patchTex = new THREE.CanvasTexture(patchCanvas);
-shared.patchTex.colorSpace = THREE.SRGBColorSpace;
-shared.patchTex.anisotropy = maxAniso;
+setPatchTex(new THREE.CanvasTexture(patchCanvas));
+patchTex.colorSpace = THREE.SRGBColorSpace;
+patchTex.anisotropy = maxAniso;
 let swatches = [];
-shared.cavityImg = null;
 async function prepareSwatch(def) {
   const img = def.img || (def.floral ? floralTile() : await loadImage(def.src));
   const c = document.createElement('canvas');
@@ -202,12 +202,12 @@ function buildPatchwork() {
   g.fillRect(0, 0, PW, PW);
   g.restore();
   // Seams and quilting stitches sit in the shadow of the batting loft.
-  if (shared.cavityImg) {
+  if (cavityImg) {
     g.globalCompositeOperation = 'multiply';
-    g.drawImage(shared.cavityImg, 0, 0, PW, PW);
+    g.drawImage(cavityImg, 0, 0, PW, PW);
     g.globalCompositeOperation = 'source-over';
   }
-  shared.patchTex.needsUpdate = true;
+  patchTex.needsUpdate = true;
   if (pathTracer && state.view === 'render') pathTracer.updateMaterials();
   showSwatches();
 }
@@ -233,13 +233,13 @@ async function useSwatches(defs) {
   QM.top.normalMap = quiltNormal;
   QM.top.needsUpdate = true;
   state.usingDesign = false;
-  if (typeof restoreBacking === 'function' && shared.design) restoreBacking();
+  if (typeof restoreBacking === 'function' && design) restoreBacking();
 }
 
 const quiltNormal = tex('assets/quilt_normal.jpg', { srgb: false });
 const QM = {
   top: new THREE.MeshPhysicalMaterial({
-    map: shared.patchTex,
+    map: patchTex,
     normalMap: quiltNormal,
     normalScale: new THREE.Vector2(1, 1),
     roughness: 0.9,

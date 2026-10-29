@@ -82,3 +82,20 @@ test('new design and undo', async ({ app, page }) => {
   await page.locator('#dz-new').click();
   expect((await app.current()).cols).toBe(5);
 });
+
+test('one timeline step per edit; a held stepper is one step; undo puts it back', async ({ app, page }) => {
+  const steps = () =>
+    page.evaluate(() => JSON.parse(localStorage.getItem('quilt-timeline.v1:draft') || '{"steps":[]}').steps.length);
+  const n0 = await steps();
+  await page.locator('[data-step="c:-1"]').click();
+  await page.locator('[data-step="c:-1"]').click(); // quick repeats merge
+  expect(await steps()).toBe(n0 + 1);
+  expect((await app.current()).cols).toBe(3);
+  await page.waitForTimeout(1100);
+  await page.locator('[data-step="r:-1"]').click(); // later: a step of its own
+  expect(await steps()).toBe(n0 + 2);
+  await page.keyboard.press('Control+z');
+  expect((await app.current()).rows).toBe(5);
+  await page.keyboard.press('Control+z');
+  expect((await app.current()).cols).toBe(5);
+});

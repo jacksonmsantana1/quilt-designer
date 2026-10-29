@@ -1,6 +1,6 @@
 // Fussy cut: choosing which part of a print shows in a piece.
 import './canvas.js'; // load order: runs after designer/canvas
-import { shared } from '../core/shared.js';
+import { design, focusBlock, selBlocks, selParts } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { orientPoly, partsOf } from '../core/patterns.js';
 import { fabricById } from './fabric-library.js';
@@ -11,9 +11,9 @@ import { setFussy as setFussyEdit } from '../core/edits.js';
 // ---- fussy cut: with one part selected in a printed fabric, click the print to choose what shows in that part
 function drawFussy() {
   const box = $('dz-fussy');
-  if (!box || !shared.design) return;
-  const b = shared.design.blocks[shared.focusBlock],
-    pi = shared.selParts.size === 1 ? [...shared.selParts][0] : -1,
+  if (!box || !design) return;
+  const b = design.blocks[focusBlock],
+    pi = selParts.size === 1 ? [...selParts][0] : -1,
     fab = pi >= 0 ? fabricById(b.fabrics[pi]) : null;
   box.hidden = !(fab && fab.print);
   if (box.hidden) return;
@@ -34,7 +34,7 @@ function drawFussy() {
   $('dz-fussy-clear').hidden = !f;
   if (!f) return;
   // the piece at its real size on this repeat (the repeat is fab.cm wide)
-  const size = blockSizeMm(shared.design, spanOf(b)) / 10,
+  const size = blockSizeMm(design, spanOf(b)) / 10,
     k = S / fab.cm;
   const poly = orientPoly(partsOf(b.pattern)[pi].poly, b).map(([u, v]) => [u * size * k, v * size * k]),
     [cx, cy] = polyCentre(poly);
@@ -60,14 +60,8 @@ function drawFussy() {
   g.restore();
 }
 function setFussy(u, v) {
-  const pi = [...shared.selParts][0];
-  dispatch(
-    setFussyEdit,
-    shared.selBlocks,
-    shared.design.blocks[shared.focusBlock].pattern,
-    pi,
-    u == null ? null : [u, v],
-  );
+  const pi = [...selParts][0];
+  dispatch(setFussyEdit, selBlocks, design.blocks[focusBlock].pattern, pi, u == null ? null : [u, v]);
 }
 {
   const cv = $('dz-fussy-cv');

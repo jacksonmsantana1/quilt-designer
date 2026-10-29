@@ -1,6 +1,7 @@
 // Guided tour for first-time users.
 import '../designer/settings.js'; // load order: runs after designer/settings
-import { shared } from '../core/shared.js';
+import { design, focusBlock, mineCur, selBlocks, selParts, setMineCur } from '../core/store.js';
+import { hideTools, toolsPanel } from '../designer/ui-state.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { IS_PHONE } from '../sim/renderer.js';
@@ -17,7 +18,7 @@ import { ensureDesign, replaceDesign } from '../designer/dispatch.js';
 // off except the ones the current step needs; the step moves on by itself once it has been done.
 const TOUR_KEY = 'quilt-tour.v1';
 const tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null };
-const blk = i => shared.design && shared.design.blocks[i];
+const blk = i => design && design.blocks[i];
 const TOUR = [
   {
     title: 'Welcome to the Quilt designer!',
@@ -33,21 +34,21 @@ const TOUR = [
     text: 'A new quilt starts with 5 × 5 blocks. Above the quilt, click the <b>−</b> next to <b>Columns</b> until there are <b>3</b> columns.',
     allow: ['[data-step="c:-1"]', '#dz-cols'],
     glow: '[data-step="c:-1"]',
-    done: () => shared.design.cols === 3,
+    done: () => design.cols === 3,
   },
   {
     title: 'Just one row',
     text: 'Now click the <b>−</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side.',
     allow: ['[data-step="r:-1"]', '#dz-rows'],
     glow: '[data-step="r:-1"]',
-    done: () => shared.design.rows === 1,
+    done: () => design.rows === 1,
   },
   {
     title: 'Open the middle block',
     text: '<b>Click the middle block</b> of your quilt. The side panel opens with its editor.',
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
-    done: () => !$('dz-side').hidden && shared.focusBlock === 1 && shared.selBlocks.size === 1,
+    done: () => !$('dz-side').hidden && focusBlock === 1 && selBlocks.size === 1,
   },
   {
     title: 'Choose a pattern',
@@ -61,7 +62,7 @@ const TOUR = [
     text: 'In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it.',
     allow: ['#dz-block'],
     glow: '#dz-block',
-    done: () => shared.selParts.size > 0,
+    done: () => selParts.size > 0,
   },
   {
     title: 'Give it a fabric',
@@ -76,14 +77,14 @@ const TOUR = [
     text: 'Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected.',
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
-    done: () => shared.selBlocks.size === 3,
+    done: () => selBlocks.size === 3,
   },
   {
     title: 'Copy your block',
     text: 'In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it.',
     allow: ['#dz-library'],
     glow: '#dz-library',
-    done: () => shared.design.blocks.every(b => b.pattern === 'pinwheel' && blockKey(b) === blockKey(blk(1))),
+    done: () => design.blocks.every(b => b.pattern === 'pinwheel' && blockKey(b) === blockKey(blk(1))),
   },
   {
     title: 'Close the side panel',
@@ -111,14 +112,14 @@ const TOUR = [
     text: 'Click the <b>Borders</b> round button beside the quilt — the one with a frame drawn on it.',
     allow: ['#rail-brd'],
     glow: '#rail-brd',
-    done: () => !$('dz-side').hidden && shared.toolsPanel === 'brd',
+    done: () => !$('dz-side').hidden && toolsPanel === 'brd',
   },
   {
     title: 'Add a border',
     text: 'In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt.',
     allow: ['#brd-types'],
     glow: '.brd-type[data-t="piano"]',
-    done: () => bordersOf(shared.design).length > 0,
+    done: () => bordersOf(design).length > 0,
   },
   {
     title: 'Well done!',
@@ -327,15 +328,15 @@ function tourTick() {
 }
 function tourBegin() {
   if (tour.on) return;
-  tour.saved = shared.design ? JSON.stringify(shared.design) : null;
-  tour.savedCur = typeof shared.mineCur !== 'undefined' ? shared.mineCur : null;
+  tour.saved = design ? JSON.stringify(design) : null;
+  tour.savedCur = typeof mineCur !== 'undefined' ? mineCur : null;
   tour.on = true;
   tour.i = 0;
   tour.userPos = null;
   document.body.classList.add('tour-active');
   for (const id of ['dz-dialog', 'dz-partdlg', 'save-dlg', 'cam-dialog', 'cg-pop']) if ($(id).open) $(id).close();
   if (state.page !== 'design') showPage('design');
-  shared.hideTools();
+  hideTools();
   // the tour always starts from the same default quilt (5 × 5, 458 mm, Ohio star and nine patch), with its
   // own timeline; the user's own quilt is put aside and comes back if they skip or ask for it at the end
   const fresh = () => {
@@ -344,7 +345,7 @@ function tourBegin() {
     } catch (e) {}
     replaceDesign(defaultDesign(), { timeline: 'tour' });
   };
-  if (shared.design) fresh();
+  if (design) fresh();
   else
     (async () => {
       await initFabricLib();
@@ -383,13 +384,13 @@ function tourEnd(how) {
   if (how === 'keep') {
     // the tour quilt becomes an ordinary unsaved design, with its history
     tlCopy('tour', null);
-    shared.mineCur = null;
+    setMineCur(null);
     mineSave();
     tlSwitch(null);
   } else if (how === 'restore' && tour.saved) {
-    shared.mineCur = tour.savedCur;
+    setMineCur(tour.savedCur);
     mineSave();
-    replaceDesign(JSON.parse(tour.saved), { timeline: shared.mineCur });
+    replaceDesign(JSON.parse(tour.saved), { timeline: mineCur });
   }
   try {
     localStorage.removeItem(tlKeyFor('tour'));

@@ -1,7 +1,16 @@
 // Simulation controls: parameters, scenario, restart, 90° turn and drop position.
 import './messages.js'; // load order: runs after sim/messages
 import * as THREE from 'three';
-import { shared } from '../core/shared.js';
+import {
+  dropPos,
+  quiltTurned,
+  setActiveCam,
+  setDropPos,
+  setPtBroken,
+  setPtCheck,
+  setQuiltTurned,
+  setRenderT0,
+} from './sim-state.js';
 import { $ } from '../core/dom.js';
 import { PARAMS, PRESETS, SUBSTEPS, bedM, bedState, isTableSim, quilt, state } from './config.js';
 import { dropPosM, send } from './worker-link.js';
@@ -105,7 +114,7 @@ function restart() {
     type: 'reset',
     scenario: state.scenario,
     dropHeight: state.dropHeight,
-    rot: shared.quiltTurned,
+    rot: quiltTurned,
     pos: dropPosM(),
   });
 }
@@ -119,15 +128,13 @@ $('restart').addEventListener('click', restart);
 function syncTurnBtn() {
   const b = $('sim-turn');
   if (!b) return;
-  b.setAttribute('aria-pressed', String(shared.quiltTurned));
-  b.title = shared.quiltTurned
-    ? 'Quilt turned 90° · click to drop it straight again'
-    : 'Turn the quilt 90° and drop it again';
+  b.setAttribute('aria-pressed', String(quiltTurned));
+  b.title = quiltTurned ? 'Quilt turned 90° · click to drop it straight again' : 'Turn the quilt 90° and drop it again';
 }
 $('sim-turn').addEventListener('click', () => {
-  shared.quiltTurned = !shared.quiltTurned;
+  setQuiltTurned(!quiltTurned);
   try {
-    localStorage.setItem('quilt-turned.v1', shared.quiltTurned ? '1' : '0');
+    localStorage.setItem('quilt-turned.v1', quiltTurned ? '1' : '0');
   } catch (e) {}
   if (state.scenario !== 'drop') {
     state.scenario = 'drop';
@@ -145,12 +152,12 @@ const alongZ = () => bedState.l >= bedState.w;
 function dropMin() {
   const L = Math.max(bedState.w, bedState.l);
   if (isTableSim() || !alongZ()) return -Math.round(L / 2);
-  const len = (shared.quiltTurned ? quilt.w : quilt.l) * 1000;
+  const len = (quiltTurned ? quilt.w : quilt.l) * 1000;
   return Math.round(-bedState.l / 2 + 20 + len / 2);
 }
 function defaultDropPos() {
   if (isTableSim() || !alongZ()) return 0;
-  const len = (shared.quiltTurned ? quilt.w : quilt.l) * 1000;
+  const len = (quiltTurned ? quilt.w : quilt.l) * 1000;
   return Math.round(-bedState.l / 2 + 70 + len / 2); // head edge of the quilt 7 cm from the head of the bed
 }
 const dropGuide = new THREE.Group();
@@ -187,14 +194,14 @@ function updateDropGuide(show) {
     y = ClothSim.surfaceTop(bed) + 0.03,
     L = Math.max(bed.w, bed.l),
     z = alongZ();
-  const p = (shared.dropPos == null ? defaultDropPos() : shared.dropPos) / 1000;
+  const p = (dropPos == null ? defaultDropPos() : dropPos) / 1000;
   const P = (a, b) => (z ? new THREE.Vector3(b, y, a) : new THREE.Vector3(a, y, b));
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([P(-L / 2, 0), P(L / 2, 0)]), guideMat);
   line.computeLineDistances();
   line.renderOrder = 999;
   // the quilt's footprint where it will be dropped
-  const qw = (shared.quiltTurned ? quilt.l : quilt.w) / 2,
-    ql = (shared.quiltTurned ? quilt.w : quilt.l) / 2,
+  const qw = (quiltTurned ? quilt.l : quilt.w) / 2,
+    ql = (quiltTurned ? quilt.w : quilt.l) / 2,
     cx = z ? 0 : p,
     cz = z ? p : isTableSim() ? 0 : 0;
   const rect = new THREE.LineLoop(
@@ -225,20 +232,20 @@ function syncDropUI() {
   const L = Math.max(bedState.w, bedState.l);
   const lo = dropMin(),
     hi = Math.round(L / 2);
-  if (shared.dropPos != null && shared.dropPos < lo) shared.dropPos = lo;
-  const v = shared.dropPos == null ? defaultDropPos() : shared.dropPos;
+  if (dropPos != null && dropPos < lo) setDropPos(lo);
+  const v = dropPos == null ? defaultDropPos() : dropPos;
   el.min = String(Math.min(lo, hi));
   el.max = String(hi);
   el.step = '10';
-  el.value = String(shared.dropPos == null ? v : shared.dropPos);
+  el.value = String(dropPos == null ? v : dropPos);
   const far = z =>
     Math.abs(z) < 5
       ? 'centre'
       : `${Math.abs(z)} mm toward the ${alongZ() ? (z > 0 ? (isTableSim() ? 'near end' : 'foot') : isTableSim() ? 'far end' : 'head') : z > 0 ? 'right' : 'left'}`;
-  $('drop-pos-v').textContent = shared.dropPos == null ? `${far(v)} (usual spot)` : far(v);
+  $('drop-pos-v').textContent = dropPos == null ? `${far(v)} (usual spot)` : far(v);
 }
 $('drop-pos').addEventListener('input', e => {
-  shared.dropPos = +e.target.value;
+  setDropPos(+e.target.value);
   syncDropUI();
   updateDropGuide(true);
 });
@@ -247,7 +254,7 @@ $('drop-pos').addEventListener('change', () => {
   restart();
 });
 $('drop-pos').addEventListener('dblclick', () => {
-  shared.dropPos = null;
+  setDropPos(null);
   syncDropUI();
   updateDropGuide(true);
   restart();
@@ -285,7 +292,7 @@ $('meshlines').addEventListener('change', e => {
 });
 $('ortho').addEventListener('change', e => {
   if (e.target.checked && state.view === 'render') setView('photo');
-  shared.activeCam = e.target.checked ? ortho : camera;
+  setActiveCam(e.target.checked ? ortho : camera);
 });
 $('atrest').addEventListener('change', e => {
   state.atRest = e.target.value;
@@ -338,7 +345,7 @@ $('quality').addEventListener('change', e => {
 $('engine').addEventListener('change', e => {
   look.engine = e.target.value;
   if (look.engine === 'path') {
-    shared.ptBroken = null;
+    setPtBroken(null);
     try {
       localStorage.removeItem(PT_KEY);
     } catch (_) {}
@@ -364,8 +371,8 @@ function rebuildRenderScene() {
   if (pathTracer && state.view === 'render') {
     sun.visible = false;
     pathTracer.setScene(scene, camera);
-    shared.renderT0 = performance.now();
-    shared.ptCheck = { done: false };
+    setRenderT0(performance.now());
+    setPtCheck({ done: false });
   }
 }
 

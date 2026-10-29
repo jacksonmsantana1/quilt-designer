@@ -1930,20 +1930,52 @@ var state = {
   page: "design"
 };
 
-// src/core/shared.js
-var shared = {};
+// src/render/hi-state.js
+var cgHi = -1;
+var setCgHi = (v) => cgHi = v;
+var fabHi = null;
+var setFabHi = (f) => fabHi = f;
+var lastPlan = null;
+var setLastPlan = (p) => lastPlan = p;
 
 // src/render/highlight.js
-shared.fabHi = null;
 var FAB_DIM = "rgba(236,239,244,.8)";
 function dimUnlessHi(g, info) {
-  if (shared.fabHi && !shared.fabHi(info)) {
+  if (fabHi && !fabHi(info)) {
     const f = g.fillStyle;
     g.fillStyle = FAB_DIM;
     g.fill();
     g.fillStyle = f;
   }
 }
+
+// src/sim/sim-state.js
+var activeCam = null;
+var setActiveCam = (c) => activeCam = c;
+var cavityImg = null;
+var setCavityImg = (v) => cavityImg = v;
+var colliders = null;
+var setColliders = (v) => colliders = v;
+var designNormalTex = null;
+var setDesignNormalTex = (t) => designNormalTex = t;
+var dropPos = null;
+var setDropPos = (v) => dropPos = v;
+var grabMsg = null;
+var setGrabMsg = (m) => grabMsg = m;
+var havePos = false;
+var setHavePos = (v) => havePos = v;
+var newFrame = false;
+var setNewFrame = (v) => newFrame = v;
+var patchTex = null;
+var setPatchTex = (t) => patchTex = t;
+var ptBroken = null;
+var setPtBroken = (v) => ptBroken = v;
+var ptCheck = null;
+var setPtCheck = (v) => ptCheck = v;
+var quiltTurned = false;
+var setQuiltTurned = (v) => quiltTurned = v;
+var renderT0 = 0;
+var setRenderT0 = (v) => renderT0 = v;
 
 // src/core/dom.js
 var $ = (id) => document.getElementById(id);
@@ -1994,18 +2026,16 @@ function connect() {
     type: "reset",
     scenario: state.scenario,
     dropHeight: state.dropHeight,
-    rot: shared.quiltTurned,
+    rot: quiltTurned,
     pos: dropPosM()
   });
 }
 var send = (m) => port && port.postMessage(m);
-shared.quiltTurned = false;
 try {
-  shared.quiltTurned = localStorage.getItem("quilt-turned.v1") === "1";
+  setQuiltTurned(localStorage.getItem("quilt-turned.v1") === "1");
 } catch (e) {
 }
-shared.dropPos = null;
-var dropPosM = () => shared.dropPos == null ? null : shared.dropPos / 1e3;
+var dropPosM = () => dropPos == null ? null : dropPos / 1e3;
 
 // src/sim/renderer.js
 import * as THREE from "three";
@@ -2314,6 +2344,24 @@ async function applyLook() {
 
 // src/sim/patchwork.js
 import * as THREE5 from "three";
+
+// src/core/store.js
+var design = null;
+var setDesign = (d) => design = d;
+var selBlocks = /* @__PURE__ */ new Set();
+var setSelBlocks = (s) => selBlocks = s;
+var focusBlock = 0;
+var setFocusBlock = (i) => focusBlock = i;
+var selParts = /* @__PURE__ */ new Set();
+var setSelParts = (s) => selParts = s;
+var activeFabric = null;
+var setActiveFabric = (id) => activeFabric = id;
+var mineCur = null;
+var setMineCur = (id) => mineCur = id;
+var toolsSnap = null;
+var setToolsSnap = (d) => toolsSnap = d;
+
+// src/sim/patchwork.js
 var BUNDLED = [
   { src: "assets/fabric/weave.jpg", cm: 22, tint: "#efe5cf", name: "Cream cotton" },
   { src: "assets/fabric/weave.jpg", cm: 22, tint: "#2f466f", name: "Indigo cotton" },
@@ -2434,11 +2482,10 @@ var PATCH = PW / NP;
 var PX_PER_CM = PW / 228.6;
 var patchCanvas = document.createElement("canvas");
 patchCanvas.width = patchCanvas.height = PW;
-shared.patchTex = new THREE5.CanvasTexture(patchCanvas);
-shared.patchTex.colorSpace = THREE5.SRGBColorSpace;
-shared.patchTex.anisotropy = maxAniso;
+setPatchTex(new THREE5.CanvasTexture(patchCanvas));
+patchTex.colorSpace = THREE5.SRGBColorSpace;
+patchTex.anisotropy = maxAniso;
 var swatches = [];
-shared.cavityImg = null;
 async function prepareSwatch(def) {
   const img = def.img || (def.floral ? floralTile() : await loadImage(def.src));
   const c = document.createElement("canvas");
@@ -2494,12 +2541,12 @@ function buildPatchwork() {
   } else g.fillStyle = "#2f466f";
   g.fillRect(0, 0, PW, PW);
   g.restore();
-  if (shared.cavityImg) {
+  if (cavityImg) {
     g.globalCompositeOperation = "multiply";
-    g.drawImage(shared.cavityImg, 0, 0, PW, PW);
+    g.drawImage(cavityImg, 0, 0, PW, PW);
     g.globalCompositeOperation = "source-over";
   }
-  shared.patchTex.needsUpdate = true;
+  patchTex.needsUpdate = true;
   if (pathTracer && state.view === "render") pathTracer.updateMaterials();
   showSwatches();
 }
@@ -2524,12 +2571,12 @@ async function useSwatches(defs) {
   QM.top.normalMap = quiltNormal;
   QM.top.needsUpdate = true;
   state.usingDesign = false;
-  if (typeof restoreBacking === "function" && shared.design) restoreBacking();
+  if (typeof restoreBacking === "function" && design) restoreBacking();
 }
 var quiltNormal = tex("assets/quilt_normal.jpg", { srgb: false });
 var QM = {
   top: new THREE5.MeshPhysicalMaterial({
-    map: shared.patchTex,
+    map: patchTex,
     normalMap: quiltNormal,
     normalScale: new THREE5.Vector2(1, 1),
     roughness: 0.9,
@@ -2661,7 +2708,6 @@ function subdivide(src, dst, k) {
   }
 }
 var simPos = new Float32Array(N * N * 3);
-shared.havePos = false;
 function upsample() {
   subdivide(simPos, qPos, 3);
   qGeo.attributes.position.needsUpdate = true;
@@ -2713,7 +2759,7 @@ import * as THREE7 from "three";
 var target = new THREE7.Vector3(0, 0.5, 0.15);
 var orbit = { r: 4.3, az: 0.72, el: 0.38 };
 var ortho = new THREE7.OrthographicCamera(-1, 1, 1, -1, 0.05, 50);
-shared.activeCam = camera;
+setActiveCam(camera);
 function placeCamera(keepRender) {
   for (const cam2 of [camera, ortho]) {
     cam2.position.set(
@@ -2760,14 +2806,13 @@ var ndc = new THREE7.Vector2();
 var pointers = /* @__PURE__ */ new Map();
 var drag = null;
 var pinchD = 0;
-shared.grabMsg = null;
 function setNdc(e) {
   const r = canvas.getBoundingClientRect();
   ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  ray.setFromCamera(ndc, shared.activeCam);
+  ray.setFromCamera(ndc, activeCam);
 }
 function pickQuilt(e) {
-  if (!shared.havePos || state.view === "render") return null;
+  if (!havePos || state.view === "render") return null;
   setNdc(e);
   const hit = ray.intersectObjects([quiltTop, quiltBot], false)[0];
   if (!hit || !hit.uv) return null;
@@ -2787,9 +2832,9 @@ canvas.addEventListener("pointerdown", (e) => {
     const p = pickQuilt(e);
     if (p) {
       const n = new THREE7.Vector3();
-      shared.activeCam.getWorldDirection(n);
+      activeCam.getWorldDirection(n);
       drag = { kind: "grab", i: p.i, plane: new THREE7.Plane().setFromNormalAndCoplanarPoint(n.negate(), p.point) };
-      shared.grabMsg = { type: "grab", i: p.i, target: p.point.toArray() };
+      setGrabMsg({ type: "grab", i: p.i, target: p.point.toArray() });
       canvas.classList.add("grabbing");
       return;
     }
@@ -2822,7 +2867,7 @@ canvas.addEventListener("pointermove", (e) => {
     const p = new THREE7.Vector3();
     if (ray.ray.intersectPlane(drag.plane, p)) {
       p.y = Math.max(0.03, p.y);
-      shared.grabMsg = { type: "grab", i: drag.i, target: p.toArray() };
+      setGrabMsg({ type: "grab", i: drag.i, target: p.toArray() });
     }
   }
 });
@@ -2830,7 +2875,7 @@ var endPointer = (e) => {
   pointers.delete(e.pointerId);
   if (pointers.size < 2) pinchD = 0;
   if (drag && drag.kind === "grab") {
-    shared.grabMsg = null;
+    setGrabMsg(null);
     send({ type: "grab", i: null });
   }
   drag = null;
@@ -3044,7 +3089,7 @@ var F = {
 };
 var fieldR = new Float32Array(R * R);
 var sdfN = new Float64Array(3);
-shared.colliders = ClothSim.bedColliders(bedM());
+setColliders(ClothSim.bedColliders(bedM()));
 var sortedCopy = (a) => Float32Array.from(a).sort();
 var quant = (s, q) => s[Math.min(s.length - 1, Math.max(0, Math.floor(q * (s.length - 1))))];
 function computeFields() {
@@ -3079,7 +3124,7 @@ function computeFields() {
       }
       F.curvature[k] = Math.sqrt(l2);
       let dmin = y;
-      for (const c of shared.colliders) {
+      for (const c of colliders) {
         if (!pillowsOn && c.name.startsWith("pillow")) continue;
         dmin = Math.min(dmin, ClothSim.roundedBoxSDF(x, y, z, c, sdfN));
       }
@@ -3095,7 +3140,7 @@ function rangeFor(name, sorted) {
   return { lo: 0, hi: Math.max(last, 0.1) };
 }
 function computeAnalysis() {
-  if (!shared.havePos) return;
+  if (!havePos) return;
   computeFields();
   analysis.fields = F;
   if (!analysis.on) return;
@@ -3144,7 +3189,7 @@ function setAnalysis(on) {
   if (on) computeAnalysis();
 }
 function stepAnalysis(dt) {
-  const on = analysis.on && shared.havePos;
+  const on = analysis.on && havePos;
   let s = 100, u = 1;
   if (on && analysis.anim !== null) {
     analysis.anim += dt / 1.3;
@@ -3212,12 +3257,9 @@ var GPU_NAME = (() => {
 var pathTracer = null;
 var ptError = null;
 var wasRunning = true;
-shared.renderT0 = 0;
-shared.ptCheck = null;
-shared.ptBroken = null;
 try {
   const saved = JSON.parse(localStorage.getItem(PT_KEY) || "null");
-  if (saved && saved.gpu === GPU_NAME) shared.ptBroken = saved.reason;
+  if (saved && saved.gpu === GPU_NAME) setPtBroken(saved.reason);
 } catch (e) {
 }
 function ensurePathTracer() {
@@ -3276,8 +3318,8 @@ var blendQuad = new FullScreenQuad(
 var showQuad = new FullScreenQuad(
   new THREE9.MeshBasicMaterial({ toneMapped: true, depthTest: false, depthWrite: false })
 );
-var halton = (i, b) => {
-  let f = 1, r = 0;
+var halton = (n, b) => {
+  let f = 1, r = 0, i = n;
   while (i > 0) {
     f /= b;
     r += f * (i % b);
@@ -3387,10 +3429,10 @@ function stepRaster() {
   return true;
 }
 function usePathTracing() {
-  return look.engine === "path" || look.engine === "auto" && !shared.ptBroken;
+  return look.engine === "path" || look.engine === "auto" && !ptBroken;
 }
 function renderFailed(reason, permanent = true) {
-  shared.ptBroken = reason;
+  setPtBroken(reason);
   if (permanent) {
     try {
       localStorage.setItem(PT_KEY, JSON.stringify({ gpu: GPU_NAME, reason }));
@@ -3411,7 +3453,7 @@ function renderFailed(reason, permanent = true) {
 async function startRender() {
   if ($("ortho").checked) {
     $("ortho").checked = false;
-    shared.activeCam = camera;
+    setActiveCam(camera);
   }
   wasRunning = state.running;
   if (state.running) setRunning(false, true);
@@ -3437,8 +3479,8 @@ async function startRender() {
     renderFailed("the scene could not be prepared (" + (e.message || e) + ")");
     return;
   }
-  shared.renderT0 = performance.now();
-  shared.ptCheck = { done: false };
+  setRenderT0(performance.now());
+  setPtCheck({ done: false });
 }
 function stopRender() {
   stopRaster();
@@ -3449,14 +3491,14 @@ function stopRender() {
 function restartSamples() {
   if (!pathTracer || state.view !== "render" || raster.active) return;
   pathTracer.pausePathTracing = false;
-  shared.renderT0 = performance.now();
+  setRenderT0(performance.now());
   pathTracer.reset();
-  shared.ptCheck = { done: false };
+  setPtCheck({ done: false });
 }
 var _p = new THREE9.Vector3();
 function verifyRender() {
-  if (!shared.ptCheck || shared.ptCheck.done || pathTracer.samples < 4) return;
-  shared.ptCheck.done = true;
+  if (!ptCheck || ptCheck.done || pathTracer.samples < 4) return;
+  ptCheck.done = true;
   const t = pathTracer.target;
   if (!t) return;
   const bg = scene.background && scene.background.isColor ? scene.background : new THREE9.Color(0, 0, 0);
@@ -3498,7 +3540,7 @@ function stepRender() {
   pathTracer.renderSample();
   verifyRender();
   if (raster.active || state.view !== "render") return raster.active;
-  const s = Math.floor(pathTracer.samples), secs = (performance.now() - shared.renderT0) / 1e3;
+  const s = Math.floor(pathTracer.samples), secs = (performance.now() - renderT0) / 1e3;
   const done = pathTracer.samples >= look.target;
   $("rstat").textContent = pathTracer.isCompiling ? `Compiling the path tracer for your GPU\u2026 ${secs.toFixed(0)} s (first time only)` : done ? `Render done \xB7 ${look.target} samples \xB7 ${secs.toFixed(0)} s \xB7 path traced` : `Rendering \xB7 ${s} / ${look.target} samples \xB7 ${secs.toFixed(0)} s \xB7 path traced`;
   $("rbar-fill").style.width = Math.min(100, 100 * pathTracer.samples / look.target) + "%";
@@ -3541,15 +3583,14 @@ function setView(v) {
 
 // src/sim/messages.js
 var handsData = [];
-shared.newFrame = false;
 function onSim(e) {
   const m = e.data;
   if (m.type !== "frame") return;
   if (state.view === "render") return;
   simPos.set(m.pos);
-  shared.havePos = true;
+  setHavePos(true);
   handsData = m.hands;
-  shared.newFrame = true;
+  setNewFrame(true);
   if (m.stats) updateStats(m.stats);
 }
 var fmtJ = (v) => Math.abs(v) < 0.1 ? (v * 1e3).toFixed(1) + " mJ" : v.toFixed(2) + " J";
@@ -3756,7 +3797,7 @@ function restart() {
     type: "reset",
     scenario: state.scenario,
     dropHeight: state.dropHeight,
-    rot: shared.quiltTurned,
+    rot: quiltTurned,
     pos: dropPosM()
   });
 }
@@ -3770,13 +3811,13 @@ $("restart").addEventListener("click", restart);
 function syncTurnBtn() {
   const b = $("sim-turn");
   if (!b) return;
-  b.setAttribute("aria-pressed", String(shared.quiltTurned));
-  b.title = shared.quiltTurned ? "Quilt turned 90\xB0 \xB7 click to drop it straight again" : "Turn the quilt 90\xB0 and drop it again";
+  b.setAttribute("aria-pressed", String(quiltTurned));
+  b.title = quiltTurned ? "Quilt turned 90\xB0 \xB7 click to drop it straight again" : "Turn the quilt 90\xB0 and drop it again";
 }
 $("sim-turn").addEventListener("click", () => {
-  shared.quiltTurned = !shared.quiltTurned;
+  setQuiltTurned(!quiltTurned);
   try {
-    localStorage.setItem("quilt-turned.v1", shared.quiltTurned ? "1" : "0");
+    localStorage.setItem("quilt-turned.v1", quiltTurned ? "1" : "0");
   } catch (e) {
   }
   if (state.scenario !== "drop") {
@@ -3792,12 +3833,12 @@ var alongZ = () => bedState.l >= bedState.w;
 function dropMin() {
   const L = Math.max(bedState.w, bedState.l);
   if (isTableSim() || !alongZ()) return -Math.round(L / 2);
-  const len = (shared.quiltTurned ? quilt.w : quilt.l) * 1e3;
+  const len = (quiltTurned ? quilt.w : quilt.l) * 1e3;
   return Math.round(-bedState.l / 2 + 20 + len / 2);
 }
 function defaultDropPos() {
   if (isTableSim() || !alongZ()) return 0;
-  const len = (shared.quiltTurned ? quilt.w : quilt.l) * 1e3;
+  const len = (quiltTurned ? quilt.w : quilt.l) * 1e3;
   return Math.round(-bedState.l / 2 + 70 + len / 2);
 }
 var dropGuide = new THREE10.Group();
@@ -3831,12 +3872,12 @@ function updateDropGuide(show) {
     if (o !== guideDot) o.geometry.dispose();
   }
   const bed = bedM(), y = ClothSim.surfaceTop(bed) + 0.03, L = Math.max(bed.w, bed.l), z = alongZ();
-  const p = (shared.dropPos == null ? defaultDropPos() : shared.dropPos) / 1e3;
+  const p = (dropPos == null ? defaultDropPos() : dropPos) / 1e3;
   const P = (a, b) => z ? new THREE10.Vector3(b, y, a) : new THREE10.Vector3(a, y, b);
   const line = new THREE10.Line(new THREE10.BufferGeometry().setFromPoints([P(-L / 2, 0), P(L / 2, 0)]), guideMat);
   line.computeLineDistances();
   line.renderOrder = 999;
-  const qw = (shared.quiltTurned ? quilt.l : quilt.w) / 2, ql = (shared.quiltTurned ? quilt.w : quilt.l) / 2, cx = z ? 0 : p, cz = z ? p : isTableSim() ? 0 : 0;
+  const qw = (quiltTurned ? quilt.l : quilt.w) / 2, ql = (quiltTurned ? quilt.w : quilt.l) / 2, cx = z ? 0 : p, cz = z ? p : isTableSim() ? 0 : 0;
   const rect = new THREE10.LineLoop(
     new THREE10.BufferGeometry().setFromPoints(
       [
@@ -3864,17 +3905,17 @@ function syncDropUI() {
   if (!el) return;
   const L = Math.max(bedState.w, bedState.l);
   const lo = dropMin(), hi = Math.round(L / 2);
-  if (shared.dropPos != null && shared.dropPos < lo) shared.dropPos = lo;
-  const v = shared.dropPos == null ? defaultDropPos() : shared.dropPos;
+  if (dropPos != null && dropPos < lo) setDropPos(lo);
+  const v = dropPos == null ? defaultDropPos() : dropPos;
   el.min = String(Math.min(lo, hi));
   el.max = String(hi);
   el.step = "10";
-  el.value = String(shared.dropPos == null ? v : shared.dropPos);
+  el.value = String(dropPos == null ? v : dropPos);
   const far = (z) => Math.abs(z) < 5 ? "centre" : `${Math.abs(z)} mm toward the ${alongZ() ? z > 0 ? isTableSim() ? "near end" : "foot" : isTableSim() ? "far end" : "head" : z > 0 ? "right" : "left"}`;
-  $("drop-pos-v").textContent = shared.dropPos == null ? `${far(v)} (usual spot)` : far(v);
+  $("drop-pos-v").textContent = dropPos == null ? `${far(v)} (usual spot)` : far(v);
 }
 $("drop-pos").addEventListener("input", (e) => {
-  shared.dropPos = +e.target.value;
+  setDropPos(+e.target.value);
   syncDropUI();
   updateDropGuide(true);
 });
@@ -3883,7 +3924,7 @@ $("drop-pos").addEventListener("change", () => {
   restart();
 });
 $("drop-pos").addEventListener("dblclick", () => {
-  shared.dropPos = null;
+  setDropPos(null);
   syncDropUI();
   updateDropGuide(true);
   restart();
@@ -3920,7 +3961,7 @@ $("meshlines").addEventListener("change", (e) => {
 });
 $("ortho").addEventListener("change", (e) => {
   if (e.target.checked && state.view === "render") setView("photo");
-  shared.activeCam = e.target.checked ? ortho : camera;
+  setActiveCam(e.target.checked ? ortho : camera);
 });
 $("atrest").addEventListener("change", (e) => {
   state.atRest = e.target.value;
@@ -3971,7 +4012,7 @@ $("quality").addEventListener("change", (e) => {
 $("engine").addEventListener("change", (e) => {
   look.engine = e.target.value;
   if (look.engine === "path") {
-    shared.ptBroken = null;
+    setPtBroken(null);
     try {
       localStorage.removeItem(PT_KEY);
     } catch (_) {
@@ -3998,15 +4039,14 @@ function rebuildRenderScene() {
   if (pathTracer && state.view === "render") {
     sun.visible = false;
     pathTracer.setScene(scene, camera);
-    shared.renderT0 = performance.now();
-    shared.ptCheck = { done: false };
+    setRenderT0(performance.now());
+    setPtCheck({ done: false });
   }
 }
 
 // src/designer/fabric-library.js
 var fabricLib = [];
 var fabricById = (id) => fabricLib.find((f) => f.id === id) || fabricLib[0];
-shared.activeFabric = null;
 async function initFabricLib() {
   if (fabricLib.length) return;
   const preps = await Promise.all(BUNDLED.map(prepareSwatch));
@@ -4899,9 +4939,8 @@ function normalizeSpans(d) {
   });
   return changed ? { ...d, blocks } : d;
 }
-function setSpan(d, i, k) {
-  const C = d.cols, c = i % C, r = Math.floor(i / C);
-  k = Math.max(1, Math.min(k, C - c, d.rows - r));
+function setSpan(d, i, k0) {
+  const C = d.cols, c = i % C, r = Math.floor(i / C), k = Math.max(1, Math.min(k0, C - c, d.rows - r));
   const blocks = d.blocks.map((b, j) => {
     if (j === i) {
       const { span: _s, ...rest } = b;
@@ -4926,14 +4965,8 @@ function cellRect(d, c, r, W, H) {
     h: d.blockMm * ky
   };
 }
-function blockRect(d, c, r, W, H) {
-  let i = r * d.cols + c;
-  const a = d.blocks ? anchorOf(d, i) : i;
-  if (a !== i) {
-    i = a;
-    c = a % d.cols;
-    r = Math.floor(a / d.cols);
-  }
+function blockRect(d, c0, r0, W, H) {
+  const i0 = r0 * d.cols + c0, i = d.blocks ? anchorOf(d, i0) : i0, c = i % d.cols, r = Math.floor(i / d.cols);
   const R2 = cellRect(d, c, r, W, H), k = d.blocks ? spanOf(d.blocks[i]) : 1;
   if (k === 1) return R2;
   const s = sashOf(d), q = quiltMm(d), kx = W / q.W, ky = H / q.H, mm = k * d.blockMm + (k - 1) * s.mm;
@@ -5093,10 +5126,6 @@ function rolesOf(b) {
 
 // src/designer/design-state.js
 var DESIGN_KEY = "quilt-designer.v1";
-shared.design = null;
-shared.selBlocks = /* @__PURE__ */ new Set();
-shared.focusBlock = 0;
-shared.selParts = /* @__PURE__ */ new Set();
 function loadDesign() {
   try {
     const d = JSON.parse(localStorage.getItem(DESIGN_KEY) || "null");
@@ -5111,11 +5140,10 @@ function loadDesign() {
 }
 function saveDesign() {
   try {
-    localStorage.setItem(DESIGN_KEY, JSON.stringify(shared.design));
+    localStorage.setItem(DESIGN_KEY, JSON.stringify(design));
   } catch (e) {
   }
   scheduleSync();
-  tlRecord();
 }
 
 // src/core/symmetry.js
@@ -5245,14 +5273,26 @@ function setSashing(d, patch) {
   if (!(next.mm > 0)) next.mm = 0;
   return { ...d, sashing: next };
 }
-function setBorders(d, fn) {
-  const bs = clone(d.borders || []);
-  fn(bs);
+var addBorder = (d, b) => ({ ...d, borders: [...d.borders || [], b] });
+var removeBorder = (d, i) => ({ ...d, borders: (d.borders || []).filter((_, k) => k !== i) });
+var updateBorder = (d, i, patch) => ({
+  ...d,
+  borders: (d.borders || []).map((b, k) => k === i ? { ...b, ...patch } : b)
+});
+function moveBorder(d, i, by) {
+  const bs = (d.borders || []).slice(), j = i + by;
+  if (j < 0 || j >= bs.length) return d;
+  [bs[i], bs[j]] = [bs[j], bs[i]];
   return { ...d, borders: bs };
 }
-function resize2(d, cols, rows) {
-  cols = Math.max(1, Math.min(20, cols | 0));
-  rows = Math.max(1, Math.min(20, rows | 0));
+function setBorderFabric(d, i, slot, fid) {
+  const fb = (d.borders[i].fabrics || []).slice();
+  while (fb.length <= slot) fb.push(fb[0] || "b0");
+  fb[slot] = fid;
+  return updateBorder(d, i, { fabrics: fb });
+}
+function resize2(d, cols0, rows0) {
+  const cols = Math.max(1, Math.min(20, cols0 | 0)), rows = Math.max(1, Math.min(20, rows0 | 0));
   if (cols === d.cols && rows === d.rows) return d;
   const blocks = [];
   for (let r = 0; r < rows; r++)
@@ -5263,6 +5303,7 @@ function resize2(d, cols, rows) {
   return { ...d, cols, rows, blocks };
 }
 resize2.mirror = false;
+resize2.merge = setBlockMm.merge = setSashing.merge = updateBorder.merge = true;
 
 // src/designer/dispatch.js
 var freezeOn = false;
@@ -5278,7 +5319,7 @@ var deepFreeze = (o) => {
   return o;
 };
 function setCurrent(d) {
-  shared.design = freezeOn ? deepFreeze(d) : d;
+  setDesign(freezeOn ? deepFreeze(d) : d);
 }
 function changedBlocks(prev, next) {
   if (!prev || prev.blocks.length !== next.blocks.length) return [];
@@ -5289,41 +5330,43 @@ function changedBlocks(prev, next) {
   return out;
 }
 function dispatch(edit, ...args) {
-  const prev = shared.design;
+  const prev = design;
   if (!prev) return false;
   let next = edit(prev, ...args);
   if (next === prev) return false;
   if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
   setCurrent(normalizeSpans(next));
   saveDesign();
+  tlRecord(edit.merge ? edit.name : null);
   renderDesigner();
   drawFabricPalette();
   return true;
 }
 function resizeTo(cols, rows) {
-  const d = shared.design;
+  const d = design;
   if (!d) return false;
   const n = Math.max(1, Math.min(20, cols | 0)) * Math.max(1, Math.min(20, rows | 0));
-  shared.selBlocks = /* @__PURE__ */ new Set([Math.min(shared.focusBlock, n - 1)]);
-  shared.focusBlock = [...shared.selBlocks][0];
-  shared.selParts.clear();
+  setSelBlocks(/* @__PURE__ */ new Set([Math.min(focusBlock, n - 1)]));
+  setFocusBlock([...selBlocks][0]);
+  selParts.clear();
   return dispatch(resize2, cols, rows);
 }
 function replaceDesign(d, opts = {}) {
   setCurrent(normalizeSpans(d));
-  const f = opts.keepFocus ? Math.min(shared.focusBlock, d.blocks.length - 1) : 0;
-  shared.selBlocks = /* @__PURE__ */ new Set([f]);
-  shared.focusBlock = f;
-  shared.selParts.clear();
+  const f = opts.keepFocus ? Math.min(focusBlock, d.blocks.length - 1) : 0;
+  setSelBlocks(/* @__PURE__ */ new Set([f]));
+  setFocusBlock(f);
+  selParts.clear();
   if ("timeline" in opts) tlSwitch(opts.timeline);
   saveDesign();
+  tlRecord(null);
   renderDesigner();
 }
 function ensureDesign() {
-  if (shared.design) return;
+  if (design) return;
   setCurrent(loadDesign());
-  shared.selBlocks = /* @__PURE__ */ new Set([0]);
-  shared.focusBlock = 0;
+  setSelBlocks(/* @__PURE__ */ new Set([0]));
+  setFocusBlock(0);
 }
 
 // src/render/fabric-fill.js
@@ -5400,7 +5443,7 @@ function drawBorders(g, d, W, H, pxPerCm, seams, biBase = 0) {
   }
 }
 function explodedH(W, gap) {
-  const q = quiltMm(shared.design), n = bordersOf(shared.design).length, k = (W - 2 * gap * n) / q.W;
+  const q = quiltMm(design), n = bordersOf(design).length, k = (W - 2 * gap * n) / q.W;
   return Math.round(q.H * k + 2 * gap * n);
 }
 function drawRingPx(g, b, bi, X, Y, BW, BH, k) {
@@ -5449,7 +5492,7 @@ function drawRingPx(g, b, bi, X, Y, BW, BH, k) {
   }
 }
 function drawBordersExploded(g, W, gap, focus = -1) {
-  const bs = bordersOf(shared.design), n = bs.length, q = quiltMm(shared.design), k = (W - 2 * gap * n) / q.W, H = explodedH(W, gap);
+  const bs = bordersOf(design), n = bs.length, q = quiltMm(design), k = (W - 2 * gap * n) / q.W, H = explodedH(W, gap);
   const fade = (x, y, w, h, t) => {
     g.beginPath();
     g.rect(x, y, w, h);
@@ -5470,13 +5513,13 @@ function drawBordersExploded(g, W, gap, focus = -1) {
   }
   g.save();
   g.translate(off, off);
-  drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...shared.design, borders: [] } });
+  drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...design, borders: [] } });
   if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
   g.restore();
   return H;
 }
 function drawQuilt(g, W, H, opts = {}) {
-  const d = opts.design || shared.design;
+  const d = opts.design || design;
   if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
   const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
   for (const [k, rc] of sashRects(d, W, H).entries()) {
@@ -5515,9 +5558,9 @@ function drawQuilt(g, W, H, opts = {}) {
 
 // src/designer/canvas.js
 function drawDesignerCanvas() {
-  if (!shared.design) return;
+  if (!design) return;
   const cv = $("dz-quilt"), box = cv.closest(".dz-quiltwrap").getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), qmm = quiltMm(shared.design), ar = qmm.H / qmm.W;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), qmm = quiltMm(design), ar = qmm.H / qmm.W;
   let cw = Math.max(200, Math.floor(Math.min(box.width - (window.innerWidth > 640 ? 128 : 0), 860)));
   let maxH = Math.max(320, Math.floor(window.innerHeight * 0.82));
   if (document.body.classList.contains("tl-open")) {
@@ -5542,7 +5585,7 @@ function drawDesignerCanvas() {
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawQuilt(g, cw, ch, { seams: true });
-  const qk = quiltingOf(shared.design);
+  const qk = quiltingOf(design);
   if (qk !== "ditch") {
     g.save();
     g.setLineDash([Math.max(2, cw / 300), Math.max(1.5, cw / 420)]);
@@ -5558,22 +5601,22 @@ function drawDesignerCanvas() {
   g.strokeStyle = "#2f466f";
   g.lineWidth = Math.max(3, cw * 6e-3);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
-  const editing = $("dz-dialog").open || $("dz-partdlg").open || editorInSide || shared.selBlocks.size > 1;
+  const editing = $("dz-dialog").open || $("dz-partdlg").open || editorInSide || selBlocks.size > 1;
   if (editing)
-    for (const bi of shared.selBlocks) {
-      const R2 = blockRect(shared.design, bi % shared.design.cols, Math.floor(bi / shared.design.cols), cw, ch);
+    for (const bi of selBlocks) {
+      const R2 = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), cw, ch);
       g.lineWidth = 3;
       g.strokeStyle = "#ffffff";
       g.strokeRect(R2.x + 1.5, R2.y + 1.5, R2.w - 3, R2.h - 3);
       g.lineWidth = 1.5;
-      g.strokeStyle = bi === shared.focusBlock ? "#e0592a" : "#1b2233";
-      g.setLineDash(bi === shared.focusBlock ? [] : [5, 4]);
+      g.strokeStyle = bi === focusBlock ? "#e0592a" : "#1b2233";
+      g.setLineDash(bi === focusBlock ? [] : [5, 4]);
       g.strokeRect(R2.x + 1.5, R2.y + 1.5, R2.w - 3, R2.h - 3);
       g.setLineDash([]);
     }
-  const sy = symOf(shared.design);
+  const sy = symOf(design);
   if (sy !== "off") {
-    const bt = borderTotal(shared.design) * cw / quiltMm(shared.design).W, x0 = bt, y0 = bt, x1 = cw - bt, y1 = ch - bt, mx = cw / 2, my = ch / 2;
+    const bt = borderTotal(design) * cw / quiltMm(design).W, x0 = bt, y0 = bt, x1 = cw - bt, y1 = ch - bt, mx = cw / 2, my = ch / 2;
     g.save();
     g.setLineDash([8, 6]);
     g.lineCap = "round";
@@ -5598,9 +5641,9 @@ function drawDesignerCanvas() {
     }
     g.restore();
   }
-  const sz = sashOf(shared.design);
-  const nb = bordersOf(shared.design).length;
-  $("dz-size-b").textContent = `${sz.mm ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(shared.design)} mm)` : ""} \xB7 finished quilt ${qmm.W} \xD7 ${qmm.H} mm`;
+  const sz = sashOf(design);
+  const nb = bordersOf(design).length;
+  $("dz-size-b").textContent = `${sz.mm ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(design)} mm)` : ""} \xB7 finished quilt ${qmm.W} \xD7 ${qmm.H} mm`;
   drawBackCanvas(cw, ch, dpr);
   const hv = $("dz-hover");
   hv.style.width = cw + "px";
@@ -5617,8 +5660,8 @@ function drawBackCanvas(cw, ch, dpr) {
   cv.height = Math.floor(ch * dpr);
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const pxPerCm = cw / (quiltMm(shared.design).W / 10);
-  g.fillStyle = fabricFill(g, fabricById(shared.design.backFabric), pxPerCm, 7);
+  const pxPerCm = cw / (quiltMm(design).W / 10);
+  g.fillStyle = fabricFill(g, fabricById(design.backFabric), pxPerCm, 7);
   g.fillRect(0, 0, cw, ch);
   g.save();
   g.translate(cw, 0);
@@ -5627,7 +5670,7 @@ function drawBackCanvas(cw, ch, dpr) {
   g.lineWidth = Math.max(0.8, cw / 900);
   g.strokeStyle = "rgba(40,30,20,.45)";
   strokeSeams(g, cw, ch);
-  if (quiltingOf(shared.design) !== "ditch") drawQuiltingLines(g, cw, ch, quiltingOf(shared.design));
+  if (quiltingOf(design) !== "ditch") drawQuiltingLines(g, cw, ch, quiltingOf(design));
   g.setLineDash([]);
   g.restore();
   g.fillStyle = "rgba(255,255,255,.04)";
@@ -5635,7 +5678,7 @@ function drawBackCanvas(cw, ch, dpr) {
   g.strokeStyle = "#2f466f";
   g.lineWidth = Math.max(4, cw * 9e-3);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
-  $("dz-backname").textContent = fabricById(shared.design.backFabric).name;
+  $("dz-backname").textContent = fabricById(design.backFabric).name;
 }
 var flipped = false;
 function turnQuilt() {
@@ -5651,15 +5694,15 @@ function turnQuilt() {
   $("dz-backbar").hidden = !flipped;
   $("dz-quilt").setAttribute("aria-hidden", String(flipped));
   $("dz-back").setAttribute("aria-hidden", String(!flipped));
-  if (flipped) drawPaletteInto($("dz-backfabs"), shared.design.backFabric);
+  if (flipped) drawPaletteInto($("dz-backfabs"), design.backFabric);
 }
 var BLOCK_PX = 300;
 
 // src/designer/fussy-cut.js
 function drawFussy() {
   const box = $("dz-fussy");
-  if (!box || !shared.design) return;
-  const b = shared.design.blocks[shared.focusBlock], pi = shared.selParts.size === 1 ? [...shared.selParts][0] : -1, fab = pi >= 0 ? fabricById(b.fabrics[pi]) : null;
+  if (!box || !design) return;
+  const b = design.blocks[focusBlock], pi = selParts.size === 1 ? [...selParts][0] : -1, fab = pi >= 0 ? fabricById(b.fabrics[pi]) : null;
   box.hidden = !(fab && fab.print);
   if (box.hidden) return;
   const cv = $("dz-fussy-cv"), S = 170, dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -5674,7 +5717,7 @@ function drawFussy() {
   $("dz-fussy-st").textContent = f ? "Fussy cut: the outline shows the part of the print that will be in this piece. Click or drag to move it." : "Click the print to choose which part of it shows in this piece (a fussy cut).";
   $("dz-fussy-clear").hidden = !f;
   if (!f) return;
-  const size = blockSizeMm(shared.design, spanOf(b)) / 10, k = S / fab.cm;
+  const size = blockSizeMm(design, spanOf(b)) / 10, k = S / fab.cm;
   const poly = orientPoly(partsOf(b.pattern)[pi].poly, b).map(([u, v]) => [u * size * k, v * size * k]), [cx, cy] = polyCentre(poly);
   const offs = [
     [0, 0],
@@ -5698,14 +5741,8 @@ function drawFussy() {
   g.restore();
 }
 function setFussy2(u, v) {
-  const pi = [...shared.selParts][0];
-  dispatch(
-    setFussy,
-    shared.selBlocks,
-    shared.design.blocks[shared.focusBlock].pattern,
-    pi,
-    u == null ? null : [u, v]
-  );
+  const pi = [...selParts][0];
+  dispatch(setFussy, selBlocks, design.blocks[focusBlock].pattern, pi, u == null ? null : [u, v]);
 }
 {
   const cv = $("dz-fussy-cv");
@@ -5733,7 +5770,7 @@ function setFussy2(u, v) {
 
 // src/designer/parts-editor.js
 function drawPartsEditor() {
-  if (!shared.design) return;
+  if (!design) return;
   drawBlockLibrary();
   const cv = $("dz-block"), css = BLOCK_PX, dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = cv.height = css * dpr;
@@ -5742,16 +5779,16 @@ function drawPartsEditor() {
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, css, css);
-  const b = shared.design.blocks[shared.focusBlock], polys = blockPolys(b, 0, 0, css, css);
-  const realCm = shared.design.blockMm / 10, pxPerCm = css / realCm;
+  const b = design.blocks[focusBlock], polys = blockPolys(b, 0, 0, css, css);
+  const realCm = design.blockMm / 10, pxPerCm = css / realCm;
   polys.forEach((poly, pi) => {
-    g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, shared.focusBlock * 31 + pi);
+    g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, focusBlock * 31 + pi);
     pathPoly(g, poly);
     g.fill();
   });
   polys.forEach((poly, pi) => {
     pathPoly(g, poly);
-    if (shared.selParts.has(pi)) {
+    if (selParts.has(pi)) {
       g.fillStyle = "rgba(224,89,42,.28)";
       g.fill();
       g.lineWidth = 3;
@@ -5766,13 +5803,13 @@ function drawPartsEditor() {
       g.stroke();
     }
   });
-  const names = [...shared.selParts].map((i) => partsOf(b.pattern)[i].name);
-  $("dz-parts-info").textContent = shared.selParts.size === 0 ? "Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric." : shared.selParts.size === 1 ? `Selected: ${names[0]} \xB7 ${fabricById(b.fabrics[[...shared.selParts][0]]).name}${b.fussy && b.fussy[[...shared.selParts][0]] ? " \xB7 fussy cut" : ""}` : `${shared.selParts.size} parts selected`;
+  const names = [...selParts].map((i) => partsOf(b.pattern)[i].name);
+  $("dz-parts-info").textContent = selParts.size === 0 ? "Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric." : selParts.size === 1 ? `Selected: ${names[0]} \xB7 ${fabricById(b.fabrics[[...selParts][0]]).name}${b.fussy && b.fussy[[...selParts][0]] ? " \xB7 fussy cut" : ""}` : `${selParts.size} parts selected`;
   drawFussy();
-  $("dz-blockname").textContent = `${PATTERNS[b.pattern].label} \xB7 block ${Math.floor(shared.focusBlock / shared.design.cols) + 1}, ${shared.focusBlock % shared.design.cols + 1}` + (shared.selBlocks.size > 1 ? ` \xB7 editing ${shared.selBlocks.size} blocks` : "");
+  $("dz-blockname").textContent = `${PATTERNS[b.pattern].label} \xB7 block ${Math.floor(focusBlock / design.cols) + 1}, ${focusBlock % design.cols + 1}` + (selBlocks.size > 1 ? ` \xB7 editing ${selBlocks.size} blocks` : "");
 }
 function drawPatternButtons() {
-  if (!shared.design) return;
+  if (!design) return;
   const box = $("dz-patterns");
   if (!box.childElementCount) {
     for (const [key, p] of Object.entries(PATTERNS)) {
@@ -5801,14 +5838,14 @@ function drawPatternButtons() {
       box.appendChild(b);
     }
   }
-  const cur = shared.design.blocks[shared.focusBlock].pattern;
+  const cur = design.blocks[focusBlock].pattern;
   for (const b of box.children) b.setAttribute("aria-pressed", String(b.dataset.p === cur));
 }
 function drawFabricPalette() {
   for (const id of ["dz-fabrics", "dz-fabrics2"]) if ($(id)) drawPaletteInto($(id));
-  if (shared.design) drawPaletteInto($("dz-backfabs"), shared.design.backFabric);
+  if (design) drawPaletteInto($("dz-backfabs"), design.backFabric);
 }
-function drawPaletteInto(box, selected = shared.activeFabric) {
+function drawPaletteInto(box, selected = activeFabric) {
   box.innerHTML = "";
   for (const f of fabricLib) {
     const b = document.createElement("button");
@@ -5828,18 +5865,18 @@ function drawPaletteInto(box, selected = shared.activeFabric) {
   }
 }
 function renderDesigner() {
-  if (!shared.design) return;
-  if (shared.design.blocks[shared.focusBlock] && shared.design.blocks[shared.focusBlock].under != null)
-    shared.focusBlock = shared.design.blocks[shared.focusBlock].under;
-  $("dz-cols").value = shared.design.cols;
-  $("dz-rows").value = shared.design.rows;
+  if (!design) return;
+  if (design.blocks[focusBlock] && design.blocks[focusBlock].under != null)
+    setFocusBlock(design.blocks[focusBlock].under);
+  $("dz-cols").value = design.cols;
+  $("dz-rows").value = design.rows;
   syncSymUI();
-  for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = shared.design.blockMm;
-  $("dz-rot").textContent = `Rotate 90\xB0 (${shared.design.blocks[shared.focusBlock].rot * 90}\xB0)`;
-  $("dz-rot2").textContent = `Rotate 90\xB0 \xB7 now ${shared.design.blocks[shared.focusBlock].rot * 90}\xB0`;
+  for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
+  $("dz-rot").textContent = `Rotate 90\xB0 (${design.blocks[focusBlock].rot * 90}\xB0)`;
+  $("dz-rot2").textContent = `Rotate 90\xB0 \xB7 now ${design.blocks[focusBlock].rot * 90}\xB0`;
   const ps = $("dz-patsel");
   if (!ps.options.length) for (const [k, p] of Object.entries(PATTERNS)) ps.add(new Option(p.label, k));
-  ps.value = shared.design.blocks[shared.focusBlock].pattern;
+  ps.value = design.blocks[focusBlock].pattern;
   updatePatPicker();
   drawDesignerCanvas();
   drawPartsEditor();
@@ -5866,17 +5903,17 @@ var blockKey = (b) => {
 };
 function drawBlockLibrary() {
   const box = $("dz-library");
-  if (!box || !shared.design) return;
+  if (!box || !design) return;
   const seen = /* @__PURE__ */ new Map();
-  shared.design.blocks.forEach((b, i) => {
+  design.blocks.forEach((b, i) => {
     if (b.under != null) return;
     const k = blockKey(b);
     if (!seen.has(k)) seen.set(k, { b, i, n: 0 });
     seen.get(k).n++;
   });
-  const cur = blockKey(shared.design.blocks[shared.focusBlock]);
+  const cur = blockKey(design.blocks[focusBlock]);
   box.innerHTML = "";
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), S = 68, realCm = shared.design.blockMm / 10;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), S = 68, realCm = design.blockMm / 10;
   for (const [k, { b, i, n }] of seen) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -5906,31 +5943,39 @@ function drawBlockLibrary() {
   }
 }
 function copyBlockFrom(srcIndex) {
-  shared.selParts.clear();
-  dispatch(copyBlock, shared.design.blocks[srcIndex], shared.selBlocks);
+  selParts.clear();
+  dispatch(copyBlock, design.blocks[srcIndex], selBlocks);
 }
-shared.partTap = null;
 function selectSameFabric(pi) {
-  const b = shared.design.blocks[shared.focusBlock], ref = b.fabrics[pi];
-  shared.selParts = new Set(b.fabrics.map((f, i) => f === ref ? i : -1).filter((i) => i >= 0));
+  const b = design.blocks[focusBlock], ref = b.fabrics[pi];
+  setSelParts(new Set(b.fabrics.map((f, i) => f === ref ? i : -1).filter((i) => i >= 0)));
   drawPartsEditor();
 }
 
+// src/designer/ui-state.js
+var toolsPanel = null;
+var setToolsPanel = (v) => toolsPanel = v;
+var showTools = () => {
+};
+var setShowTools = (f) => showTools = f;
+var showToolsPanel = () => {
+};
+var setShowToolsPanel = (f) => showToolsPanel = f;
+var hideTools = () => {
+};
+var setHideTools = (f) => hideTools = f;
+var partTap = null;
+var setPartTap = (v) => partTap = v;
+var camTarget = null;
+var setCamTarget = (f) => camTarget = f;
+
 // src/designer/side-panel.js
 var editorInSide = false;
-shared.toolsSnap = null;
-shared.showTools = () => {
-};
-shared.showToolsPanel = () => {
-};
-shared.hideTools = () => {
-};
-shared.toolsPanel = null;
 var PANEL_CARDS = { parts: "dz-sideparts", sash: "sash-card", brd: "brd-card" };
 function syncRail() {
   for (const n of Object.keys(PANEL_CARDS)) {
     const b = $("rail-" + n);
-    if (b) b.setAttribute("aria-pressed", String(!$("dz-side").hidden && shared.toolsPanel === n));
+    if (b) b.setAttribute("aria-pressed", String(!$("dz-side").hidden && toolsPanel === n));
   }
 }
 function placeBlockEditor(side) {
@@ -5951,7 +5996,7 @@ function openBlockEditor() {
   const dlg = $("dz-dialog");
   drawPartsEditor();
   drawFabricPalette();
-  shared.showTools();
+  showTools();
   if (editorInSide) {
     if ($("dz-sideparts").classList.contains("folded")) setFold($("dz-sideparts"), "dz:block parts", false);
     const card = $("dz-sideparts"), r = card.getBoundingClientRect();
@@ -5973,19 +6018,19 @@ function updateMultiUI() {
 
 // src/designer/edits.js
 function applyFabric(fid) {
-  shared.activeFabric = fid;
-  if (!shared.selParts.size) {
+  setActiveFabric(fid);
+  if (!selParts.size) {
     drawFabricPalette();
     openBlockEditor();
     $("dz-parts-info").textContent = "Select one or more parts first, then pick a fabric.";
     return;
   }
-  const focus = shared.design.blocks[shared.focusBlock];
-  if (!dispatch(setPartFabric, shared.selBlocks, focus.pattern, shared.selParts, fid)) drawFabricPalette();
+  const focus = design.blocks[focusBlock];
+  if (!dispatch(setPartFabric, selBlocks, focus.pattern, selParts, fid)) drawFabricPalette();
 }
 function choosePattern(key) {
-  shared.selParts.clear();
-  dispatch(setPattern, shared.selBlocks, key, rolesOf(shared.design.blocks[shared.focusBlock]));
+  selParts.clear();
+  dispatch(setPattern, selBlocks, key, rolesOf(design.blocks[focusBlock]));
 }
 
 // src/designer/designer-ui.js
@@ -5995,17 +6040,16 @@ function initDesignerUI() {
   const blocksIn = (x0, y0, x1, y1) => {
     const r = qcv.getBoundingClientRect(), out = /* @__PURE__ */ new Set();
     const L = Math.min(x0, x1), R2 = Math.max(x0, x1), T = Math.min(y0, y1), B2 = Math.max(y0, y1);
-    for (let rr = 0; rr < shared.design.rows; rr++)
-      for (let cc = 0; cc < shared.design.cols; cc++) {
-        const b = blockRect(shared.design, cc, rr, r.width, r.height);
-        if (b.x < R2 && b.x + b.w > L && b.y < B2 && b.y + b.h > T)
-          out.add(anchorOf(shared.design, rr * shared.design.cols + cc));
+    for (let rr = 0; rr < design.rows; rr++)
+      for (let cc = 0; cc < design.cols; cc++) {
+        const b = blockRect(design, cc, rr, r.width, r.height);
+        if (b.x < R2 && b.x + b.w > L && b.y < B2 && b.y + b.h > T) out.add(anchorOf(design, rr * design.cols + cc));
       }
     return out;
   };
   qcv.addEventListener("pointerdown", (e) => {
     suppressClick = false;
-    if (flipped || e.button !== 0 || !shared.design) return;
+    if (flipped || e.button !== 0 || !design) return;
     if (e.pointerType === "touch") return;
     const r = qcv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     marquee = {
@@ -6015,7 +6059,7 @@ function initDesignerUI() {
       x1: x,
       y1: y,
       active: false,
-      base: e.shiftKey || e.ctrlKey || e.metaKey ? new Set(shared.selBlocks) : /* @__PURE__ */ new Set()
+      base: e.shiftKey || e.ctrlKey || e.metaKey ? new Set(selBlocks) : /* @__PURE__ */ new Set()
     };
   });
   qcv.addEventListener("pointermove", (e) => {
@@ -6043,7 +6087,7 @@ function initDesignerUI() {
       mqFrame = requestAnimationFrame(() => {
         mqFrame = 0;
         if (!marquee) return;
-        shared.selBlocks = /* @__PURE__ */ new Set([...marquee.base, ...blocksIn(marquee.x0, marquee.y0, marquee.x1, marquee.y1)]);
+        setSelBlocks(/* @__PURE__ */ new Set([...marquee.base, ...blocksIn(marquee.x0, marquee.y0, marquee.x1, marquee.y1)]));
         drawDesignerCanvas();
       });
   });
@@ -6055,15 +6099,15 @@ function initDesignerUI() {
     if (!m0.active) return;
     suppressClick = true;
     if (cancel) {
-      shared.selBlocks = m0.base.size ? m0.base : /* @__PURE__ */ new Set([shared.focusBlock]);
+      setSelBlocks(m0.base.size ? m0.base : /* @__PURE__ */ new Set([focusBlock]));
       drawDesignerCanvas();
       return;
     }
     const inside = blocksIn(m0.x0, m0.y0, m0.x1, m0.y1);
-    shared.selBlocks = /* @__PURE__ */ new Set([...m0.base, ...inside]);
-    if (!shared.selBlocks.size) shared.selBlocks = /* @__PURE__ */ new Set([shared.focusBlock]);
-    shared.focusBlock = inside.size ? Math.min(...inside) : [...shared.selBlocks][0];
-    shared.selParts.clear();
+    setSelBlocks(/* @__PURE__ */ new Set([...m0.base, ...inside]));
+    if (!selBlocks.size) setSelBlocks(/* @__PURE__ */ new Set([focusBlock]));
+    setFocusBlock(inside.size ? Math.min(...inside) : [...selBlocks][0]);
+    selParts.clear();
     renderDesigner();
     updateMultiUI();
     openBlockEditor();
@@ -6085,76 +6129,76 @@ function initDesignerUI() {
   $("dz-quilt").addEventListener("click", (e) => {
     if (flipped || e.defaultPrevented) return;
     const r = e.currentTarget.getBoundingClientRect();
-    const bi = blockAt(shared.design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    const bi = blockAt(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
     if (bi < 0) {
-      const q = quiltMm(shared.design), bt = borderTotal(shared.design), mx = (e.clientX - r.left) / r.width * q.W, my = (e.clientY - r.top) / r.height * q.H;
+      const q = quiltMm(design), bt = borderTotal(design), mx = (e.clientX - r.left) / r.width * q.W, my = (e.clientY - r.top) / r.height * q.H;
       if (bt && (mx < bt || my < bt || mx > q.W - bt || my > q.H - bt)) openBorders();
-      else if (sashOf(shared.design).mm) openSashing();
+      else if (sashOf(design).mm) openSashing();
       return;
     }
     const multi = e.shiftKey || e.ctrlKey || e.metaKey;
-    const prevPattern = shared.design.blocks[shared.focusBlock].pattern;
+    const prevPattern = design.blocks[focusBlock].pattern;
     if (multi) {
-      if (shared.selBlocks.has(bi) && shared.selBlocks.size > 1) shared.selBlocks.delete(bi);
-      else shared.selBlocks.add(bi);
-    } else if (!shared.selBlocks.has(bi) || shared.selBlocks.size <= 1) shared.selBlocks = /* @__PURE__ */ new Set([bi]);
-    shared.focusBlock = shared.selBlocks.has(bi) ? bi : [...shared.selBlocks][0];
-    if (shared.design.blocks[shared.focusBlock].pattern !== prevPattern || !multi) shared.selParts.clear();
+      if (selBlocks.has(bi) && selBlocks.size > 1) selBlocks.delete(bi);
+      else selBlocks.add(bi);
+    } else if (!selBlocks.has(bi) || selBlocks.size <= 1) setSelBlocks(/* @__PURE__ */ new Set([bi]));
+    setFocusBlock(selBlocks.has(bi) ? bi : [...selBlocks][0]);
+    if (design.blocks[focusBlock].pattern !== prevPattern || !multi) selParts.clear();
     renderDesigner();
     if (!multi) openBlockEditor();
     updateMultiUI();
   });
   $("dz-block").addEventListener("click", (e) => {
     const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * BLOCK_PX, y = (e.clientY - r.top) / r.height * BLOCK_PX;
-    const polys = blockPolys(shared.design.blocks[shared.focusBlock], 0, 0, BLOCK_PX, BLOCK_PX);
+    const polys = blockPolys(design.blocks[focusBlock], 0, 0, BLOCK_PX, BLOCK_PX);
     const hit = polys.findIndex((p) => pointInPoly(x, y, p));
     if (hit < 0) return;
-    const now = performance.now(), last = shared.partTap;
-    shared.partTap = { t: now, hit };
+    const now = performance.now(), last = partTap;
+    setPartTap({ t: now, hit });
     if (last && last.hit === hit && now - last.t < 380) {
       selectSameFabric(hit);
-      shared.partTap = null;
+      setPartTap(null);
       return;
     }
     if (e.shiftKey || e.ctrlKey || e.metaKey) {
-      shared.selParts.has(hit) ? shared.selParts.delete(hit) : shared.selParts.add(hit);
-    } else if (shared.selParts.size === 1 && shared.selParts.has(hit)) shared.selParts.clear();
-    else shared.selParts = /* @__PURE__ */ new Set([hit]);
+      selParts.has(hit) ? selParts.delete(hit) : selParts.add(hit);
+    } else if (selParts.size === 1 && selParts.has(hit)) selParts.clear();
+    else setSelParts(/* @__PURE__ */ new Set([hit]));
     drawPartsEditor();
   });
   $("dz-block").addEventListener("dblclick", (e) => {
     e.preventDefault();
     const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * BLOCK_PX, y = (e.clientY - r.top) / r.height * BLOCK_PX;
-    const b = shared.design.blocks[shared.focusBlock], hit = blockPolys(b, 0, 0, BLOCK_PX, BLOCK_PX).findIndex((p) => pointInPoly(x, y, p));
+    const b = design.blocks[focusBlock], hit = blockPolys(b, 0, 0, BLOCK_PX, BLOCK_PX).findIndex((p) => pointInPoly(x, y, p));
     if (hit < 0) return;
     selectSameFabric(hit);
   });
   $("dz-allparts").addEventListener("click", () => {
-    shared.selParts = new Set(partsOf(shared.design.blocks[shared.focusBlock].pattern).map((_, i) => i));
+    setSelParts(new Set(partsOf(design.blocks[focusBlock].pattern).map((_, i) => i)));
     drawPartsEditor();
   });
   $("dz-sameparts").addEventListener("click", () => {
-    const b = shared.design.blocks[shared.focusBlock], ref = shared.selParts.size ? b.fabrics[[...shared.selParts][0]] : null;
+    const b = design.blocks[focusBlock], ref = selParts.size ? b.fabrics[[...selParts][0]] : null;
     if (ref === null) {
       $("dz-parts-info").textContent = "Select one part first; this then selects every part with the same fabric.";
       return;
     }
-    shared.selParts = new Set(b.fabrics.map((f, i) => f === ref ? i : -1).filter((i) => i >= 0));
+    setSelParts(new Set(b.fabrics.map((f, i) => f === ref ? i : -1).filter((i) => i >= 0)));
     drawPartsEditor();
   });
   $("dz-noparts").addEventListener("click", () => {
-    shared.selParts.clear();
+    selParts.clear();
     drawPartsEditor();
   });
   $("dz-allblocks").addEventListener("click", () => {
-    shared.selBlocks = new Set(shared.design.blocks.map((_, i) => i));
+    setSelBlocks(new Set(design.blocks.map((_, i) => i)));
     drawDesignerCanvas();
     drawPartsEditor();
     updateMultiUI();
   });
   $("dz-sameblocks").addEventListener("click", () => {
-    const p = shared.design.blocks[shared.focusBlock].pattern;
-    shared.selBlocks = new Set(shared.design.blocks.map((b, i) => b.pattern === p ? i : -1).filter((i) => i >= 0));
+    const p = design.blocks[focusBlock].pattern;
+    setSelBlocks(new Set(design.blocks.map((b, i) => b.pattern === p ? i : -1).filter((i) => i >= 0)));
     drawDesignerCanvas();
     drawPartsEditor();
   });
@@ -6162,7 +6206,7 @@ function initDesignerUI() {
     const b = e.target.closest("button");
     if (b) choosePattern(b.dataset.p);
   });
-  const rotate = () => dispatch(rotateBlocks, shared.selBlocks);
+  const rotate = () => dispatch(rotateBlocks, selBlocks);
   $("dz-rot").addEventListener("click", rotate);
   $("dz-rot2").addEventListener("click", rotate);
   $("dz-patsel").addEventListener("change", (e) => choosePattern(e.target.value));
@@ -6183,10 +6227,10 @@ function initDesignerUI() {
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
   });
   dlg.addEventListener("close", () => {
-    if (shared.selBlocks.size > 1) {
-      shared.selBlocks = /* @__PURE__ */ new Set([shared.focusBlock]);
+    if (selBlocks.size > 1) {
+      setSelBlocks(/* @__PURE__ */ new Set([focusBlock]));
     }
-    shared.selParts.clear();
+    selParts.clear();
     drawDesignerCanvas();
     updateMultiUI();
   });
@@ -6196,24 +6240,24 @@ function initDesignerUI() {
   } catch (e) {
   }
   const setTools = (open) => {
-    if (open && !toolsOpen && shared.design) {
+    if (open && !toolsOpen && design) {
       tlEnsure();
       tlCommit();
-      shared.toolsSnap = { d: JSON.stringify(shared.design), i: tl.i, key: tl.key };
+      setToolsSnap({ d: JSON.stringify(design), i: tl.i, key: tl.key });
     }
     toolsOpen = open;
     $("dz-side").hidden = !open;
     $("dz").classList.toggle("tools-open", open);
     placeBlockEditor(open);
-    if (!open) shared.toolsPanel = null;
+    if (!open) setToolsPanel(null);
     syncRail();
-    if (shared.design) {
+    if (design) {
       drawDesignerCanvas();
       drawPartsEditor();
     }
   };
   const showPanel = (name) => {
-    shared.toolsPanel = name;
+    setToolsPanel(name);
     for (const [n, id] of Object.entries(PANEL_CARDS)) {
       const c = $(id);
       c.hidden = n !== name;
@@ -6225,38 +6269,35 @@ function initDesignerUI() {
     $("dz-side").scrollTop = 0;
   };
   for (const [n] of Object.entries(PANEL_CARDS))
-    $("rail-" + n).addEventListener(
-      "click",
-      () => toolsOpen && shared.toolsPanel === n ? setTools(false) : showPanel(n)
-    );
-  shared.showTools = () => {
-    if (!toolsOpen || shared.toolsPanel !== "parts") showPanel("parts");
-  };
-  shared.showToolsPanel = showPanel;
-  shared.hideTools = () => {
+    $("rail-" + n).addEventListener("click", () => toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n));
+  setShowTools(() => {
+    if (!toolsOpen || toolsPanel !== "parts") showPanel("parts");
+  });
+  setShowToolsPanel(showPanel);
+  setHideTools(() => {
     if (toolsOpen) setTools(false);
-  };
+  });
   $("dz-flip").addEventListener("click", turnQuilt);
   $("dz-backfabs").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
     dispatch(setBackFabric, b.dataset.f);
-    drawPaletteInto($("dz-backfabs"), shared.design.backFabric);
+    drawPaletteInto($("dz-backfabs"), design.backFabric);
   });
   setTools(false);
   $("dz-copy").addEventListener("click", () => {
-    const src = shared.design.blocks[shared.focusBlock];
+    const src = design.blocks[focusBlock];
     dispatch(
       copyBlock,
       src,
-      [...shared.selBlocks].filter((bi) => bi !== shared.focusBlock)
+      [...selBlocks].filter((bi) => bi !== focusBlock)
     );
   });
   const sizeChange = () => resizeTo(+$("dz-cols").value, +$("dz-rows").value);
   const blockSize = (e) => {
     const v = Math.round(+e.target.value);
     if (!(v >= 50 && v <= 1e3)) {
-      e.target.value = shared.design.blockMm;
+      e.target.value = design.blockMm;
       return;
     }
     dispatch(setBlockMm, v);
@@ -6267,7 +6308,7 @@ function initDesignerUI() {
   for (const b of document.querySelectorAll("[data-step]"))
     b.addEventListener("click", () => {
       const [which, d] = b.dataset.step.split(":");
-      resizeTo(shared.design.cols + (which === "c" ? +d : 0), shared.design.rows + (which === "r" ? +d : 0));
+      resizeTo(design.cols + (which === "c" ? +d : 0), design.rows + (which === "r" ? +d : 0));
     });
   $("dz-reset").addEventListener("click", () => {
     if ($("dz-reset").dataset.armed !== "1") {
@@ -6279,7 +6320,7 @@ function initDesignerUI() {
       }, 3e3);
       return;
     }
-    shared.mineCur = null;
+    setMineCur(null);
     try {
       localStorage.removeItem("quilt-mydesigns-current.v1");
       localStorage.removeItem(tlKeyFor(null));
@@ -6322,11 +6363,11 @@ function initDesignerUI() {
 import * as THREE11 from "three";
 var designNormalCanvas = document.createElement("canvas");
 designNormalCanvas.width = designNormalCanvas.height = 1024;
-shared.designNormalTex = new THREE11.CanvasTexture(designNormalCanvas);
-shared.designNormalTex.colorSpace = THREE11.NoColorSpace;
-shared.designNormalTex.anisotropy = maxAniso;
+setDesignNormalTex(new THREE11.CanvasTexture(designNormalCanvas));
+designNormalTex.colorSpace = THREE11.NoColorSpace;
+designNormalTex.anisotropy = maxAniso;
 function buildDesignMaps() {
-  const qm = quiltMm(shared.design);
+  const qm = quiltMm(design);
   setQuiltDims(qm.W / 1e3, qm.H / 1e3);
   const W = patchCanvas.width, H = patchCanvas.height, quiltCm = qm.W / 10;
   const g = patchCanvas.getContext("2d");
@@ -6349,7 +6390,7 @@ function buildDesignMaps() {
   g.fillStyle = fabricFill(g, fabricById("b1"), W / quiltCm, 3);
   g.fillRect(0, 0, W, H);
   g.restore();
-  shared.patchTex.needsUpdate = true;
+  patchTex.needsUpdate = true;
   const NW = designNormalCanvas.width, NH = designNormalCanvas.height, hc = document.createElement("canvas");
   hc.width = NW;
   hc.height = NH;
@@ -6372,8 +6413,8 @@ function buildDesignMaps() {
       o[i + 3] = 255;
     }
   designNormalCanvas.getContext("2d").putImageData(out, 0, 0);
-  shared.designNormalTex.needsUpdate = true;
-  QM.top.normalMap = shared.designNormalTex;
+  designNormalTex.needsUpdate = true;
+  QM.top.normalMap = designNormalTex;
   QM.top.needsUpdate = true;
   applyBacking();
   if (pathTracer && state.view === "render") pathTracer.updateMaterials();
@@ -6381,7 +6422,7 @@ function buildDesignMaps() {
 var backTex = null;
 var BACK_DEFAULT = { map: QM.back.map, color: QM.back.color.clone(), normalMap: QM.back.normalMap };
 function applyBacking() {
-  const fab = fabricById(shared.design.backFabric);
+  const fab = fabricById(design.backFabric);
   if (backTex) backTex.dispose();
   backTex = new THREE11.CanvasTexture(fab.canvas);
   backTex.colorSpace = THREE11.SRGBColorSpace;
@@ -6390,7 +6431,7 @@ function applyBacking() {
   backTex.repeat.set(quilt.w * 100 / fab.cm, quilt.l * 100 / (fab.cm * fab.canvas.height / fab.canvas.width));
   QM.back.map = backTex;
   QM.back.color.set(16777215);
-  QM.back.normalMap = shared.designNormalTex;
+  QM.back.normalMap = designNormalTex;
   QM.back.needsUpdate = true;
 }
 function restoreBacking() {
@@ -6406,7 +6447,7 @@ function scheduleSync() {
   syncTimer = setTimeout(syncSimulation, 350);
 }
 function syncSimulation() {
-  if (!shared.design) return;
+  if (!design) return;
   const w0 = quilt.w, l0 = quilt.l;
   if (state.view === "render") setView("photo");
   buildDesignMaps();
@@ -6450,7 +6491,7 @@ function setBed(key, w, l, h) {
   syncBedUI();
   buildBedMeshes();
   buildBedExtras();
-  shared.colliders = ClothSim.bedColliders(bedM());
+  setColliders(ClothSim.bedColliders(bedM()));
   MAT.top = ClothSim.surfaceTop(bedM());
   MAT.headFace = isTableSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055;
   const pil = $("pillows").checked;
@@ -6467,7 +6508,7 @@ function setBed(key, w, l, h) {
   updateIntro();
   updateFitReadout();
   renderFitSuggestions();
-  shared.dropPos = null;
+  setDropPos(null);
   syncDropUI();
   restart();
 }
@@ -6514,10 +6555,10 @@ function fitTarget() {
   return { W: bedState.w + 2 * bedState.drop, L: bedState.l + bedState.drop + (bedState.tuck ? TUCK : 0) };
 }
 function fitOptions() {
-  const T = fitTarget(), out = [], seen = /* @__PURE__ */ new Set(), sz = shared.design ? sashOf(shared.design) : { mm: 0, border: false }, S = sz.mm, e = sz.border ? 2 : 0;
-  const BT = shared.design ? 2 * borderTotal(shared.design) : 0;
+  const T = fitTarget(), out = [], seen = /* @__PURE__ */ new Set(), sz = design ? sashOf(design) : { mm: 0, border: false }, S = sz.mm, e = sz.border ? 2 : 0;
+  const BT = design ? 2 * borderTotal(design) : 0;
   const size = (c, r, B) => ({ W: c * B + S * (c - 1 + e) + BT, L: r * B + S * (r - 1 + e) + BT });
-  const sizes = [shared.design ? shared.design.blockMm : 400, 250, 300, 305, 350, 400, 450, 457, 500, 550, 600];
+  const sizes = [design ? design.blockMm : 400, 250, 300, 305, 350, 400, 450, 457, 500, 550, 600];
   for (const B of sizes) {
     const p = B + S;
     for (const c of [Math.floor((T.W - BT - S * (e - 1)) / p), Math.ceil((T.W - BT - S * (e - 1)) / p)])
@@ -6527,7 +6568,7 @@ function fitOptions() {
         if (seen.has(k)) continue;
         seen.add(k);
         const { W, L } = size(c, r, B), err = Math.abs(W - T.W) + Math.abs(L - T.L) + (W < bedState.w ? 1e6 : 0);
-        out.push({ B, c, r, W, L, err, current: shared.design && B === shared.design.blockMm });
+        out.push({ B, c, r, W, L, err, current: design && B === design.blockMm });
       }
   }
   out.sort((a, b) => a.err - b.err);
@@ -6537,8 +6578,8 @@ function fitOptions() {
     if (list.length >= 4) break;
     if (!list.includes(o) && !list.some((x) => x.B === o.B)) list.push(o);
   }
-  if (shared.design) {
-    const c = Math.max(1, Math.round((T.W - BT - S * (e - 1)) / (shared.design.blockMm + S))), B = Math.max(50, Math.round((T.W - BT - S * (c - 1 + e)) / c / 5) * 5), r = Math.max(1, Math.round((T.L - BT - S * (e - 1)) / (B + S)));
+  if (design) {
+    const c = Math.max(1, Math.round((T.W - BT - S * (e - 1)) / (design.blockMm + S))), B = Math.max(50, Math.round((T.W - BT - S * (c - 1 + e)) / c / 5) * 5), r = Math.max(1, Math.round((T.L - BT - S * (e - 1)) / (B + S)));
     if (!list.some((o) => o.B === B && o.c === c && o.r === r))
       list.push({ B, c, r, ...size(c, r, B), err: 0, exact: true });
   }
@@ -6546,13 +6587,13 @@ function fitOptions() {
 }
 function renderFitSuggestions() {
   const box = $("fit-list");
-  if (!box || !shared.design) return;
+  if (!box || !design) return;
   const T = fitTarget();
   $("fit-target").textContent = `Target quilt: ${T.W} \xD7 ${T.L} mm (mattress ${bedState.w} \xD7 ${bedState.l} + ${bedState.drop} mm drop each side and at the foot${bedState.tuck ? ` + ${TUCK} mm pillow tuck` : ""}).`;
   box.innerHTML = "";
   for (const o of fitOptions()) {
     const side = Math.round((o.W - bedState.w) / 2), foot = o.L - bedState.l - (bedState.tuck ? TUCK : 0);
-    const isNow = shared.design.cols === o.c && shared.design.rows === o.r && shared.design.blockMm === o.B;
+    const isNow = design.cols === o.c && design.rows === o.r && design.blockMm === o.B;
     const row = document.createElement("div");
     row.className = "fitopt";
     row.innerHTML = `<div><b>${o.c} \xD7 ${o.r} blocks of ${o.B} mm</b>${o.current ? ' <span class="tag">your block size</span>' : ""}${o.exact ? ' <span class="tag">resized blocks</span>' : ""}
@@ -6637,23 +6678,23 @@ function setQuiltDims(w, l) {
   if (patchCanvas.width !== pw || patchCanvas.height !== ph) {
     patchCanvas.width = pw;
     patchCanvas.height = ph;
-    shared.patchTex.dispose();
-    shared.patchTex = new THREE12.CanvasTexture(patchCanvas);
-    shared.patchTex.colorSpace = THREE12.SRGBColorSpace;
-    shared.patchTex.anisotropy = maxAniso;
-    QM.top.map = shared.patchTex;
+    patchTex.dispose();
+    setPatchTex(new THREE12.CanvasTexture(patchCanvas));
+    patchTex.colorSpace = THREE12.SRGBColorSpace;
+    patchTex.anisotropy = maxAniso;
+    QM.top.map = patchTex;
     QM.top.needsUpdate = true;
   }
   if (designNormalCanvas.width !== nw || designNormalCanvas.height !== nh) {
     designNormalCanvas.width = nw;
     designNormalCanvas.height = nh;
-    const wasDesign = QM.top.normalMap === shared.designNormalTex;
-    shared.designNormalTex.dispose();
-    shared.designNormalTex = new THREE12.CanvasTexture(designNormalCanvas);
-    shared.designNormalTex.colorSpace = THREE12.NoColorSpace;
-    shared.designNormalTex.anisotropy = maxAniso;
+    const wasDesign = QM.top.normalMap === designNormalTex;
+    designNormalTex.dispose();
+    setDesignNormalTex(new THREE12.CanvasTexture(designNormalCanvas));
+    designNormalTex.colorSpace = THREE12.NoColorSpace;
+    designNormalTex.anisotropy = maxAniso;
     if (wasDesign) {
-      QM.top.normalMap = shared.designNormalTex;
+      QM.top.normalMap = designNormalTex;
       QM.top.needsUpdate = true;
     }
   }
@@ -6677,7 +6718,7 @@ var QUILTING = {
 };
 var quiltingOf = (d) => d && QUILTING[d.quilting] ? d.quilting : "ditch";
 function drawQuiltingLines(g, W, H, kind) {
-  const k = W / quiltMm(shared.design).W;
+  const k = W / quiltMm(design).W;
   g.save();
   g.beginPath();
   g.rect(0, 0, W, H);
@@ -6725,7 +6766,7 @@ function drawQuiltingLines(g, W, H, kind) {
   g.restore();
 }
 function strokeSeams(g, W, H) {
-  const d = shared.design;
+  const d = design;
   for (const rc of sashRects(d, W, H)) g.strokeRect(rc.x, rc.y, rc.w, rc.h);
   for (let r = 0; r < d.rows; r++)
     for (let c = 0; c < d.cols; c++) {
@@ -6749,7 +6790,7 @@ function softSeams(W, H, blur, bg, ink, lineWidth) {
   g.strokeStyle = ink;
   g.lineWidth = lineWidth;
   strokeSeams(g, W, H);
-  const qk = quiltingOf(shared.design);
+  const qk = quiltingOf(design);
   if (qk !== "ditch") {
     g.lineWidth = lineWidth * 0.6;
     drawQuiltingLines(g, W, H, qk);
@@ -6780,12 +6821,12 @@ function showPage(p) {
   if (p === "sim") {
     resize();
     fitSimSide();
-    if (!shared.design)
+    if (!design)
       (async () => {
         await initFabricLib();
-        if (!shared.design) {
+        if (!design) {
           ensureDesign();
-          shared.activeFabric = "b0";
+          setActiveFabric("b0");
         }
         drawFabricPalette();
         renderDesigner();
@@ -6798,9 +6839,9 @@ function showPage(p) {
   }
   (async () => {
     await initFabricLib();
-    if (!shared.design) {
+    if (!design) {
       ensureDesign();
-      shared.activeFabric = "b0";
+      setActiveFabric("b0");
     }
     if (p === "design") {
       drawFabricPalette();
@@ -6870,11 +6911,11 @@ function drawBlockArt(g, b, P, num, W, H) {
     pathPoly(g, p);
     g.stroke();
   });
-  if (shared.fabHi) {
+  if (fabHi) {
     g.lineWidth = 2.2 * k;
     g.strokeStyle = "#e0592a";
     b.pieces.forEach((pc, i) => {
-      if (shared.fabHi({ t: "piece", num, letter: pc.letter, form: pc.form, fabric: pc.fabric })) {
+      if (fabHi({ t: "piece", num, letter: pc.letter, form: pc.form, fabric: pc.fabric })) {
         pathPoly(g, polys[i]);
         g.stroke();
       }
@@ -6904,16 +6945,15 @@ function swatchCanvas(fab, w = 72, h = 48) {
   g.fillRect(0, 0, w, h);
   return c;
 }
-shared.lastPlan = null;
 var cgRedraws = [];
 function sashMini() {
-  const c = Math.min(2, shared.design.cols), r = Math.min(2, shared.design.rows);
+  const c = Math.min(2, design.cols), r = Math.min(2, design.rows);
   return {
-    ...shared.design,
+    ...design,
     cols: c,
     rows: r,
-    blocks: [0, 1, shared.design.cols, shared.design.cols + 1].filter((i) => i < shared.design.blocks.length).slice(0, c * r).map((i) => {
-      const b = { ...shared.design.blocks[i] };
+    blocks: [0, 1, design.cols, design.cols + 1].filter((i) => i < design.blocks.length).slice(0, c * r).map((i) => {
+      const b = { ...design.blocks[i] };
       delete b.span;
       delete b.under;
       return b;
@@ -6966,8 +7006,8 @@ function drawSashPic(g, S, sashCuts, u) {
   }
 }
 function borderRing(kind, k) {
-  const bs = bordersOf(shared.design);
-  if (kind === "brd") return { o: 0, t: borderTotal(shared.design) * k };
+  const bs = bordersOf(design);
+  if (kind === "brd") return { o: 0, t: borderTotal(design) * k };
   const i = +kind.slice(1);
   return { o: bs.slice(i + 1).reduce((a, b) => a + b.mm, 0) * k, t: (bs[i] ? bs[i].mm : 0) * k };
 }
@@ -7018,12 +7058,12 @@ function hasChiralPiece(pattern) {
 function mirroredCount(pb) {
   if (!hasChiralPiece(pb.block.pattern)) return 0;
   const k = pb.block.pattern + "|" + pb.span + "|" + pb.block.fabrics.join(",");
-  return shared.design.blocks.filter(
+  return design.blocks.filter(
     (b) => b.flip && b.under == null && b.pattern + "|" + spanOf(b) + "|" + b.fabrics.join(",") === k
   ).length;
 }
 function drawQuiltHi(cv, maxW, maxH, kind) {
-  const q = quiltMm(shared.design), k = Math.min(maxW / q.W, maxH / q.H), W = Math.round(q.W * k), H = Math.round(q.H * k);
+  const q = quiltMm(design), k = Math.min(maxW / q.W, maxH / q.H), W = Math.round(q.W * k), H = Math.round(q.H * k);
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = Math.round(W * dpr);
   cv.height = Math.round(H * dpr);
@@ -7034,7 +7074,7 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
   drawQuilt(g, W, H, { seams: true });
   g.save();
   if (kind === "sash") {
-    const rs = sashRects(shared.design, W, H);
+    const rs = sashRects(design, W, H);
     g.beginPath();
     g.rect(0, 0, W, H);
     for (const r of rs) g.rect(r.x, r.y, r.w, r.h);
@@ -7058,13 +7098,13 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
 function drawCutQuilt(P, into) {
   const cv = into ? into.cv : $("cg-quilt"), box = cv.parentElement;
   const u = into && into.u || 1, dpr = into && into.dpr || Math.min(window.devicePixelRatio || 1, 2), lab = 22 * u;
-  const s = sashOf(shared.design), gapMm = Math.round(shared.design.blockMm * 0.05);
-  const d2 = s.mm ? shared.design : { ...shared.design, sashing: { mm: gapMm, fabric: "b0", corner: "b0", border: false } };
+  const s = sashOf(design), gapMm = Math.round(design.blockMm * 0.05);
+  const d2 = s.mm ? design : { ...design, sashing: { mm: gapMm, fabric: "b0", corner: "b0", border: false } };
   const q = quiltMm(d2);
   const availW = (into ? into.w : Math.min(1100, box.clientWidth || 900)) - lab;
   let k = availW / q.W;
   if (into) k = Math.min(k, (into.h - lab) / q.H);
-  k = Math.max(k, 60 * u / shared.design.blockMm);
+  k = Math.max(k, 60 * u / design.blockMm);
   const W = Math.round(q.W * k), H = Math.round(q.H * k), TW = W + lab, TH = H + lab;
   cv.width = Math.round(TW * dpr);
   cv.height = Math.round(TH * dpr);
@@ -7076,7 +7116,7 @@ function drawCutQuilt(P, into) {
   g.save();
   g.translate(lab, lab);
   const pxPerCm = k * 10;
-  if (bordersOf(shared.design).length) drawBorders(g, d2, W, H, pxPerCm, true);
+  if (bordersOf(design).length) drawBorders(g, d2, W, H, pxPerCm, true);
   const sr = s.mm ? sashRects(d2, W, H) : [];
   sr.forEach((rc, i) => {
     g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + i);
@@ -7090,10 +7130,10 @@ function drawCutQuilt(P, into) {
   });
   const numOf = new Map(P.blocks.map((b, i) => [b.block.pattern + "|" + b.span + "|" + b.block.fabrics.join(","), i]));
   const rects = [];
-  shared.design.blocks.forEach((blk2, bi) => {
+  design.blocks.forEach((blk2, bi) => {
     if (blk2.under != null) return;
     const i = numOf.get(blk2.pattern + "|" + spanOf(blk2) + "|" + blk2.fabrics.join(",")), pb = P.blocks[i];
-    const r = Math.floor(bi / shared.design.cols), c = bi % shared.design.cols, R2 = blockRect(d2, c, r, W, H);
+    const r = Math.floor(bi / design.cols), c = bi % design.cols, R2 = blockRect(d2, c, r, W, H);
     rects.push({ ...R2, i });
     const turned = {
       ...pb,
@@ -7143,7 +7183,7 @@ function drawCutQuilt(P, into) {
       } else if (long > 40 * u) tag(t, rc.x + rc.w / 2, rc.y + rc.h / 2, fs, rc.h > rc.w);
     }
   }
-  const bs = bordersOf(shared.design);
+  const bs = bordersOf(design);
   bs.forEach((b, i) => {
     const o = bs.slice(i + 1).reduce((a, x) => a + x.mm, 0) * k, t = b.mm * k;
     if (t < 10 * u) return;
@@ -7152,9 +7192,9 @@ function drawCutQuilt(P, into) {
     tag(ids, W / 2, o + t / 2, Math.min(11 * u, t * 0.7), false);
     tag(ids, W / 2, H - o - t / 2, Math.min(11 * u, t * 0.7), false);
   });
-  if (shared.cgHi !== -1) {
-    const ring = typeof shared.cgHi === "string" && shared.cgHi !== "sash";
-    const tgt = shared.cgHi === "sash" ? sr : ring ? [] : rects.filter((R2) => R2.i === shared.cgHi);
+  if (cgHi !== -1) {
+    const ring = typeof cgHi === "string" && cgHi !== "sash";
+    const tgt = cgHi === "sash" ? sr : ring ? [] : rects.filter((R2) => R2.i === cgHi);
     const outline = (x, y, w, h, wide) => {
       g.lineWidth = wide ? 6 : 3;
       g.strokeStyle = "#fff";
@@ -7164,7 +7204,7 @@ function drawCutQuilt(P, into) {
       g.strokeRect(x, y, w, h);
     };
     if (ring) {
-      const r = borderRing(shared.cgHi, k);
+      const r = borderRing(cgHi, k);
       dimOutsideRing(g, W, H, r);
       outlineRing(g, W, H, r);
     } else {
@@ -7177,11 +7217,11 @@ function drawCutQuilt(P, into) {
     if (!ring)
       for (const R2 of tgt)
         outline(
-          R2.x - (shared.cgHi === "sash" ? 0 : 1),
-          R2.y - (shared.cgHi === "sash" ? 0 : 1),
-          R2.w + (shared.cgHi === "sash" ? 0 : 2),
-          R2.h + (shared.cgHi === "sash" ? 0 : 2),
-          shared.cgHi !== "sash"
+          R2.x - (cgHi === "sash" ? 0 : 1),
+          R2.y - (cgHi === "sash" ? 0 : 1),
+          R2.w + (cgHi === "sash" ? 0 : 2),
+          R2.h + (cgHi === "sash" ? 0 : 2),
+          cgHi !== "sash"
         );
   }
   g.restore();
@@ -7189,19 +7229,19 @@ function drawCutQuilt(P, into) {
   g.font = `${12 * u}px system-ui, sans-serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
-  for (let c = 0; c < shared.design.cols; c++) {
+  for (let c = 0; c < design.cols; c++) {
     const R2 = cellRect(d2, c, 0, W, H);
     g.fillText(String(c + 1), lab + R2.x + R2.w / 2, lab / 2);
   }
-  for (let r = 0; r < shared.design.rows; r++) {
+  for (let r = 0; r < design.rows; r++) {
     const R2 = cellRect(d2, 0, r, W, H);
     g.fillText(String(r + 1), lab / 2, lab + R2.y + R2.h / 2);
   }
   if (into) return;
-  const nHi = typeof shared.cgHi === "number" && shared.cgHi >= 0 ? P.blocks[shared.cgHi].count : 0;
-  $("cg-quilt-meta").textContent = typeof shared.cgHi === "string" ? `Showing the ${shared.cgHi === "sash" ? "sashing" : shared.cgHi === "brd" ? "borders" : "border " + (+shared.cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : shared.cgHi >= 0 ? `Showing block ${shared.cgHi + 1} (${P.blocks[shared.cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${shared.design.cols} \xD7 ${shared.design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
-  $("cg-quilt-meta").classList.toggle("cg-hi-on", shared.cgHi !== -1);
-  document.querySelectorAll(".cgblock").forEach((el) => el.classList.toggle("picked", el.dataset.key === String(shared.cgHi)));
+  const nHi = typeof cgHi === "number" && cgHi >= 0 ? P.blocks[cgHi].count : 0;
+  $("cg-quilt-meta").textContent = typeof cgHi === "string" ? `Showing the ${cgHi === "sash" ? "sashing" : cgHi === "brd" ? "borders" : "border " + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : cgHi >= 0 ? `Showing block ${cgHi + 1} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${design.cols} \xD7 ${design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
+  $("cg-quilt-meta").classList.toggle("cg-hi-on", cgHi !== -1);
+  document.querySelectorAll(".cgblock").forEach((el) => el.classList.toggle("picked", el.dataset.key === String(cgHi)));
 }
 
 // src/cutting/plan.js
@@ -7273,11 +7313,11 @@ var CG = /* @__PURE__ */ (() => {
     }
     return best || { stripH: a, pieceW: b, per: 1, strips: n, length: n * a, widthUsed: b };
   }
-  function plan(design, opts) {
+  function plan(design2, opts) {
     const s = opts.seam, usable = opts.fabricWidth - opts.selvage;
     const blockW = opts.blockMm, blockH = opts.blockMm;
     const groups = /* @__PURE__ */ new Map();
-    design.blocks.forEach((b, i) => {
+    design2.blocks.forEach((b, i) => {
       if (b.under != null) return;
       const sp = b.span > 1 ? b.span : 1;
       const key = b.pattern + "|" + sp + "|" + b.fabrics.join(",");
@@ -7399,7 +7439,7 @@ var CG = /* @__PURE__ */ (() => {
         maxW
       });
     }
-    const QW = opts.quiltW || blockW * design.cols, QH = opts.quiltH || blockH * design.rows;
+    const QW = opts.quiltW || blockW * design2.cols, QH = opts.quiltH || blockH * design2.rows;
     const bindStrips = Math.ceil((2 * (QW + QH) + 300) / usable);
     let bf = result.find((r) => r.id === opts.bindingFabric);
     if (!bf) {
@@ -7433,11 +7473,10 @@ var CG = /* @__PURE__ */ (() => {
 })();
 
 // src/cutting/page.js
-shared.cgHi = -1;
 function openQuiltPop(P, i) {
   const d = $("cg-pop"), b = P.blocks[i];
   $("cg-pop-title").textContent = `Block ${i + 1} \xB7 ${b.label}`;
-  $("cg-pop-sub").textContent = `${b.count} in the quilt, marked in orange \xB7 ${shared.design.cols} \xD7 ${shared.design.rows} blocks, ${P.quiltW} \xD7 ${P.quiltH} mm`;
+  $("cg-pop-sub").textContent = `${b.count} in the quilt, marked in orange \xB7 ${design.cols} \xD7 ${design.rows} blocks, ${P.quiltW} \xD7 ${P.quiltH} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -7452,8 +7491,8 @@ function cgRowHover(div, makeTest) {
   for (const tr of div.querySelectorAll(".cg-list tbody tr")) {
     tr.classList.add("cutrow");
     tr.title = "Hover to light up these pieces in the pictures";
-    tr.addEventListener("mouseenter", () => setFabHi(makeTest(tr), tr));
-    tr.addEventListener("mouseleave", () => setFabHi(null));
+    tr.addEventListener("mouseenter", () => lightFabric(makeTest(tr), tr));
+    tr.addEventListener("mouseleave", () => lightFabric(null));
   }
 }
 function cgCardBehaviour(div, key, pick, hint) {
@@ -7509,10 +7548,10 @@ function cgCardBehaviour(div, key, pick, hint) {
   cv.title = hint;
 }
 function openPartPop(kind) {
-  const d = $("cg-pop"), q = quiltMm(shared.design), nb = bordersOf(shared.design).length, s = sashOf(shared.design);
-  const bi = kind[0] === "b" && kind !== "brd" ? +kind.slice(1) : -1, b = bi >= 0 ? bordersOf(shared.design)[bi] : null;
+  const d = $("cg-pop"), q = quiltMm(design), nb = bordersOf(design).length, s = sashOf(design);
+  const bi = kind[0] === "b" && kind !== "brd" ? +kind.slice(1) : -1, b = bi >= 0 ? bordersOf(design)[bi] : null;
   $("cg-pop-title").textContent = kind === "sash" ? "Sashing" : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : "Border";
-  $("cg-pop-sub").textContent = kind === "sash" ? `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm` : b ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm` : `${borderTotal(shared.design)} mm all round, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm`;
+  $("cg-pop-sub").textContent = kind === "sash" ? `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm` : b ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm` : `${borderTotal(design)} mm all round, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -7524,24 +7563,24 @@ function openPartPop(kind) {
 }
 var cgOpen = /* @__PURE__ */ new Set();
 function renderCut() {
-  if (!shared.design) return;
+  if (!design) return;
   cgRedraws.length = 0;
-  shared.fabHi = null;
-  const sz = sashOf(shared.design), qm = quiltMm(shared.design), extra = [];
+  setFabHi(null);
+  const sz = sashOf(design), qm = quiltMm(design), extra = [];
   if (sz.mm) {
-    const sr = sashRects(shared.design, 1e3, 1e3), strips = sr.filter((x) => x.kind === "sash").length, corners = sr.filter((x) => x.kind === "corner").length;
+    const sr = sashRects(design, 1e3, 1e3), strips = sr.filter((x) => x.kind === "sash").length, corners = sr.filter((x) => x.kind === "corner").length;
     if (strips)
       extra.push({
         group: "sash",
         what: "Sashing strips",
         fabric: sz.fabric,
-        w: shared.design.blockMm,
+        w: design.blockMm,
         h: sz.mm,
         n: strips
       });
     if (corners) extra.push({ group: "sash", what: "Cornerstones", fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
   }
-  const bs = bordersOf(shared.design), cm = centreMm(shared.design);
+  const bs = bordersOf(design), cm = centreMm(design);
   let innerW = cm.W, innerH = cm.H;
   bs.forEach((b, bi) => {
     const T = b.mm, label = `Border ${bi + 1} \xB7 ${BORDER_TYPES[b.type].label}`, group = "b" + bi, agg = /* @__PURE__ */ new Map();
@@ -7572,9 +7611,9 @@ function renderCut() {
     innerW += 2 * T;
     innerH += 2 * T;
   });
-  const P = CG.plan(shared.design, {
-    blockMm: shared.design.blockMm,
-    sizeOf: (k) => blockSizeMm(shared.design, k),
+  const P = CG.plan(design, {
+    blockMm: design.blockMm,
+    sizeOf: (k) => blockSizeMm(design, k),
     seam: cutOpts.seam,
     fabricWidth: cutOpts.fabricWidth,
     selvage: cutOpts.selvage,
@@ -7586,10 +7625,10 @@ function renderCut() {
     quiltW: qm.W,
     quiltH: qm.H
   });
-  shared.lastPlan = P;
+  setLastPlan(P);
   $("cg-facts").innerHTML = [
     ["Finished quilt", `${P.quiltW} \xD7 ${P.quiltH} mm`],
-    ["Blocks", `${shared.design.cols} \xD7 ${shared.design.rows}`],
+    ["Blocks", `${design.cols} \xD7 ${design.rows}`],
     [
       "Block",
       `${P.blockW} \xD7 ${P.blockH} mm finished \xB7 ${P.blockW + 2 * P.seam} \xD7 ${P.blockH + 2 * P.seam} mm with seam allowance`
@@ -7607,7 +7646,7 @@ function renderCut() {
     tr.querySelector(".sw").appendChild(swatchCanvas(fab));
     tb.appendChild(tr);
   }
-  const backFab = fabricById(shared.design.backFabric);
+  const backFab = fabricById(design.backFabric);
   tb.insertAdjacentHTML(
     "beforeend",
     `<tr class="extra backrow"><td class="sw"></td><td class="letter small">Backing<span class="fname">${esc(backFab.name)}</span></td><td class="req">${P.backing.w} \xD7 ${P.backing.h} mm<small>${P.backing.widths} width${P.backing.widths > 1 ? "s" : ""} of fabric sewn together \xB7 buy \u2248 ${P.backing.buy}</small></td></tr>
@@ -7632,7 +7671,7 @@ function renderCut() {
       cgRedraws.push(draw);
     }
     const pick = () => {
-      shared.cgHi = i;
+      setCgHi(i);
       drawCutQuilt(P);
       openQuiltPop(P, i);
     };
@@ -7654,7 +7693,7 @@ function renderCut() {
     sashCuts.forEach((x, k) => {
       x.id = `${x.letter}S.${k + 1}`;
     });
-    const sz2 = sashOf(shared.design), div = document.createElement("div");
+    const sz2 = sashOf(design), div = document.createElement("div");
     div.className = "cgblock cg-sash";
     const rows = sashCuts.map(
       (x) => `<tr data-k="${x.what === "Cornerstones" ? "corner" : "sash"}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`
@@ -7683,7 +7722,7 @@ function renderCut() {
       div,
       "sash",
       () => {
-        shared.cgHi = "sash";
+        setCgHi("sash");
         drawCutQuilt(P);
         openPartPop("sash");
       },
@@ -7699,7 +7738,7 @@ function renderCut() {
       x.id = `${x.letter}B${+x.group.slice(1) + 1}.${n}`;
     }
   }
-  const bs2 = bordersOf(shared.design);
+  const bs2 = bordersOf(design);
   bs2.forEach((bd, bi) => {
     const cuts = brdCuts.filter((x) => x.group === "b" + bi);
     if (!cuts.length) return;
@@ -7734,26 +7773,26 @@ function renderCut() {
       div,
       key,
       () => {
-        shared.cgHi = key;
+        setCgHi(key);
         drawCutQuilt(P);
         openPartPop(key);
       },
       `Click to show or hide the cutting list \xB7 double-click to see border ${bi + 1} in the whole quilt`
     );
   });
-  if (typeof shared.cgHi === "number" && shared.cgHi >= P.blocks.length) shared.cgHi = -1;
-  if (shared.cgHi === "sash" && !sashCuts.length || typeof shared.cgHi === "string" && shared.cgHi[0] === "b" && !brdCuts.some((x) => x.group === shared.cgHi))
-    shared.cgHi = -1;
+  if (typeof cgHi === "number" && cgHi >= P.blocks.length) setCgHi(-1);
+  if (cgHi === "sash" && !sashCuts.length || typeof cgHi === "string" && cgHi[0] === "b" && !brdCuts.some((x) => x.group === cgHi))
+    setCgHi(-1);
   drawCutQuilt(P);
   $("cg-note").textContent = `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, of which ${P.usable / 10} cm is usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre. Requirements add 50 mm to straighten the edge; "buy" rounds up to 5 cm.`;
 }
-function setFabHi(test, tr) {
-  if (shared.fabHi === test) return;
-  shared.fabHi = test;
+function lightFabric(test, tr) {
+  if (fabHi === test) return;
+  setFabHi(test);
   document.querySelectorAll("#cg-blocks tr.cut-on").forEach((x) => x.classList.remove("cut-on"));
   if (tr) tr.classList.add("cut-on");
   for (const f of cgRedraws) f();
-  if (shared.lastPlan) drawCutQuilt(shared.lastPlan);
+  if (lastPlan) drawCutQuilt(lastPlan);
 }
 function initCutUI() {
   $("cg-seam").addEventListener("change", (e) => {
@@ -7776,14 +7815,14 @@ $("cg-pop").addEventListener("click", (e) => {
   if (e.target === $("cg-pop")) $("cg-pop").close();
 });
 $("cg-pop").addEventListener("close", () => {
-  shared.cgHi = -1;
-  if (shared.lastPlan) drawCutQuilt(shared.lastPlan);
+  setCgHi(-1);
+  if (lastPlan) drawCutQuilt(lastPlan);
 });
 
 // src/designer/sashing-ui.js
 function renderSashUI() {
-  if (!shared.design || !$("sash-card")) return;
-  const s = sashOf(shared.design), raw = shared.design.sashing || {};
+  if (!design || !$("sash-card")) return;
+  const s = sashOf(design), raw = design.sashing || {};
   if (document.activeElement !== $("sash-mm")) $("sash-mm").value = s.mm;
   $("sash-border").checked = !!raw.border;
   const box = $("sash-presets");
@@ -7798,7 +7837,7 @@ function renderSashUI() {
   }
   drawPaletteInto($("sash-fabs"), raw.fabric || "b0");
   drawPaletteInto($("sash-corner"), raw.corner || raw.fabric || "b0");
-  const q = quiltMm(shared.design);
+  const q = quiltMm(design);
   $("sash-note").textContent = s.mm ? `Finished quilt with sashing: ${q.W} \xD7 ${q.H} mm. Click the sashing on the quilt to come back here.` : "Choose a width to add strips of fabric between the blocks.";
 }
 function setSash(patch) {
@@ -7806,7 +7845,7 @@ function setSash(patch) {
   renderSashUI();
 }
 function openSashing() {
-  shared.showToolsPanel("sash");
+  showToolsPanel("sash");
 }
 function initSashUI() {
   $("sash-mm").addEventListener("change", (e) => {
@@ -7820,11 +7859,11 @@ function initSashUI() {
   $("sash-border").addEventListener("change", (e) => setSash({ border: e.target.checked }));
   $("sash-fabs").addEventListener("click", (e) => {
     const b = e.target.closest("button.fab");
-    if (b) setSash({ fabric: b.dataset.f, ...shared.design.sashing && shared.design.sashing.mm ? {} : { mm: 50 } });
+    if (b) setSash({ fabric: b.dataset.f, ...design.sashing && design.sashing.mm ? {} : { mm: 50 } });
   });
   $("sash-corner").addEventListener("click", (e) => {
     const b = e.target.closest("button.fab");
-    if (b) setSash({ corner: b.dataset.f, ...shared.design.sashing && shared.design.sashing.mm ? {} : { mm: 50 } });
+    if (b) setSash({ corner: b.dataset.f, ...design.sashing && design.sashing.mm ? {} : { mm: 50 } });
   });
 }
 initSashUI();
@@ -7858,7 +7897,7 @@ function swatch(fid, px = 22) {
   return c;
 }
 function renderBorderUI() {
-  if (!shared.design || !$("brd-card")) return;
+  if (!design || !$("brd-card")) return;
   const types = $("brd-types");
   if (!types.childElementCount)
     for (const [k, t] of Object.entries(BORDER_TYPES)) {
@@ -7874,7 +7913,7 @@ function renderBorderUI() {
     }
   const list = $("brd-list");
   list.innerHTML = "";
-  const bs = shared.design.borders || [];
+  const bs = design.borders || [];
   bs.forEach((b, i) => {
     const t = BORDER_TYPES[b.type];
     if (!t) return;
@@ -7951,18 +7990,18 @@ function renderBorderUI() {
     brdActive = null;
   }
 }
-function setBorders2(fn) {
-  dispatch(setBorders, fn);
+function borderEdit(edit, ...args) {
+  dispatch(edit, ...args);
   renderBorderUI();
 }
 function openBorders() {
-  shared.showToolsPanel("brd");
+  showToolsPanel("brd");
 }
 function initBorderUI() {
   $("brd-types").addEventListener("click", (e) => {
     const b = e.target.closest(".brd-type");
     if (!b) return;
-    const t = BORDER_TYPES[b.dataset.t], n = (shared.design.borders || []).length;
+    const t = BORDER_TYPES[b.dataset.t], n = (design.borders || []).length;
     const def = {
       plain: ["b1", "b1"],
       piano: ["b1", "b0", "b1"],
@@ -7971,7 +8010,7 @@ function initBorderUI() {
       sawtooth: ["b4", "b0", "b4"],
       geese: ["b1", "b0", "b1"]
     }[b.dataset.t];
-    setBorders2((bs) => bs.push({ type: b.dataset.t, mm: t.mm, fabrics: def }));
+    borderEdit(addBorder, { type: b.dataset.t, mm: t.mm, fabrics: def });
     brdActive = null;
     renderBorderUI();
     if (n === 0) $("brd-list").scrollIntoView({ block: "nearest" });
@@ -7980,15 +8019,10 @@ function initBorderUI() {
     const row = e.target.closest(".brd-row");
     if (!row) return;
     const i = +row.dataset.i;
-    if (e.target.dataset.a === "type")
-      setBorders2((bs) => {
-        bs[i].type = e.target.value;
-      });
+    if (e.target.dataset.a === "type") borderEdit(updateBorder, i, { type: e.target.value });
     if (e.target.dataset.a === "mm") {
       const v = Math.max(10, Math.min(400, Math.round(+e.target.value || 0)));
-      setBorders2((bs) => {
-        bs[i].mm = v;
-      });
+      borderEdit(updateBorder, i, { mm: v });
     }
   });
   $("brd-list").addEventListener("click", (e) => {
@@ -8004,74 +8038,65 @@ function initBorderUI() {
     }
     if (a === "del") {
       brdActive = null;
-      setBorders2((bs) => bs.splice(i, 1));
+      borderEdit(removeBorder, i);
     } else if (a === "in" && i > 0) {
       brdActive = null;
-      setBorders2((bs) => {
-        [bs[i - 1], bs[i]] = [bs[i], bs[i - 1]];
-      });
-    } else if (a === "out" && i < (shared.design.borders || []).length - 1) {
+      borderEdit(moveBorder, i, -1);
+    } else if (a === "out" && i < (design.borders || []).length - 1) {
       brdActive = null;
-      setBorders2((bs) => {
-        [bs[i + 1], bs[i]] = [bs[i], bs[i + 1]];
-      });
+      borderEdit(moveBorder, i, 1);
     }
   });
   $("brd-pal").addEventListener("click", (e) => {
     const f = e.target.closest("button.fab");
     if (!f || !brdActive) return;
     const { i, slot } = brdActive;
-    setBorders2((bs) => {
-      const fb = (bs[i].fabrics || []).slice();
-      while (fb.length <= slot) fb.push(fb[0] || "b0");
-      fb[slot] = f.dataset.f;
-      bs[i].fabrics = fb;
-    });
+    borderEdit(setBorderFabric, i, slot, f.dataset.f);
   });
 }
 initBorderUI();
 
 // src/designer/settings.js
 function syncSymUI() {
-  if ($("dz-quilting") && shared.design) $("dz-quilting").value = quiltingOf(shared.design);
+  if ($("dz-quilting") && design) $("dz-quilting").value = quiltingOf(design);
   const el = $("dz-sym");
-  if (!el || !shared.design) return;
-  for (const o of el.options) o.disabled = o.value === "kal" && shared.design.cols !== shared.design.rows;
-  el.value = symOf(shared.design);
-  const sp = $("dz-span"), b = shared.design.blocks[shared.focusBlock];
+  if (!el || !design) return;
+  for (const o of el.options) o.disabled = o.value === "kal" && design.cols !== design.rows;
+  el.value = symOf(design);
+  const sp = $("dz-span"), b = design.blocks[focusBlock];
   if (!sp || !b) return;
-  const c = shared.focusBlock % shared.design.cols, r = Math.floor(shared.focusBlock / shared.design.cols), max = Math.min(shared.design.cols - c, shared.design.rows - r);
+  const c = focusBlock % design.cols, r = Math.floor(focusBlock / design.cols), max = Math.min(design.cols - c, design.rows - r);
   for (const o of sp.options) {
     o.disabled = +o.value > max;
-    o.textContent = `${o.value} \xD7 ${o.value} cell${o.value > 1 ? "s" : ""} \xB7 ${blockSizeMm(shared.design, +o.value)} mm`;
+    o.textContent = `${o.value} \xD7 ${o.value} cell${o.value > 1 ? "s" : ""} \xB7 ${blockSizeMm(design, +o.value)} mm`;
   }
   sp.value = String(spanOf(b));
 }
 $("dz-quilting").addEventListener("change", (e) => {
-  if (!shared.design) return;
+  if (!design) return;
   dispatch(setQuilting, e.target.value);
 });
 $("dz-span").addEventListener("change", (e) => {
-  if (!shared.design) return;
-  shared.selBlocks = /* @__PURE__ */ new Set([shared.focusBlock]);
-  dispatch(setBlockSpan, shared.focusBlock, +e.target.value);
+  if (!design) return;
+  setSelBlocks(/* @__PURE__ */ new Set([focusBlock]));
+  dispatch(setBlockSpan, focusBlock, +e.target.value);
 });
 $("dz-sym").addEventListener("change", (e) => {
-  if (!shared.design) return;
+  if (!design) return;
   dispatch(setSymmetry, e.target.value);
 });
 var cancelTools = () => {
-  if (shared.toolsSnap && shared.design) {
+  if (toolsSnap && design) {
     tlCommit();
-    const k = tl.steps.findIndex((st) => st.d === shared.toolsSnap.d);
-    if (tl.key === shared.toolsSnap.key && JSON.stringify(shared.design) !== shared.toolsSnap.d && k >= 0)
+    const k = tl.steps.findIndex((st) => st.d === toolsSnap.d);
+    if (tl.key === toolsSnap.key && JSON.stringify(design) !== toolsSnap.d && k >= 0)
       tlGo(k);
-    else if (JSON.stringify(shared.design) !== shared.toolsSnap.d) {
-      replaceDesign(JSON.parse(shared.toolsSnap.d), { keepFocus: true });
+    else if (JSON.stringify(design) !== toolsSnap.d) {
+      replaceDesign(JSON.parse(toolsSnap.d), { keepFocus: true });
     }
   }
-  shared.toolsSnap = null;
-  shared.hideTools();
+  setToolsSnap(null);
+  hideTools();
 };
 for (const b of document.querySelectorAll(".dz-cancel"))
   b.addEventListener("click", (e) => {
@@ -8084,7 +8109,7 @@ document.addEventListener("dblclick", (e) => {
     "button, input, select, textarea, label, a, canvas, .card, #dz-side, .rail, #tl-panel, .tour, dialog"
   ))
     return;
-  shared.hideTools();
+  hideTools();
   if (!$("tl-panel").hidden && tl.showBar) tl.showBar(false);
   if (tl.hideRow) tl.hideRow();
 });
@@ -8092,7 +8117,7 @@ document.addEventListener("dblclick", (e) => {
 // src/tour/tour.js
 var TOUR_KEY = "quilt-tour.v1";
 var tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null };
-var blk = (i) => shared.design && shared.design.blocks[i];
+var blk = (i) => design && design.blocks[i];
 var TOUR = [
   {
     title: "Welcome to the Quilt designer!",
@@ -8108,21 +8133,21 @@ var TOUR = [
     text: "A new quilt starts with 5 \xD7 5 blocks. Above the quilt, click the <b>\u2212</b> next to <b>Columns</b> until there are <b>3</b> columns.",
     allow: ['[data-step="c:-1"]', "#dz-cols"],
     glow: '[data-step="c:-1"]',
-    done: () => shared.design.cols === 3
+    done: () => design.cols === 3
   },
   {
     title: "Just one row",
     text: "Now click the <b>\u2212</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side.",
     allow: ['[data-step="r:-1"]', "#dz-rows"],
     glow: '[data-step="r:-1"]',
-    done: () => shared.design.rows === 1
+    done: () => design.rows === 1
   },
   {
     title: "Open the middle block",
     text: "<b>Click the middle block</b> of your quilt. The side panel opens with its editor.",
     allow: ["#dz-quilt"],
     glow: "#dz-quilt",
-    done: () => !$("dz-side").hidden && shared.focusBlock === 1 && shared.selBlocks.size === 1
+    done: () => !$("dz-side").hidden && focusBlock === 1 && selBlocks.size === 1
   },
   {
     title: "Choose a pattern",
@@ -8136,7 +8161,7 @@ var TOUR = [
     text: "In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it.",
     allow: ["#dz-block"],
     glow: "#dz-block",
-    done: () => shared.selParts.size > 0
+    done: () => selParts.size > 0
   },
   {
     title: "Give it a fabric",
@@ -8151,14 +8176,14 @@ var TOUR = [
     text: "Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected.",
     allow: ["#dz-quilt"],
     glow: "#dz-quilt",
-    done: () => shared.selBlocks.size === 3
+    done: () => selBlocks.size === 3
   },
   {
     title: "Copy your block",
     text: "In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it.",
     allow: ["#dz-library"],
     glow: "#dz-library",
-    done: () => shared.design.blocks.every((b) => b.pattern === "pinwheel" && blockKey(b) === blockKey(blk(1)))
+    done: () => design.blocks.every((b) => b.pattern === "pinwheel" && blockKey(b) === blockKey(blk(1)))
   },
   {
     title: "Close the side panel",
@@ -8186,14 +8211,14 @@ var TOUR = [
     text: "Click the <b>Borders</b> round button beside the quilt \u2014 the one with a frame drawn on it.",
     allow: ["#rail-brd"],
     glow: "#rail-brd",
-    done: () => !$("dz-side").hidden && shared.toolsPanel === "brd"
+    done: () => !$("dz-side").hidden && toolsPanel === "brd"
   },
   {
     title: "Add a border",
     text: "In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt.",
     allow: ["#brd-types"],
     glow: '.brd-type[data-t="piano"]',
-    done: () => bordersOf(shared.design).length > 0
+    done: () => bordersOf(design).length > 0
   },
   {
     title: "Well done!",
@@ -8383,15 +8408,15 @@ function tourTick() {
 }
 function tourBegin() {
   if (tour.on) return;
-  tour.saved = shared.design ? JSON.stringify(shared.design) : null;
-  tour.savedCur = typeof shared.mineCur !== "undefined" ? shared.mineCur : null;
+  tour.saved = design ? JSON.stringify(design) : null;
+  tour.savedCur = typeof mineCur !== "undefined" ? mineCur : null;
   tour.on = true;
   tour.i = 0;
   tour.userPos = null;
   document.body.classList.add("tour-active");
   for (const id of ["dz-dialog", "dz-partdlg", "save-dlg", "cam-dialog", "cg-pop"]) if ($(id).open) $(id).close();
   if (state.page !== "design") showPage("design");
-  shared.hideTools();
+  hideTools();
   const fresh = () => {
     try {
       localStorage.removeItem(tlKeyFor("tour"));
@@ -8399,7 +8424,7 @@ function tourBegin() {
     }
     replaceDesign(defaultDesign(), { timeline: "tour" });
   };
-  if (shared.design) fresh();
+  if (design) fresh();
   else
     (async () => {
       await initFabricLib();
@@ -8438,13 +8463,13 @@ function tourEnd(how) {
   for (const id of ["dz-dialog", "dz-partdlg"]) if ($(id).open) $(id).close();
   if (how === "keep") {
     tlCopy("tour", null);
-    shared.mineCur = null;
+    setMineCur(null);
     mineSave();
     tlSwitch(null);
   } else if (how === "restore" && tour.saved) {
-    shared.mineCur = tour.savedCur;
+    setMineCur(tour.savedCur);
     mineSave();
-    replaceDesign(JSON.parse(tour.saved), { timeline: shared.mineCur });
+    replaceDesign(JSON.parse(tour.saved), { timeline: mineCur });
   }
   try {
     localStorage.removeItem(tlKeyFor("tour"));
@@ -8482,15 +8507,14 @@ try {
   mine = JSON.parse(localStorage.getItem(MINE_KEY) || "[]");
 } catch (e) {
 }
-shared.mineCur = null;
 try {
-  shared.mineCur = localStorage.getItem(MINE_CUR) || null;
+  setMineCur(localStorage.getItem(MINE_CUR) || null);
 } catch (e) {
 }
 function mineSave() {
   try {
     localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    if (shared.mineCur) localStorage.setItem(MINE_CUR, shared.mineCur);
+    if (mineCur) localStorage.setItem(MINE_CUR, mineCur);
     else localStorage.removeItem(MINE_CUR);
   } catch (e) {
     alertMine("Your browser storage is full: delete a design to save new ones.");
@@ -8516,13 +8540,13 @@ function quiltPicture(d, width) {
 }
 var saveForceNew = false;
 function openSaveDialog(forceNew) {
-  if (!shared.design) return;
+  if (!design) return;
   saveForceNew = !!forceNew;
-  const cur = !saveForceNew && mine.find((m) => m.id === shared.mineCur);
+  const cur = !saveForceNew && mine.find((m) => m.id === mineCur);
   $("save-name").value = cur ? cur.name : `Quilt ${mine.length + 1}`;
   $("save-title").textContent = cur ? "Save changes" : "Save design";
   $("save-asnew").hidden = !cur;
-  const pic = quiltPicture(shared.design, 300), cv = $("save-cv");
+  const pic = quiltPicture(design, 300), cv = $("save-cv");
   cv.width = pic.width;
   cv.height = pic.height;
   cv.style.width = "300px";
@@ -8538,9 +8562,9 @@ function openSaveDialog(forceNew) {
   $("save-name").select();
 }
 function doSave(asNew) {
-  const name = ($("save-name").value || "").trim() || `Quilt ${mine.length + 1}`, now = Date.now(), d = JSON.stringify(shared.design);
-  let cur = !asNew && !saveForceNew && mine.find((m) => m.id === shared.mineCur);
-  const prev = shared.mineCur;
+  const name = ($("save-name").value || "").trim() || `Quilt ${mine.length + 1}`, now = Date.now(), d = JSON.stringify(design);
+  let cur = !asNew && !saveForceNew && mine.find((m) => m.id === mineCur);
+  const prev = mineCur;
   if (cur) {
     cur.name = name;
     cur.d = d;
@@ -8558,7 +8582,7 @@ function doSave(asNew) {
     tl.key = tlKeyFor(cur.id);
   }
   saveForceNew = false;
-  shared.mineCur = cur.id;
+  setMineCur(cur.id);
   mineSave();
   $("save-dlg").close();
   const b = $("dz-save");
@@ -8572,7 +8596,7 @@ function doSave(asNew) {
 function openMine(id) {
   const m = mine.find((x) => x.id === id);
   if (!m) return;
-  shared.mineCur = id;
+  setMineCur(id);
   mineSave();
   replaceDesign(JSON.parse(m.d), { timeline: id });
   showPage("design");
@@ -8595,7 +8619,7 @@ function renderMine() {
       continue;
     }
     const pin = document.createElement("article");
-    pin.className = "pin" + (m.id === shared.mineCur ? " current" : "");
+    pin.className = "pin" + (m.id === mineCur ? " current" : "");
     const img = document.createElement("div");
     img.className = "img";
     img.title = "Open in the Quilt designer";
@@ -8667,8 +8691,8 @@ function renderMine() {
           localStorage.removeItem(tlKeyFor(m.id));
         } catch (e2) {
         }
-        if (shared.mineCur === m.id) {
-          shared.mineCur = null;
+        if (mineCur === m.id) {
+          setMineCur(null);
           tlCopy(void 0, null);
           tl.key = tlKeyFor(null);
           tlSave();
@@ -8682,7 +8706,7 @@ function renderMine() {
 function initMine() {
   $("dz-save").addEventListener("click", () => openSaveDialog(false));
   $("dz-new").addEventListener("click", () => {
-    shared.mineCur = null;
+    setMineCur(null);
     mineSave();
     if ($("dz-dialog").open) $("dz-dialog").close();
     try {
@@ -8853,7 +8877,7 @@ try {
 var TL_KEY = "quilt-timeline.v1";
 var TL_MAX = 100;
 var tlBarOn = false;
-var tl = { steps: [], i: -1, ready: false, restoring: false, timer: 0, thumbs: /* @__PURE__ */ new Map(), seq: 0, key: "" };
+var tl = { steps: [], i: -1, ready: false, restoring: false, thumbs: /* @__PURE__ */ new Map(), seq: 0, key: "" };
 var tlKeyFor = (id) => TL_KEY + ":" + (id || "draft");
 function tlSave() {
   const v = JSON.stringify({ steps: tl.steps, i: tl.i, seq: tl.seq });
@@ -8890,7 +8914,6 @@ function tlSave() {
   }
 }
 function tlSwitch(id) {
-  clearTimeout(tl.timer);
   if (tl.ready) tlSave();
   tl.key = tlKeyFor(id);
   tl.steps = [];
@@ -8909,10 +8932,10 @@ function tlCopy(fromId, toId, move) {
   }
 }
 function tlEnsure() {
-  if (tl.ready || !shared.design) return;
+  if (tl.ready || !design) return;
   tl.ready = true;
   if (!tl.key) {
-    tl.key = tlKeyFor(typeof shared.mineCur !== "undefined" ? shared.mineCur : null);
+    tl.key = tlKeyFor(typeof mineCur !== "undefined" ? mineCur : null);
     try {
       const old = localStorage.getItem(TL_KEY);
       if (old && !localStorage.getItem(tl.key)) localStorage.setItem(tl.key, old);
@@ -8929,31 +8952,35 @@ function tlEnsure() {
     }
   } catch (e) {
   }
-  const cur = JSON.stringify(shared.design);
+  const cur = JSON.stringify(design);
   if (!tl.steps.length || tl.steps[tl.i].d !== cur) tlPush(cur, tl.steps.length ? "Opened" : "Start");
   tlUI();
 }
-function tlPush(d, label) {
+function tlPush(d, label, merge) {
   tl.steps = tl.steps.slice(0, tl.i + 1);
-  tl.steps.push({ id: ++tl.seq, d, label, t: Date.now() });
+  tl.steps.push({ id: ++tl.seq, d, label, t: Date.now(), merge });
   while (tl.steps.length > TL_MAX) tl.steps.shift();
   tl.i = tl.steps.length - 1;
   tlSave();
 }
-function tlRecord() {
-  if (tl.restoring || !shared.design) return;
+function tlRecord(merge = null) {
+  if (tl.restoring || !design) return;
   tlEnsure();
-  clearTimeout(tl.timer);
-  tl.timer = setTimeout(tlCommit, 450);
+  const cur = JSON.stringify(design), top = tl.steps[tl.i], now = Date.now();
+  if (top && top.d === cur) return;
+  const below = tl.steps[tl.i - 1];
+  if (merge && top && below && top.merge === merge && tl.i === tl.steps.length - 1 && now - top.t < 1e3) {
+    top.d = cur;
+    top.t = now;
+    top.label = tlDescribe(JSON.parse(below.d), design);
+    tl.thumbs.delete(top.id);
+    tlSave();
+  } else tlPush(cur, tlDescribe(top ? JSON.parse(top.d) : null, design), merge);
+  tlUI();
 }
 function tlCommit() {
-  clearTimeout(tl.timer);
-  tl.timer = 0;
-  if (!shared.design || !tl.ready) return;
-  const cur = JSON.stringify(shared.design), prev = tl.steps[tl.i];
-  if (prev && prev.d === cur) return;
-  tlPush(cur, tlDescribe(prev ? JSON.parse(prev.d) : null, shared.design));
-  tlUI();
+  const top = tl.steps[tl.i];
+  if (top) top.merge = null;
 }
 function tlDescribe(a, b) {
   if (!a) return "Start";
@@ -9000,11 +9027,10 @@ function tlDescribe(a, b) {
   if (rot) return `Rotate ${plural(rot, "block")}`;
   return "Change";
 }
-function tlGo(i) {
+function tlGo(to) {
   if (!tl.steps.length) return;
-  i = Math.max(0, Math.min(tl.steps.length - 1, i));
+  const i = Math.max(0, Math.min(tl.steps.length - 1, to));
   if (i === tl.i) return;
-  clearTimeout(tl.timer);
   tl.i = i;
   tlSave();
   tl.restoring = true;
@@ -9120,11 +9146,11 @@ function initTimeline() {
   );
   $("tl-slider").addEventListener("input", (e) => tlGo(+e.target.value));
   $("tl-clear").addEventListener("click", () => {
-    if (!shared.design) return;
+    if (!design) return;
     tl.steps = [];
     tl.i = -1;
     tl.thumbs.clear();
-    tlPush(JSON.stringify(shared.design), "Start");
+    tlPush(JSON.stringify(design), "Start");
     tlUI();
   });
   const row = $("tl-row");
@@ -9144,7 +9170,7 @@ function initTimeline() {
       return;
     e.preventDefault();
     if ($("tl-panel").hidden && tl.showBar) tl.showBar(true);
-    if (shared.design) tlGo(tl.i + (e.key === "ArrowRight" ? 1 : -1));
+    if (design) tlGo(tl.i + (e.key === "ArrowRight" ? 1 : -1));
   });
   tl.hideRow = () => {
     clearTimeout(rowT);
@@ -9167,7 +9193,7 @@ function initTimeline() {
 }
 initTimeline();
 new ResizeObserver(() => {
-  if (state.page === "design" && shared.design) drawDesignerCanvas();
+  if (state.page === "design" && design) drawDesignerCanvas();
 }).observe($("dz-size"));
 
 // src/sim/panels.js
@@ -9249,8 +9275,8 @@ function patternSketch(key, px = 34) {
 }
 function updatePatPicker() {
   const btn = $("dz-patbtn");
-  if (!btn || !shared.design) return;
-  const key = shared.design.blocks[shared.focusBlock].pattern;
+  if (!btn || !design) return;
+  const key = design.blocks[focusBlock].pattern;
   if (btn.dataset.key !== key) {
     btn.dataset.key = key;
     btn.innerHTML = "";
@@ -9406,22 +9432,21 @@ function fitSimSide() {
 }
 window.addEventListener("resize", fitSimSide);
 window.addEventListener("resize", () => {
-  if (state.page === "design" && shared.design) drawDesignerCanvas();
+  if (state.page === "design" && design) drawDesignerCanvas();
 });
 $("cg-quilt-meta").addEventListener("click", () => {
-  if (shared.cgHi !== -1 && shared.lastPlan) {
-    shared.cgHi = -1;
-    drawCutQuilt(shared.lastPlan);
+  if (cgHi !== -1 && lastPlan) {
+    setCgHi(-1);
+    drawCutQuilt(lastPlan);
   }
 });
 new ResizeObserver(() => {
-  if (state.page === "cut" && shared.lastPlan && shared.design) drawCutQuilt(shared.lastPlan);
+  if (state.page === "cut" && lastPlan && design) drawCutQuilt(lastPlan);
 }).observe(document.querySelector(".cg-quilt"));
 initBedUI();
 
 // src/camera/fabric-camera.js
 var cam = { stream: null, facing: "environment", devices: 0, shot: null };
-shared.camTarget = null;
 function camMsg(t) {
   $("cam-msg").textContent = t || "";
 }
@@ -9607,7 +9632,7 @@ function initCamera() {
   $("cam-dialog").addEventListener("close", () => {
     camStop();
     setTimeout(() => {
-      shared.camTarget = null;
+      setCamTarget(null);
     }, 0);
   });
   $("cam-flip").addEventListener("click", () => {
@@ -9647,13 +9672,13 @@ function initCamera() {
     const id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     fabricLib.push({ id, name: ($("cam-name").value || "Photo fabric").slice(0, 40), canvas: c, cm });
     $("cam-dialog").close();
-    if (shared.camTarget) {
-      const f = shared.camTarget;
-      shared.camTarget = null;
+    if (camTarget) {
+      const f = camTarget;
+      setCamTarget(null);
       f(id);
-    } else if (shared.selParts.size) applyFabric(id);
+    } else if (selParts.size) applyFabric(id);
     else {
-      shared.activeFabric = id;
+      setActiveFabric(id);
       drawFabricPalette();
     }
     $("dz-fabnote").textContent = "Fabric added from the camera. Photos are kept only until you reload the page.";
@@ -9669,20 +9694,20 @@ function hoverGeom() {
   return { w, h };
 }
 function partAt(bi, x, y) {
-  const { w, h } = hoverGeom(), R2 = blockRect(shared.design, bi % shared.design.cols, Math.floor(bi / shared.design.cols), w, h);
-  return blockPolys(shared.design.blocks[bi], R2.x, R2.y, R2.w, R2.h).findIndex((p) => pointInPoly(x, y, p));
+  const { w, h } = hoverGeom(), R2 = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), w, h);
+  return blockPolys(design.blocks[bi], R2.x, R2.y, R2.w, R2.h).findIndex((p) => pointInPoly(x, y, p));
 }
 function zoneAt(x, y) {
-  const { w: W, h: H } = hoverGeom(), q = quiltMm(shared.design), k = W / q.W, mx = x / k, my = y / k;
-  const bs = bordersOf(shared.design), d = Math.min(mx, my, q.W - mx, q.H - my);
-  if (bs.length && d >= 0 && d < borderTotal(shared.design)) {
+  const { w: W, h: H } = hoverGeom(), q = quiltMm(design), k = W / q.W, mx = x / k, my = y / k;
+  const bs = bordersOf(design), d = Math.min(mx, my, q.W - mx, q.H - my);
+  if (bs.length && d >= 0 && d < borderTotal(design)) {
     let o = 0;
     for (let i = bs.length - 1; i >= 0; i--) {
       if (d < o + bs[i].mm) return { zone: "brd", zi: i, zr: { o: o * k, t: bs[i].mm * k } };
       o += bs[i].mm;
     }
   }
-  for (const r of sashRects(shared.design, W, H))
+  for (const r of sashRects(design, W, H))
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { zone: "sash", zi: -1, zr: r };
   return null;
 }
@@ -9700,7 +9725,7 @@ function hoverLabel(g, txt, W) {
 }
 function drawHover() {
   const cv = $("dz-hover");
-  if (!cv || !shared.design) return;
+  if (!cv || !design) return;
   const g = cv.getContext("2d"), dpr = cv.width / (parseFloat(cv.style.width) || 1);
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.clearRect(0, 0, cv.width, cv.height);
@@ -9715,7 +9740,7 @@ function drawHover() {
     if (hover.zone === "brd") {
       g.rect(z.o, z.o, W2 - 2 * z.o, H - 2 * z.o);
       g.rect(z.o + z.t, z.o + z.t, W2 - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
-    } else for (const r of sashRects(shared.design, W2, H)) g.rect(r.x, r.y, r.w, r.h);
+    } else for (const r of sashRects(design, W2, H)) g.rect(r.x, r.y, r.w, r.h);
     g.fillStyle = "rgba(255,255,255,.26)";
     g.fill("evenodd");
     g.lineJoin = "round";
@@ -9731,7 +9756,7 @@ function drawHover() {
       } else g.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2);
     }
     g.restore();
-    const s = sashOf(shared.design), b2 = hover.zone === "brd" ? bordersOf(shared.design)[hover.zi] : null;
+    const s = sashOf(design), b2 = hover.zone === "brd" ? bordersOf(design)[hover.zi] : null;
     hoverLabel(
       g,
       hover.zone === "brd" ? `Border ${hover.zi + 1} \xB7 ${BORDER_TYPES[b2.type].label} \xB7 ${b2.mm} mm \xB7 click to edit` : `${z.kind === "corner" ? "Cornerstone" : "Sashing"} \xB7 ${fabricById(z.kind === "corner" ? s.corner : s.fabric).name} \xB7 ${s.mm} mm \xB7 click to edit`,
@@ -9739,12 +9764,12 @@ function drawHover() {
     );
     return;
   }
-  if (hover.bi < 0 || hover.bi >= shared.design.blocks.length) {
+  if (hover.bi < 0 || hover.bi >= design.blocks.length) {
     if (rb) rb.hidden = true;
     if ($("dz-hflip")) $("dz-hflip").hidden = true;
     return;
   }
-  const { w: HW, h: HH } = hoverGeom(), RR = blockRect(shared.design, hover.bi % shared.design.cols, Math.floor(hover.bi / shared.design.cols), HW, HH), x = RR.x, y = RR.y, bw = RR.w, bh = RR.h;
+  const { w: HW, h: HH } = hoverGeom(), RR = blockRect(design, hover.bi % design.cols, Math.floor(hover.bi / design.cols), HW, HH), x = RR.x, y = RR.y, bw = RR.w, bh = RR.h;
   if (rb) {
     const sz = bw < 70 ? 22 : 28;
     rb.style.width = rb.style.height = sz + "px";
@@ -9770,7 +9795,7 @@ function drawHover() {
     g.strokeRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
     return;
   }
-  const polys = blockPolys(shared.design.blocks[hover.bi], x, y, bw, bh), p = polys[hover.part];
+  const polys = blockPolys(design.blocks[hover.bi], x, y, bw, bh), p = polys[hover.part];
   if (!p) return;
   g.save();
   g.beginPath();
@@ -9789,7 +9814,7 @@ function drawHover() {
   g.lineWidth = 1.5;
   g.strokeStyle = "#e0592a";
   g.stroke();
-  const b = shared.design.blocks[hover.bi], txt = `${partsOf(b.pattern)[hover.part].name} \xB7 ${fabricById(b.fabrics[hover.part]).name}`;
+  const b = design.blocks[hover.bi], txt = `${partsOf(b.pattern)[hover.part].name} \xB7 ${fabricById(b.fabrics[hover.part]).name}`;
   g.font = "600 12px system-ui, sans-serif";
   const tw = g.measureText(txt).width + 14;
   const W = parseFloat(cv.style.width), lx = Math.min(Math.max(4, hover.x + 14), W - tw - 4), ly = Math.max(4, hover.y - 30);
@@ -9814,12 +9839,12 @@ function clearHover() {
 function initHover() {
   const qcv = $("dz-quilt");
   qcv.addEventListener("pointermove", (e) => {
-    if (e.pointerType !== "mouse" || flipped || !shared.design || e.buttons) {
+    if (e.pointerType !== "mouse" || flipped || !design || e.buttons) {
       if (e.buttons) clearHover();
       return;
     }
     const r = qcv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    const { w: HW, h: HH } = hoverGeom(), bi = blockAt(shared.design, x, y, HW, HH);
+    const { w: HW, h: HH } = hoverGeom(), bi = blockAt(design, x, y, HW, HH);
     if (bi < 0) {
       const z = zoneAt(x, y);
       if (!z) {
@@ -9889,8 +9914,8 @@ function initHover() {
   hflip.addEventListener("click", (e) => {
     e.stopPropagation();
     const bi = hover.bi;
-    if (bi < 0 || !shared.design) return;
-    const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
+    if (bi < 0 || !design) return;
+    const targets = selBlocks.size > 1 && selBlocks.has(bi) ? [...selBlocks] : [bi];
     dispatch(flipBlocks, targets);
     hover.bi = bi;
     drawHover();
@@ -9906,8 +9931,8 @@ function initHover() {
   hrot.addEventListener("click", (e) => {
     e.stopPropagation();
     const bi = hover.bi;
-    if (bi < 0 || !shared.design) return;
-    const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
+    if (bi < 0 || !design) return;
+    const targets = selBlocks.size > 1 && selBlocks.has(bi) ? [...selBlocks] : [bi];
     dispatch(rotateBlocks, targets);
     hover.bi = bi;
     drawHover();
@@ -9924,9 +9949,9 @@ function initHover() {
       e.preventDefault();
       e.stopImmediatePropagation();
       const bi = hover.bi, part = hover.part;
-      shared.selBlocks = /* @__PURE__ */ new Set([bi]);
-      shared.focusBlock = bi;
-      shared.selParts = /* @__PURE__ */ new Set([part]);
+      setSelBlocks(/* @__PURE__ */ new Set([bi]));
+      setFocusBlock(bi);
+      setSelParts(/* @__PURE__ */ new Set([part]));
       clearHover();
       renderDesigner();
       openBlockEditor();
@@ -9939,14 +9964,14 @@ function initHover() {
 // src/designer/part-dialog.js
 var partEdit = { bi: -1, part: -1, twins: [] };
 function drawPartDialog() {
-  const b = shared.design.blocks[partEdit.bi];
+  const b = design.blocks[partEdit.bi];
   if (!b) return;
   drawPaletteInto($("dz-partfabs"), b.fabrics[partEdit.part]);
   const cv = $("dz-partdlg-cv"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 160;
   cv.width = cv.height = S * dpr;
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const polys = blockPolys(b, 0, 0, S, S), pxPerCm = S / (shared.design.blockMm / 10);
+  const polys = blockPolys(b, 0, 0, S, S), pxPerCm = S / (design.blockMm / 10);
   polys.forEach((p, i) => {
     g.fillStyle = pieceFill(g, b, i, p, pxPerCm, partEdit.bi * 31 + i);
     pathPoly(g, p);
@@ -9969,8 +9994,8 @@ function drawPartDialog() {
 }
 function setPartFabric2(fid) {
   const targets = [partEdit.bi, ...$("dz-partall").checked ? partEdit.twins : []];
-  shared.activeFabric = fid;
-  dispatch(setPartFabric, targets, shared.design.blocks[partEdit.bi].pattern, [partEdit.part], fid);
+  setActiveFabric(fid);
+  dispatch(setPartFabric, targets, design.blocks[partEdit.bi].pattern, [partEdit.part], fid);
   drawPartDialog();
   drawFabricPalette();
 }
@@ -9983,11 +10008,11 @@ function initPartDialog() {
   $("dz-partdlg-x").addEventListener("click", close);
   $("dz-partdone").addEventListener("click", close);
   $("dz-partdlg").addEventListener("close", () => {
-    shared.selParts.clear();
+    selParts.clear();
     drawDesignerCanvas();
   });
   $("dz-partcam").addEventListener("click", () => {
-    shared.camTarget = (id) => setPartFabric2(id);
+    setCamTarget((id) => setPartFabric2(id));
     openCamera();
   });
 }
@@ -10017,7 +10042,7 @@ function captureBlob() {
       pathTracer.renderSample();
       pathTracer.pausePathTracing = p;
     } else {
-      renderer.render(scene, shared.activeCam);
+      renderer.render(scene, activeCam);
     }
     canvas.toBlob((b) => b ? resolve(b) : reject(new Error("The image could not be captured.")), "image/png");
   });
@@ -10181,7 +10206,7 @@ function pdfFabricPage(P, pages) {
     g,
     P,
     "Cutting guide",
-    `${shared.design.cols} \xD7 ${shared.design.rows} blocks \xB7 ${P.blocks.length} distinct block${P.blocks.length > 1 ? "s" : ""}`,
+    `${design.cols} \xD7 ${design.rows} blocks \xB7 ${P.blocks.length} distinct block${P.blocks.length > 1 ? "s" : ""}`,
     1,
     pages
   );
@@ -10263,25 +10288,25 @@ function pdfFabricPage(P, pages) {
   return c;
 }
 function pdfQuiltPage(P, page, pages) {
-  const [c, g] = pdfPageCanvas(), M2 = 12, s = sashOf(shared.design), nb = bordersOf(shared.design).length;
+  const [c, g] = pdfPageCanvas(), M2 = 12, s = sashOf(design), nb = bordersOf(design).length;
   pdfHeader(
     g,
     P,
     "Whole quilt",
-    `${shared.design.cols} \xD7 ${shared.design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""}` : ""} \xB7 every piece with its ID`,
+    `${design.cols} \xD7 ${design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""}` : ""} \xB7 every piece with its ID`,
     page,
     pages
   );
   const top = M2 + 24, availW = A4.w - 2 * M2, availH = A4.h - top - 26;
-  const keepHi = shared.cgHi, keepFab = shared.fabHi;
-  shared.cgHi = -1;
-  shared.fabHi = null;
+  const keepHi = cgHi, keepFab = fabHi;
+  setCgHi(-1);
+  setFabHi(null);
   const tmp = document.createElement("canvas");
   try {
     drawCutQuilt(P, { cv: tmp, w: availW * PX, h: availH * PX, u: 2.4, dpr: 1 });
   } finally {
-    shared.cgHi = keepHi;
-    shared.fabHi = keepFab;
+    setCgHi(keepHi);
+    setFabHi(keepFab);
   }
   const k = Math.min(availW / (tmp.width / PX), availH / (tmp.height / PX), 1), QW = tmp.width / PX * k, QH = tmp.height / PX * k;
   g.drawImage(tmp, (A4.w - QW) / 2, top, QW, QH);
@@ -10294,7 +10319,7 @@ function pdfQuiltPage(P, page, pages) {
   return c;
 }
 function pdfSashPage(P, page, pages) {
-  const [c, g] = pdfPageCanvas(), M2 = 12, s = sashOf(shared.design), cuts = (P.sashing || []).filter((x) => x.group === "sash");
+  const [c, g] = pdfPageCanvas(), M2 = 12, s = sashOf(design), cuts = (P.sashing || []).filter((x) => x.group === "sash");
   pdfHeader(
     g,
     P,
@@ -10326,7 +10351,7 @@ function pdfSashPage(P, page, pages) {
   return c;
 }
 function pdfBorderPage(P, bi, page, pages) {
-  const [c, g] = pdfPageCanvas(), M2 = 12, bs = bordersOf(shared.design), bd = bs[bi], q = quiltMm(shared.design);
+  const [c, g] = pdfPageCanvas(), M2 = 12, bs = bordersOf(design), bd = bs[bi], q = quiltMm(design);
   const cuts = (P.sashing || []).filter((x) => x.group === "b" + bi);
   const where = bs.length > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === bs.length - 1 ? " \xB7 the outermost border" : "" : "";
   pdfHeader(g, P, `Border ${bi + 1}`, `${BORDER_TYPES[bd.type].label} \xB7 ${bd.mm} mm all round${where}`, page, pages);
@@ -10338,8 +10363,8 @@ function pdfBorderPage(P, bi, page, pages) {
   ]);
   const tH = pdfTableHeight(g, widths, rows), top = M2 + 24;
   const gapMm = bs.length > 1 ? 3 : 0, side = Math.min(A4.w - 2 * M2 - 30, (A4.h - top - tH - 30) * q.W / q.H), x0 = (A4.w - side) / 2;
-  const keepFab = shared.fabHi;
-  shared.fabHi = null;
+  const keepFab = fabHi;
+  setFabHi(null);
   let Hpx;
   g.save();
   g.translate(x0, top);
@@ -10347,7 +10372,7 @@ function pdfBorderPage(P, bi, page, pages) {
   try {
     Hpx = drawBordersExploded(g, side * PX, gapMm * PX, bs.length > 1 ? bi : -1);
   } finally {
-    shared.fabHi = keepFab;
+    setFabHi(keepFab);
   }
   g.restore();
   const H = Hpx / PX;
@@ -10896,9 +10921,9 @@ function templateJobs(P, b, i) {
 
 // src/pdf/download.js
 async function makeCutPdf() {
-  if (!shared.design) return null;
-  if (!shared.lastPlan) renderCut();
-  const P = shared.lastPlan, jobs = [];
+  if (!design) return null;
+  if (!lastPlan) renderCut();
+  const P = lastPlan, jobs = [];
   jobs.push(
     (n) => pdfFabricPage(P, n),
     (n, p) => pdfQuiltPage(P, p, n)
@@ -10908,7 +10933,7 @@ async function makeCutPdf() {
     jobs.push(...templateJobs(P, b, i));
   });
   if ((P.sashing || []).some((x) => x.group === "sash")) jobs.push((n, p) => pdfSashPage(P, p, n));
-  bordersOf(shared.design).forEach((_, bi) => {
+  bordersOf(design).forEach((_, bi) => {
     if ((P.sashing || []).some((x) => x.group === "b" + bi)) jobs.push((n, p) => pdfBorderPage(P, bi, p, n));
   });
   const total = jobs.length, pages = [];
@@ -10962,8 +10987,8 @@ $("cg-pdf").addEventListener("click", downloadCutPdf);
 
 // src/app/loop.js
 var lastT = performance.now();
-function frame(now) {
-  now = now || performance.now();
+function frame(t) {
+  const now = t || performance.now();
   if (state.page !== "sim") {
     lastT = now;
     requestAnimationFrame(frame);
@@ -10971,13 +10996,13 @@ function frame(now) {
   }
   const dt = Math.min(0.1, (now - lastT) / 1e3);
   lastT = now;
-  if (shared.grabMsg) {
-    send(shared.grabMsg);
-    shared.grabMsg = null;
+  if (grabMsg) {
+    send(grabMsg);
+    setGrabMsg(null);
   }
-  if (shared.newFrame) {
+  if (newFrame) {
     upsample();
-    shared.newFrame = false;
+    setNewFrame(false);
     computeAnalysis();
     for (let k = 0; k < handMeshes.length; k++) {
       const on = 3 * k + 2 < handsData.length && state.view !== "render";
@@ -10985,11 +11010,11 @@ function frame(now) {
       if (on) handMeshes[k].position.set(handsData[3 * k], handsData[3 * k + 1] + 0.03, handsData[3 * k + 2]);
     }
   }
-  const showQuilt = shared.havePos && !(analysis.on && analysis.anim === null);
+  const showQuilt = havePos && !(analysis.on && analysis.anim === null);
   quiltTop.visible = quiltBot.visible = quiltBind.visible = showQuilt || analysis.on && analysis.anim !== null;
   stepAnalysis(dt);
   stepCamera(dt);
-  if (!stepRender()) renderer.render(scene, shared.activeCam);
+  if (!stepRender()) renderer.render(scene, activeCam);
   requestAnimationFrame(frame);
 }
 
@@ -11011,12 +11036,12 @@ else if (location.hash === "#mine") showPage("mine");
 else showPage("design");
 (async () => {
   try {
-    shared.cavityImg = await loadImage("assets/quilt_cavity.png");
+    setCavityImg(await loadImage("assets/quilt_cavity.png"));
     await Promise.all([useSwatches(BUNDLED), applyLook()]);
     await initFabricLib();
-    if (!shared.design) {
+    if (!design) {
       ensureDesign();
-      shared.activeFabric = shared.activeFabric || "b0";
+      setActiveFabric(activeFabric || "b0");
     }
     syncSimulation();
   } catch (e) {

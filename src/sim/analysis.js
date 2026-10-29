@@ -1,7 +1,7 @@
 // Engineering view: strain, curvature and clearance fields drawn on the quilt.
 import './camera.js'; // load order: runs after sim/camera
 import * as THREE from 'three';
-import { shared } from '../core/shared.js';
+import { colliders, havePos, setColliders } from './sim-state.js';
 import { $ } from '../core/dom.js';
 import { N, R, WOOD_PARTS, bedM, isTableSim, quilt, state } from './config.js';
 import { scene } from './renderer.js';
@@ -210,7 +210,7 @@ const F = {
 };
 const fieldR = new Float32Array(R * R),
   sdfN = new Float64Array(3);
-shared.colliders = ClothSim.bedColliders(bedM());
+setColliders(ClothSim.bedColliders(bedM()));
 const sortedCopy = a => Float32Array.from(a).sort();
 const quant = (s, q) => s[Math.min(s.length - 1, Math.max(0, Math.floor(q * (s.length - 1))))];
 function computeFields() {
@@ -259,7 +259,7 @@ function computeFields() {
       F.curvature[k] = Math.sqrt(l2);
       // clearance: signed distance to the nearest surface, minus half the quilt thickness
       let dmin = y;
-      for (const c of shared.colliders) {
+      for (const c of colliders) {
         if (!pillowsOn && c.name.startsWith('pillow')) continue;
         dmin = Math.min(dmin, ClothSim.roundedBoxSDF(x, y, z, c, sdfN));
       }
@@ -275,7 +275,7 @@ function rangeFor(name, sorted) {
   return { lo: 0, hi: Math.max(last, 0.1) };
 }
 function computeAnalysis() {
-  if (!shared.havePos) return;
+  if (!havePos) return;
   computeFields();
   analysis.fields = F;
   if (!analysis.on) return;
@@ -331,7 +331,7 @@ function setAnalysis(on) {
 }
 // Called every frame: drives the head-to-foot reveal and the overlay fade.
 function stepAnalysis(dt) {
-  const on = analysis.on && shared.havePos;
+  const on = analysis.on && havePos;
   let s = 100,
     u = 1;
   if (on && analysis.anim !== null) {

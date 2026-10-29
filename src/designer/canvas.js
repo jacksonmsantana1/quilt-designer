@@ -1,6 +1,6 @@
 // Drawing the quilt in the designer (front and back) and turning it over.
 import '../render/quilt-draw.js'; // load order: runs after render/quilt-draw
-import { shared } from '../core/shared.js';
+import { design, focusBlock, selBlocks } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { fabricById } from './fabric-library.js';
 import { blockRect, borderTotal, bordersOf, quiltMm, sashOf } from '../core/geometry.js';
@@ -13,11 +13,11 @@ import { fabricFill } from '../render/fabric-fill.js';
 import { symOf } from '../core/symmetry.js';
 
 function drawDesignerCanvas() {
-  if (!shared.design) return;
+  if (!design) return;
   const cv = $('dz-quilt'),
     box = cv.closest('.dz-quiltwrap').getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2),
-    qmm = quiltMm(shared.design),
+    qmm = quiltMm(design),
     ar = qmm.H / qmm.W;
   // the preview has the quilt's real proportions (square blocks), and fits the screen
   let cw = Math.max(200, Math.floor(Math.min(box.width - (window.innerWidth > 640 ? 128 : 0), 860)));
@@ -49,7 +49,7 @@ function drawDesignerCanvas() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawQuilt(g, cw, ch, { seams: true });
   // the quilting stitches, as thread on the top
-  const qk = quiltingOf(shared.design);
+  const qk = quiltingOf(design);
   if (qk !== 'ditch') {
     g.save();
     g.setLineDash([Math.max(2, cw / 300), Math.max(1.5, cw / 420)]);
@@ -67,23 +67,23 @@ function drawDesignerCanvas() {
   g.lineWidth = Math.max(3, cw * 0.006);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
   // the selection frame shows only while blocks are being edited; otherwise only the hover marks a block
-  const editing = $('dz-dialog').open || $('dz-partdlg').open || editorInSide || shared.selBlocks.size > 1;
+  const editing = $('dz-dialog').open || $('dz-partdlg').open || editorInSide || selBlocks.size > 1;
   if (editing)
-    for (const bi of shared.selBlocks) {
-      const R = blockRect(shared.design, bi % shared.design.cols, Math.floor(bi / shared.design.cols), cw, ch);
+    for (const bi of selBlocks) {
+      const R = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), cw, ch);
       g.lineWidth = 3;
       g.strokeStyle = '#ffffff';
       g.strokeRect(R.x + 1.5, R.y + 1.5, R.w - 3, R.h - 3);
       g.lineWidth = 1.5;
-      g.strokeStyle = bi === shared.focusBlock ? '#e0592a' : '#1b2233';
-      g.setLineDash(bi === shared.focusBlock ? [] : [5, 4]);
+      g.strokeStyle = bi === focusBlock ? '#e0592a' : '#1b2233';
+      g.setLineDash(bi === focusBlock ? [] : [5, 4]);
       g.strokeRect(R.x + 1.5, R.y + 1.5, R.w - 3, R.h - 3);
       g.setLineDash([]);
     }
   // symmetry axes (dashed) while a symmetry is on: the lines the design is mirrored across
-  const sy = symOf(shared.design);
+  const sy = symOf(design);
   if (sy !== 'off') {
-    const bt = (borderTotal(shared.design) * cw) / quiltMm(shared.design).W,
+    const bt = (borderTotal(design) * cw) / quiltMm(design).W,
       x0 = bt,
       y0 = bt,
       x1 = cw - bt,
@@ -114,10 +114,10 @@ function drawDesignerCanvas() {
     }
     g.restore();
   }
-  const sz = sashOf(shared.design);
-  const nb = bordersOf(shared.design).length;
+  const sz = sashOf(design);
+  const nb = bordersOf(design).length;
   $('dz-size-b').textContent =
-    `${sz.mm ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(shared.design)} mm)` : ''} · finished quilt ${qmm.W} × ${qmm.H} mm`;
+    `${sz.mm ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(design)} mm)` : ''} · finished quilt ${qmm.W} × ${qmm.H} mm`;
   drawBackCanvas(cw, ch, dpr);
   const hv = $('dz-hover');
   hv.style.width = cw + 'px';
@@ -137,8 +137,8 @@ function drawBackCanvas(cw, ch, dpr) {
   cv.height = Math.floor(ch * dpr);
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const pxPerCm = cw / (quiltMm(shared.design).W / 10);
-  g.fillStyle = fabricFill(g, fabricById(shared.design.backFabric), pxPerCm, 7);
+  const pxPerCm = cw / (quiltMm(design).W / 10);
+  g.fillStyle = fabricFill(g, fabricById(design.backFabric), pxPerCm, 7);
   g.fillRect(0, 0, cw, ch);
   // stitch-in-the-ditch lines, mirrored
   g.save();
@@ -148,7 +148,7 @@ function drawBackCanvas(cw, ch, dpr) {
   g.lineWidth = Math.max(0.8, cw / 900);
   g.strokeStyle = 'rgba(40,30,20,.45)';
   strokeSeams(g, cw, ch);
-  if (quiltingOf(shared.design) !== 'ditch') drawQuiltingLines(g, cw, ch, quiltingOf(shared.design));
+  if (quiltingOf(design) !== 'ditch') drawQuiltingLines(g, cw, ch, quiltingOf(design));
   g.setLineDash([]);
   g.restore();
   // soft loft shading between the stitches
@@ -158,7 +158,7 @@ function drawBackCanvas(cw, ch, dpr) {
   g.strokeStyle = '#2f466f';
   g.lineWidth = Math.max(4, cw * 0.009);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
-  $('dz-backname').textContent = fabricById(shared.design.backFabric).name;
+  $('dz-backname').textContent = fabricById(design.backFabric).name;
 }
 let flipped = false;
 function turnQuilt() {
@@ -174,7 +174,7 @@ function turnQuilt() {
   $('dz-backbar').hidden = !flipped;
   $('dz-quilt').setAttribute('aria-hidden', String(flipped));
   $('dz-back').setAttribute('aria-hidden', String(!flipped));
-  if (flipped) drawPaletteInto($('dz-backfabs'), shared.design.backFabric);
+  if (flipped) drawPaletteInto($('dz-backfabs'), design.backFabric);
 }
 const BLOCK_PX = 300;
 

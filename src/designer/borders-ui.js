@@ -1,13 +1,14 @@
 // Borders panel.
 import './sashing-ui.js'; // load order: runs after designer/sashing-ui
-import { shared } from '../core/shared.js';
+import { design } from '../core/store.js';
+import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
 import { fabricById } from './fabric-library.js';
 import { BORDER_TYPES, borderFab, borderSidePieces, pathPoly } from '../core/geometry.js';
 import { drawPaletteInto } from './parts-editor.js';
 import { fabricFill } from '../render/fabric-fill.js';
 import { dispatch } from './dispatch.js';
-import { setBorders as setBordersEdit } from '../core/edits.js';
+import { addBorder, moveBorder, removeBorder, setBorderFabric, updateBorder } from '../core/edits.js';
 
 // ---- borders UI
 let brdActive = null; // { i, slot } — which border colour the palette is choosing
@@ -41,7 +42,7 @@ function swatch(fid, px = 22) {
   return c;
 }
 function renderBorderUI() {
-  if (!shared.design || !$('brd-card')) return;
+  if (!design || !$('brd-card')) return;
   const types = $('brd-types');
   if (!types.childElementCount)
     for (const [k, t] of Object.entries(BORDER_TYPES)) {
@@ -57,7 +58,7 @@ function renderBorderUI() {
     }
   const list = $('brd-list');
   list.innerHTML = '';
-  const bs = shared.design.borders || [];
+  const bs = design.borders || [];
   bs.forEach((b, i) => {
     const t = BORDER_TYPES[b.type];
     if (!t) return;
@@ -135,19 +136,20 @@ function renderBorderUI() {
     brdActive = null;
   }
 }
-function setBorders(fn) {
-  dispatch(setBordersEdit, fn);
+/** Applies a border edit and redraws the panel. @param {Function} edit @param {...any} args */
+function borderEdit(edit, ...args) {
+  dispatch(edit, ...args);
   renderBorderUI();
 }
 function openBorders() {
-  shared.showToolsPanel('brd');
+  showToolsPanel('brd');
 }
 function initBorderUI() {
   $('brd-types').addEventListener('click', e => {
     const b = e.target.closest('.brd-type');
     if (!b) return;
     const t = BORDER_TYPES[b.dataset.t],
-      n = (shared.design.borders || []).length;
+      n = (design.borders || []).length;
     const def = {
       plain: ['b1', 'b1'],
       piano: ['b1', 'b0', 'b1'],
@@ -156,7 +158,7 @@ function initBorderUI() {
       sawtooth: ['b4', 'b0', 'b4'],
       geese: ['b1', 'b0', 'b1'],
     }[b.dataset.t];
-    setBorders(bs => bs.push({ type: b.dataset.t, mm: t.mm, fabrics: def }));
+    borderEdit(addBorder, { type: b.dataset.t, mm: t.mm, fabrics: def });
     brdActive = null;
     renderBorderUI();
     if (n === 0) $('brd-list').scrollIntoView({ block: 'nearest' });
@@ -165,15 +167,10 @@ function initBorderUI() {
     const row = e.target.closest('.brd-row');
     if (!row) return;
     const i = +row.dataset.i;
-    if (e.target.dataset.a === 'type')
-      setBorders(bs => {
-        bs[i].type = e.target.value;
-      });
+    if (e.target.dataset.a === 'type') borderEdit(updateBorder, i, { type: e.target.value });
     if (e.target.dataset.a === 'mm') {
       const v = Math.max(10, Math.min(400, Math.round(+e.target.value || 0)));
-      setBorders(bs => {
-        bs[i].mm = v;
-      });
+      borderEdit(updateBorder, i, { mm: v });
     }
   });
   $('brd-list').addEventListener('click', e => {
@@ -190,29 +187,20 @@ function initBorderUI() {
     }
     if (a === 'del') {
       brdActive = null;
-      setBorders(bs => bs.splice(i, 1));
+      borderEdit(removeBorder, i);
     } else if (a === 'in' && i > 0) {
       brdActive = null;
-      setBorders(bs => {
-        [bs[i - 1], bs[i]] = [bs[i], bs[i - 1]];
-      });
-    } else if (a === 'out' && i < (shared.design.borders || []).length - 1) {
+      borderEdit(moveBorder, i, -1);
+    } else if (a === 'out' && i < (design.borders || []).length - 1) {
       brdActive = null;
-      setBorders(bs => {
-        [bs[i + 1], bs[i]] = [bs[i], bs[i + 1]];
-      });
+      borderEdit(moveBorder, i, 1);
     }
   });
   $('brd-pal').addEventListener('click', e => {
     const f = e.target.closest('button.fab');
     if (!f || !brdActive) return;
     const { i, slot } = brdActive;
-    setBorders(bs => {
-      const fb = (bs[i].fabrics || []).slice();
-      while (fb.length <= slot) fb.push(fb[0] || 'b0');
-      fb[slot] = f.dataset.f;
-      bs[i].fabrics = fb;
-    });
+    borderEdit(setBorderFabric, i, slot, f.dataset.f);
   });
 }
 initBorderUI();

@@ -1,6 +1,6 @@
 // Pattern dropdown with a sketch of every block.
 import '../sim/panels.js'; // load order: runs after sim/panels
-import { shared } from '../core/shared.js';
+import { design, focusBlock } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { PATTERNS, partsOf } from '../core/patterns.js';
 import { pathPoly } from '../core/geometry.js';
@@ -28,8 +28,8 @@ function patternSketch(key, px = 34) {
 }
 function updatePatPicker() {
   const btn = $('dz-patbtn');
-  if (!btn || !shared.design) return;
-  const key = shared.design.blocks[shared.focusBlock].pattern;
+  if (!btn || !design) return;
+  const key = design.blocks[focusBlock].pattern;
   if (btn.dataset.key !== key) {
     btn.dataset.key = key;
     btn.innerHTML = '';

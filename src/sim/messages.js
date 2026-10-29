@@ -1,6 +1,6 @@
 // Frames and statistics coming back from the physics worker.
 import './view.js'; // load order: runs after sim/view
-import { shared } from '../core/shared.js';
+import { setHavePos, setNewFrame } from './sim-state.js';
 import { $ } from '../core/dom.js';
 import { state } from './config.js';
 import { simPos } from './quilt-mesh.js';
@@ -9,15 +9,14 @@ import { setView } from './view.js';
 
 // ------------------------------------------------------------- messages
 let handsData = [];
-shared.newFrame = false;
 function onSim(e) {
   const m = e.data;
   if (m.type !== 'frame') return;
   if (state.view === 'render') return; // the render holds the captured shape
   simPos.set(m.pos);
-  shared.havePos = true;
+  setHavePos(true);
   handsData = m.hands;
-  shared.newFrame = true;
+  setNewFrame(true);
   if (m.stats) updateStats(m.stats);
 }
 

@@ -1,6 +1,6 @@
 // Pages and tabs.
 import '../render/quilting.js'; // load order: runs after render/quilting
-import { shared } from '../core/shared.js';
+import { design, setActiveFabric } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { resize } from '../sim/camera.js';
@@ -38,12 +38,12 @@ function showPage(p) {
   if (p === 'sim') {
     resize();
     fitSimSide();
-    if (!shared.design)
+    if (!design)
       (async () => {
         await initFabricLib();
-        if (!shared.design) {
+        if (!design) {
           ensureDesign();
-          shared.activeFabric = 'b0';
+          setActiveFabric('b0');
         }
         drawFabricPalette();
         renderDesigner();
@@ -57,9 +57,9 @@ function showPage(p) {
   }
   (async () => {
     await initFabricLib();
-    if (!shared.design) {
+    if (!design) {
       ensureDesign();
-      shared.activeFabric = 'b0';
+      setActiveFabric('b0');
     }
     if (p === 'design') {
       drawFabricPalette();

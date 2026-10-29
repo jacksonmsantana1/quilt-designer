@@ -1,6 +1,7 @@
 // Sashing panel.
 import '../cutting/page.js'; // load order: runs after cutting/page
-import { shared } from '../core/shared.js';
+import { design } from '../core/store.js';
+import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
 import { quiltMm, sashOf } from '../core/geometry.js';
 import { drawPaletteInto } from './parts-editor.js';
@@ -9,9 +10,9 @@ import { setSashing } from '../core/edits.js';
 
 // ---- sashing settings
 function renderSashUI() {
-  if (!shared.design || !$('sash-card')) return;
-  const s = sashOf(shared.design),
-    raw = shared.design.sashing || {};
+  if (!design || !$('sash-card')) return;
+  const s = sashOf(design),
+    raw = design.sashing || {};
   if (document.activeElement !== $('sash-mm')) $('sash-mm').value = s.mm;
   $('sash-border').checked = !!raw.border;
   const box = $('sash-presets');
@@ -26,7 +27,7 @@ function renderSashUI() {
   }
   drawPaletteInto($('sash-fabs'), raw.fabric || 'b0');
   drawPaletteInto($('sash-corner'), raw.corner || raw.fabric || 'b0');
-  const q = quiltMm(shared.design);
+  const q = quiltMm(design);
   $('sash-note').textContent = s.mm
     ? `Finished quilt with sashing: ${q.W} × ${q.H} mm. Click the sashing on the quilt to come back here.`
     : 'Choose a width to add strips of fabric between the blocks.';
@@ -36,7 +37,7 @@ function setSash(patch) {
   renderSashUI();
 }
 function openSashing() {
-  shared.showToolsPanel('sash');
+  showToolsPanel('sash');
 }
 function initSashUI() {
   $('sash-mm').addEventListener('change', e => {
@@ -50,11 +51,11 @@ function initSashUI() {
   $('sash-border').addEventListener('change', e => setSash({ border: e.target.checked }));
   $('sash-fabs').addEventListener('click', e => {
     const b = e.target.closest('button.fab');
-    if (b) setSash({ fabric: b.dataset.f, ...(shared.design.sashing && shared.design.sashing.mm ? {} : { mm: 50 }) });
+    if (b) setSash({ fabric: b.dataset.f, ...(design.sashing && design.sashing.mm ? {} : { mm: 50 }) });
   });
   $('sash-corner').addEventListener('click', e => {
     const b = e.target.closest('button.fab');
-    if (b) setSash({ corner: b.dataset.f, ...(shared.design.sashing && shared.design.sashing.mm ? {} : { mm: 50 }) });
+    if (b) setSash({ corner: b.dataset.f, ...(design.sashing && design.sashing.mm ? {} : { mm: 50 }) });
   });
 }
 initSashUI();

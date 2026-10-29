@@ -1,18 +1,13 @@
 // The design being edited: loading, saving, new design, resizing.
 import './fabric-library.js'; // load order: runs after designer/fabric-library
-import { shared } from '../core/shared.js';
+import { design } from '../core/store.js';
 import { PATTERNS, partsOf } from '../core/patterns.js';
 import { normalizeSpans } from '../core/geometry.js';
 import { scheduleSync } from '../sim/design-maps.js';
-import { tlRecord } from '../timeline/timeline.js';
 import { defaultDesign } from '../core/design.js';
 
 // ---- design state
 const DESIGN_KEY = 'quilt-designer.v1';
-shared.design = null;
-shared.selBlocks = new Set();
-shared.focusBlock = 0;
-shared.selParts = new Set();
 function loadDesign() {
   try {
     const d = JSON.parse(localStorage.getItem(DESIGN_KEY) || 'null');
@@ -33,10 +28,9 @@ function loadDesign() {
 }
 function saveDesign() {
   try {
-    localStorage.setItem(DESIGN_KEY, JSON.stringify(shared.design));
+    localStorage.setItem(DESIGN_KEY, JSON.stringify(design));
   } catch (e) {}
   scheduleSync();
-  tlRecord();
 }
 
 export { loadDesign, saveDesign };

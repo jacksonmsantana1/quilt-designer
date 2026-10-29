@@ -1,6 +1,7 @@
 // Symmetry, block size and quilting settings; cancel and double-click to close.
 import './borders-ui.js'; // load order: runs after designer/borders-ui
-import { shared } from '../core/shared.js';
+import { design, focusBlock, setSelBlocks, setToolsSnap, toolsSnap } from '../core/store.js';
+import { hideTools } from './ui-state.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { blockSizeMm, spanOf } from '../core/geometry.js';
@@ -13,48 +14,48 @@ import { setBlockSpan, setQuilting } from '../core/edits.js';
 // small round button on the Block parts card: undo everything done since the design tools were opened, and close them
 // symmetry setting (Block parts): turning one on mirrors the design from its top-left part straight away
 function syncSymUI() {
-  if ($('dz-quilting') && shared.design) $('dz-quilting').value = quiltingOf(shared.design);
+  if ($('dz-quilting') && design) $('dz-quilting').value = quiltingOf(design);
   const el = $('dz-sym');
-  if (!el || !shared.design) return;
-  for (const o of el.options) o.disabled = o.value === 'kal' && shared.design.cols !== shared.design.rows;
-  el.value = symOf(shared.design);
+  if (!el || !design) return;
+  for (const o of el.options) o.disabled = o.value === 'kal' && design.cols !== design.rows;
+  el.value = symOf(design);
   const sp = $('dz-span'),
-    b = shared.design.blocks[shared.focusBlock];
+    b = design.blocks[focusBlock];
   if (!sp || !b) return;
-  const c = shared.focusBlock % shared.design.cols,
-    r = Math.floor(shared.focusBlock / shared.design.cols),
-    max = Math.min(shared.design.cols - c, shared.design.rows - r);
+  const c = focusBlock % design.cols,
+    r = Math.floor(focusBlock / design.cols),
+    max = Math.min(design.cols - c, design.rows - r);
   for (const o of sp.options) {
     o.disabled = +o.value > max;
-    o.textContent = `${o.value} × ${o.value} cell${o.value > 1 ? 's' : ''} · ${blockSizeMm(shared.design, +o.value)} mm`;
+    o.textContent = `${o.value} × ${o.value} cell${o.value > 1 ? 's' : ''} · ${blockSizeMm(design, +o.value)} mm`;
   }
   sp.value = String(spanOf(b));
 }
 $('dz-quilting').addEventListener('change', e => {
-  if (!shared.design) return;
+  if (!design) return;
   dispatch(setQuilting, e.target.value);
 });
 $('dz-span').addEventListener('change', e => {
-  if (!shared.design) return;
-  shared.selBlocks = new Set([shared.focusBlock]);
-  dispatch(setBlockSpan, shared.focusBlock, +e.target.value);
+  if (!design) return;
+  setSelBlocks(new Set([focusBlock]));
+  dispatch(setBlockSpan, focusBlock, +e.target.value);
 });
 $('dz-sym').addEventListener('change', e => {
-  if (!shared.design) return;
+  if (!design) return;
   dispatch(setSymmetry, e.target.value);
 });
 const cancelTools = () => {
-  if (shared.toolsSnap && shared.design) {
+  if (toolsSnap && design) {
     tlCommit();
-    const k = tl.steps.findIndex(st => st.d === shared.toolsSnap.d);
-    if (tl.key === shared.toolsSnap.key && JSON.stringify(shared.design) !== shared.toolsSnap.d && k >= 0)
+    const k = tl.steps.findIndex(st => st.d === toolsSnap.d);
+    if (tl.key === toolsSnap.key && JSON.stringify(design) !== toolsSnap.d && k >= 0)
       tlGo(k); // the later steps stay available as redo
-    else if (JSON.stringify(shared.design) !== shared.toolsSnap.d) {
-      replaceDesign(JSON.parse(shared.toolsSnap.d), { keepFocus: true });
+    else if (JSON.stringify(design) !== toolsSnap.d) {
+      replaceDesign(JSON.parse(toolsSnap.d), { keepFocus: true });
     }
   }
-  shared.toolsSnap = null;
-  shared.hideTools();
+  setToolsSnap(null);
+  hideTools();
 };
 for (const b of document.querySelectorAll('.dz-cancel'))
   b.addEventListener('click', e => {
@@ -70,7 +71,7 @@ document.addEventListener('dblclick', e => {
     )
   )
     return;
-  shared.hideTools();
+  hideTools();
   if (!$('tl-panel').hidden && tl.showBar) tl.showBar(false); // and the timeline closes too
   if (tl.hideRow) tl.hideRow();
 });

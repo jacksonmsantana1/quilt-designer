@@ -109,13 +109,13 @@ function normalizeSpans(d) {
 }
 /**
  * Block i made to cover k × k cells (pure); large blocks in the way go back to 1 × 1.
- * @param {Design} d @param {number} i @param {number} k @returns {Design}
+ * @param {Design} d @param {number} i @param {number} k0 @returns {Design}
  */
-function setSpan(d, i, k) {
+function setSpan(d, i, k0) {
   const C = d.cols,
     c = i % C,
-    r = Math.floor(i / C);
-  k = Math.max(1, Math.min(k, C - c, d.rows - r));
+    r = Math.floor(i / C),
+    k = Math.max(1, Math.min(k0, C - c, d.rows - r));
   const blocks = d.blocks.map((b, j) => {
     if (j === i) {
       const { span: _s, ...rest } = b;
@@ -148,15 +148,12 @@ function cellRect(d, c, r, W, H) {
   };
 }
 // where block (c, r) sits: a large block covers its k × k cells; a covered cell answers with its large block
-/** Where the block at (c, r) sits on a W × H drawing (a large block's whole area). @param {Design} d @param {number} c @param {number} r @param {number} W @param {number} H @returns {Rect} */
-function blockRect(d, c, r, W, H) {
-  let i = r * d.cols + c;
-  const a = d.blocks ? anchorOf(d, i) : i;
-  if (a !== i) {
-    i = a;
-    c = a % d.cols;
-    r = Math.floor(a / d.cols);
-  }
+/** Where the block at (c, r) sits on a W × H drawing (a large block's whole area). @param {Design} d @param {number} c0 @param {number} r0 @param {number} W @param {number} H @returns {Rect} */
+function blockRect(d, c0, r0, W, H) {
+  const i0 = r0 * d.cols + c0,
+    i = d.blocks ? anchorOf(d, i0) : i0,
+    c = i % d.cols,
+    r = Math.floor(i / d.cols);
   const R = cellRect(d, c, r, W, H),
     k = d.blocks ? spanOf(d.blocks[i]) : 1;
   if (k === 1) return R;

@@ -1,6 +1,6 @@
 // Quilting stitches and seam lines.
 import '../sim/quilt-size.js'; // load order: runs after sim/quilt-size
-import { shared } from '../core/shared.js';
+import { design } from '../core/store.js';
 import { blockPolys, blockRect, pathPoly, quiltMm, sashRects } from '../core/geometry.js';
 
 // ---- quilting: the stitching that holds the layers together, drawn over the whole top.
@@ -13,7 +13,7 @@ const QUILTING = {
 };
 const quiltingOf = d => (d && QUILTING[d.quilting] ? d.quilting : 'ditch');
 function drawQuiltingLines(g, W, H, kind) {
-  const k = W / quiltMm(shared.design).W; // px per mm
+  const k = W / quiltMm(design).W; // px per mm
   g.save();
   g.beginPath();
   g.rect(0, 0, W, H);
@@ -68,7 +68,7 @@ function drawQuiltingLines(g, W, H, kind) {
   g.restore();
 }
 function strokeSeams(g, W, H) {
-  const d = shared.design;
+  const d = design;
   for (const rc of sashRects(d, W, H)) g.strokeRect(rc.x, rc.y, rc.w, rc.h);
   for (let r = 0; r < d.rows; r++)
     for (let c = 0; c < d.cols; c++) {
@@ -96,7 +96,7 @@ function softSeams(W, H, blur, bg, ink, lineWidth) {
   g.strokeStyle = ink;
   g.lineWidth = lineWidth;
   strokeSeams(g, W, H);
-  const qk = quiltingOf(shared.design);
+  const qk = quiltingOf(design);
   if (qk !== 'ditch') {
     g.lineWidth = lineWidth * 0.6;
     drawQuiltingLines(g, W, H, qk);

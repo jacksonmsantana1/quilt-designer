@@ -1,7 +1,7 @@
 // The quilt mesh: top, back and binding, upsampled from the physics grid.
 import './patchwork.js'; // load order: runs after sim/patchwork
 import * as THREE from 'three';
-import { shared } from '../core/shared.js';
+
 import { N, R, quilt, state } from './config.js';
 import { scene } from './renderer.js';
 import { QM } from './patchwork.js';
@@ -124,7 +124,6 @@ function subdivide(src, dst, k) {
   }
 }
 const simPos = new Float32Array(N * N * 3);
-shared.havePos = false;
 function upsample() {
   subdivide(simPos, qPos, 3);
   qGeo.attributes.position.needsUpdate = true;

@@ -1,6 +1,7 @@
 // Bed and table choice, overhang readout and quilt-size suggestions.
 import './design-maps.js'; // load order: runs after sim/design-maps
-import { shared } from '../core/shared.js';
+import { setColliders, setDropPos } from './sim-state.js';
+import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { BEDS, BED_KEY, bedM, bedName, bedState, isTableSim, quilt } from './config.js';
 import { send } from './worker-link.js';
@@ -51,7 +52,7 @@ function setBed(key, w, l, h) {
   syncBedUI();
   buildBedMeshes();
   buildBedExtras();
-  shared.colliders = ClothSim.bedColliders(bedM());
+  setColliders(ClothSim.bedColliders(bedM()));
   MAT.top = ClothSim.surfaceTop(bedM());
   MAT.headFace = isTableSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055;
   const pil = $('pillows').checked;
@@ -68,7 +69,7 @@ function setBed(key, w, l, h) {
   updateIntro();
   updateFitReadout();
   renderFitSuggestions();
-  shared.dropPos = null;
+  setDropPos(null);
   syncDropUI();
   restart(); // drop the quilt again on the new bed (leaves the photo render if it was on)
 }
@@ -121,12 +122,12 @@ function fitOptions() {
   const T = fitTarget(),
     out = [],
     seen = new Set(),
-    sz = shared.design ? sashOf(shared.design) : { mm: 0, border: false },
+    sz = design ? sashOf(design) : { mm: 0, border: false },
     S = sz.mm,
     e = sz.border ? 2 : 0;
-  const BT = shared.design ? 2 * borderTotal(shared.design) : 0;
+  const BT = design ? 2 * borderTotal(design) : 0;
   const size = (c, r, B) => ({ W: c * B + S * (c - 1 + e) + BT, L: r * B + S * (r - 1 + e) + BT }); // includes the sashing and borders
-  const sizes = [shared.design ? shared.design.blockMm : 400, 250, 300, 305, 350, 400, 450, 457, 500, 550, 600];
+  const sizes = [design ? design.blockMm : 400, 250, 300, 305, 350, 400, 450, 457, 500, 550, 600];
   for (const B of sizes) {
     const p = B + S;
     for (const c of [Math.floor((T.W - BT - S * (e - 1)) / p), Math.ceil((T.W - BT - S * (e - 1)) / p)])
@@ -137,7 +138,7 @@ function fitOptions() {
         seen.add(k);
         const { W, L } = size(c, r, B),
           err = Math.abs(W - T.W) + Math.abs(L - T.L) + (W < bedState.w ? 1e6 : 0);
-        out.push({ B, c, r, W, L, err, current: shared.design && B === shared.design.blockMm });
+        out.push({ B, c, r, W, L, err, current: design && B === design.blockMm });
       }
   }
   out.sort((a, b) => a.err - b.err);
@@ -149,8 +150,8 @@ function fitOptions() {
     if (!list.includes(o) && !list.some(x => x.B === o.B)) list.push(o);
   }
   // exact fit: change the block size so the columns match the width exactly
-  if (shared.design) {
-    const c = Math.max(1, Math.round((T.W - BT - S * (e - 1)) / (shared.design.blockMm + S))),
+  if (design) {
+    const c = Math.max(1, Math.round((T.W - BT - S * (e - 1)) / (design.blockMm + S))),
       B = Math.max(50, Math.round((T.W - BT - S * (c - 1 + e)) / c / 5) * 5),
       r = Math.max(1, Math.round((T.L - BT - S * (e - 1)) / (B + S)));
     if (!list.some(o => o.B === B && o.c === c && o.r === r))
@@ -160,7 +161,7 @@ function fitOptions() {
 }
 function renderFitSuggestions() {
   const box = $('fit-list');
-  if (!box || !shared.design) return;
+  if (!box || !design) return;
   const T = fitTarget();
   $('fit-target').textContent =
     `Target quilt: ${T.W} × ${T.L} mm (mattress ${bedState.w} × ${bedState.l} + ${bedState.drop} mm drop each side and at the foot${bedState.tuck ? ` + ${TUCK} mm pillow tuck` : ''}).`;
@@ -168,7 +169,7 @@ function renderFitSuggestions() {
   for (const o of fitOptions()) {
     const side = Math.round((o.W - bedState.w) / 2),
       foot = o.L - bedState.l - (bedState.tuck ? TUCK : 0);
-    const isNow = shared.design.cols === o.c && shared.design.rows === o.r && shared.design.blockMm === o.B;
+    const isNow = design.cols === o.c && design.rows === o.r && design.blockMm === o.B;
     const row = document.createElement('div');
     row.className = 'fitopt';
     row.innerHTML = `<div><b>${o.c} × ${o.r} blocks of ${o.B} mm</b>${o.current ? ' <span class="tag">your block size</span>' : ''}${o.exact ? ' <span class="tag">resized blocks</span>' : ''}

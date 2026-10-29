@@ -1,6 +1,6 @@
 // Saving a picture of the 3D view.
 import '../platform/downloads.js'; // load order: runs after platform/downloads
-import { shared } from '../core/shared.js';
+import { activeCam } from './sim-state.js';
 import { $ } from '../core/dom.js';
 import { state } from './config.js';
 import { canvas, renderer, scene } from './renderer.js';
@@ -23,7 +23,7 @@ function captureBlob() {
       pathTracer.renderSample();
       pathTracer.pausePathTracing = p;
     } else {
-      renderer.render(scene, shared.activeCam);
+      renderer.render(scene, activeCam);
     }
     canvas.toBlob(b => (b ? resolve(b) : reject(new Error('The image could not be captured.'))), 'image/png');
   });

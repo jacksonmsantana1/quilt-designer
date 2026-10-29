@@ -1,6 +1,6 @@
 // Design timeline: undo, redo and the film strip.
 import '../mine/samples.js'; // load order: runs after mine/samples
-import { shared } from '../core/shared.js';
+import { design, mineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { PATTERNS } from '../core/patterns.js';
@@ -15,7 +15,7 @@ import { replaceDesign } from '../designer/dispatch.js';
 const TL_KEY = 'quilt-timeline.v1',
   TL_MAX = 100;
 var tlBarOn = false; // the timeline film strip opens with the arrow keys and closes on a double-click outside
-const tl = { steps: [], i: -1, ready: false, restoring: false, timer: 0, thumbs: new Map(), seq: 0, key: '' };
+const tl = { steps: [], i: -1, ready: false, restoring: false, thumbs: new Map(), seq: 0, key: '' };
 // each design has its own timeline: saved designs by their id, the unsaved one as "draft"
 const tlKeyFor = id => TL_KEY + ':' + (id || 'draft');
 function tlSave() {
@@ -56,7 +56,6 @@ function tlSave() {
 }
 // switch to another design's timeline (loads it, or starts one)
 function tlSwitch(id) {
-  clearTimeout(tl.timer);
   if (tl.ready) tlSave();
   tl.key = tlKeyFor(id);
   tl.steps = [];
@@ -78,10 +77,10 @@ function tlCopy(fromId, toId, move) {
   } catch (e) {}
 }
 function tlEnsure() {
-  if (tl.ready || !shared.design) return;
+  if (tl.ready || !design) return;
   tl.ready = true;
   if (!tl.key) {
-    tl.key = tlKeyFor(typeof shared.mineCur !== 'undefined' ? shared.mineCur : null);
+    tl.key = tlKeyFor(typeof mineCur !== 'undefined' ? mineCur : null);
     try {
       const old = localStorage.getItem(TL_KEY);
       if (old && !localStorage.getItem(tl.key)) localStorage.setItem(tl.key, old);
@@ -96,34 +95,43 @@ function tlEnsure() {
       tl.seq = o.seq || o.steps.length;
     }
   } catch (e) {}
-  const cur = JSON.stringify(shared.design);
+  const cur = JSON.stringify(design);
   if (!tl.steps.length || tl.steps[tl.i].d !== cur) tlPush(cur, tl.steps.length ? 'Opened' : 'Start');
   tlUI();
 }
-function tlPush(d, label) {
+function tlPush(d, label, merge) {
   tl.steps = tl.steps.slice(0, tl.i + 1); // a change after going back starts a new branch
-  tl.steps.push({ id: ++tl.seq, d, label, t: Date.now() });
+  tl.steps.push({ id: ++tl.seq, d, label, t: Date.now(), merge });
   while (tl.steps.length > TL_MAX) tl.steps.shift();
   tl.i = tl.steps.length - 1;
   tlSave();
 }
-// changes arriving close together (typing a number, dragging) become one step
-function tlRecord() {
-  if (tl.restoring || !shared.design) return;
+/**
+ * Records the design as it is now: called by dispatch after every edit, so each edit is one step. Repeats of a
+ * mergeable edit (`merge` is its name) within a second update the top step instead of adding one.
+ * @param {string | null} [merge]
+ */
+function tlRecord(merge = null) {
+  if (tl.restoring || !design) return;
   tlEnsure();
-  clearTimeout(tl.timer);
-  tl.timer = setTimeout(tlCommit, 450);
-}
-function tlCommit() {
-  // record the pending change now
-  clearTimeout(tl.timer);
-  tl.timer = 0;
-  if (!shared.design || !tl.ready) return;
-  const cur = JSON.stringify(shared.design),
-    prev = tl.steps[tl.i];
-  if (prev && prev.d === cur) return;
-  tlPush(cur, tlDescribe(prev ? JSON.parse(prev.d) : null, shared.design));
+  const cur = JSON.stringify(design),
+    top = tl.steps[tl.i],
+    now = Date.now();
+  if (top && top.d === cur) return;
+  const below = tl.steps[tl.i - 1];
+  if (merge && top && below && top.merge === merge && tl.i === tl.steps.length - 1 && now - top.t < 1000) {
+    top.d = cur;
+    top.t = now;
+    top.label = tlDescribe(JSON.parse(below.d), design);
+    tl.thumbs.delete(top.id);
+    tlSave();
+  } else tlPush(cur, tlDescribe(top ? JSON.parse(top.d) : null, design), merge);
   tlUI();
+}
+/** Ends merging: the next edit is a new step even if it is the same kind (a panel closed, the tour moved on). */
+function tlCommit() {
+  const top = tl.steps[tl.i];
+  if (top) top.merge = null;
 }
 function tlDescribe(a, b) {
   if (!a) return 'Start';
@@ -175,11 +183,10 @@ function tlDescribe(a, b) {
   if (rot) return `Rotate ${plural(rot, 'block')}`;
   return 'Change';
 }
-function tlGo(i) {
+function tlGo(to) {
   if (!tl.steps.length) return;
-  i = Math.max(0, Math.min(tl.steps.length - 1, i));
+  const i = Math.max(0, Math.min(tl.steps.length - 1, to));
   if (i === tl.i) return;
-  clearTimeout(tl.timer);
   tl.i = i;
   tlSave();
   tl.restoring = true; // putting a step back is not a new step
@@ -307,11 +314,11 @@ function initTimeline() {
   );
   $('tl-slider').addEventListener('input', e => tlGo(+e.target.value));
   $('tl-clear').addEventListener('click', () => {
-    if (!shared.design) return;
+    if (!design) return;
     tl.steps = [];
     tl.i = -1;
     tl.thumbs.clear();
-    tlPush(JSON.stringify(shared.design), 'Start');
+    tlPush(JSON.stringify(design), 'Start');
     tlUI();
   });
   // the undo / redo / Timeline buttons stay hidden until the left or right arrow key is pressed
@@ -344,7 +351,7 @@ function initTimeline() {
       return;
     e.preventDefault();
     if ($('tl-panel').hidden && tl.showBar) tl.showBar(true);
-    if (shared.design) tlGo(tl.i + (e.key === 'ArrowRight' ? 1 : -1)); // the arrows step back and forth through the timeline
+    if (design) tlGo(tl.i + (e.key === 'ArrowRight' ? 1 : -1)); // the arrows step back and forth through the timeline
   });
   tl.hideRow = () => {
     clearTimeout(rowT);
@@ -368,7 +375,7 @@ function initTimeline() {
 initTimeline();
 // the toolbar can wrap onto a second line (status text): refit the quilt when its height changes
 new ResizeObserver(() => {
-  if (state.page === 'design' && shared.design) drawDesignerCanvas();
+  if (state.page === 'design' && design) drawDesignerCanvas();
 }).observe($('dz-size'));
 
 export { tl, tlBarOn, tlCommit, tlCopy, tlEnsure, tlGo, tlKeyFor, tlRecord, tlSave, tlSwitch, tlUI };

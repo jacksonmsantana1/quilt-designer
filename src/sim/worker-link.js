@@ -1,6 +1,6 @@
 // Link to the cloth physics running in a Web Worker (physics.js).
 import '../render/highlight.js'; // load order: runs after render/highlight
-import { shared } from '../core/shared.js';
+import { dropPos, quiltTurned, setQuiltTurned } from './sim-state.js';
 import { $ } from '../core/dom.js';
 import { N, bedM, quilt, state } from './config.js';
 import { onSim } from './messages.js';
@@ -52,18 +52,16 @@ function connect() {
     type: 'reset',
     scenario: state.scenario,
     dropHeight: state.dropHeight,
-    rot: shared.quiltTurned,
+    rot: quiltTurned,
     pos: dropPosM(),
   });
 }
 const send = m => port && port.postMessage(m);
 // the quilt can be turned a quarter turn on the bed or table before it is dropped (remembered in this browser)
-shared.quiltTurned = false;
 try {
-  shared.quiltTurned = localStorage.getItem('quilt-turned.v1') === '1';
+  setQuiltTurned(localStorage.getItem('quilt-turned.v1') === '1');
 } catch (e) {}
 // where the quilt's centre is dropped along the long side of the bed or table, mm from its centre (null = the usual spot)
-shared.dropPos = null;
-const dropPosM = () => (shared.dropPos == null ? null : shared.dropPos / 1000);
+const dropPosM = () => (dropPos == null ? null : dropPos / 1000);
 
 export { dropPosM, send, startSim };

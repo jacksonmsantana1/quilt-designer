@@ -1,6 +1,7 @@
 // The distinct blocks in the quilt, to copy from.
 import './parts-editor.js'; // load order: runs after designer/parts-editor
-import { shared } from '../core/shared.js';
+
+import { design, focusBlock, selBlocks, selParts, setSelParts } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { PATTERNS } from '../core/patterns.js';
 import { blockPolys, pathPoly } from '../core/geometry.js';
@@ -43,19 +44,19 @@ const blockKey = b => {
 };
 function drawBlockLibrary() {
   const box = $('dz-library');
-  if (!box || !shared.design) return;
+  if (!box || !design) return;
   const seen = new Map();
-  shared.design.blocks.forEach((b, i) => {
+  design.blocks.forEach((b, i) => {
     if (b.under != null) return;
     const k = blockKey(b);
     if (!seen.has(k)) seen.set(k, { b, i, n: 0 });
     seen.get(k).n++;
   });
-  const cur = blockKey(shared.design.blocks[shared.focusBlock]);
+  const cur = blockKey(design.blocks[focusBlock]);
   box.innerHTML = '';
   const dpr = Math.min(window.devicePixelRatio || 1, 2),
     S = 68,
-    realCm = shared.design.blockMm / 10;
+    realCm = design.blockMm / 10;
   for (const [k, { b, i, n }] of seen) {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -85,14 +86,13 @@ function drawBlockLibrary() {
   }
 }
 function copyBlockFrom(srcIndex) {
-  shared.selParts.clear();
-  dispatch(copyBlock, shared.design.blocks[srcIndex], shared.selBlocks);
+  selParts.clear();
+  dispatch(copyBlock, design.blocks[srcIndex], selBlocks);
 }
-shared.partTap = null;
 function selectSameFabric(pi) {
-  const b = shared.design.blocks[shared.focusBlock],
+  const b = design.blocks[focusBlock],
     ref = b.fabrics[pi];
-  shared.selParts = new Set(b.fabrics.map((f, i) => (f === ref ? i : -1)).filter(i => i >= 0));
+  setSelParts(new Set(b.fabrics.map((f, i) => (f === ref ? i : -1)).filter(i => i >= 0)));
   drawPartsEditor();
 }
 
