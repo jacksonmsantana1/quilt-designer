@@ -804,10 +804,13 @@
           <span class="sash-presets" id="sash-presets"></span>
         </div>
         <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="sash-border"> Also around the outside (border)</label>
+        <label style="display:flex;gap:6px;align-items:center;margin-top:6px" title="Without cornerstones, the strips between the rows run the full width of the quilt"><input type="checkbox" id="sash-cs" checked> Cornerstones where the strips cross</label>
         <p class="fine" style="margin:10px 0 6px">Sashing fabric</p>
         <div class="fabs" id="sash-fabs"></div>
-        <p class="fine" style="margin:10px 0 6px">Cornerstones (where strips cross)</p>
-        <div class="fabs" id="sash-corner"></div>
+        <div id="sash-cs-box">
+          <p class="fine" style="margin:10px 0 6px">Cornerstone fabric</p>
+          <div class="fabs" id="sash-corner"></div>
+        </div>
         <p class="fine" id="sash-note" style="margin:8px 0 0"></p>
       </div>
 
@@ -2682,7 +2685,13 @@ function pathPoly(g, poly) {
 }
 var sashOf = (d) => {
   const s = d && d.sashing;
-  return s && s.mm > 0 ? { mm: s.mm, fabric: s.fabric || "b0", corner: s.corner || s.fabric || "b0", border: !!s.border } : { mm: 0, fabric: "b0", corner: "b0", border: false };
+  return s && s.mm > 0 ? {
+    mm: s.mm,
+    fabric: s.fabric || "b0",
+    corner: s.corner || s.fabric || "b0",
+    border: !!s.border,
+    cornerstones: s.cornerstones !== false
+  } : { mm: 0, fabric: "b0", corner: "b0", border: false, cornerstones: true };
 };
 function centreMm(d) {
   const s = sashOf(d), e = s.border ? 2 : 0;
@@ -2777,6 +2786,49 @@ function blockAt(d, x, y, W, H) {
   return x >= R2.x && x <= R2.x + R2.w && y >= R2.y && y <= R2.y + R2.h ? a : -1;
 }
 function sashRects(d, W, H) {
+  const across = /* @__PURE__ */ new Set();
+  const all = sashPieces(d, W, H, across);
+  if (sashOf(d).cornerstones) return all;
+  const rows = joinRuns(
+    all.filter((rc) => across.has(rc)),
+    "x"
+  ), lone = rows.filter((rc) => rc.kind === "corner"), cols = joinRuns([...all.filter((rc) => !across.has(rc)), ...lone], "y");
+  return [...rows.filter((rc) => rc.kind !== "corner"), ...cols].map(
+    (rc) => rc.kind === "corner" ? { ...rc, kind: "sash" } : rc
+  );
+}
+function joinRuns(pieces, ax) {
+  const len = ax === "x" ? "w" : "h", lines = /* @__PURE__ */ new Map();
+  for (const rc of pieces) {
+    const at = ax === "x" ? rc.y : rc.x;
+    lines.set(at, [...lines.get(at) || [], rc]);
+  }
+  const out = [];
+  for (const line of lines.values()) {
+    line.sort((a, b) => a[ax] - b[ax]);
+    let run2 = [line[0]];
+    const flush2 = () => {
+      const first = run2[0], last = run2[run2.length - 1], ext = last[ax] + last[len] - first[ax];
+      if (run2.length === 1) out.push(first);
+      else
+        out.push({
+          kind: "long",
+          x: first.x,
+          y: first.y,
+          w: ax === "x" ? ext : first.w,
+          h: ax === "y" ? ext : first.h
+        });
+    };
+    for (const rc of line.slice(1)) {
+      const last = run2[run2.length - 1];
+      if (rc[ax] <= last[ax] + last[len] + 1e-6 * (last[len] || 1)) run2.push(rc);
+      else flush2(), run2 = [rc];
+    }
+    flush2();
+  }
+  return out;
+}
+function sashPieces(d, W, H, across) {
   const s = sashOf(d);
   if (!s.mm) return [];
   const q = quiltMm(d), kx = W / q.W, ky = H / q.H, bt = borderTotal(d), off = (s.border ? s.mm : 0) + bt, p = d.blockMm + s.mm, out = [];
@@ -2794,11 +2846,11 @@ function sashRects(d, W, H) {
   for (const x of xs)
     for (let r = 0; r < d.rows; r++)
       out.push({ kind: "sash", x: x * kx, y: (off + r * p) * ky, w: s.mm * kx, h: d.blockMm * ky });
+  const add = (rc) => (across.add(rc), out.push(rc));
   for (const y of ys)
     for (let c = 0; c < d.cols; c++)
-      out.push({ kind: "sash", x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
-  for (const x of xs)
-    for (const y of ys) out.push({ kind: "corner", x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
+      add({ kind: "sash", x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
+  for (const x of xs) for (const y of ys) add({ kind: "corner", x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
   const big = (d.blocks || []).map((b, i) => b.span > 1 && b.under == null ? blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H) : null).filter(Boolean);
   if (!big.length) return out;
   return out.filter((rc) => {
@@ -2898,7 +2950,7 @@ function pathPolyInto(g, poly) {
 }
 
 // ../shared/src/design.js
-var FORMAT_VERSION = 1;
+var FORMAT_VERSION = 2;
 var ROLE_DEFAULT = ["b0", "b1", "b3"];
 function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
   return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
@@ -2929,7 +2981,11 @@ var MIGRATIONS = [
     blockMm: d.blockMm > 0 ? d.blockMm : Math.round(2290 / (d.cols || 5)),
     backFabric: d.backFabric || "b0",
     v: 1
-  })
+  }),
+  // 1 → 2: sashing can leave out its cornerstones (sashing.cornerstones false); older saves all have them,
+  // which is what a missing value means, so nothing changes. (Older apps open version 2 read-only, so they
+  // can't save over the setting.)
+  (d) => ({ ...d, v: 2 })
 ];
 var LIMITS = { grid: [1, 20], blockMm: [50, 1e3], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
 var SYMS = ["off", "lr", "tb", "both", "kal"];
@@ -2986,7 +3042,9 @@ function check(d) {
         mm: clamp(Math.round(s.mm), LIMITS.sashMm),
         fabric: isFabric(s.fabric) ? s.fabric : "b0",
         corner: isFabric(s.corner) ? s.corner : "b3",
-        border: s.border === true
+        border: s.border === true,
+        ...s.cornerstones === false ? { cornerstones: false } : {}
+        // kept only when off (the default is on)
       };
     } else {
       delete out.sashing;
@@ -7532,6 +7590,7 @@ function swatchCanvas(fab, w = 72, h = 48) {
   return c;
 }
 var cgRedraws = [];
+var SASH_WHAT = { sash: "Sashing strips", long: "Long sashing strips", corner: "Cornerstones" };
 function sashMini() {
   const c = Math.min(2, design.cols), r = Math.min(2, design.rows);
   return {
@@ -7558,7 +7617,7 @@ function drawSashPic(g, S, sashCuts, u) {
   g.textAlign = "center";
   g.textBaseline = "middle";
   for (const rc of sashRects(mini, S, H)) {
-    const x = sashCuts.find((t2) => t2.what === (rc.kind === "corner" ? "Cornerstones" : "Sashing strips"));
+    const x = sashCuts.find((t2) => t2.what === SASH_WHAT[rc.kind]);
     if (!x) continue;
     const t = x.id, tw = g.measureText(t).width + 8 * u, vert = rc.h > rc.w, hh = 16 * u;
     if (rc.kind === "corner" && rc.w < tw) {
@@ -7749,7 +7808,7 @@ function drawCutQuilt(P, into) {
     g.restore();
   };
   if (sr.length) {
-    const idOf = (kind) => (extra.find((x) => x.group === "sash" && x.what === (kind === "corner" ? "Cornerstones" : "Sashing strips")) || {}).id;
+    const idOf = (kind) => (extra.find((x) => x.group === "sash" && x.what === SASH_WHAT[kind]) || {}).id;
     for (const rc of sr) {
       const t = idOf(rc.kind), thin = Math.min(rc.w, rc.h);
       if (!t || thin < 9 * u && rc.kind !== "corner" || thin < 3 * u) continue;
@@ -8154,17 +8213,33 @@ function renderCut() {
   setFabHi(null);
   const sz = sashOf(design), qm = quiltMm(design), extra = [];
   if (sz.mm) {
-    const sr = sashRects(design, 1e3, 1e3), strips = sr.filter((x) => x.kind === "sash").length, corners = sr.filter((x) => x.kind === "corner").length;
+    const sr = sashRects(design, qm.W, qm.H), strips = sr.filter((x) => x.kind === "sash").length, corners = sr.filter((x) => x.kind === "corner").length, lens = sr.filter((x) => x.kind === "long").map((x) => Math.round(Math.max(x.w, x.h)));
     if (strips)
       extra.push({
         group: "sash",
-        what: "Sashing strips",
+        what: SASH_WHAT.sash,
         fabric: sz.fabric,
         w: design.blockMm,
         h: sz.mm,
         n: strips
       });
-    if (corners) extra.push({ group: "sash", what: "Cornerstones", fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
+    if (lens.length) {
+      const usable = cutOpts.fabricWidth - cutOpts.selvage;
+      if (Math.max(...lens) + 2 * cutOpts.seam > usable)
+        extra.push({ group: "sash", what: SASH_WHAT.long, fabric: sz.fabric, wof: true, w: sz.mm, lens });
+      else
+        for (const L of new Set(lens))
+          extra.push({
+            group: "sash",
+            what: SASH_WHAT.long,
+            fabric: sz.fabric,
+            w: L,
+            h: sz.mm,
+            n: lens.filter((l) => l === L).length
+          });
+    }
+    if (corners)
+      extra.push({ group: "sash", what: SASH_WHAT.corner, fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
   }
   const bs = bordersOf(design), cm = centreMm(design);
   let innerW = cm.W, innerH = cm.H;
@@ -8282,7 +8357,7 @@ function renderCut() {
     const sz2 = sashOf(design), div = document.createElement("div");
     div.className = "cgblock cg-sash";
     const rows = sashCuts.map(
-      (x) => `<tr data-k="${x.what === "Cornerstones" ? "corner" : "sash"}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`
+      (x) => `<tr data-k="${Object.keys(SASH_WHAT).find((k) => SASH_WHAT[k] === x.what)}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`
     ).join("");
     div.innerHTML = `<h3>Sashing</h3><p class="meta">${sz2.mm} mm wide${sz2.border ? ", also around the outside" : ""}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` + listOf("<th>ID</th><th>Cut</th><th>Total</th>", rows);
     box2.appendChild(div);
@@ -8411,6 +8486,8 @@ function renderSashUI() {
   const s = sashOf(design), raw = design.sashing || {};
   if (document.activeElement !== $("sash-mm")) $("sash-mm").value = s.mm;
   $("sash-border").checked = !!raw.border;
+  $("sash-cs").checked = s.cornerstones;
+  $("sash-cs-box").hidden = !s.cornerstones;
   const box2 = $("sash-presets");
   box2.innerHTML = "";
   for (const v of [0, 25, 38, 50, 64, 76]) {
@@ -8443,6 +8520,7 @@ function initSashUI() {
     if (b) setSash({ mm: +b.dataset.v });
   });
   $("sash-border").addEventListener("change", (e) => setSash({ border: e.target.checked }));
+  $("sash-cs").addEventListener("change", (e) => setSash({ cornerstones: e.target.checked }));
   $("sash-fabs").addEventListener("click", (e) => {
     const b = e.target.closest("button.fab");
     if (b) setSash({ fabric: b.dataset.f, ...design.sashing && design.sashing.mm ? {} : { mm: 50 } });

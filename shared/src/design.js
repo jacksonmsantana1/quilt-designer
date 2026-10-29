@@ -4,7 +4,7 @@ import { partsOf } from './patterns.js';
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Block} Block */
 
 /** Version of the saved design format (see core/format.js). */
-const FORMAT_VERSION = 1;
+const FORMAT_VERSION = 2;
 
 /** Default fabric for each colour role: cream, indigo, mustard. */
 const ROLE_DEFAULT = ['b0', 'b1', 'b3'];

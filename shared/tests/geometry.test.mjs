@@ -44,6 +44,48 @@ test('quilt size: borders add twice their width', () => {
   assert.deepEqual(quiltMm(d), { W: 360, H: 360 });
 });
 
+// sashing pieces by kind and size (w × h, rounded to whole mm on a 1 px per mm drawing)
+const sashKinds = d => {
+  const q = quiltMm(d),
+    out = {};
+  for (const r of sashRects(d, q.W, q.H)) {
+    const k = `${r.kind} ${Math.round(r.w)}x${Math.round(r.h)}`;
+    out[k] = (out[k] || 0) + 1;
+  }
+  return out;
+};
+const sashArea = d => {
+  const q = quiltMm(d);
+  return sashRects(d, q.W, q.H).reduce((a, r) => a + r.w * r.h, 0);
+};
+
+test('without cornerstones, the strips between the rows run the full width', () => {
+  const s = { mm: 10, fabric: 'b0', corner: 'b1' };
+  const on = grid(3, 3, { blockMm: 100, sashing: s }),
+    off = grid(3, 3, { blockMm: 100, sashing: { ...s, cornerstones: false } });
+  assert.equal(sashOf(on).cornerstones, true); // a missing value means cornerstones
+  assert.equal(sashOf(off).cornerstones, false);
+  assert.deepEqual(sashKinds(on), { 'sash 10x100': 6, 'sash 100x10': 6, 'corner 10x10': 4 });
+  assert.deepEqual(sashKinds(off), { 'long 320x10': 2, 'sash 10x100': 6 });
+  assert.ok(close(sashArea(off), sashArea(on)), 'the same area of sashing, just cut differently');
+  // around the outside too: the top and bottom strips also run the full width, the sides fit between them
+  assert.deepEqual(sashKinds({ ...off, sashing: { ...off.sashing, border: true } }), {
+    'long 340x10': 4,
+    'sash 10x100': 12,
+  });
+});
+
+test('without cornerstones, a large block breaks the long strips', () => {
+  const s = { mm: 10, fabric: 'b0', corner: 'b1', cornerstones: false };
+  // cell (1, 1) of a 4 × 4 quilt spans 2 × 2: the lines above and below it are whole; the line through it is
+  // cut in two, each piece a strip and the crossing beside the block (100 + 10 mm)
+  const d = setSpan(grid(4, 4, { blockMm: 100, sashing: s }), 5, 2);
+  assert.deepEqual(sashKinds(d), { 'long 430x10': 2, 'long 110x10': 2, 'sash 10x100': 10 });
+  // two large blocks side by side: the crossing between them joins the strips above and below it
+  const two = setSpan(setSpan(grid(4, 2, { blockMm: 100, sashing: s }), 0, 2), 2, 2);
+  assert.deepEqual(sashKinds(two), { 'long 10x210': 1 });
+});
+
 test('sashing with no width counts as none', () => {
   assert.equal(sashOf(grid(2, 2, { sashing: { mm: 0 } })).mm, 0);
   assert.equal(sashRects(grid(2, 2, { sashing: { mm: 0 } }), 100, 100).length, 0);

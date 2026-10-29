@@ -59,6 +59,16 @@ w('broken.json', {
     { ...blk('nine'), span: 9, under: 0, fussy: { 99: [0, 0] } },
   ],
 });
+// version 2: sashing without cornerstones (the strips between rows run the full width)
+w('v2-sashing-without-cornerstones.json', {
+  v: 2,
+  cols: 3,
+  rows: 2,
+  blockMm: 250,
+  backFabric: 'b0',
+  sashing: { mm: 50, fabric: 'b2', corner: 'b3', border: true, cornerstones: false },
+  blocks: [blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4')],
+});
 // saved by a later version of the app
 w('newer.json', {
   ...JSON.parse(fs.readFileSync(new URL('v0-before-block-sizes.json', D))),

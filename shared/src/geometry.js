@@ -22,13 +22,19 @@ function pathPoly(g, poly) {
   g.closePath();
 }
 // ---- sashing: strips of fabric between the blocks (optionally all round the outside too), with
-// cornerstones where strips cross. design.sashing = { mm, fabric, corner, border }; mm 0 = none.
+// cornerstones where strips cross. design.sashing = { mm, fabric, corner, border, cornerstones }; mm 0 = none.
 /** Sashing with defaults filled in (mm 0 = none). @param {Design} d @returns {Required<import('./types.js').Sashing>} */
 const sashOf = d => {
   const s = d && d.sashing;
   return s && s.mm > 0
-    ? { mm: s.mm, fabric: s.fabric || 'b0', corner: s.corner || s.fabric || 'b0', border: !!s.border }
-    : { mm: 0, fabric: 'b0', corner: 'b0', border: false };
+    ? {
+        mm: s.mm,
+        fabric: s.fabric || 'b0',
+        corner: s.corner || s.fabric || 'b0',
+        border: !!s.border,
+        cornerstones: s.cornerstones !== false,
+      }
+    : { mm: 0, fabric: 'b0', corner: 'b0', border: false, cornerstones: true };
 };
 // finished size of the quilt top in mm
 // the centre (blocks + sashing), before any borders
@@ -184,8 +190,71 @@ function blockAt(d, x, y, W, H) {
   return x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h ? a : -1;
 }
 // the sashing strips and cornerstones on a W × H drawing
-/** Sashing strips and cornerstones on a W × H drawing. @param {Design} d @param {number} W @param {number} H @returns {(Rect & { kind: string })[]} kind: 'sash' or 'corner' */
+/**
+ * Sashing strips and cornerstones on a W × H drawing. Without cornerstones, the strips and crossings along each
+ * line between rows join into one long strip (kind 'long'), broken only where a large block covers the line; a
+ * crossing left on its own there (large blocks on both sides) joins the strips above and below it instead.
+ * @param {Design} d @param {number} W @param {number} H @returns {(Rect & { kind: string })[]} kind: 'sash', 'corner' or 'long'
+ */
 function sashRects(d, W, H) {
+  /** @type {Set<object>} */
+  const across = new Set(); // the pieces on the lines between rows: horizontal strips and crossings
+  const all = sashPieces(d, W, H, across);
+  if (sashOf(d).cornerstones) return all;
+  const rows = joinRuns(
+      all.filter(rc => across.has(rc)),
+      'x',
+    ),
+    lone = rows.filter(rc => rc.kind === 'corner'),
+    cols = joinRuns([...all.filter(rc => !across.has(rc)), ...lone], 'y');
+  // (a crossing still on its own is cut like a strip, in the sashing fabric)
+  return [...rows.filter(rc => rc.kind !== 'corner'), ...cols].map(rc =>
+    rc.kind === 'corner' ? { ...rc, kind: 'sash' } : rc,
+  );
+}
+/**
+ * Pieces on the same line that touch end to end along x (or y) joined: a run of several becomes one 'long' strip.
+ * @param {(Rect & { kind: string })[]} pieces @param {'x' | 'y'} ax @returns {(Rect & { kind: string })[]}
+ */
+function joinRuns(pieces, ax) {
+  const len = ax === 'x' ? 'w' : 'h',
+    lines = new Map();
+  for (const rc of pieces) {
+    const at = ax === 'x' ? rc.y : rc.x;
+    lines.set(at, [...(lines.get(at) || []), rc]);
+  }
+  const out = [];
+  for (const line of lines.values()) {
+    line.sort((a, b) => a[ax] - b[ax]);
+    let run = [line[0]];
+    const flush = () => {
+      const first = run[0],
+        last = run[run.length - 1],
+        ext = last[ax] + last[len] - first[ax];
+      if (run.length === 1) out.push(first);
+      else
+        out.push({
+          kind: 'long',
+          x: first.x,
+          y: first.y,
+          w: ax === 'x' ? ext : first.w,
+          h: ax === 'y' ? ext : first.h,
+        });
+    };
+    for (const rc of line.slice(1)) {
+      const last = run[run.length - 1];
+      if (rc[ax] <= last[ax] + last[len] + 1e-6 * (last[len] || 1)) run.push(rc);
+      else (flush(), (run = [rc]));
+    }
+    flush();
+  }
+  return out;
+}
+/**
+ * sashRects with cornerstones; the pieces on the lines between rows are also added to `across`.
+ * @param {Design} d @param {number} W @param {number} H @param {Set<object>} across @returns {(Rect & { kind: string })[]}
+ */
+function sashPieces(d, W, H, across) {
   const s = sashOf(d);
   if (!s.mm) return [];
   const q = quiltMm(d),
@@ -210,11 +279,11 @@ function sashRects(d, W, H) {
   for (const x of xs)
     for (let r = 0; r < d.rows; r++)
       out.push({ kind: 'sash', x: x * kx, y: (off + r * p) * ky, w: s.mm * kx, h: d.blockMm * ky });
+  const add = rc => (across.add(rc), out.push(rc));
   for (const y of ys)
     for (let c = 0; c < d.cols; c++)
-      out.push({ kind: 'sash', x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
-  for (const x of xs)
-    for (const y of ys) out.push({ kind: 'corner', x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
+      add({ kind: 'sash', x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
+  for (const x of xs) for (const y of ys) add({ kind: 'corner', x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
   // strips and cornerstones inside a large block are not there: the block covers them
   const big = (d.blocks || [])
     .map((b, i) => (b.span > 1 && b.under == null ? blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H) : null))

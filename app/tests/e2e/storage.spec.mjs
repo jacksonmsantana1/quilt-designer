@@ -2,6 +2,7 @@
 // record fields a future server needs, and fabric photos.
 import { test, expect } from './fixtures.mjs';
 import fs from 'fs';
+import { FORMAT_VERSION } from '@quilt/shared/design.js';
 
 const fixture = f => fs.readFileSync(new URL(`../../../shared/tests/fixtures/designs/${f}`, import.meta.url), 'utf8');
 /** reads a store straight from IndexedDB (not the app's memory) */
@@ -51,7 +52,7 @@ test('the data kept in localStorage before is moved over once', async ({ app, pa
   const designs = await app.storage(s => s.designs.list());
   const byId = Object.fromEntries(designs.map(d => [d.id, d]));
   expect(byId.qold1.name).toBe('Grandma’s star');
-  expect(byId.qold1.design.v).toBe(1); // upgraded on the way in
+  expect(byId.qold1.design.v).toBe(FORMAT_VERSION); // upgraded on the way in
   expect(byId.qold1.createdAt).toBe(1000);
   expect(byId.qold2.design.blocks[0].pattern).toBe('no-such-pattern'); // kept as it was: repaired when opened
   expect(byId.qmedallion).toBeUndefined(); // it had been seeded (and deleted) before: not brought back

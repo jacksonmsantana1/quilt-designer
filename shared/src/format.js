@@ -22,6 +22,10 @@ const MIGRATIONS = [
     backFabric: d.backFabric || 'b0',
     v: 1,
   }),
+  // 1 → 2: sashing can leave out its cornerstones (sashing.cornerstones false); older saves all have them,
+  // which is what a missing value means, so nothing changes. (Older apps open version 2 read-only, so they
+  // can't save over the setting.)
+  d => ({ ...d, v: 2 }),
 ];
 
 /** @type {Record<string, [number, number]>} */
@@ -96,6 +100,7 @@ function check(d) {
         fabric: isFabric(s.fabric) ? s.fabric : 'b0',
         corner: isFabric(s.corner) ? s.corner : 'b3',
         border: s.border === true,
+        ...(s.cornerstones === false ? { cornerstones: false } : {}), // kept only when off (the default is on)
       };
     } else {
       delete out.sashing;

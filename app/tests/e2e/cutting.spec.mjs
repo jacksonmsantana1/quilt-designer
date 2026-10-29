@@ -26,6 +26,34 @@ test('piece IDs: blocks, sashing (S) and borders (B + number)', async ({ page })
   await expect(page.locator('#cg-blocks .cgblock').nth(3).locator('td.l')).toHaveText([/^[A-Z]B1\.1$/]);
 });
 
+test('without cornerstones: long strips between the rows, and no cornerstones to cut', async ({ app, page }) => {
+  const sashPanel = async () => {
+    await page.locator('#tabs [data-page="design"]').click();
+    if (!(await page.locator('#sash-card').isVisible())) await page.locator('#rail-sash').click();
+  };
+  await sashPanel();
+  await expect(page.locator('#sash-cs')).toBeChecked();
+  await expect(page.locator('#sash-cs-box')).toBeVisible();
+  await page.locator('#sash-cs').uncheck();
+  await expect(page.locator('#sash-cs-box')).toBeHidden(); // no cornerstone fabric to choose
+  expect((await app.current()).sashing.cornerstones).toBe(false);
+
+  await page.locator('#tabs [data-page="cut"]').click();
+  const sash = page.locator('#cg-blocks .cgblock', { has: page.locator('h3', { hasText: 'Sashing' }) });
+  // 5 × 5 blocks of 458 mm: short strips between the blocks; the 4 rows of sashing between them are 2490 mm
+  // long (2505 cut), wider than the fabric, so they are cut across its width (65 mm cut) and joined
+  await expect(sash.locator('td:nth-child(2)')).toHaveText([
+    /^Sashing strips: /,
+    'Long sashing strips: 7 strips 65 mm × WOF, joined and cut to 2505 + 2505 + 2505 + 2505 mm',
+  ]);
+  await expect(sash).not.toContainText('Cornerstones');
+
+  await sashPanel();
+  await page.locator('#sash-cs').check();
+  await expect(page.locator('#sash-cs-box')).toBeVisible();
+  expect((await app.current()).sashing.cornerstones).toBe(true);
+});
+
 test('a click opens and closes a cutting list', async ({ page }) => {
   const card = page.locator('#cg-blocks .cgblock').first();
   await card.locator('canvas').click();

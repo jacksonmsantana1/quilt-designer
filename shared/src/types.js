@@ -31,6 +31,7 @@
  * @property {string} [fabric]
  * @property {string} [corner]    fabric of the cornerstones
  * @property {boolean} [border]   also all round the outside
+ * @property {boolean} [cornerstones]  false: no cornerstones, the strips between rows run the full width
  */
 
 /**

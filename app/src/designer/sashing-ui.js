@@ -15,6 +15,8 @@ function renderSashUI() {
     raw = design.sashing || {};
   if (document.activeElement !== $('sash-mm')) $('sash-mm').value = s.mm;
   $('sash-border').checked = !!raw.border;
+  $('sash-cs').checked = s.cornerstones;
+  $('sash-cs-box').hidden = !s.cornerstones; // no cornerstones: no fabric to choose for them
   const box = $('sash-presets');
   box.innerHTML = '';
   for (const v of [0, 25, 38, 50, 64, 76]) {
@@ -49,6 +51,7 @@ function initSashUI() {
     if (b) setSash({ mm: +b.dataset.v });
   });
   $('sash-border').addEventListener('change', e => setSash({ border: e.target.checked }));
+  $('sash-cs').addEventListener('change', e => setSash({ cornerstones: e.target.checked }));
   $('sash-fabs').addEventListener('click', e => {
     const b = e.target.closest('button.fab');
     if (b) setSash({ fabric: b.dataset.f, ...(design.sashing && design.sashing.mm ? {} : { mm: 50 }) });

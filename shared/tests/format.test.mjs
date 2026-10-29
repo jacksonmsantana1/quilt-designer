@@ -49,6 +49,15 @@ test('good saves from before versions open unchanged, with no problems', () => {
   }
 });
 
+test('sashing without cornerstones is kept; with them, nothing extra is stored', () => {
+  const raw = JSON.parse(text('v2-sashing-without-cornerstones.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, raw);
+  const on = readDesign({ ...raw, sashing: { ...raw.sashing, cornerstones: true } });
+  assert.equal('cornerstones' in on.design.sashing, false); // on is the default
+});
+
 test('the oldest saves get a block size and a backing fabric', () => {
   const r = readDesign(text('v0-before-block-sizes.json'));
   assert.equal(r.design.blockMm, Math.round(2290 / 3));

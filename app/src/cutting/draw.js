@@ -123,6 +123,8 @@ function swatchCanvas(fab, w = 72, h = 48) {
   return c;
 }
 const cgRedraws = []; // redraw functions for the Cutting guide pictures (used when a fabric row is hovered)
+// the cutting list's name for each kind of sashing piece (geometry sashRects)
+const SASH_WHAT = { sash: 'Sashing strips', long: 'Long sashing strips', corner: 'Cornerstones' };
 // the sashing picture: a 2 × 2 corner of the quilt with every strip and cornerstone labelled with its ID.
 // S is the width in px; u scales the labels (1 on screen, more for the PDF at print resolution)
 function sashMini() {
@@ -156,7 +158,7 @@ function drawSashPic(g, S, sashCuts, u) {
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   for (const rc of sashRects(mini, S, H)) {
-    const x = sashCuts.find(t => t.what === (rc.kind === 'corner' ? 'Cornerstones' : 'Sashing strips'));
+    const x = sashCuts.find(t => t.what === SASH_WHAT[rc.kind]);
     if (!x) continue;
     const t = x.id,
       tw = g.measureText(t).width + 8 * u,
@@ -387,9 +389,7 @@ function drawCutQuilt(P, into) {
       g.restore();
     };
   if (sr.length) {
-    const idOf = kind =>
-      (extra.find(x => x.group === 'sash' && x.what === (kind === 'corner' ? 'Cornerstones' : 'Sashing strips')) || {})
-        .id;
+    const idOf = kind => (extra.find(x => x.group === 'sash' && x.what === SASH_WHAT[kind]) || {}).id;
     for (const rc of sr) {
       const t = idOf(rc.kind),
         thin = Math.min(rc.w, rc.h);
@@ -489,6 +489,7 @@ function drawCutQuilt(P, into) {
 }
 
 export {
+  SASH_WHAT,
   cgRedraws,
   cutOpts,
   drawBlockArt,

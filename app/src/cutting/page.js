@@ -23,6 +23,7 @@ import { drawBordersExploded, explodedH } from '../render/quilt-draw.js';
 import { showPage } from '../app/pages.js';
 import { CG } from './plan.js';
 import {
+  SASH_WHAT,
   cgRedraws,
   cutOpts,
   drawCutBlock,
@@ -148,20 +149,39 @@ function renderCut() {
     qm = quiltMm(design),
     extra = [];
   if (sz.mm) {
-    // counted from the drawn sashing, so strips hidden under large blocks are left out
-    const sr = sashRects(design, 1000, 1000),
+    // counted from the drawn sashing (in mm), so strips hidden under large blocks are left out
+    const sr = sashRects(design, qm.W, qm.H),
       strips = sr.filter(x => x.kind === 'sash').length,
-      corners = sr.filter(x => x.kind === 'corner').length;
+      corners = sr.filter(x => x.kind === 'corner').length,
+      lens = sr.filter(x => x.kind === 'long').map(x => Math.round(Math.max(x.w, x.h)));
     if (strips)
       extra.push({
         group: 'sash',
-        what: 'Sashing strips',
+        what: SASH_WHAT.sash,
         fabric: sz.fabric,
         w: design.blockMm,
         h: sz.mm,
         n: strips,
       });
-    if (corners) extra.push({ group: 'sash', what: 'Cornerstones', fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
+    // without cornerstones: the strips between rows run the full width, longer than the fabric is wide
+    // (cut across the width and joined, like long border strips) unless they all fit across it
+    if (lens.length) {
+      const usable = cutOpts.fabricWidth - cutOpts.selvage;
+      if (Math.max(...lens) + 2 * cutOpts.seam > usable)
+        extra.push({ group: 'sash', what: SASH_WHAT.long, fabric: sz.fabric, wof: true, w: sz.mm, lens });
+      else
+        for (const L of new Set(lens))
+          extra.push({
+            group: 'sash',
+            what: SASH_WHAT.long,
+            fabric: sz.fabric,
+            w: L,
+            h: sz.mm,
+            n: lens.filter(l => l === L).length,
+          });
+    }
+    if (corners)
+      extra.push({ group: 'sash', what: SASH_WHAT.corner, fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
   }
   // borders: every piece of every side, classified into standard cuts (or long strips cut across the width)
   const bs = bordersOf(design),
@@ -307,7 +327,7 @@ function renderCut() {
     const rows = sashCuts
       .map(
         x =>
-          `<tr data-k="${x.what === 'Cornerstones' ? 'corner' : 'sash'}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`,
+          `<tr data-k="${Object.keys(SASH_WHAT).find(k => SASH_WHAT[k] === x.what)}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`,
       )
       .join('');
     div.innerHTML =
