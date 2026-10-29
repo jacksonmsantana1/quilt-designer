@@ -14,11 +14,14 @@ test('the simulation opens over the designer and closes again', async ({ app, pa
 
 test('My designs has the sample quilts, and opening one loads it', async ({ app, page }) => {
   await app.open('mine');
-  const card = page.locator('#page-mine').getByText('Medallion from the photo', { exact: true });
-  await expect(card).toBeVisible();
-  await card.click();
-  const open = page.locator('#page-mine button', { hasText: /^Open$/ });
-  if (await open.count()) await open.first().click();
+  const name = page.locator('#page-mine').getByText('Medallion from the photo', { exact: true });
+  await expect(name).toBeVisible();
+  // that sample's own Open button: the two samples are saved together, so their order on the page can vary
+  const card = page.locator('#page-mine article.pin', {
+    has: page.getByText('Medallion from the photo', { exact: true }),
+  });
+  await card.hover();
+  await card.locator('button.open').click();
   await expect.poll(async () => (await app.current()).cols).toBe(15);
 });
 
