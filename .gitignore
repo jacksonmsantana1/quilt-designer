@@ -7,3 +7,4 @@ blender/
 quilt_render_pkg/
 blocks12/
 node_modules/
+dist/
