@@ -1,7 +1,8 @@
 // Symmetry, block size and quilting settings; cancel and double-click to close.
 import './borders-ui.js'; // load order: runs after designer/borders-ui
-import { design, focusBlock, setSelBlocks, setToolsSnap, toolsSnap } from '../core/store.js';
-import { hideTools } from './ui-state.js';
+import { design, focusBlock, selBlocks, selParts, setSelBlocks, setToolsSnap, toolsSnap } from '../core/store.js';
+import { hideTools, toolsPanel } from './ui-state.js';
+import { drawDesignerCanvas, flipped } from './canvas.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { blockSizeMm, spanOf } from '@quilt/shared/geometry.js';
@@ -62,15 +63,28 @@ for (const b of document.querySelectorAll('.dz-cancel'))
     e.stopPropagation();
     cancelTools();
   });
-// a double-click on empty page space (not on a control, the quilt, the panel or the timeline) closes the side panel
+// empty page space: not a control, the quilt, the panel or the timeline (and not during the tour)
+const onEmptySpace = e =>
+  state.page === 'design' &&
+  !document.body.classList.contains('tour-active') &&
+  !e.target.closest(
+    'button, input, select, textarea, label, a, canvas, .card, #dz-side, .rail, #tl-panel, .tour, dialog',
+  );
+// a click on empty page space ends a block selection: back to the block in focus (no dotted frames round the
+// others) and the Block parts card closes. Its changes stay (✕ is the button that undoes them).
+document.addEventListener('click', e => {
+  if (!onEmptySpace(e) || flipped || !design) return;
+  const partsOpen = !$('dz-side').hidden && toolsPanel === 'parts';
+  if (selBlocks.size <= 1 && !partsOpen) return;
+  setSelBlocks(new Set([focusBlock]));
+  selParts.clear();
+  // closing the panel redraws the quilt
+  if (partsOpen) hideTools();
+  else drawDesignerCanvas();
+});
+// a double-click on empty page space closes the side panel
 document.addEventListener('dblclick', e => {
-  if (state.page !== 'design' || document.body.classList.contains('tour-active')) return;
-  if (
-    e.target.closest(
-      'button, input, select, textarea, label, a, canvas, .card, #dz-side, .rail, #tl-panel, .tour, dialog',
-    )
-  )
-    return;
+  if (!onEmptySpace(e)) return;
   hideTools();
   if (!$('tl-panel').hidden && tl.showBar) tl.showBar(false); // and the timeline closes too
   if (tl.hideRow) tl.hideRow();

@@ -73,6 +73,48 @@ test('a double-click on empty space closes the side panel', async ({ page }) => 
   await expect(page.locator('#dz-side')).toBeHidden();
 });
 
+// drags a selection rectangle from the centre of block a to the centre of block b
+async function dragSelect(app, page, a, b) {
+  const d = await app.current();
+  const p = await app.blockCentre(d, a),
+    q = await app.blockCentre(d, b);
+  await page.mouse.move(p.x, p.y);
+  await page.mouse.down();
+  await page.mouse.move(q.x, q.y, { steps: 8 });
+  await page.mouse.up();
+}
+
+test('after an area selection, a click on empty space ends it and closes Block parts', async ({ app, page }) => {
+  const quilt = () => page.locator('#dz-quilt').evaluate(cv => cv.toDataURL());
+  const before = await quilt();
+  await dragSelect(app, page, 0, 6); // blocks 0, 1, 5 and 6
+  await expect(page.locator('#dz-side')).toBeVisible();
+  await expect(page.locator('#dz-blockname')).toContainText('editing 4 blocks');
+  expect(await quilt(), 'the selected blocks have dotted frames').not.toBe(before);
+
+  await page.mouse.click(20, 700); // empty page space
+  await expect(page.locator('#dz-side')).toBeHidden();
+  await expect(page.locator('#rail-parts')).toHaveAttribute('aria-pressed', 'false');
+  expect(await quilt(), 'no frames left: the quilt looks as it did before the selection').toBe(before);
+
+  // the selection really ended: the next block clicked is edited on its own
+  const c = await app.blockCentre(await app.current(), 12);
+  await page.mouse.click(c.x, c.y);
+  await expect(page.locator('#dz-blockname')).not.toContainText('editing');
+  await page.locator('#dz-patterns [data-p="twisted"]').click();
+  const d = await app.current();
+  expect(d.blocks.map((b, i) => (b.pattern === 'twisted' ? i : -1)).filter(i => i >= 0)).toEqual([12]);
+});
+
+test('a click on a control keeps the area selection and Block parts open', async ({ app, page }) => {
+  await dragSelect(app, page, 0, 6);
+  await expect(page.locator('#dz-blockname')).toContainText('editing 4 blocks');
+  await page.locator('#dz-allparts').click(); // a button in the panel
+  await page.locator('#dz-cols').click({ position: { x: 4, y: 12 } }); // a field beside the quilt (not its arrows)
+  await expect(page.locator('#dz-side')).toBeVisible();
+  await expect(page.locator('#dz-blockname')).toContainText('editing 4 blocks');
+});
+
 test('the arrow keys step through the timeline', async ({ app, page }) => {
   await page.locator('[data-step="c:-1"]').click();
   await page.waitForTimeout(1500); // the timeline makes a step after a short pause

@@ -8740,12 +8740,20 @@ for (const b of document.querySelectorAll(".dz-cancel"))
     e.stopPropagation();
     cancelTools();
   });
+var onEmptySpace = (e) => state.page === "design" && !document.body.classList.contains("tour-active") && !e.target.closest(
+  "button, input, select, textarea, label, a, canvas, .card, #dz-side, .rail, #tl-panel, .tour, dialog"
+);
+document.addEventListener("click", (e) => {
+  if (!onEmptySpace(e) || flipped || !design) return;
+  const partsOpen = !$("dz-side").hidden && toolsPanel === "parts";
+  if (selBlocks.size <= 1 && !partsOpen) return;
+  setSelBlocks(/* @__PURE__ */ new Set([focusBlock]));
+  selParts.clear();
+  if (partsOpen) hideTools();
+  else drawDesignerCanvas();
+});
 document.addEventListener("dblclick", (e) => {
-  if (state.page !== "design" || document.body.classList.contains("tour-active")) return;
-  if (e.target.closest(
-    "button, input, select, textarea, label, a, canvas, .card, #dz-side, .rail, #tl-panel, .tour, dialog"
-  ))
-    return;
+  if (!onEmptySpace(e)) return;
   hideTools();
   if (!$("tl-panel").hidden && tl.showBar) tl.showBar(false);
   if (tl.hideRow) tl.hideRow();
