@@ -10,7 +10,6 @@ const saved = (page, text) =>
       sessionStorage.setItem('seeded', '1');
     }
   }, text);
-const stored = page => page.evaluate(() => localStorage.getItem('quilt-designer.v1'));
 
 test('a save from before versions opens and is saved back as the current version', async ({ app, page }) => {
   await saved(page, fixture('v0-before-block-sizes.json'));
@@ -36,7 +35,9 @@ test('a design from a newer version is shown but never saved over', async ({ app
   await app.open();
   await expect(page.locator('#notice')).toContainText('newer version');
   await page.locator('[data-step="c:1"]').click();
-  expect(await stored(page)).toBe(text);
+  const kept = await app.current();
+  expect(kept.v).toBe(99);
+  expect(kept.cols).toBe(JSON.parse(text).cols);
   // starting a new design ends it: that one is saved as usual
   await page.locator('#dz-new').click();
   expect((await app.current()).v).toBe(1);

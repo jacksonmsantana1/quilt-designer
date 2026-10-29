@@ -4,7 +4,7 @@ import { camTarget, setCamTarget } from '../designer/ui-state.js';
 import { selParts, setActiveFabric } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { loadImage } from '../sim/textures.js';
-import { fabricLib } from '../designer/fabric-library.js';
+import { addFabric, fabricLib } from '../designer/fabric-library.js';
 import { drawFabricPalette } from '../designer/parts-editor.js';
 import { applyFabric } from '../designer/edits.js';
 
@@ -215,7 +215,7 @@ function camReview(c) {
   $('cam-live-row').hidden = true;
   $('cam-review').hidden = false;
   if (!$('cam-name').value)
-    $('cam-name').value = `Photo fabric ${fabricLib.filter(f => f.id.startsWith('u')).length + 1}`;
+    $('cam-name').value = `Photo fabric ${fabricLib.filter(f => !/^b\d+$/.test(f.id)).length + 1}`;
   camMsg('Check the picture. Set how wide the square is on the real fabric, so the print shows at its true size.');
 }
 function openCamera() {
@@ -266,16 +266,15 @@ function initCamera() {
     $('cam-viewbox').hidden = false;
     camReview(camCrop(im, im.naturalWidth, im.naturalHeight));
   });
-  $('cam-use').addEventListener('click', () => {
+  $('cam-use').addEventListener('click', async () => {
     if (!cam.shot) return;
     const c = document.createElement('canvas');
     c.width = c.height = cam.shot.width;
     c.getContext('2d').drawImage(cam.shot, 0, 0);
     if ($('cam-fix').checked) makeSeamless(evenLighting(c));
     const cm = Math.max(3, Math.min(100, +$('cam-cm').value || 15));
-    const id = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    fabricLib.push({ id, name: ($('cam-name').value || 'Photo fabric').slice(0, 40), canvas: c, cm });
     $('cam-dialog').close();
+    const id = await addFabric(c, { name: ($('cam-name').value || 'Photo fabric').slice(0, 40), cm });
     // pick it straight away: applies to the selected parts, or waits for a selection
     if (camTarget) {
       const f = camTarget;
@@ -286,7 +285,7 @@ function initCamera() {
       setActiveFabric(id);
       drawFabricPalette();
     }
-    $('dz-fabnote').textContent = 'Fabric added from the camera. Photos are kept only until you reload the page.';
+    $('dz-fabnote').textContent = 'Fabric added from the camera. It is kept in this browser with your designs.';
   });
 }
 initCamera();

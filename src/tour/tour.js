@@ -11,6 +11,7 @@ import { blockKey } from '../designer/block-library.js';
 import { showPage } from '../app/pages.js';
 import { mineSave } from '../mine/my-designs.js';
 import { tl, tlCopy, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
+import { timelines } from '../storage/repo.js';
 import { defaultDesign } from '../core/design.js';
 import { ensureDesign, openDesign, replaceDesign } from '../designer/dispatch.js';
 
@@ -340,9 +341,7 @@ function tourBegin() {
   // the tour always starts from the same default quilt (5 × 5, 458 mm, Ohio star and nine patch), with its
   // own timeline; the user's own quilt is put aside and comes back if they skip or ask for it at the end
   const fresh = () => {
-    try {
-      localStorage.removeItem(tlKeyFor('tour'));
-    } catch (e) {}
+    timelines.remove(tlKeyFor('tour'));
     replaceDesign(defaultDesign(), { timeline: 'tour' });
   };
   if (design) fresh();
@@ -392,9 +391,7 @@ function tourEnd(how) {
     mineSave();
     openDesign(tour.saved, { timeline: mineCur, quiet: true });
   }
-  try {
-    localStorage.removeItem(tlKeyFor('tour'));
-  } catch (e) {}
+  timelines.remove(tlKeyFor('tour'));
   showPage('design');
 }
 $('tour-start').addEventListener('click', tourBegin);

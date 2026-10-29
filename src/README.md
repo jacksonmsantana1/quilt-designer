@@ -15,6 +15,7 @@ mine/       My designs and the sample designs
 timeline/   undo / redo and the film strip
 tour/       guided tour
 camera/     new fabric from the webcam
+storage/    IndexedDB: saved designs, fabric photos, undo timelines, the session (boot.js opens it first)
 platform/   saving files
 ui/         foldable cards
 app/        pages, layout, animation loop, start-up
@@ -47,6 +48,14 @@ main.js     entry point
   and repairs the design, and reports each repair to the user. A design from a newer version is shown but never
   saved over. To change the format: bump the version, add one migration, add a saved example to
   `tests/fixtures/designs/` (the unit tests open every file there).
+- **Storage.** Everything kept between visits goes through `storage/repo.js`: `designs` (My designs),
+  `fabrics` (the user's photos, named by the image's hash), `timelines` (undo, this device only) and the session
+  (the quilt being edited, `mineCur`, flags). `storage/boot.js` is first in the load order: its top-level `await`
+  reads the database into memory before any other module runs, so reads are synchronous and every change is
+  written right after, batched per moment. Design and fabric records are shaped for a server: client-made ids,
+  `rev` (save counter), `deleted` markers instead of erasing, `dirty` until uploaded. The first start moves the
+  old localStorage data over (`storage/migrate.js`) and leaves the old keys alone. Small per-device preferences
+  (panels open, bed, tour seen) stay in localStorage.
 - **Tools.** `node tools/move.mjs from to name…` moves declarations between modules and fixes every import;
   `node tools/chain.mjs list | unchain | insert` manages the load-order chain.
 

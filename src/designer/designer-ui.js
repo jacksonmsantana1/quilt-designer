@@ -24,7 +24,7 @@ import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
 import { partsOf } from '../core/patterns.js';
-import { fabricLib } from './fabric-library.js';
+import { addFabric } from './fabric-library.js';
 import {
   anchorOf,
   blockAt,
@@ -43,6 +43,7 @@ import { applyFabric, choosePattern } from './edits.js';
 import { openSashing } from './sashing-ui.js';
 import { openBorders } from './borders-ui.js';
 import { tl, tlCommit, tlEnsure, tlKeyFor } from '../timeline/timeline.js';
+import { setSession, timelines } from '../storage/repo.js';
 import { setFold } from '../ui/folds.js';
 import { dispatch, replaceDesign, resizeTo } from './dispatch.js';
 import { copyBlock, rotateBlocks, setBackFabric, setBlockMm } from '../core/edits.js';
@@ -361,10 +362,8 @@ function initDesignerUI() {
       return;
     }
     setMineCur(null);
-    try {
-      localStorage.removeItem('quilt-mydesigns-current.v1');
-      localStorage.removeItem(tlKeyFor(null));
-    } catch (e) {}
+    setSession('mineCur', undefined);
+    timelines.remove(tlKeyFor(null));
     replaceDesign(defaultDesign(), { timeline: null });
     $('dz-reset').dataset.armed = '';
     $('dz-reset').textContent = 'Start over';
@@ -377,17 +376,12 @@ function initDesignerUI() {
       c.width = im.naturalWidth;
       c.height = im.naturalHeight;
       c.getContext('2d').drawImage(im, 0, 0);
-      fabricLib.push({
-        id: 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        name: f.name.replace(/\.[^.]+$/, ''),
-        canvas: c,
-        cm: +$('dz-cm').value,
-      });
+      await addFabric(c, { name: f.name.replace(/\.[^.]+$/, '').slice(0, 40), cm: +$('dz-cm').value });
     }
     e.target.value = '';
     drawFabricPalette();
     $('dz-fabnote').textContent =
-      `${files.length} photo${files.length === 1 ? '' : 's'} added. Your photos are kept only until you reload the page.`;
+      `${files.length} photo${files.length === 1 ? '' : 's'} added. They are kept in this browser with your designs.`;
   });
   const cmOut2 = () => {
     $('dz-cm-o').textContent = $('dz-cm').value + ' cm';

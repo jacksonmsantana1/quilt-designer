@@ -84,8 +84,7 @@ test('new design and undo', async ({ app, page }) => {
 });
 
 test('one timeline step per edit; a held stepper is one step; undo puts it back', async ({ app, page }) => {
-  const steps = () =>
-    page.evaluate(() => JSON.parse(localStorage.getItem('quilt-timeline.v1:draft') || '{"steps":[]}').steps.length);
+  const steps = () => app.storage(s => (s.timelines.get('draft') || { steps: [] }).steps.length);
   const n0 = await steps();
   await page.locator('[data-step="c:-1"]').click();
   await page.locator('[data-step="c:-1"]').click(); // quick repeats merge

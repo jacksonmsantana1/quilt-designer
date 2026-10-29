@@ -11,30 +11,15 @@ import { defaultDesign } from '../core/design.js';
 import { openDesign, replaceDesign } from '../designer/dispatch.js';
 import { readDesign } from '../core/format.js';
 import { notify } from '../ui/notice.js';
+import { designs, getSession, setSession, timelines } from '../storage/repo.js';
 
 // ---- My designs: saved quilts, shown as a Pinterest-style masonry
-const MINE_KEY = 'quilt-mydesigns.v1',
-  MINE_CUR = 'quilt-mydesigns-current.v1';
-let mine = [];
-try {
-  mine = JSON.parse(localStorage.getItem(MINE_KEY) || '[]');
-} catch (e) {}
-try {
-  setMineCur(localStorage.getItem(MINE_CUR) || null);
-} catch (e) {}
+// The designs themselves are records in storage/repo.js (designs.list, save, remove); mineCur, the one being
+// edited, is kept in the session store.
+setMineCur(getSession('mineCur') || null);
+/** Keeps which saved design is being edited (after setMineCur). */
 function mineSave() {
-  try {
-    localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    if (mineCur) localStorage.setItem(MINE_CUR, mineCur);
-    else localStorage.removeItem(MINE_CUR);
-  } catch (e) {
-    alertMine('Your browser storage is full: delete a design to save new ones.');
-  }
-}
-function alertMine(t) {
-  const el = $('mine-empty');
-  el.textContent = t;
-  el.hidden = false;
+  setSession('mineCur', mineCur || undefined);
 }
 function quiltPicture(d, width) {
   const qq = quiltMm(d),
@@ -56,8 +41,8 @@ let saveForceNew = false;
 function openSaveDialog(forceNew) {
   if (!design) return;
   saveForceNew = !!forceNew;
-  const cur = !saveForceNew && mine.find(m => m.id === mineCur);
-  $('save-name').value = cur ? cur.name : `Quilt ${mine.length + 1}`;
+  const cur = !saveForceNew && mineCur && designs.get(mineCur);
+  $('save-name').value = cur ? cur.name : `Quilt ${designs.list().length + 1}`;
   $('save-title').textContent = cur ? 'Save changes' : 'Save design';
   $('save-asnew').hidden = !cur;
   const pic = quiltPicture(design, 300),
@@ -82,25 +67,14 @@ function doSave(asNew) {
     $('save-dlg').close();
     return;
   }
-  const name = ($('save-name').value || '').trim() || `Quilt ${mine.length + 1}`,
-    now = Date.now(),
-    d = JSON.stringify(design);
-  let cur = !asNew && !saveForceNew && mine.find(m => m.id === mineCur);
+  const name = ($('save-name').value || '').trim() || `Quilt ${designs.list().length + 1}`;
+  const old = !asNew && !saveForceNew && mineCur && designs.get(mineCur);
   const prev = mineCur;
-  if (cur) {
-    cur.name = name;
-    cur.d = d;
-    cur.updated = now;
-  } else {
-    cur = { id: 'q' + now.toString(36) + Math.random().toString(36).slice(2, 5), name, d, created: now, updated: now };
-    mine.push(cur);
+  const cur = designs.save({ id: old ? old.id : designs.newId(), name, design });
+  if (!old) {
     // the new design takes the timeline so far (an unsaved draft's moves over; a saved design keeps its own too)
     tlCopy(undefined, cur.id);
-    if (!prev) {
-      try {
-        localStorage.removeItem(tlKeyFor(null));
-      } catch (e) {}
-    }
+    if (!prev) timelines.remove(tlKeyFor(null));
     tl.key = tlKeyFor(cur.id);
   }
   saveForceNew = false;
@@ -116,31 +90,33 @@ function doSave(asNew) {
   }, 1600);
 }
 function openMine(id) {
-  const m = mine.find(x => x.id === id);
+  const m = designs.get(id);
   if (!m) return;
-  if (!readDesign(m.d)) {
+  if (!readDesign(m.design)) {
     notify(`“${m.name}” could not be read.`);
     return;
   }
   setMineCur(id);
   mineSave();
-  openDesign(m.d, { timeline: id, what: `“${m.name}”` });
+  openDesign(m.design, { timeline: id, what: `“${m.name}”` });
   showPage('design');
 }
 function renderMine() {
   const grid = $('mine-grid'),
     q = ($('mine-q').value || '').trim().toLowerCase(),
     sort = $('mine-sort').value;
-  let list = mine.filter(m => !q || m.name.toLowerCase().includes(q));
-  list.sort(sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[sort] - a[sort]);
+  const all = designs.list(),
+    key = sort === 'created' ? 'createdAt' : 'updatedAt';
+  const list = all.filter(m => !q || m.name.toLowerCase().includes(q));
+  list.sort(sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[key] - a[key]);
   grid.innerHTML = '';
-  $('mine-empty').hidden = mine.length > 0 && list.length > 0;
-  if (mine.length && !list.length) $('mine-empty').textContent = 'No designs match your search.';
+  $('mine-empty').hidden = all.length > 0 && list.length > 0;
+  if (all.length && !list.length) $('mine-empty').textContent = 'No designs match your search.';
   else
     $('mine-empty').innerHTML = 'No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.';
   const when = t => new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
   for (const m of list) {
-    const r = readDesign(m.d);
+    const r = readDesign(m.design);
     if (!r) continue;
     const d = r.design;
     const pin = document.createElement('article');
@@ -159,7 +135,7 @@ function renderMine() {
     const nm = document.createElement('b');
     nm.textContent = m.name;
     const sm = document.createElement('small');
-    sm.textContent = `${d.cols} × ${d.rows} blocks · ${quiltMm(d).W} × ${quiltMm(d).H} mm · ${when(m.updated)}`;
+    sm.textContent = `${d.cols} × ${d.rows} blocks · ${quiltMm(d).W} × ${quiltMm(d).H} mm · ${when(m.updatedAt)}`;
     meta.append(nm, sm);
     pin.append(img, meta);
     grid.appendChild(pin);
@@ -179,8 +155,8 @@ function renderMine() {
         inp.focus();
         inp.select();
         const done = () => {
-          m.name = inp.value.trim() || m.name;
-          mineSave();
+          const name = inp.value.trim();
+          if (name && name !== m.name) designs.save({ id: m.id, name });
           renderMine();
         };
         inp.addEventListener('keydown', ev => {
@@ -189,11 +165,8 @@ function renderMine() {
         });
         inp.addEventListener('blur', done);
       } else if (a === 'dup') {
-        const now = Date.now(),
-          nid = 'q' + now.toString(36) + Math.random().toString(36).slice(2, 5);
-        mine.push({ ...m, id: nid, name: m.name + ' (copy)', created: now, updated: now });
-        tlCopy(m.id, nid);
-        mineSave();
+        const copy = designs.save({ id: designs.newId(), name: m.name + ' (copy)', design: m.design });
+        tlCopy(m.id, copy.id);
         renderMine();
       } else if (a === 'del') {
         const btn = e.target.closest('[data-a]');
@@ -213,10 +186,8 @@ function renderMine() {
           }, 2500);
           return;
         }
-        mine = mine.filter(x => x.id !== m.id);
-        try {
-          localStorage.removeItem(tlKeyFor(m.id));
-        } catch (e) {}
+        designs.remove(m.id);
+        timelines.remove(tlKeyFor(m.id));
         if (mineCur === m.id) {
           setMineCur(null);
           tlCopy(undefined, null);
@@ -236,9 +207,7 @@ function initMine() {
     setMineCur(null);
     mineSave();
     if ($('dz-dialog').open) $('dz-dialog').close();
-    try {
-      localStorage.removeItem(tlKeyFor(null));
-    } catch (e) {} // a new design starts its own, empty timeline
+    timelines.remove(tlKeyFor(null)); // a new design starts its own, empty timeline
     replaceDesign(defaultDesign(), { timeline: null });
   });
   $('mine-new').addEventListener('click', () => openSaveDialog(true));
@@ -260,4 +229,4 @@ function initMine() {
 }
 initMine();
 
-export { MINE_KEY, mine, mineSave, renderMine };
+export { mineSave, renderMine };

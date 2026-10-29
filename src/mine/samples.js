@@ -1,7 +1,7 @@
 // Sample designs added to My designs.
 import './my-designs.js'; // load order: runs after mine/my-designs
 import { normalizeSpans } from '../core/geometry.js';
-import { MINE_KEY, mine } from './my-designs.js';
+import { designs, getSession, setSession } from '../storage/repo.js';
 import { newBlock } from '../core/design.js';
 import { withSymmetry } from '../core/symmetry.js';
 
@@ -147,29 +147,12 @@ function photoMedallion() {
   return laidOut;
 }
 // add it to My designs once
-try {
-  if (!localStorage.getItem('quilt-medallion-seeded.v1')) {
-    const now = Date.now();
-    mine.push({
-      id: 'qmedallion',
-      name: 'Medallion sampler',
-      d: JSON.stringify(medallionDesign()),
-      created: now,
-      updated: now,
-    });
-    localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    localStorage.setItem('quilt-medallion-seeded.v1', '1');
-  }
-  if (!localStorage.getItem('quilt-photo-seeded.v1')) {
-    const now = Date.now() + 1;
-    mine.push({
-      id: 'qphoto',
-      name: 'Medallion from the photo',
-      d: JSON.stringify(photoMedallion()),
-      created: now,
-      updated: now,
-    });
-    localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    localStorage.setItem('quilt-photo-seeded.v1', '1');
-  }
-} catch (e) {}
+// the sample designs are put in My designs once (deleting them is respected)
+if (!getSession('medallion-seeded')) {
+  designs.save({ id: 'qmedallion', name: 'Medallion sampler', design: medallionDesign() });
+  setSession('medallion-seeded', true);
+}
+if (!getSession('photo-seeded')) {
+  designs.save({ id: 'qphoto', name: 'Medallion from the photo', design: photoMedallion() });
+  setSession('photo-seeded', true);
+}

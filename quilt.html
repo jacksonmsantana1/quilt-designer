@@ -1006,7 +1006,7 @@
   </div>
   <div class="mine-grid" id="mine-grid"></div>
   <p class="fine mine-empty" id="mine-empty" hidden>No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.</p>
-  <p class="fine" style="text-align:center;margin-top:18px">Designs are kept in this browser. Fabrics you added from your own photos are not kept after a reload; those parts show the first fabric instead.</p>
+  <p class="fine" style="text-align:center;margin-top:18px">Designs, their undo history and the fabrics you added from your own photos are kept in this browser.</p>
 </section>
 <dialog class="dz-dialog" id="save-dlg" aria-labelledby="save-title">
   <div class="dlg-head"><h2 id="save-title">Save design</h2><button class="btn sm dlg-x" type="button" id="save-x" aria-label="Close">×</button></div>
@@ -1835,6 +1835,1601 @@ if (typeof module !== 'undefined') module.exports = ClothSim;
 }
 </script>
 <script type="module">
+var __defProp = Object.defineProperty;
+var __export = (target2, all) => {
+  for (var name in all)
+    __defProp(target2, name, { get: all[name], enumerable: true });
+};
+
+// src/storage/repo.js
+var repo_exports = {};
+__export(repo_exports, {
+  designs: () => designs,
+  fabrics: () => fabrics,
+  flush: () => flush,
+  getSession: () => getSession,
+  isPersistent: () => isPersistent,
+  onStorageError: () => onStorageError,
+  openStorage: () => openStorage,
+  setSession: () => setSession,
+  timelines: () => timelines
+});
+
+// src/storage/idb.js
+var DB_NAME = "quilt";
+var DB_VERSION = 1;
+var STORES = { designs: "id", fabrics: "id", timelines: "key", session: "key" };
+var req = (r) => new Promise((resolve, reject) => {
+  r.addEventListener("success", () => resolve(r.result));
+  r.addEventListener("error", () => reject(r.error));
+});
+async function openIdb(factory = globalThis.indexedDB, name = DB_NAME) {
+  if (!factory) throw new Error("IndexedDB is not available");
+  const open = factory.open(name, DB_VERSION);
+  open.onupgradeneeded = () => {
+    const db3 = open.result;
+    for (const [s, keyPath] of Object.entries(STORES))
+      if (!db3.objectStoreNames.contains(s)) db3.createObjectStore(s, { keyPath });
+  };
+  const db2 = await req(open);
+  return {
+    getAll: (s) => req(db2.transaction(s, "readonly").objectStore(s).getAll()),
+    // ops: [store, key, value] — value undefined deletes; all in one transaction, so they are kept together or not at all
+    write: (ops) => new Promise((resolve, reject) => {
+      const tx = db2.transaction([...new Set(ops.map((o) => o[0]))], "readwrite");
+      for (const [s, key, value] of ops) {
+        const os = tx.objectStore(s);
+        if (value === void 0) os.delete(key);
+        else os.put(value);
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error("aborted"));
+    }),
+    close: () => db2.close()
+  };
+}
+function memoryDb() {
+  const data = Object.fromEntries(Object.keys(STORES).map((s) => [s, /* @__PURE__ */ new Map()]));
+  return {
+    getAll: async (s) => [...data[s].values()],
+    write: async (ops) => {
+      for (const [s, key, value] of ops) {
+        if (value === void 0) data[s].delete(key);
+        else data[s].set(key, value);
+      }
+    },
+    close: () => {
+    }
+  };
+}
+
+// src/core/patterns.js
+var P_ = (name, role, poly) => ({ name, role, poly });
+function rotPoly(poly, k) {
+  let p = poly;
+  for (let i = 0; i < k; i++) p = p.map(([x, y]) => [1 - y, x]);
+  return p;
+}
+var orientPoly = (poly, b) => {
+  const p = rotPoly(poly, b.rot || 0);
+  return b.flip ? p.map(([x, y]) => [1 - x, y]) : p;
+};
+var sq = (x0, y0, x1, y1) => [
+  [x0, y0],
+  [x1, y0],
+  [x1, y1],
+  [x0, y1]
+];
+var PATTERNS = {
+  plain: { label: "Plain square", parts: () => [P_("Square", 0, sq(0, 0, 1, 1))] },
+  hst: {
+    label: "Half-square triangle",
+    parts: () => [
+      P_("Lower triangle", 1, [
+        [0, 0],
+        [0, 1],
+        [1, 1]
+      ]),
+      P_("Upper triangle", 0, [
+        [0, 0],
+        [1, 0],
+        [1, 1]
+      ])
+    ]
+  },
+  hourglass: {
+    label: "Hourglass",
+    parts: () => {
+      const c = [0.5, 0.5];
+      return [
+        P_("Top", 1, [[0, 0], [1, 0], c]),
+        P_("Right", 0, [[1, 0], [1, 1], c]),
+        P_("Bottom", 1, [[1, 1], [0, 1], c]),
+        P_("Left", 0, [[0, 1], [0, 0], c])
+      ];
+    }
+  },
+  four: {
+    label: "Four patch",
+    parts: () => [
+      P_("Top left", 1, sq(0, 0, 0.5, 0.5)),
+      P_("Top right", 0, sq(0.5, 0, 1, 0.5)),
+      P_("Bottom left", 0, sq(0, 0.5, 0.5, 1)),
+      P_("Bottom right", 1, sq(0.5, 0.5, 1, 1))
+    ]
+  },
+  nine: {
+    label: "Nine patch",
+    parts: () => {
+      const out = [], t = 1 / 3, names = ["Top left", "Top", "Top right", "Left", "Centre", "Right", "Bottom left", "Bottom", "Bottom right"];
+      for (let j = 0; j < 3; j++)
+        for (let i = 0; i < 3; i++)
+          out.push(P_(names[j * 3 + i], (i + j) % 2 === 0 ? 1 : 0, sq(i * t, j * t, (i + 1) * t, (j + 1) * t)));
+      return out;
+    }
+  },
+  ohio: {
+    label: "Ohio star",
+    parts: () => {
+      const t = 1 / 3, out = [];
+      for (
+        const [i, j, n] of
+        /** @type {[number, number, string][]} */
+        [
+          [0, 0, "Corner top left"],
+          [2, 0, "Corner top right"],
+          [0, 2, "Corner bottom left"],
+          [2, 2, "Corner bottom right"]
+        ]
+      )
+        out.push(P_(n, 0, sq(i * t, j * t, (i + 1) * t, (j + 1) * t)));
+      out.push(P_("Centre", 2, sq(t, t, 2 * t, 2 * t)));
+      for (
+        const [i, j, side, vertical] of
+        /** @type {[number, number, string, boolean][]} */
+        [
+          [1, 0, "top", false],
+          [1, 2, "bottom", false],
+          [0, 1, "left", true],
+          [2, 1, "right", true]
+        ]
+      ) {
+        const x0 = i * t, y0 = j * t, x1 = x0 + t, y1 = y0 + t, c = [x0 + t / 2, y0 + t / 2];
+        const tri = {
+          N: [[x0, y0], [x1, y0], c],
+          E: [[x1, y0], [x1, y1], c],
+          S: [[x1, y1], [x0, y1], c],
+          Wd: [[x0, y1], [x0, y0], c]
+        };
+        const star = vertical ? ["N", "S"] : ["E", "Wd"];
+        for (const k of ["N", "E", "S", "Wd"])
+          out.push(
+            P_(
+              `Point ${side} \xB7 ${{ N: "upper", E: "right", S: "lower", Wd: "left" }[k]}`,
+              star.includes(k) ? 1 : 0,
+              tri[k]
+            )
+          );
+      }
+      return out;
+    }
+  },
+  pinwheel: {
+    label: "Pinwheel",
+    parts: () => {
+      const blade = [
+        [0, 0],
+        [0.5, 0],
+        [0.5, 0.5]
+      ], bg = [
+        [0, 0],
+        [0.5, 0.5],
+        [0, 0.5]
+      ], out = [];
+      const names = ["top left", "top right", "bottom right", "bottom left"];
+      for (let k = 0; k < 4; k++) {
+        out.push(P_("Blade " + names[k], 1, rotPoly(blade, k)));
+        out.push(P_("Background " + names[k], 0, rotPoly(bg, k)));
+      }
+      return out;
+    }
+  },
+  geese: {
+    label: "Flying geese",
+    parts: () => {
+      const out = [];
+      for (const [r, role] of [
+        [0, 1],
+        [1, 2]
+      ]) {
+        const y0 = r * 0.5, y1 = y0 + 0.5, n = r ? "lower" : "upper";
+        out.push(
+          P_(`Goose ${n}`, role, [
+            [0, y1],
+            [0.5, y0],
+            [1, y1]
+          ]),
+          P_(`Sky left ${n}`, 0, [
+            [0, y0],
+            [0.5, y0],
+            [0, y1]
+          ]),
+          P_(`Sky right ${n}`, 0, [
+            [0.5, y0],
+            [1, y0],
+            [1, y1]
+          ])
+        );
+      }
+      return out;
+    }
+  },
+  logcabin: {
+    label: "Log cabin",
+    parts: () => {
+      let x0 = 0.4, y0 = 0.4, x1 = 0.6, y1 = 0.6;
+      const w = 0.1, out = [P_("Hearth", 2, sq(x0, y0, x1, y1))];
+      for (let k = 0; k < 16; k++) {
+        const side = k % 4, role = side < 2 ? 0 : 1, n = `Log ${k + 1}`;
+        if (side === 0) {
+          out.push(P_(n, role, sq(x0, y0 - w, x1, y0)));
+          y0 -= w;
+        } else if (side === 1) {
+          out.push(P_(n, role, sq(x1, y0, x1 + w, y1)));
+          x1 += w;
+        } else if (side === 2) {
+          out.push(P_(n, role, sq(x0, y1, x1, y1 + w)));
+          y1 += w;
+        } else {
+          out.push(P_(n, role, sq(x0 - w, y0, x0, y1)));
+          x0 -= w;
+        }
+      }
+      return out;
+    }
+  },
+  churn: {
+    label: "Churn dash",
+    parts: () => {
+      const t = 1 / 3, out = [];
+      const corner = [
+        [0, 0],
+        [t, 0],
+        [0, t]
+      ], cornerBg = [
+        [t, 0],
+        [t, t],
+        [0, t]
+      ];
+      const names = ["top left", "top right", "bottom right", "bottom left"];
+      for (let k = 0; k < 4; k++) {
+        out.push(
+          P_("Corner " + names[k], 1, rotPoly(corner, k)),
+          P_("Corner background " + names[k], 0, rotPoly(cornerBg, k))
+        );
+      }
+      const edgeOuter = sq(t, 0, 2 * t, t / 2), edgeInner = sq(t, t / 2, 2 * t, t), en = ["top", "right", "bottom", "left"];
+      for (let k = 0; k < 4; k++) {
+        out.push(P_("Bar " + en[k], 1, rotPoly(edgeOuter, k)), P_("Bar background " + en[k], 0, rotPoly(edgeInner, k)));
+      }
+      out.push(P_("Centre", 0, sq(t, t, 2 * t, 2 * t)));
+      return out;
+    }
+  },
+  fanstar: {
+    label: "Fan star",
+    parts: () => {
+      const t = 1 / 3, s = 1 / 6, apex = [0.5, 0.5], out = [];
+      const blades = [
+        [
+          [0, 0.5],
+          [0, t]
+        ],
+        [
+          [0, t],
+          [0, s]
+        ],
+        [
+          [0, s],
+          [0, 0]
+        ],
+        [
+          [0, 0],
+          [s, 0]
+        ],
+        [
+          [s, 0],
+          [t, 0]
+        ],
+        [
+          [t, 0],
+          [0.5, 0]
+        ]
+      ];
+      blades.forEach(([a, b], k) => out.push(P_(`A${k + 1} \xB7 fan blade`, k === 4 ? 2 : 1, [a, b, apex])));
+      out.push(
+        P_("B", 0, sq(0.5, 0, 2 / 3, t)),
+        P_("C", 0, sq(2 / 3, 0, 1, t)),
+        P_("D", 0, sq(0, 0.5, t, 2 / 3)),
+        P_("E", 0, sq(0, 2 / 3, t, 1)),
+        P_("I \xB7 star corner", 0, sq(5 / 6, t, 1, 0.5)),
+        P_("K \xB7 star corner", 0, sq(t, 5 / 6, 0.5, 1)),
+        P_("L \xB7 star corner", 0, sq(5 / 6, 5 / 6, 1, 1)),
+        P_("M \xB7 star centre", 1, sq(0.5, 0.5, 5 / 6, 5 / 6))
+      );
+      const c = [2 / 3, 2 / 3];
+      const turn = ([u, v], k) => {
+        let du = u - c[0], dv = v - c[1];
+        for (let i = 0; i < k; i++) [du, dv] = [-dv, du];
+        return [c[0] + du, c[1] + dv];
+      };
+      const unit = (
+        /** @type {[number, import('./types.js').Poly][]} */
+        [
+          [
+            1,
+            [
+              [0.5, t],
+              [2 / 3, 0.5],
+              [0.5, 0.5]
+            ]
+          ],
+          [
+            2,
+            [
+              [0.5, t],
+              [2 / 3, t],
+              [2 / 3, 0.5]
+            ]
+          ],
+          [
+            2,
+            [
+              [2 / 3, t],
+              [5 / 6, t],
+              [2 / 3, 0.5]
+            ]
+          ],
+          [
+            1,
+            [
+              [5 / 6, t],
+              [5 / 6, 0.5],
+              [2 / 3, 0.5]
+            ]
+          ]
+        ]
+      );
+      const sides = ["top", "right", "bottom", "left"], letters = [
+        ["G", "F", "H", "G"],
+        ["G", "H", "F", "G"],
+        ["G", "F", "J", "G"],
+        ["G", "J", "F", "G"]
+      ];
+      for (let k = 0; k < 4; k++)
+        unit.forEach(
+          ([role, poly], i) => out.push(
+            P_(
+              `Star point ${sides[k]} \xB7 ${letters[k][i]}`,
+              role,
+              poly.map((p) => turn(p, k))
+            )
+          )
+        );
+      return out;
+    }
+  }
+};
+var TRACED = {
+  spoolstar: [
+    "Spool star",
+    [
+      ["Triangle \xB7 top left 1", 0, [0, 6, 0, 0, 6, 0]],
+      ["Triangle \xB7 top", 1, [12, 6, 6, 0, 18, 0]],
+      ["Triangle \xB7 top right 1", 0, [24, 6, 18, 0, 24, 0]],
+      ["Triangle \xB7 top left 2", 2, [0, 6, 6, 0, 6, 6]],
+      ["Triangle \xB7 top left 3", 0, [6, 6, 6, 0, 12, 6]],
+      ["Triangle \xB7 top right 2", 0, [12, 6, 18, 0, 18, 6]],
+      ["Triangle \xB7 top right 3", 2, [24, 6, 18, 6, 18, 0]],
+      ["Triangle \xB7 top left 4", 0, [10, 6, 6, 10, 6, 6]],
+      ["Triangle \xB7 top right 4", 0, [18, 6, 18, 10, 14, 6]],
+      ["Triangle \xB7 top left 5", 0, [0, 6, 6, 6, 6, 12]],
+      ["Triangle \xB7 top right 5", 0, [24, 6, 18, 12, 18, 6]],
+      ["Triangle \xB7 centre 1", 1, [10, 6, 10, 10, 6, 10]],
+      ["Triangle \xB7 centre 2", 1, [18, 10, 14, 10, 14, 6]],
+      ["Triangle \xB7 left", 1, [0, 6, 6, 12, 0, 18]],
+      ["Square \xB7 left", 0, [6, 10, 10, 10, 10, 14, 6, 14]],
+      ["Rectangle \xB7 centre", 2, [14, 18, 10, 18, 10, 6, 14, 6]],
+      ["Square \xB7 right", 0, [18, 14, 14, 14, 14, 10, 18, 10]],
+      ["Triangle \xB7 right", 1, [24, 6, 24, 18, 18, 12]],
+      ["Triangle \xB7 centre 3", 1, [6, 14, 10, 14, 10, 18]],
+      ["Triangle \xB7 centre 4", 1, [14, 14, 18, 14, 14, 18]],
+      ["Triangle \xB7 bottom left 1", 0, [0, 18, 6, 12, 6, 18]],
+      ["Triangle \xB7 bottom right 1", 0, [24, 18, 18, 18, 18, 12]],
+      ["Triangle \xB7 bottom left 2", 0, [6, 14, 10, 18, 6, 18]],
+      ["Triangle \xB7 bottom right 2", 0, [18, 14, 18, 18, 14, 18]],
+      ["Triangle \xB7 bottom left 3", 2, [0, 18, 6, 18, 6, 24]],
+      ["Triangle \xB7 bottom left 4", 0, [6, 24, 6, 18, 12, 18]],
+      ["Triangle \xB7 bottom right 3", 0, [18, 24, 12, 18, 18, 18]],
+      ["Triangle \xB7 bottom right 4", 2, [24, 18, 18, 24, 18, 18]],
+      ["Triangle \xB7 bottom left 5", 0, [0, 18, 6, 24, 0, 24]],
+      ["Triangle \xB7 bottom", 1, [6, 24, 12, 18, 18, 24]],
+      ["Triangle \xB7 bottom right 5", 0, [24, 18, 24, 24, 18, 24]]
+    ]
+  ],
+  crossroads: [
+    "Crossroads",
+    [
+      ["Rectangle \xB7 top", 0, [16, 0, 16, 4, 8, 4, 8, 0]],
+      ["Triangle \xB7 top left 1", 0, [8, 0, 0, 8, 0, 0]],
+      ["Triangle \xB7 top right 1", 0, [24, 8, 16, 0, 24, 0]],
+      ["Triangle \xB7 top left 2", 1, [8, 0, 8, 8, 0, 8]],
+      ["Triangle \xB7 top right 2", 1, [16, 8, 16, 0, 24, 8]],
+      ["Rectangle \xB7 left", 0, [0, 16, 0, 8, 4, 8, 4, 16]],
+      ["Piece \xB7 centre", 2, [20, 8, 20, 16, 16, 16, 16, 20, 8, 20, 8, 16, 4, 16, 4, 8, 8, 8, 8, 4, 16, 4, 16, 8]],
+      ["Rectangle \xB7 right", 0, [20, 8, 24, 8, 24, 16, 20, 16]],
+      ["Triangle \xB7 bottom left 1", 1, [0, 16, 8, 16, 8, 24]],
+      ["Triangle \xB7 bottom right 1", 1, [24, 16, 16, 24, 16, 16]],
+      ["Triangle \xB7 bottom left 2", 0, [0, 16, 8, 24, 0, 24]],
+      ["Triangle \xB7 bottom right 2", 0, [24, 16, 24, 24, 16, 24]],
+      ["Rectangle \xB7 bottom", 0, [8, 24, 8, 20, 16, 20, 16, 24]]
+    ]
+  ],
+  geesecrown: [
+    "Crown of geese",
+    [
+      ["Triangle \xB7 top 1", 1, [6, 0, 12, 0, 9, 3]],
+      ["Triangle \xB7 top 2", 1, [12, 0, 18, 0, 15, 3]],
+      ["Triangle \xB7 top left 1", 0, [6, 0, 0, 6, 0, 0]],
+      ["Triangle \xB7 top right 1", 0, [24, 6, 18, 0, 24, 0]],
+      ["Triangle \xB7 top 3", 2, [12, 0, 12, 6, 9, 3]],
+      ["Triangle \xB7 top 4", 2, [12, 0, 15, 3, 12, 6]],
+      ["Triangle \xB7 top left 2", 1, [6, 0, 6, 6, 0, 6]],
+      ["Triangle \xB7 top left 3", 0, [6, 0, 12, 6, 6, 6]],
+      ["Triangle \xB7 top right 2", 0, [18, 0, 18, 6, 12, 6]],
+      ["Triangle \xB7 top right 3", 1, [24, 6, 18, 6, 18, 0]],
+      ["Triangle \xB7 top left 4", 0, [6, 12, 0, 6, 6, 6]],
+      ["Triangle \xB7 top right 4", 0, [18, 12, 18, 6, 24, 6]],
+      ["Triangle \xB7 left 1", 1, [0, 12, 0, 6, 3, 9]],
+      ["Triangle \xB7 right 1", 1, [21, 9, 24, 6, 24, 12]],
+      ["Triangle \xB7 left 2", 2, [0, 12, 3, 9, 6, 12]],
+      ["Triangle \xB7 right 2", 2, [21, 9, 24, 12, 18, 12]],
+      ["Square \xB7 centre", 0, [6, 6, 18, 6, 18, 18, 6, 18]],
+      ["Triangle \xB7 left 3", 2, [0, 12, 6, 12, 3, 15]],
+      ["Triangle \xB7 right 3", 2, [24, 12, 21, 15, 18, 12]],
+      ["Triangle \xB7 left 4", 1, [0, 12, 3, 15, 0, 18]],
+      ["Triangle \xB7 right 4", 1, [24, 12, 24, 18, 21, 15]],
+      ["Triangle \xB7 bottom left 1", 0, [6, 12, 6, 18, 0, 18]],
+      ["Triangle \xB7 bottom right 1", 0, [18, 18, 18, 12, 24, 18]],
+      ["Triangle \xB7 bottom left 2", 1, [0, 18, 6, 18, 6, 24]],
+      ["Triangle \xB7 bottom left 3", 0, [6, 24, 6, 18, 12, 18]],
+      ["Triangle \xB7 bottom right 2", 0, [18, 18, 18, 24, 12, 18]],
+      ["Triangle \xB7 bottom right 3", 1, [18, 18, 24, 18, 18, 24]],
+      ["Triangle \xB7 bottom 1", 2, [9, 21, 12, 18, 12, 24]],
+      ["Triangle \xB7 bottom 2", 2, [12, 24, 12, 18, 15, 21]],
+      ["Triangle \xB7 bottom left 4", 0, [0, 18, 6, 24, 0, 24]],
+      ["Triangle \xB7 bottom right 4", 0, [18, 24, 24, 18, 24, 24]],
+      ["Triangle \xB7 bottom 3", 1, [6, 24, 9, 21, 12, 24]],
+      ["Triangle \xB7 bottom 4", 1, [18, 24, 12, 24, 15, 21]]
+    ]
+  ],
+  tulipcross: [
+    "Tulip cross",
+    [
+      ["Triangle \xB7 top left 1", 0, [4, 0, 12, 0, 8, 4]],
+      ["Triangle \xB7 top right 1", 0, [16, 4, 12, 0, 20, 0]],
+      ["Square \xB7 top left", 1, [0, 4, 0, 0, 4, 0, 4, 4]],
+      ["Square \xB7 top right", 1, [20, 0, 24, 0, 24, 4, 20, 4]],
+      ["Hexagon \xB7 top left", 0, [4, 8, 0, 4, 4, 4, 4, 0, 8, 4, 8, 8]],
+      ["Hexagon \xB7 top right", 0, [16, 4, 20, 0, 20, 4, 24, 4, 20, 8, 16, 8]],
+      ["Pentagon \xB7 top", 1, [16, 4, 16, 8, 8, 8, 8, 4, 12, 0]],
+      ["Triangle \xB7 top left 2", 0, [0, 12, 0, 4, 4, 8]],
+      ["Triangle \xB7 top right 2", 0, [24, 12, 20, 8, 24, 4]],
+      ["Pentagon \xB7 left", 1, [0, 12, 4, 8, 8, 8, 8, 16, 4, 16]],
+      ["Square \xB7 centre", 2, [8, 16, 8, 8, 16, 8, 16, 16]],
+      ["Pentagon \xB7 right", 1, [20, 16, 16, 16, 16, 8, 20, 8, 24, 12]],
+      ["Triangle \xB7 bottom left 1", 0, [0, 12, 4, 16, 0, 20]],
+      ["Triangle \xB7 bottom right 1", 0, [20, 16, 24, 12, 24, 20]],
+      ["Pentagon \xB7 bottom", 1, [12, 24, 8, 20, 8, 16, 16, 16, 16, 20]],
+      ["Hexagon \xB7 bottom left", 0, [4, 24, 4, 20, 0, 20, 4, 16, 8, 16, 8, 20]],
+      ["Hexagon \xB7 bottom right", 0, [20, 24, 16, 20, 16, 16, 20, 16, 24, 20, 20, 20]],
+      ["Square \xB7 bottom left", 1, [4, 24, 0, 24, 0, 20, 4, 20]],
+      ["Square \xB7 bottom right", 1, [20, 24, 20, 20, 24, 20, 24, 24]],
+      ["Triangle \xB7 bottom left 2", 0, [4, 24, 8, 20, 12, 24]],
+      ["Triangle \xB7 bottom right 2", 0, [12, 24, 16, 20, 20, 24]]
+    ]
+  ],
+  eightstar: [
+    "Eight-point star",
+    [
+      ["Triangle \xB7 top 1", 0, [6, 0, 12, 0, 12, 6]],
+      ["Triangle \xB7 top 2", 0, [12, 0, 18, 0, 12, 6]],
+      ["Square \xB7 top left", 0, [6, 0, 6, 6, 0, 6, 0, 0]],
+      ["Square \xB7 top right", 0, [18, 0, 24, 0, 24, 6, 18, 6]],
+      ["Triangle \xB7 top left 1", 1, [6, 0, 12, 6, 6, 6]],
+      ["Triangle \xB7 top right 1", 1, [18, 0, 18, 6, 12, 6]],
+      ["Triangle \xB7 top left 2", 1, [6, 12, 0, 6, 6, 6]],
+      ["Triangle \xB7 top left 3", 0, [6, 12, 6, 6, 12, 6]],
+      ["Triangle \xB7 top right 2", 0, [18, 12, 12, 6, 18, 6]],
+      ["Triangle \xB7 top right 3", 1, [18, 12, 18, 6, 24, 6]],
+      ["Triangle \xB7 centre 1", 2, [12, 6, 12, 12, 9, 9]],
+      ["Triangle \xB7 centre 2", 2, [15, 9, 12, 12, 12, 6]],
+      ["Triangle \xB7 left 1", 0, [0, 12, 0, 6, 6, 12]],
+      ["Triangle \xB7 right 1", 0, [18, 12, 24, 6, 24, 12]],
+      ["Triangle \xB7 centre 3", 2, [6, 12, 9, 9, 12, 12]],
+      ["Triangle \xB7 centre 4", 2, [18, 12, 12, 12, 15, 9]],
+      ["Triangle \xB7 centre 5", 2, [6, 12, 12, 12, 9, 15]],
+      ["Triangle \xB7 centre 6", 2, [18, 12, 15, 15, 12, 12]],
+      ["Triangle \xB7 left 2", 0, [0, 12, 6, 12, 0, 18]],
+      ["Triangle \xB7 right 2", 0, [18, 12, 24, 12, 24, 18]],
+      ["Triangle \xB7 centre 7", 2, [9, 15, 12, 12, 12, 18]],
+      ["Triangle \xB7 centre 8", 2, [12, 12, 15, 15, 12, 18]],
+      ["Triangle \xB7 bottom left 1", 1, [6, 12, 6, 18, 0, 18]],
+      ["Triangle \xB7 bottom left 2", 0, [6, 12, 12, 18, 6, 18]],
+      ["Triangle \xB7 bottom right 1", 0, [18, 12, 18, 18, 12, 18]],
+      ["Triangle \xB7 bottom right 2", 1, [18, 12, 24, 18, 18, 18]],
+      ["Triangle \xB7 bottom left 3", 1, [6, 24, 6, 18, 12, 18]],
+      ["Triangle \xB7 bottom right 3", 1, [18, 18, 18, 24, 12, 18]],
+      ["Square \xB7 bottom left", 0, [0, 18, 6, 18, 6, 24, 0, 24]],
+      ["Square \xB7 bottom right", 0, [24, 18, 24, 24, 18, 24, 18, 18]],
+      ["Triangle \xB7 bottom 1", 0, [6, 24, 12, 18, 12, 24]],
+      ["Triangle \xB7 bottom 2", 0, [18, 24, 12, 24, 12, 18]]
+    ]
+  ],
+  nested: [
+    "Nested triangles",
+    [
+      ["Triangle \xB7 top right 1", 0, [18, 0, 18, 6, 12, 0]],
+      ["Triangle \xB7 top right 2", 0, [18, 0, 24, 0, 24, 6]],
+      ["Triangle \xB7 top left", 0, [12, 12, 0, 0, 12, 0]],
+      ["Triangle \xB7 top right 3", 2, [18, 0, 24, 6, 18, 6]],
+      ["Triangle \xB7 top right 4", 1, [24, 12, 12, 12, 12, 0]],
+      ["Triangle \xB7 top right 5", 0, [18, 6, 24, 6, 24, 12]],
+      ["Triangle \xB7 bottom left", 1, [24, 24, 0, 24, 0, 0]],
+      ["Triangle \xB7 bottom right", 0, [12, 12, 24, 12, 24, 24]]
+    ]
+  ],
+  twinbars: [
+    "Twin bars star",
+    [
+      ["Triangle \xB7 top 1", 1, [6, 0, 12, 0, 12, 6]],
+      ["Triangle \xB7 top 2", 1, [12, 0, 18, 0, 12, 6]],
+      ["Square \xB7 top left", 0, [6, 0, 6, 6, 0, 6, 0, 0]],
+      ["Square \xB7 top right", 0, [24, 6, 18, 6, 18, 0, 24, 0]],
+      ["Triangle \xB7 top left 1", 0, [6, 0, 12, 6, 6, 6]],
+      ["Triangle \xB7 top right 1", 0, [18, 0, 18, 6, 12, 6]],
+      ["Triangle \xB7 top left 2", 0, [0, 6, 6, 6, 6, 12]],
+      ["Triangle \xB7 top right 2", 0, [24, 6, 18, 12, 18, 6]],
+      ["Triangle \xB7 left", 1, [0, 6, 6, 12, 0, 18]],
+      ["Rectangle \xB7 centre 1", 2, [6, 6, 12, 6, 12, 18, 6, 18]],
+      ["Rectangle \xB7 centre 2", 2, [18, 18, 12, 18, 12, 6, 18, 6]],
+      ["Triangle \xB7 right", 1, [24, 6, 24, 18, 18, 12]],
+      ["Triangle \xB7 bottom left 1", 0, [0, 18, 6, 12, 6, 18]],
+      ["Triangle \xB7 bottom right 1", 0, [24, 18, 18, 18, 18, 12]],
+      ["Triangle \xB7 bottom left 2", 0, [6, 24, 6, 18, 12, 18]],
+      ["Triangle \xB7 bottom right 2", 0, [18, 18, 18, 24, 12, 18]],
+      ["Square \xB7 bottom left", 0, [0, 18, 6, 18, 6, 24, 0, 24]],
+      ["Square \xB7 bottom right", 0, [24, 18, 24, 24, 18, 24, 18, 18]],
+      ["Triangle \xB7 bottom 1", 1, [6, 24, 12, 18, 12, 24]],
+      ["Triangle \xB7 bottom 2", 1, [18, 24, 12, 24, 12, 18]]
+    ]
+  ],
+  twisted: [
+    "Twisted square",
+    [
+      ["Triangle \xB7 top left", 0, [0, 8, 0, 0, 8, 0]],
+      ["Triangle \xB7 top right", 0, [24, 8, 16, 0, 24, 0]],
+      ["Pentagon \xB7 top right", 1, [24, 8, 16, 16, 16, 8, 8, 0, 16, 0]],
+      ["Pentagon \xB7 top left", 2, [0, 16, 0, 8, 8, 0, 16, 8, 8, 8]],
+      ["Square \xB7 centre", 0, [16, 8, 16, 16, 8, 16, 8, 8]],
+      ["Pentagon \xB7 bottom right", 1, [24, 16, 16, 24, 8, 16, 16, 16, 24, 8]],
+      ["Pentagon \xB7 bottom left", 2, [0, 16, 8, 8, 8, 16, 16, 24, 8, 24]],
+      ["Triangle \xB7 bottom left", 0, [0, 16, 8, 24, 0, 24]],
+      ["Triangle \xB7 bottom right", 0, [24, 16, 24, 24, 16, 24]]
+    ]
+  ],
+  spindiamond: [
+    "Spinning diamond",
+    [
+      ["Triangle \xB7 top left 1", 0, [6, 0, 0, 6, 0, 0]],
+      ["Triangle \xB7 top right 1", 0, [12, 0, 18, 0, 18, 6]],
+      ["Triangle \xB7 top right 2", 0, [18, 0, 24, 0, 24, 6]],
+      ["Parallelogram \xB7 top left", 1, [6, 0, 12, 0, 6, 6, 0, 6]],
+      ["Triangle \xB7 top", 0, [12, 0, 12, 6, 6, 6]],
+      ["Parallelogram \xB7 top", 1, [12, 0, 18, 6, 18, 12, 12, 6]],
+      ["Parallelogram \xB7 top right", 1, [18, 0, 24, 6, 24, 12, 18, 6]],
+      ["Triangle \xB7 top left 2", 0, [0, 12, 0, 6, 6, 6]],
+      ["Parallelogram \xB7 left", 1, [0, 12, 6, 6, 12, 6, 6, 12]],
+      ["Triangle \xB7 centre 1", 2, [6, 12, 12, 6, 12, 12]],
+      ["Triangle \xB7 centre 2", 2, [12, 6, 18, 12, 12, 12]],
+      ["Triangle \xB7 right", 0, [18, 6, 24, 12, 18, 12]],
+      ["Triangle \xB7 left", 0, [0, 12, 6, 12, 6, 18]],
+      ["Triangle \xB7 centre 3", 2, [6, 12, 12, 12, 12, 18]],
+      ["Triangle \xB7 centre 4", 2, [18, 12, 12, 18, 12, 12]],
+      ["Parallelogram \xB7 right", 1, [18, 12, 24, 12, 18, 18, 12, 18]],
+      ["Triangle \xB7 bottom right 1", 0, [24, 12, 24, 18, 18, 18]],
+      ["Parallelogram \xB7 bottom left", 1, [0, 12, 6, 18, 6, 24, 0, 18]],
+      ["Parallelogram \xB7 bottom", 1, [6, 18, 6, 12, 12, 18, 12, 24]],
+      ["Triangle \xB7 bottom", 0, [12, 18, 18, 18, 12, 24]],
+      ["Parallelogram \xB7 bottom right", 1, [18, 24, 12, 24, 18, 18, 24, 18]],
+      ["Triangle \xB7 bottom left 1", 0, [0, 18, 6, 24, 0, 24]],
+      ["Triangle \xB7 bottom left 2", 0, [6, 18, 12, 24, 6, 24]],
+      ["Triangle \xB7 bottom right 2", 0, [18, 24, 24, 18, 24, 24]]
+    ]
+  ],
+  hourframe: [
+    "Hourglass frame",
+    [
+      ["Triangle \xB7 top left 1", 1, [4, 4, 0, 0, 8, 0]],
+      ["Triangle \xB7 top 1", 1, [12, 4, 8, 0, 16, 0]],
+      ["Triangle \xB7 top right 1", 1, [20, 4, 16, 0, 24, 0]],
+      ["Triangle \xB7 top left 2", 0, [12, 4, 4, 4, 8, 0]],
+      ["Triangle \xB7 top right 2", 0, [12, 4, 16, 0, 20, 4]],
+      ["Triangle \xB7 top left 3", 1, [4, 4, 0, 8, 0, 0]],
+      ["Triangle \xB7 top right 3", 1, [20, 4, 24, 0, 24, 8]],
+      ["Triangle \xB7 top left 4", 1, [12, 4, 8, 8, 4, 4]],
+      ["Triangle \xB7 top right 4", 1, [12, 4, 20, 4, 16, 8]],
+      ["Triangle \xB7 top left 5", 0, [4, 8, 4, 4, 8, 8]],
+      ["Triangle \xB7 top 2", 0, [12, 4, 16, 8, 8, 8]],
+      ["Triangle \xB7 top right 5", 0, [20, 4, 20, 8, 16, 8]],
+      ["Triangle \xB7 top left 6", 0, [4, 12, 0, 8, 4, 4]],
+      ["Triangle \xB7 top right 6", 0, [20, 4, 24, 8, 20, 12]],
+      ["Triangle \xB7 centre 1", 2, [12, 12, 8, 8, 16, 8]],
+      ["Triangle \xB7 left 1", 1, [0, 16, 0, 8, 4, 12]],
+      ["Triangle \xB7 left 2", 0, [4, 8, 8, 12, 4, 16]],
+      ["Hexagon \xB7 left", 1, [4, 8, 8, 8, 12, 12, 8, 16, 4, 16, 8, 12]],
+      ["Hexagon \xB7 right", 1, [12, 12, 16, 8, 20, 8, 16, 12, 20, 16, 16, 16]],
+      ["Triangle \xB7 right 1", 0, [16, 12, 20, 8, 20, 16]],
+      ["Triangle \xB7 right 2", 1, [24, 16, 20, 12, 24, 8]],
+      ["Triangle \xB7 centre 2", 2, [12, 12, 16, 16, 8, 16]],
+      ["Triangle \xB7 bottom left 1", 0, [4, 20, 0, 16, 4, 12]],
+      ["Triangle \xB7 bottom right 1", 0, [20, 20, 20, 12, 24, 16]],
+      ["Triangle \xB7 bottom left 2", 0, [4, 20, 4, 16, 8, 16]],
+      ["Triangle \xB7 bottom 1", 0, [12, 20, 8, 16, 16, 16]],
+      ["Triangle \xB7 bottom right 2", 0, [20, 20, 16, 16, 20, 16]],
+      ["Triangle \xB7 bottom left 3", 1, [4, 20, 8, 16, 12, 20]],
+      ["Triangle \xB7 bottom right 3", 1, [20, 20, 12, 20, 16, 16]],
+      ["Triangle \xB7 bottom left 4", 1, [0, 24, 0, 16, 4, 20]],
+      ["Triangle \xB7 bottom right 4", 1, [20, 20, 24, 16, 24, 24]],
+      ["Triangle \xB7 bottom left 5", 0, [4, 20, 12, 20, 8, 24]],
+      ["Triangle \xB7 bottom right 5", 0, [20, 20, 16, 24, 12, 20]],
+      ["Triangle \xB7 bottom left 6", 1, [0, 24, 4, 20, 8, 24]],
+      ["Triangle \xB7 bottom 2", 1, [8, 24, 12, 20, 16, 24]],
+      ["Triangle \xB7 bottom right 6", 1, [20, 20, 24, 24, 16, 24]]
+    ]
+  ],
+  window: [
+    "Window diamond",
+    [
+      ["Square \xB7 top left 1", 1, [4, 4, 0, 4, 0, 0, 4, 0]],
+      ["Square \xB7 top left 2", 0, [4, 4, 4, 0, 8, 0, 8, 4]],
+      ["Rectangle \xB7 top 1", 1, [16, 4, 8, 4, 8, 0, 16, 0]],
+      ["Square \xB7 top right 1", 0, [16, 4, 16, 0, 20, 0, 20, 4]],
+      ["Square \xB7 top right 2", 1, [20, 4, 20, 0, 24, 0, 24, 4]],
+      ["Square \xB7 top left 3", 0, [4, 4, 4, 8, 0, 8, 0, 4]],
+      ["Square \xB7 top left 4", 1, [4, 4, 8, 4, 8, 8, 4, 8]],
+      ["Rectangle \xB7 top 2", 0, [16, 4, 16, 8, 8, 8, 8, 4]],
+      ["Square \xB7 top right 3", 1, [16, 4, 20, 4, 20, 8, 16, 8]],
+      ["Square \xB7 top right 4", 0, [20, 4, 24, 4, 24, 8, 20, 8]],
+      ["Triangle \xB7 centre 1", 0, [8, 12, 8, 8, 12, 8]],
+      ["Triangle \xB7 centre 2", 0, [12, 8, 16, 8, 16, 12]],
+      ["Triangle \xB7 centre 3", 2, [8, 12, 12, 8, 12, 12]],
+      ["Triangle \xB7 centre 4", 2, [12, 8, 16, 12, 12, 12]],
+      ["Rectangle \xB7 left 1", 1, [0, 16, 0, 8, 4, 8, 4, 16]],
+      ["Rectangle \xB7 left 2", 0, [4, 8, 8, 8, 8, 16, 4, 16]],
+      ["Rectangle \xB7 right 1", 0, [20, 8, 20, 16, 16, 16, 16, 8]],
+      ["Rectangle \xB7 right 2", 1, [20, 8, 24, 8, 24, 16, 20, 16]],
+      ["Triangle \xB7 centre 5", 2, [8, 12, 12, 12, 12, 16]],
+      ["Triangle \xB7 centre 6", 2, [16, 12, 12, 16, 12, 12]],
+      ["Triangle \xB7 centre 7", 0, [8, 12, 12, 16, 8, 16]],
+      ["Triangle \xB7 centre 8", 0, [16, 12, 16, 16, 12, 16]],
+      ["Square \xB7 bottom left 1", 0, [4, 20, 0, 20, 0, 16, 4, 16]],
+      ["Square \xB7 bottom left 2", 1, [4, 20, 4, 16, 8, 16, 8, 20]],
+      ["Rectangle \xB7 bottom 1", 0, [8, 20, 8, 16, 16, 16, 16, 20]],
+      ["Square \xB7 bottom right 1", 1, [20, 16, 20, 20, 16, 20, 16, 16]],
+      ["Square \xB7 bottom right 2", 0, [20, 16, 24, 16, 24, 20, 20, 20]],
+      ["Square \xB7 bottom left 3", 1, [4, 20, 4, 24, 0, 24, 0, 20]],
+      ["Square \xB7 bottom left 4", 0, [4, 20, 8, 20, 8, 24, 4, 24]],
+      ["Rectangle \xB7 bottom 2", 1, [8, 20, 16, 20, 16, 24, 8, 24]],
+      ["Square \xB7 bottom right 3", 0, [20, 24, 16, 24, 16, 20, 20, 20]],
+      ["Square \xB7 bottom right 4", 1, [20, 24, 20, 20, 24, 20, 24, 24]]
+    ]
+  ],
+  totem: [
+    "Totem",
+    [
+      ["Triangle \xB7 top", 1, [12, 4, 8, 0, 16, 0]],
+      ["Hexagon \xB7 top left", 0, [12, 4, 4, 4, 8, 8, 0, 8, 0, 0, 8, 0]],
+      ["Hexagon \xB7 top right", 0, [12, 4, 16, 0, 24, 0, 24, 8, 16, 8, 20, 4]],
+      ["Trapezoid \xB7 top", 1, [20, 4, 16, 8, 8, 8, 4, 4]],
+      ["Triangle \xB7 centre 1", 2, [16, 8, 12, 12, 8, 8]],
+      ["Triangle \xB7 left", 1, [0, 16, 0, 8, 4, 12]],
+      ["Hexagon \xB7 left", 0, [0, 16, 4, 12, 0, 8, 8, 8, 12, 12, 8, 16]],
+      ["Hexagon \xB7 right", 0, [24, 16, 16, 16, 12, 12, 16, 8, 24, 8, 20, 12]],
+      ["Triangle \xB7 right", 1, [24, 16, 20, 12, 24, 8]],
+      ["Triangle \xB7 centre 2", 2, [12, 12, 16, 16, 8, 16]],
+      ["Trapezoid \xB7 bottom", 1, [4, 20, 8, 16, 16, 16, 20, 20]],
+      ["Hexagon \xB7 bottom left", 0, [0, 16, 8, 16, 4, 20, 12, 20, 8, 24, 0, 24]],
+      ["Hexagon \xB7 bottom right", 0, [24, 16, 24, 24, 16, 24, 12, 20, 20, 20, 16, 16]],
+      ["Triangle \xB7 bottom", 1, [12, 20, 16, 24, 8, 24]]
+    ]
+  ]
+};
+for (const [key, [label, parts]] of Object.entries(TRACED))
+  PATTERNS[key] = {
+    label,
+    parts: () => parts.map(
+      ([n, role, f]) => P_(
+        n,
+        role,
+        Array.from({ length: f.length / 2 }, (_, i) => [f[2 * i] / 24, f[2 * i + 1] / 24])
+      )
+    )
+  };
+Object.assign(PATTERNS, {
+  sqsq: {
+    label: "Square in a square",
+    parts: () => {
+      const c = [
+        [0.5, 0],
+        [1, 0.5],
+        [0.5, 1],
+        [0, 0.5]
+      ], names = ["top left", "top right", "bottom right", "bottom left"];
+      const out = [P_("Centre square", 1, c)];
+      [
+        [
+          [0, 0],
+          [0.5, 0],
+          [0, 0.5]
+        ],
+        [
+          [0.5, 0],
+          [1, 0],
+          [1, 0.5]
+        ],
+        [
+          [1, 0.5],
+          [1, 1],
+          [0.5, 1]
+        ],
+        [
+          [0, 0.5],
+          [0.5, 1],
+          [0, 1]
+        ]
+      ].forEach((t, k) => out.push(P_("Corner " + names[k], 0, t)));
+      return out;
+    }
+  },
+  economy: {
+    label: "Economy",
+    parts: () => {
+      const names = ["top left", "top right", "bottom right", "bottom left"];
+      const out = [P_("Centre square", 2, sq(0.25, 0.25, 0.75, 0.75))];
+      [
+        [
+          [0.25, 0.25],
+          [0.5, 0],
+          [0.75, 0.25]
+        ],
+        [
+          [0.75, 0.25],
+          [1, 0.5],
+          [0.75, 0.75]
+        ],
+        [
+          [0.75, 0.75],
+          [0.5, 1],
+          [0.25, 0.75]
+        ],
+        [
+          [0.25, 0.75],
+          [0, 0.5],
+          [0.25, 0.25]
+        ]
+      ].forEach((t, k) => out.push(P_("Inner triangle " + ["top", "right", "bottom", "left"][k], 1, t)));
+      [
+        [
+          [0, 0],
+          [0.5, 0],
+          [0, 0.5]
+        ],
+        [
+          [0.5, 0],
+          [1, 0],
+          [1, 0.5]
+        ],
+        [
+          [1, 0.5],
+          [1, 1],
+          [0.5, 1]
+        ],
+        [
+          [0, 0.5],
+          [0.5, 1],
+          [0, 1]
+        ]
+      ].forEach((t, k) => out.push(P_("Outer corner " + names[k], 0, t)));
+      return out;
+    }
+  },
+  dnine: {
+    label: "Double nine patch",
+    parts: () => {
+      const out = [], t = 1 / 3, m = t / 3, cell = ["top left", "top", "top right", "left", "centre", "right", "bottom left", "bottom", "bottom right"];
+      for (let J = 0; J < 3; J++)
+        for (let I = 0; I < 3; I++) {
+          const n = cell[J * 3 + I];
+          if ((I + J) % 2) {
+            out.push(P_("Plain " + n, 0, sq(I * t, J * t, (I + 1) * t, (J + 1) * t)));
+            continue;
+          }
+          for (let j = 0; j < 3; j++)
+            for (let i = 0; i < 3; i++)
+              out.push(
+                P_(
+                  `Patch ${n} \xB7 ${cell[j * 3 + i]}`,
+                  (i + j) % 2 ? 0 : 1,
+                  sq(I * t + i * m, J * t + j * m, I * t + (i + 1) * m, J * t + (j + 1) * m)
+                )
+              );
+        }
+      return out;
+    }
+  },
+  sawstar: {
+    label: "Sawtooth star",
+    parts: () => {
+      const q = 0.25, out = [], names = ["top left", "top right", "bottom right", "bottom left"];
+      [
+        [0, 0],
+        [3, 0],
+        [3, 3],
+        [0, 3]
+      ].forEach(([i, j], k) => out.push(P_("Corner " + names[k], 0, sq(i * q, j * q, (i + 1) * q, (j + 1) * q))));
+      out.push(P_("Centre", 2, sq(q, q, 3 * q, 3 * q)));
+      const goose = [
+        [q, q],
+        [0.5, 0],
+        [3 * q, q]
+      ], skyL = [
+        [q, 0],
+        [0.5, 0],
+        [q, q]
+      ], skyR = [
+        [0.5, 0],
+        [3 * q, 0],
+        [3 * q, q]
+      ], sides = ["top", "right", "bottom", "left"];
+      for (let k = 0; k < 4; k++)
+        out.push(
+          P_("Point " + sides[k], 1, rotPoly(goose, k)),
+          P_("Sky " + sides[k] + " 1", 0, rotPoly(skyL, k)),
+          P_("Sky " + sides[k] + " 2", 0, rotPoly(skyR, k))
+        );
+      return out;
+    }
+  }
+});
+var PCACHE = {};
+var partsOf = (name) => PCACHE[name] = PCACHE[name] || PATTERNS[name].parts();
+
+// src/core/geometry.js
+var polyCentre = (p) => {
+  let x = 0, y = 0;
+  for (const q of p) {
+    x += q[0];
+    y += q[1];
+  }
+  return [x / p.length, y / p.length];
+};
+function blockPolys(b, x, y, w, h) {
+  return partsOf(b.pattern).map((p) => orientPoly(p.poly, b).map(([u, v]) => [x + u * w, y + v * h]));
+}
+function pathPoly(g, poly) {
+  g.beginPath();
+  poly.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
+  g.closePath();
+}
+var sashOf = (d) => {
+  const s = d && d.sashing;
+  return s && s.mm > 0 ? { mm: s.mm, fabric: s.fabric || "b0", corner: s.corner || s.fabric || "b0", border: !!s.border } : { mm: 0, fabric: "b0", corner: "b0", border: false };
+};
+function centreMm(d) {
+  const s = sashOf(d), e = s.border ? 2 : 0;
+  return { W: d.cols * d.blockMm + s.mm * (d.cols - 1 + e), H: d.rows * d.blockMm + s.mm * (d.rows - 1 + e) };
+}
+var bordersOf = (d) => d && Array.isArray(d.borders) ? d.borders.filter((b) => BORDER_TYPES[b.type] && b.mm > 0) : [];
+var borderTotal = (d) => bordersOf(d).reduce((a, b) => a + b.mm, 0);
+function quiltMm(d) {
+  const c = centreMm(d), t = borderTotal(d);
+  return { W: c.W + 2 * t, H: c.H + 2 * t };
+}
+var spanOf = (b) => b && b.span > 1 ? b.span : 1;
+var anchorOf = (d, i) => {
+  const b = d.blocks[i];
+  return b && b.under != null ? b.under : i;
+};
+function normalizeSpans(d) {
+  if (!d || !Array.isArray(d.blocks)) return d;
+  const C = d.cols, R2 = d.rows, n = d.blocks.length, taken = new Array(n).fill(false), span = new Array(n).fill(0), under = new Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
+    const b = d.blocks[i], c = i % C, r = Math.floor(i / C);
+    if (taken[i]) continue;
+    taken[i] = true;
+    if (!(b.span > 1)) continue;
+    let k = Math.min(b.span, C - c, R2 - r);
+    const free = (k2) => {
+      for (let y = r; y < r + k2; y++)
+        for (let x = c; x < c + k2; x++) if ((x !== c || y !== r) && taken[y * C + x]) return false;
+      return true;
+    };
+    while (k > 1 && !free(k)) k--;
+    if (k <= 1) continue;
+    span[i] = k;
+    for (let y = r; y < r + k; y++)
+      for (let x = c; x < c + k; x++) {
+        const j = y * C + x;
+        if (j !== i) {
+          taken[j] = true;
+          under[j] = i;
+        }
+      }
+  }
+  let changed = false;
+  const blocks = d.blocks.map((b, i) => {
+    const s = span[i] > 1 ? span[i] : void 0, u = under[i] >= 0 ? under[i] : void 0;
+    if (b.span === s && b.under === u) return b;
+    changed = true;
+    const { span: _s, under: _u, ...rest } = b;
+    return { ...rest, ...s ? { span: s } : {}, ...u != null ? { under: u } : {} };
+  });
+  return changed ? { ...d, blocks } : d;
+}
+function setSpan(d, i, k0) {
+  const C = d.cols, c = i % C, r = Math.floor(i / C), k = Math.max(1, Math.min(k0, C - c, d.rows - r));
+  const blocks = d.blocks.map((b, j) => {
+    if (j === i) {
+      const { span: _s, ...rest } = b;
+      return k > 1 ? { ...rest, span: k } : rest;
+    }
+    if (!(b.span > 1)) return b;
+    const cj = j % C, rj = Math.floor(j / C), kj = b.span;
+    if (cj < c + k && cj + kj > c && rj < r + k && rj + kj > r) {
+      const { span: _s, ...rest } = b;
+      return rest;
+    }
+    return b;
+  });
+  return normalizeSpans({ ...d, blocks });
+}
+function cellRect(d, c, r, W, H) {
+  const s = sashOf(d), q = quiltMm(d), kx = W / q.W, ky = H / q.H, off = (s.border ? s.mm : 0) + borderTotal(d);
+  return {
+    x: (off + c * (d.blockMm + s.mm)) * kx,
+    y: (off + r * (d.blockMm + s.mm)) * ky,
+    w: d.blockMm * kx,
+    h: d.blockMm * ky
+  };
+}
+function blockRect(d, c0, r0, W, H) {
+  const i0 = r0 * d.cols + c0, i = d.blocks ? anchorOf(d, i0) : i0, c = i % d.cols, r = Math.floor(i / d.cols);
+  const R2 = cellRect(d, c, r, W, H), k = d.blocks ? spanOf(d.blocks[i]) : 1;
+  if (k === 1) return R2;
+  const s = sashOf(d), q = quiltMm(d), kx = W / q.W, ky = H / q.H, mm = k * d.blockMm + (k - 1) * s.mm;
+  return { x: R2.x, y: R2.y, w: mm * kx, h: mm * ky };
+}
+var blockSizeMm = (d, k) => k * d.blockMm + (k - 1) * sashOf(d).mm;
+function blockAt(d, x, y, W, H) {
+  const s = sashOf(d), q = quiltMm(d), o = (s.border ? s.mm : 0) + borderTotal(d), mx = x / W * q.W - o, my = y / H * q.H - o, p = d.blockMm + s.mm;
+  const c = Math.floor(mx / p), r = Math.floor(my / p);
+  if (c < 0 || r < 0 || c >= d.cols || r >= d.rows) return -1;
+  const a = anchorOf(d, r * d.cols + c), R2 = blockRect(d, c, r, W, H);
+  return x >= R2.x && x <= R2.x + R2.w && y >= R2.y && y <= R2.y + R2.h ? a : -1;
+}
+function sashRects(d, W, H) {
+  const s = sashOf(d);
+  if (!s.mm) return [];
+  const q = quiltMm(d), kx = W / q.W, ky = H / q.H, bt = borderTotal(d), off = (s.border ? s.mm : 0) + bt, p = d.blockMm + s.mm, out = [];
+  const xs = [], ys = [];
+  if (s.border) {
+    xs.push(bt);
+    ys.push(bt);
+  }
+  for (let c = 1; c < d.cols; c++) xs.push(off + c * p - s.mm);
+  for (let r = 1; r < d.rows; r++) ys.push(off + r * p - s.mm);
+  if (s.border) {
+    xs.push(q.W - bt - s.mm);
+    ys.push(q.H - bt - s.mm);
+  }
+  for (const x of xs)
+    for (let r = 0; r < d.rows; r++)
+      out.push({ kind: "sash", x: x * kx, y: (off + r * p) * ky, w: s.mm * kx, h: d.blockMm * ky });
+  for (const y of ys)
+    for (let c = 0; c < d.cols; c++)
+      out.push({ kind: "sash", x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
+  for (const x of xs)
+    for (const y of ys) out.push({ kind: "corner", x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
+  const big = (d.blocks || []).map((b, i) => b.span > 1 && b.under == null ? blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H) : null).filter(Boolean);
+  if (!big.length) return out;
+  return out.filter((rc) => {
+    const cx = rc.x + rc.w / 2, cy = rc.y + rc.h / 2;
+    return !big.some((B) => cx > B.x && cx < B.x + B.w && cy > B.y && cy < B.y + B.h);
+  });
+}
+var BORDER_TYPES = {
+  plain: { label: "Plain strip", slots: ["Fabric", "Corner squares"], mm: 100, unit: null },
+  piano: { label: "Piano keys", slots: ["Key A", "Key B", "Corners"], mm: 100, unit: (T) => T / 2 },
+  squares: { label: "Row of squares", slots: ["Square A", "Square B", "Corners"], mm: 64, unit: (T) => T },
+  checker: { label: "Checkerboard", slots: ["Square A", "Square B", "Corners"], mm: 76, unit: (T) => T / 2 },
+  sawtooth: { label: "Sawtooth", slots: ["Teeth", "Background", "Corners"], mm: 64, unit: (T) => T },
+  geese: { label: "Flying geese", slots: ["Geese", "Sky", "Corners"], mm: 76, unit: (T) => T / 2 }
+};
+var borderUnits = (b, L) => {
+  const u = BORDER_TYPES[b.type].unit;
+  return u ? Math.max(1, Math.round(L / u(b.mm))) : 1;
+};
+function borderSidePieces(b, L) {
+  const T = b.mm, out = [], n = borderUnits(b, L), u = L / n, R2 = (x0, y0, x1, y1) => [
+    [x0, y0],
+    [x1, y0],
+    [x1, y1],
+    [x0, y1]
+  ];
+  if (b.type === "plain") {
+    out.push({ poly: R2(0, 0, L, T), slot: 0 });
+    return out;
+  }
+  for (let i = 0; i < n; i++) {
+    const x0 = i * u, x1 = x0 + u, alt = i % 2;
+    if (b.type === "piano" || b.type === "squares") out.push({ poly: R2(x0, 0, x1, T), slot: alt });
+    else if (b.type === "checker") {
+      out.push({ poly: R2(x0, 0, x1, T / 2), slot: alt });
+      out.push({ poly: R2(x0, T / 2, x1, T), slot: 1 - alt });
+    } else if (b.type === "sawtooth") {
+      out.push({
+        poly: [
+          [x0, T],
+          [x1, 0],
+          [x1, T]
+        ],
+        slot: 0
+      });
+      out.push({
+        poly: [
+          [x0, 0],
+          [x1, 0],
+          [x0, T]
+        ],
+        slot: 1
+      });
+    } else if (b.type === "geese") {
+      out.push({
+        poly: [
+          [x0, 0],
+          [x1, T / 2],
+          [x0, T]
+        ],
+        slot: 0
+      });
+      out.push({
+        poly: [
+          [x0, 0],
+          [x1, 0],
+          [x1, T / 2]
+        ],
+        slot: 1
+      });
+      out.push({
+        poly: [
+          [x0, T],
+          [x1, T / 2],
+          [x1, T]
+        ],
+        slot: 1
+      });
+    }
+  }
+  return out;
+}
+var borderFab = (b, slot) => b.fabrics && b.fabrics[slot] || b.fabrics && b.fabrics[0] || "b0";
+var borderCornerSlot = (b) => b.type === "plain" ? 1 : 2;
+var plainButted = (b) => b.type === "plain" && borderFab(b, 1) === borderFab(b, 0);
+function pointInPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function pathPolyInto(g, poly) {
+  poly.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
+  g.closePath();
+}
+
+// src/core/design.js
+var FORMAT_VERSION = 1;
+var ROLE_DEFAULT = ["b0", "b1", "b3"];
+function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
+  return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
+}
+function defaultDesign() {
+  const d = { v: FORMAT_VERSION, cols: 5, rows: 5, blockMm: 458, backFabric: "b0", blocks: [] };
+  for (let r = 0; r < 5; r++)
+    for (let c = 0; c < 5; c++)
+      d.blocks.push((r + c) % 2 === 0 ? newBlock("ohio", ["b0", "b1", "b3"]) : newBlock("nine", ["b0", "b4", "b3"]));
+  return d;
+}
+function rolesOf(b) {
+  const roles = [...ROLE_DEFAULT], seen = [false, false, false];
+  partsOf(b.pattern).forEach((p, i) => {
+    if (!seen[p.role]) {
+      roles[p.role] = b.fabrics[i];
+      seen[p.role] = true;
+    }
+  });
+  return roles;
+}
+
+// src/core/format.js
+var MIGRATIONS = [
+  // 0 → 1: designs saved before block sizes and backing fabrics existed
+  (d) => ({
+    ...d,
+    blockMm: d.blockMm > 0 ? d.blockMm : Math.round(2290 / (d.cols || 5)),
+    backFabric: d.backFabric || "b0",
+    v: 1
+  })
+];
+var LIMITS = { grid: [1, 20], blockMm: [50, 1e3], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
+var SYMS = ["off", "lr", "tb", "both", "kal"];
+var QUILTING = ["ditch", "cross", "fans", "meander"];
+var isObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+var isFabric = (x) => typeof x === "string" && x.length > 0 && x.length < 64;
+var num = (x) => typeof x === "number" && Number.isFinite(x);
+var clamp = (x, [lo, hi]) => Math.max(lo, Math.min(hi, x));
+var plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+function check(d) {
+  if (!isObj(d) || !num(d.cols) || !num(d.rows) || !Array.isArray(d.blocks)) return null;
+  const problems = [];
+  const count = {};
+  const note = (key, n2 = 1) => count[key] = (count[key] || 0) + n2;
+  const cols = clamp(Math.round(d.cols), LIMITS.grid), rows = clamp(Math.round(d.rows), LIMITS.grid);
+  if (cols !== d.cols || rows !== d.rows) problems.push(`The layout was changed to ${cols} \xD7 ${rows}.`);
+  const n = cols * rows;
+  if (d.blocks.length !== n) {
+    if (d.blocks.length > n) note("extra", d.blocks.length - n);
+  }
+  const blocks = [];
+  for (let i = 0; i < n; i++) blocks.push(checkBlock(d.blocks[i], note));
+  if (count.missing)
+    problems.push(
+      `${plural(count.missing, "missing block")} ${count.missing === 1 ? "was" : "were"} filled with a plain square.`
+    );
+  if (count.extra)
+    problems.push(`${plural(count.extra, "extra block")} ${count.extra === 1 ? "was" : "were"} left out.`);
+  if (count.pattern)
+    problems.push(
+      `${plural(count.pattern, "block")} with an unknown pattern became ${count.pattern === 1 ? "a plain square" : "plain squares"}.`
+    );
+  if (count.fabric)
+    problems.push(
+      `${plural(count.fabric, "missing fabric")} ${count.fabric === 1 ? "was" : "were"} filled in with the default colours.`
+    );
+  if (count.block)
+    problems.push(
+      `${plural(count.block, "block setting")} that could not be read ${count.block === 1 ? "was" : "were"} reset.`
+    );
+  const out = { ...d, v: FORMAT_VERSION, cols, rows, blocks };
+  if (!num(d.blockMm) || d.blockMm !== clamp(Math.round(d.blockMm), LIMITS.blockMm)) {
+    out.blockMm = num(d.blockMm) ? clamp(Math.round(d.blockMm), LIMITS.blockMm) : Math.round(2290 / cols);
+    problems.push(`The block size was changed to ${out.blockMm} mm.`);
+  }
+  if (!isFabric(d.backFabric)) {
+    out.backFabric = "b0";
+    if (d.backFabric !== void 0) problems.push("The backing fabric was reset.");
+  }
+  if (d.sashing !== void 0) {
+    const s = d.sashing;
+    if (isObj(s) && num(s.mm)) {
+      out.sashing = {
+        mm: clamp(Math.round(s.mm), LIMITS.sashMm),
+        fabric: isFabric(s.fabric) ? s.fabric : "b0",
+        corner: isFabric(s.corner) ? s.corner : "b3",
+        border: s.border === true
+      };
+    } else {
+      delete out.sashing;
+      problems.push("The sashing could not be read and was taken off.");
+    }
+  }
+  if (d.borders !== void 0) {
+    const list = Array.isArray(d.borders) ? d.borders : [];
+    let adjusted = 0;
+    out.borders = list.filter((b) => isObj(b) && BORDER_TYPES[b.type] && num(b.mm)).map((b) => {
+      const nb = {
+        ...b,
+        mm: clamp(Math.round(b.mm), LIMITS.borderMm),
+        fabrics: (Array.isArray(b.fabrics) ? b.fabrics : []).map((f) => isFabric(f) ? f : "b0")
+      };
+      if (nb.mm !== b.mm || !Array.isArray(b.fabrics) || !b.fabrics.every(isFabric)) adjusted++;
+      return nb;
+    });
+    if (!out.borders.length) delete out.borders;
+    const lost = (Array.isArray(d.borders) ? d.borders.length : 1) - (out.borders || []).length;
+    if (adjusted) problems.push(`${plural(adjusted, "border")} had a width or fabric that was put right.`);
+    if (lost)
+      problems.push(`${plural(lost, "border")} that could not be read ${lost === 1 ? "was" : "were"} taken off.`);
+  }
+  if (d.sym !== void 0 && !SYMS.includes(d.sym)) {
+    delete out.sym;
+    problems.push("The symmetry setting was turned off.");
+  }
+  if (d.quilting !== void 0 && !QUILTING.includes(d.quilting)) {
+    delete out.quilting;
+    problems.push("The quilting went back to stitch in the ditch.");
+  }
+  return { design: normalizeSpans(out), problems };
+}
+function checkBlock(b, note) {
+  if (b === void 0) {
+    note("missing");
+    return { pattern: "plain", rot: 0, fabrics: ["b0"] };
+  }
+  if (!isObj(b) || !PATTERNS[b.pattern]) {
+    note("pattern");
+    return {
+      pattern: "plain",
+      rot: 0,
+      fabrics: [isObj(b) && Array.isArray(b.fabrics) && isFabric(b.fabrics[0]) ? b.fabrics[0] : "b0"]
+    };
+  }
+  const parts = partsOf(b.pattern), given = Array.isArray(b.fabrics) ? b.fabrics : [];
+  const fabrics2 = parts.map((p, k) => {
+    if (isFabric(given[k])) return given[k];
+    note("fabric");
+    return ROLE_DEFAULT[p.role] || "b0";
+  });
+  if (given.length > parts.length) note("block");
+  const out = { ...b, fabrics: fabrics2, rot: num(b.rot) ? (Math.round(b.rot) % 4 + 4) % 4 : 0 };
+  if (b.rot !== out.rot && b.rot !== void 0) note("block");
+  delete out.under;
+  if ("flip" in b && typeof b.flip !== "boolean") {
+    delete out.flip;
+    note("block");
+  }
+  if ("span" in b && !(num(b.span) && b.span === clamp(Math.round(b.span), LIMITS.span))) {
+    delete out.span;
+    note("block");
+  }
+  if ("fussy" in b) {
+    const ok = {};
+    if (isObj(b.fussy)) {
+      for (const [k, uv] of Object.entries(b.fussy))
+        if (+k >= 0 && +k < parts.length && Array.isArray(uv) && uv.length === 2 && uv.every(num)) ok[k] = uv;
+    }
+    if (Object.keys(ok).length) out.fussy = ok;
+    else delete out.fussy;
+    if (!isObj(b.fussy) || Object.keys(ok).length !== Object.keys(b.fussy).length) note("block");
+  }
+  return out;
+}
+function readDesign(raw) {
+  let d = raw;
+  if (typeof raw === "string") {
+    try {
+      d = JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+  if (!isObj(d)) return null;
+  const from = num(d.v) ? d.v : 0;
+  const newer = from > FORMAT_VERSION;
+  if (!newer) for (let v = from; v < FORMAT_VERSION; v++) d = MIGRATIONS[v](d);
+  const r = check(d);
+  if (!r) return null;
+  if (newer) r.design.v = from;
+  return { ...r, from, newer };
+}
+function readDesignOrDefault(raw) {
+  return readDesign(raw) || { design: defaultDesign(), problems: [], from: FORMAT_VERSION, newer: false };
+}
+
+// src/storage/migrate.js
+var OLD = {
+  current: "quilt-designer.v1",
+  mine: "quilt-mydesigns.v1",
+  mineCur: "quilt-mydesigns-current.v1",
+  timeline: "quilt-timeline.v1",
+  // bare key: the one timeline before each design had its own
+  seeded: ["quilt-medallion-seeded.v1", "quilt-photo-seeded.v1"]
+};
+function readJson(ls, key) {
+  try {
+    const t = ls.getItem(key);
+    return t == null ? null : JSON.parse(t);
+  } catch (e) {
+    return null;
+  }
+}
+function upgraded(raw) {
+  const r = readDesign(raw);
+  if (r && !r.problems.length && !r.newer) return r.design;
+  try {
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch (e) {
+    return raw;
+  }
+}
+function migrateLocalStorage(ls) {
+  const out = { designs: [], timelines: [], session: [] };
+  let current = null;
+  try {
+    current = ls.getItem(OLD.current);
+  } catch (e) {
+  }
+  if (current != null) out.session.push(["current", upgraded(current)]);
+  const mine = readJson(ls, OLD.mine);
+  if (Array.isArray(mine))
+    for (const m of mine) {
+      if (!m || typeof m.id !== "string") continue;
+      out.designs.push({
+        id: m.id,
+        name: String(m.name || "Quilt"),
+        design: upgraded(m.d),
+        createdAt: +m.created || Date.now(),
+        updatedAt: +m.updated || +m.created || Date.now(),
+        rev: 1,
+        deleted: false,
+        dirty: true
+      });
+    }
+  let mineCur2 = null;
+  try {
+    mineCur2 = ls.getItem(OLD.mineCur);
+  } catch (e) {
+  }
+  if (mineCur2) out.session.push(["mineCur", mineCur2]);
+  for (const k of OLD.seeded) {
+    try {
+      if (ls.getItem(k)) out.session.push([k.replace(/^quilt-|\.v1$/g, ""), true]);
+    } catch (e) {
+    }
+  }
+  const keys = [];
+  try {
+    for (let i = 0; i < ls.length; i++) keys.push(ls.key(i));
+  } catch (e) {
+  }
+  const seen = /* @__PURE__ */ new Set();
+  for (const k of keys) {
+    if (!k || !k.startsWith(OLD.timeline + ":")) continue;
+    const t = readJson(ls, k), key = k.slice(OLD.timeline.length + 1);
+    if (t && Array.isArray(t.steps)) {
+      out.timelines.push({ key, steps: t.steps, i: +t.i || 0, seq: +t.seq || t.steps.length });
+      seen.add(key);
+    }
+  }
+  const bare = readJson(ls, OLD.timeline), bareKey = mineCur2 || "draft";
+  if (bare && Array.isArray(bare.steps) && !seen.has(bareKey))
+    out.timelines.push({ key: bareKey, steps: bare.steps, i: +bare.i || 0, seq: +bare.seq || bare.steps.length });
+  return out;
+}
+
+// src/storage/repo.js
+var db = null;
+var persistent = false;
+var cache = { designs: /* @__PURE__ */ new Map(), fabrics: /* @__PURE__ */ new Map(), timelines: /* @__PURE__ */ new Map(), session: /* @__PURE__ */ new Map() };
+var pending = /* @__PURE__ */ new Map();
+var scheduled = false;
+var writing = Promise.resolve();
+var onError = () => {
+};
+function queue(store, key, value) {
+  pending.set(store + "\0" + key, [store, key, value]);
+  if (!scheduled) {
+    scheduled = true;
+    queueMicrotask(writeNow);
+  }
+}
+function writeNow() {
+  scheduled = false;
+  if (!pending.size || !db) return writing;
+  const ops = [...pending.values()], d = db;
+  pending = /* @__PURE__ */ new Map();
+  writing = writing.then(() => d.write(ops)).catch((e) => onError(e));
+  return writing;
+}
+async function flush() {
+  await writeNow();
+}
+var now = () => Date.now();
+function newId() {
+  if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
+  const h = () => Math.floor(Math.random() * 65536).toString(16).padStart(4, "0");
+  return `${h()}${h()}-${h()}-4${h().slice(1)}-${h()}-${h()}${h()}${h()}`;
+}
+async function openStorage(opts = {}) {
+  const legacy = "legacy" in opts ? opts.legacy : globalThis.localStorage;
+  if (opts.db) {
+    db = opts.db;
+    persistent = true;
+  } else {
+    try {
+      db = await Promise.race([
+        openIdb(opts.factory),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("IndexedDB timed out")), opts.timeoutMs || 6e3))
+      ]);
+      persistent = true;
+    } catch (e) {
+      db = memoryDb();
+      persistent = false;
+    }
+  }
+  for (const m of Object.values(cache)) m.clear();
+  for (const s of Object.keys(cache)) for (const r of await db.getAll(s)) cache[s].set(r.id ?? r.key, r);
+  let migrated = false;
+  if (!cache.session.has("migrated")) {
+    const out = legacy ? migrateLocalStorage(legacy) : { designs: [], timelines: [], session: [] };
+    for (const r of out.designs) put("designs", r.id, r);
+    for (const r of out.timelines) put("timelines", r.key, r);
+    for (const [k, v] of out.session) setSession(k, v);
+    setSession("migrated", now());
+    migrated = out.designs.length + out.timelines.length + out.session.length > 0;
+    await flush();
+  }
+  return { persistent, migrated };
+}
+function onStorageError(f) {
+  onError = f;
+}
+function put(store, key, value) {
+  cache[store].set(key, value);
+  queue(store, key, value);
+}
+function del(store, key) {
+  cache[store].delete(key);
+  queue(store, key, void 0);
+}
+var getSession = (key) => cache.session.get(key)?.value;
+function setSession(key, value) {
+  if (value === void 0) del("session", key);
+  else put("session", key, { key, value });
+}
+var designs = {
+  /** @returns {DesignRecord[]} the saved designs, not counting deleted ones */
+  list: () => [...cache.designs.values()].filter((r) => !r.deleted),
+  /** @param {string} id @returns {DesignRecord | null} */
+  get: (id) => {
+    const r = cache.designs.get(id);
+    return r && !r.deleted ? r : null;
+  },
+  /**
+   * Saves a new design or changes one: `rec` is merged into the record; the save counter goes up and the
+   * record is marked for upload. @param {Partial<DesignRecord> & { id: string }} rec @returns {DesignRecord}
+   */
+  save(rec) {
+    const old = cache.designs.get(rec.id), t = now();
+    const next = {
+      name: "",
+      design: null,
+      createdAt: t,
+      ...old && !old.deleted ? old : {},
+      ...rec,
+      updatedAt: t,
+      rev: (old?.rev || 0) + 1,
+      deleted: false,
+      dirty: true
+    };
+    put("designs", next.id, next);
+    return next;
+  },
+  /** Deletes a design (kept as a marker, so a server can pass the deletion on). @param {string} id */
+  remove(id) {
+    const old = cache.designs.get(id);
+    if (!old || old.deleted) return;
+    put("designs", id, { ...old, design: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+  },
+  newId
+};
+async function blobHash(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  if (globalThis.crypto?.subtle) {
+    const h = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    return "f" + [...h.slice(0, 12)].map((x) => x.toString(16).padStart(2, "0")).join("");
+  }
+  let a = 2166136261, b = 16777619 ^ bytes.length;
+  for (let i = 0; i < bytes.length; i++) {
+    a = Math.imul(a ^ bytes[i], 16777619);
+    b = Math.imul(b ^ bytes[i], 2246822519);
+  }
+  return "h" + (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0");
+}
+var fabrics = {
+  /** @returns {FabricRecord[]} */
+  list: () => [...cache.fabrics.values()].filter((r) => !r.deleted).sort((a, b) => a.createdAt - b.createdAt),
+  /** @param {string} id @returns {FabricRecord | null} */
+  get: (id) => {
+    const r = cache.fabrics.get(id);
+    return r && !r.deleted ? r : null;
+  },
+  /**
+   * Keeps a fabric photo. The same image always gets the same id, so adding it twice keeps one copy.
+   * @param {Blob} blob @param {{ name: string, cm: number }} meta @returns {Promise<{ id: string, isNew: boolean }>}
+   */
+  async add(blob, meta) {
+    const id = await blobHash(blob), old = cache.fabrics.get(id);
+    if (old && !old.deleted) return { id, isNew: false };
+    const t = now();
+    put("fabrics", id, {
+      id,
+      name: meta.name,
+      cm: meta.cm,
+      blob,
+      createdAt: t,
+      updatedAt: t,
+      rev: (old?.rev || 0) + 1,
+      deleted: false,
+      dirty: true
+    });
+    return { id, isNew: true };
+  }
+};
+var timelines = {
+  /** @param {string} key */
+  get: (key) => cache.timelines.get(key) || null,
+  /** @param {string} key @param {{ steps: any[], i: number, seq: number }} t */
+  set: (key, t) => put("timelines", key, { key, steps: t.steps, i: t.i, seq: t.seq }),
+  /** @param {string} key */
+  remove: (key) => cache.timelines.has(key) && del("timelines", key),
+  /** @param {string} from @param {string} to */
+  copy(from, to) {
+    const t = cache.timelines.get(from);
+    if (t) timelines.set(to, t);
+  }
+};
+var isPersistent = () => persistent;
+
+// src/ui/notice.js
+var box = null;
+var timer = 0;
+function notify(text, opts = {}) {
+  if (typeof document === "undefined") return;
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "notice";
+    box.setAttribute("role", "status");
+    box.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:min(560px,calc(100vw - 32px));background:#2f466f;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);font:14px/1.45 system-ui,sans-serif;cursor:pointer;white-space:pre-line";
+    box.addEventListener("click", () => box.hidden = true);
+    document.body.appendChild(box);
+  }
+  box.textContent = text;
+  box.hidden = false;
+  clearTimeout(timer);
+  timer = setTimeout(() => box.hidden = true, opts.ms || Math.max(5e3, text.length * 60));
+}
+
+// src/storage/boot.js
+onStorageError(
+  () => notify("Your quilt could not be saved: this browser\u2019s storage for the page may be full. Delete some old designs.")
+);
+await openStorage();
+if (!isPersistent())
+  setTimeout(
+    () => notify("This browser is not letting the page keep data, so your quilts will be lost when you close it."),
+    800
+  );
+addEventListener("pagehide", () => flush());
+document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && flush());
+try {
+  if (localStorage.getItem("quilt-freeze.v1") === "1") globalThis.__quiltStorage = repo_exports;
+} catch (e) {
+}
+
 // src/sim/config.js
 var N = 40;
 var R = 2 * (N - 1) + 1;
@@ -4049,1286 +5644,54 @@ function rebuildRenderScene() {
 // src/designer/fabric-library.js
 var fabricLib = [];
 var fabricById = (id) => fabricLib.find((f) => f.id === id) || fabricLib[0];
-async function initFabricLib() {
-  if (fabricLib.length) return;
-  const preps = await Promise.all(BUNDLED.map(prepareSwatch));
-  preps.forEach(
-    (s, i) => fabricLib.push({ id: "b" + i, name: s.name, canvas: s.canvas, cm: s.cm, print: !s.tint && !/linen/i.test(s.name) })
+var loading = null;
+function initFabricLib() {
+  return loading ??= (async () => {
+    const preps = await Promise.all(BUNDLED.map(prepareSwatch));
+    preps.forEach(
+      (s, i) => fabricLib.push({
+        id: "b" + i,
+        name: s.name,
+        canvas: s.canvas,
+        cm: s.cm,
+        print: !s.tint && !/linen/i.test(s.name)
+      })
+    );
+    for (const r of fabrics.list()) {
+      try {
+        fabricLib.push({ id: r.id, name: r.name, canvas: await blobCanvas(r.blob), cm: r.cm });
+      } catch (e) {
+      }
+    }
+  })();
+}
+async function blobCanvas(blob) {
+  const bm = await createImageBitmap(blob), c = document.createElement("canvas");
+  c.width = bm.width;
+  c.height = bm.height;
+  c.getContext("2d").drawImage(bm, 0, 0);
+  bm.close?.();
+  return c;
+}
+async function addFabric(canvas2, meta) {
+  const blob = await new Promise(
+    (resolve, reject) => canvas2.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
   );
-}
-
-// src/core/patterns.js
-var P_ = (name, role, poly) => ({ name, role, poly });
-function rotPoly(poly, k) {
-  let p = poly;
-  for (let i = 0; i < k; i++) p = p.map(([x, y]) => [1 - y, x]);
-  return p;
-}
-var orientPoly = (poly, b) => {
-  const p = rotPoly(poly, b.rot || 0);
-  return b.flip ? p.map(([x, y]) => [1 - x, y]) : p;
-};
-var sq = (x0, y0, x1, y1) => [
-  [x0, y0],
-  [x1, y0],
-  [x1, y1],
-  [x0, y1]
-];
-var PATTERNS = {
-  plain: { label: "Plain square", parts: () => [P_("Square", 0, sq(0, 0, 1, 1))] },
-  hst: {
-    label: "Half-square triangle",
-    parts: () => [
-      P_("Lower triangle", 1, [
-        [0, 0],
-        [0, 1],
-        [1, 1]
-      ]),
-      P_("Upper triangle", 0, [
-        [0, 0],
-        [1, 0],
-        [1, 1]
-      ])
-    ]
-  },
-  hourglass: {
-    label: "Hourglass",
-    parts: () => {
-      const c = [0.5, 0.5];
-      return [
-        P_("Top", 1, [[0, 0], [1, 0], c]),
-        P_("Right", 0, [[1, 0], [1, 1], c]),
-        P_("Bottom", 1, [[1, 1], [0, 1], c]),
-        P_("Left", 0, [[0, 1], [0, 0], c])
-      ];
-    }
-  },
-  four: {
-    label: "Four patch",
-    parts: () => [
-      P_("Top left", 1, sq(0, 0, 0.5, 0.5)),
-      P_("Top right", 0, sq(0.5, 0, 1, 0.5)),
-      P_("Bottom left", 0, sq(0, 0.5, 0.5, 1)),
-      P_("Bottom right", 1, sq(0.5, 0.5, 1, 1))
-    ]
-  },
-  nine: {
-    label: "Nine patch",
-    parts: () => {
-      const out = [], t = 1 / 3, names = ["Top left", "Top", "Top right", "Left", "Centre", "Right", "Bottom left", "Bottom", "Bottom right"];
-      for (let j = 0; j < 3; j++)
-        for (let i = 0; i < 3; i++)
-          out.push(P_(names[j * 3 + i], (i + j) % 2 === 0 ? 1 : 0, sq(i * t, j * t, (i + 1) * t, (j + 1) * t)));
-      return out;
-    }
-  },
-  ohio: {
-    label: "Ohio star",
-    parts: () => {
-      const t = 1 / 3, out = [];
-      for (
-        const [i, j, n] of
-        /** @type {[number, number, string][]} */
-        [
-          [0, 0, "Corner top left"],
-          [2, 0, "Corner top right"],
-          [0, 2, "Corner bottom left"],
-          [2, 2, "Corner bottom right"]
-        ]
-      )
-        out.push(P_(n, 0, sq(i * t, j * t, (i + 1) * t, (j + 1) * t)));
-      out.push(P_("Centre", 2, sq(t, t, 2 * t, 2 * t)));
-      for (
-        const [i, j, side, vertical] of
-        /** @type {[number, number, string, boolean][]} */
-        [
-          [1, 0, "top", false],
-          [1, 2, "bottom", false],
-          [0, 1, "left", true],
-          [2, 1, "right", true]
-        ]
-      ) {
-        const x0 = i * t, y0 = j * t, x1 = x0 + t, y1 = y0 + t, c = [x0 + t / 2, y0 + t / 2];
-        const tri = {
-          N: [[x0, y0], [x1, y0], c],
-          E: [[x1, y0], [x1, y1], c],
-          S: [[x1, y1], [x0, y1], c],
-          Wd: [[x0, y1], [x0, y0], c]
-        };
-        const star = vertical ? ["N", "S"] : ["E", "Wd"];
-        for (const k of ["N", "E", "S", "Wd"])
-          out.push(
-            P_(
-              `Point ${side} \xB7 ${{ N: "upper", E: "right", S: "lower", Wd: "left" }[k]}`,
-              star.includes(k) ? 1 : 0,
-              tri[k]
-            )
-          );
-      }
-      return out;
-    }
-  },
-  pinwheel: {
-    label: "Pinwheel",
-    parts: () => {
-      const blade = [
-        [0, 0],
-        [0.5, 0],
-        [0.5, 0.5]
-      ], bg = [
-        [0, 0],
-        [0.5, 0.5],
-        [0, 0.5]
-      ], out = [];
-      const names = ["top left", "top right", "bottom right", "bottom left"];
-      for (let k = 0; k < 4; k++) {
-        out.push(P_("Blade " + names[k], 1, rotPoly(blade, k)));
-        out.push(P_("Background " + names[k], 0, rotPoly(bg, k)));
-      }
-      return out;
-    }
-  },
-  geese: {
-    label: "Flying geese",
-    parts: () => {
-      const out = [];
-      for (const [r, role] of [
-        [0, 1],
-        [1, 2]
-      ]) {
-        const y0 = r * 0.5, y1 = y0 + 0.5, n = r ? "lower" : "upper";
-        out.push(
-          P_(`Goose ${n}`, role, [
-            [0, y1],
-            [0.5, y0],
-            [1, y1]
-          ]),
-          P_(`Sky left ${n}`, 0, [
-            [0, y0],
-            [0.5, y0],
-            [0, y1]
-          ]),
-          P_(`Sky right ${n}`, 0, [
-            [0.5, y0],
-            [1, y0],
-            [1, y1]
-          ])
-        );
-      }
-      return out;
-    }
-  },
-  logcabin: {
-    label: "Log cabin",
-    parts: () => {
-      let x0 = 0.4, y0 = 0.4, x1 = 0.6, y1 = 0.6;
-      const w = 0.1, out = [P_("Hearth", 2, sq(x0, y0, x1, y1))];
-      for (let k = 0; k < 16; k++) {
-        const side = k % 4, role = side < 2 ? 0 : 1, n = `Log ${k + 1}`;
-        if (side === 0) {
-          out.push(P_(n, role, sq(x0, y0 - w, x1, y0)));
-          y0 -= w;
-        } else if (side === 1) {
-          out.push(P_(n, role, sq(x1, y0, x1 + w, y1)));
-          x1 += w;
-        } else if (side === 2) {
-          out.push(P_(n, role, sq(x0, y1, x1, y1 + w)));
-          y1 += w;
-        } else {
-          out.push(P_(n, role, sq(x0 - w, y0, x0, y1)));
-          x0 -= w;
-        }
-      }
-      return out;
-    }
-  },
-  churn: {
-    label: "Churn dash",
-    parts: () => {
-      const t = 1 / 3, out = [];
-      const corner = [
-        [0, 0],
-        [t, 0],
-        [0, t]
-      ], cornerBg = [
-        [t, 0],
-        [t, t],
-        [0, t]
-      ];
-      const names = ["top left", "top right", "bottom right", "bottom left"];
-      for (let k = 0; k < 4; k++) {
-        out.push(
-          P_("Corner " + names[k], 1, rotPoly(corner, k)),
-          P_("Corner background " + names[k], 0, rotPoly(cornerBg, k))
-        );
-      }
-      const edgeOuter = sq(t, 0, 2 * t, t / 2), edgeInner = sq(t, t / 2, 2 * t, t), en = ["top", "right", "bottom", "left"];
-      for (let k = 0; k < 4; k++) {
-        out.push(P_("Bar " + en[k], 1, rotPoly(edgeOuter, k)), P_("Bar background " + en[k], 0, rotPoly(edgeInner, k)));
-      }
-      out.push(P_("Centre", 0, sq(t, t, 2 * t, 2 * t)));
-      return out;
-    }
-  },
-  fanstar: {
-    label: "Fan star",
-    parts: () => {
-      const t = 1 / 3, s = 1 / 6, apex = [0.5, 0.5], out = [];
-      const blades = [
-        [
-          [0, 0.5],
-          [0, t]
-        ],
-        [
-          [0, t],
-          [0, s]
-        ],
-        [
-          [0, s],
-          [0, 0]
-        ],
-        [
-          [0, 0],
-          [s, 0]
-        ],
-        [
-          [s, 0],
-          [t, 0]
-        ],
-        [
-          [t, 0],
-          [0.5, 0]
-        ]
-      ];
-      blades.forEach(([a, b], k) => out.push(P_(`A${k + 1} \xB7 fan blade`, k === 4 ? 2 : 1, [a, b, apex])));
-      out.push(
-        P_("B", 0, sq(0.5, 0, 2 / 3, t)),
-        P_("C", 0, sq(2 / 3, 0, 1, t)),
-        P_("D", 0, sq(0, 0.5, t, 2 / 3)),
-        P_("E", 0, sq(0, 2 / 3, t, 1)),
-        P_("I \xB7 star corner", 0, sq(5 / 6, t, 1, 0.5)),
-        P_("K \xB7 star corner", 0, sq(t, 5 / 6, 0.5, 1)),
-        P_("L \xB7 star corner", 0, sq(5 / 6, 5 / 6, 1, 1)),
-        P_("M \xB7 star centre", 1, sq(0.5, 0.5, 5 / 6, 5 / 6))
-      );
-      const c = [2 / 3, 2 / 3];
-      const turn = ([u, v], k) => {
-        let du = u - c[0], dv = v - c[1];
-        for (let i = 0; i < k; i++) [du, dv] = [-dv, du];
-        return [c[0] + du, c[1] + dv];
-      };
-      const unit = (
-        /** @type {[number, import('./types.js').Poly][]} */
-        [
-          [
-            1,
-            [
-              [0.5, t],
-              [2 / 3, 0.5],
-              [0.5, 0.5]
-            ]
-          ],
-          [
-            2,
-            [
-              [0.5, t],
-              [2 / 3, t],
-              [2 / 3, 0.5]
-            ]
-          ],
-          [
-            2,
-            [
-              [2 / 3, t],
-              [5 / 6, t],
-              [2 / 3, 0.5]
-            ]
-          ],
-          [
-            1,
-            [
-              [5 / 6, t],
-              [5 / 6, 0.5],
-              [2 / 3, 0.5]
-            ]
-          ]
-        ]
-      );
-      const sides = ["top", "right", "bottom", "left"], letters = [
-        ["G", "F", "H", "G"],
-        ["G", "H", "F", "G"],
-        ["G", "F", "J", "G"],
-        ["G", "J", "F", "G"]
-      ];
-      for (let k = 0; k < 4; k++)
-        unit.forEach(
-          ([role, poly], i) => out.push(
-            P_(
-              `Star point ${sides[k]} \xB7 ${letters[k][i]}`,
-              role,
-              poly.map((p) => turn(p, k))
-            )
-          )
-        );
-      return out;
-    }
-  }
-};
-var TRACED = {
-  spoolstar: [
-    "Spool star",
-    [
-      ["Triangle \xB7 top left 1", 0, [0, 6, 0, 0, 6, 0]],
-      ["Triangle \xB7 top", 1, [12, 6, 6, 0, 18, 0]],
-      ["Triangle \xB7 top right 1", 0, [24, 6, 18, 0, 24, 0]],
-      ["Triangle \xB7 top left 2", 2, [0, 6, 6, 0, 6, 6]],
-      ["Triangle \xB7 top left 3", 0, [6, 6, 6, 0, 12, 6]],
-      ["Triangle \xB7 top right 2", 0, [12, 6, 18, 0, 18, 6]],
-      ["Triangle \xB7 top right 3", 2, [24, 6, 18, 6, 18, 0]],
-      ["Triangle \xB7 top left 4", 0, [10, 6, 6, 10, 6, 6]],
-      ["Triangle \xB7 top right 4", 0, [18, 6, 18, 10, 14, 6]],
-      ["Triangle \xB7 top left 5", 0, [0, 6, 6, 6, 6, 12]],
-      ["Triangle \xB7 top right 5", 0, [24, 6, 18, 12, 18, 6]],
-      ["Triangle \xB7 centre 1", 1, [10, 6, 10, 10, 6, 10]],
-      ["Triangle \xB7 centre 2", 1, [18, 10, 14, 10, 14, 6]],
-      ["Triangle \xB7 left", 1, [0, 6, 6, 12, 0, 18]],
-      ["Square \xB7 left", 0, [6, 10, 10, 10, 10, 14, 6, 14]],
-      ["Rectangle \xB7 centre", 2, [14, 18, 10, 18, 10, 6, 14, 6]],
-      ["Square \xB7 right", 0, [18, 14, 14, 14, 14, 10, 18, 10]],
-      ["Triangle \xB7 right", 1, [24, 6, 24, 18, 18, 12]],
-      ["Triangle \xB7 centre 3", 1, [6, 14, 10, 14, 10, 18]],
-      ["Triangle \xB7 centre 4", 1, [14, 14, 18, 14, 14, 18]],
-      ["Triangle \xB7 bottom left 1", 0, [0, 18, 6, 12, 6, 18]],
-      ["Triangle \xB7 bottom right 1", 0, [24, 18, 18, 18, 18, 12]],
-      ["Triangle \xB7 bottom left 2", 0, [6, 14, 10, 18, 6, 18]],
-      ["Triangle \xB7 bottom right 2", 0, [18, 14, 18, 18, 14, 18]],
-      ["Triangle \xB7 bottom left 3", 2, [0, 18, 6, 18, 6, 24]],
-      ["Triangle \xB7 bottom left 4", 0, [6, 24, 6, 18, 12, 18]],
-      ["Triangle \xB7 bottom right 3", 0, [18, 24, 12, 18, 18, 18]],
-      ["Triangle \xB7 bottom right 4", 2, [24, 18, 18, 24, 18, 18]],
-      ["Triangle \xB7 bottom left 5", 0, [0, 18, 6, 24, 0, 24]],
-      ["Triangle \xB7 bottom", 1, [6, 24, 12, 18, 18, 24]],
-      ["Triangle \xB7 bottom right 5", 0, [24, 18, 24, 24, 18, 24]]
-    ]
-  ],
-  crossroads: [
-    "Crossroads",
-    [
-      ["Rectangle \xB7 top", 0, [16, 0, 16, 4, 8, 4, 8, 0]],
-      ["Triangle \xB7 top left 1", 0, [8, 0, 0, 8, 0, 0]],
-      ["Triangle \xB7 top right 1", 0, [24, 8, 16, 0, 24, 0]],
-      ["Triangle \xB7 top left 2", 1, [8, 0, 8, 8, 0, 8]],
-      ["Triangle \xB7 top right 2", 1, [16, 8, 16, 0, 24, 8]],
-      ["Rectangle \xB7 left", 0, [0, 16, 0, 8, 4, 8, 4, 16]],
-      ["Piece \xB7 centre", 2, [20, 8, 20, 16, 16, 16, 16, 20, 8, 20, 8, 16, 4, 16, 4, 8, 8, 8, 8, 4, 16, 4, 16, 8]],
-      ["Rectangle \xB7 right", 0, [20, 8, 24, 8, 24, 16, 20, 16]],
-      ["Triangle \xB7 bottom left 1", 1, [0, 16, 8, 16, 8, 24]],
-      ["Triangle \xB7 bottom right 1", 1, [24, 16, 16, 24, 16, 16]],
-      ["Triangle \xB7 bottom left 2", 0, [0, 16, 8, 24, 0, 24]],
-      ["Triangle \xB7 bottom right 2", 0, [24, 16, 24, 24, 16, 24]],
-      ["Rectangle \xB7 bottom", 0, [8, 24, 8, 20, 16, 20, 16, 24]]
-    ]
-  ],
-  geesecrown: [
-    "Crown of geese",
-    [
-      ["Triangle \xB7 top 1", 1, [6, 0, 12, 0, 9, 3]],
-      ["Triangle \xB7 top 2", 1, [12, 0, 18, 0, 15, 3]],
-      ["Triangle \xB7 top left 1", 0, [6, 0, 0, 6, 0, 0]],
-      ["Triangle \xB7 top right 1", 0, [24, 6, 18, 0, 24, 0]],
-      ["Triangle \xB7 top 3", 2, [12, 0, 12, 6, 9, 3]],
-      ["Triangle \xB7 top 4", 2, [12, 0, 15, 3, 12, 6]],
-      ["Triangle \xB7 top left 2", 1, [6, 0, 6, 6, 0, 6]],
-      ["Triangle \xB7 top left 3", 0, [6, 0, 12, 6, 6, 6]],
-      ["Triangle \xB7 top right 2", 0, [18, 0, 18, 6, 12, 6]],
-      ["Triangle \xB7 top right 3", 1, [24, 6, 18, 6, 18, 0]],
-      ["Triangle \xB7 top left 4", 0, [6, 12, 0, 6, 6, 6]],
-      ["Triangle \xB7 top right 4", 0, [18, 12, 18, 6, 24, 6]],
-      ["Triangle \xB7 left 1", 1, [0, 12, 0, 6, 3, 9]],
-      ["Triangle \xB7 right 1", 1, [21, 9, 24, 6, 24, 12]],
-      ["Triangle \xB7 left 2", 2, [0, 12, 3, 9, 6, 12]],
-      ["Triangle \xB7 right 2", 2, [21, 9, 24, 12, 18, 12]],
-      ["Square \xB7 centre", 0, [6, 6, 18, 6, 18, 18, 6, 18]],
-      ["Triangle \xB7 left 3", 2, [0, 12, 6, 12, 3, 15]],
-      ["Triangle \xB7 right 3", 2, [24, 12, 21, 15, 18, 12]],
-      ["Triangle \xB7 left 4", 1, [0, 12, 3, 15, 0, 18]],
-      ["Triangle \xB7 right 4", 1, [24, 12, 24, 18, 21, 15]],
-      ["Triangle \xB7 bottom left 1", 0, [6, 12, 6, 18, 0, 18]],
-      ["Triangle \xB7 bottom right 1", 0, [18, 18, 18, 12, 24, 18]],
-      ["Triangle \xB7 bottom left 2", 1, [0, 18, 6, 18, 6, 24]],
-      ["Triangle \xB7 bottom left 3", 0, [6, 24, 6, 18, 12, 18]],
-      ["Triangle \xB7 bottom right 2", 0, [18, 18, 18, 24, 12, 18]],
-      ["Triangle \xB7 bottom right 3", 1, [18, 18, 24, 18, 18, 24]],
-      ["Triangle \xB7 bottom 1", 2, [9, 21, 12, 18, 12, 24]],
-      ["Triangle \xB7 bottom 2", 2, [12, 24, 12, 18, 15, 21]],
-      ["Triangle \xB7 bottom left 4", 0, [0, 18, 6, 24, 0, 24]],
-      ["Triangle \xB7 bottom right 4", 0, [18, 24, 24, 18, 24, 24]],
-      ["Triangle \xB7 bottom 3", 1, [6, 24, 9, 21, 12, 24]],
-      ["Triangle \xB7 bottom 4", 1, [18, 24, 12, 24, 15, 21]]
-    ]
-  ],
-  tulipcross: [
-    "Tulip cross",
-    [
-      ["Triangle \xB7 top left 1", 0, [4, 0, 12, 0, 8, 4]],
-      ["Triangle \xB7 top right 1", 0, [16, 4, 12, 0, 20, 0]],
-      ["Square \xB7 top left", 1, [0, 4, 0, 0, 4, 0, 4, 4]],
-      ["Square \xB7 top right", 1, [20, 0, 24, 0, 24, 4, 20, 4]],
-      ["Hexagon \xB7 top left", 0, [4, 8, 0, 4, 4, 4, 4, 0, 8, 4, 8, 8]],
-      ["Hexagon \xB7 top right", 0, [16, 4, 20, 0, 20, 4, 24, 4, 20, 8, 16, 8]],
-      ["Pentagon \xB7 top", 1, [16, 4, 16, 8, 8, 8, 8, 4, 12, 0]],
-      ["Triangle \xB7 top left 2", 0, [0, 12, 0, 4, 4, 8]],
-      ["Triangle \xB7 top right 2", 0, [24, 12, 20, 8, 24, 4]],
-      ["Pentagon \xB7 left", 1, [0, 12, 4, 8, 8, 8, 8, 16, 4, 16]],
-      ["Square \xB7 centre", 2, [8, 16, 8, 8, 16, 8, 16, 16]],
-      ["Pentagon \xB7 right", 1, [20, 16, 16, 16, 16, 8, 20, 8, 24, 12]],
-      ["Triangle \xB7 bottom left 1", 0, [0, 12, 4, 16, 0, 20]],
-      ["Triangle \xB7 bottom right 1", 0, [20, 16, 24, 12, 24, 20]],
-      ["Pentagon \xB7 bottom", 1, [12, 24, 8, 20, 8, 16, 16, 16, 16, 20]],
-      ["Hexagon \xB7 bottom left", 0, [4, 24, 4, 20, 0, 20, 4, 16, 8, 16, 8, 20]],
-      ["Hexagon \xB7 bottom right", 0, [20, 24, 16, 20, 16, 16, 20, 16, 24, 20, 20, 20]],
-      ["Square \xB7 bottom left", 1, [4, 24, 0, 24, 0, 20, 4, 20]],
-      ["Square \xB7 bottom right", 1, [20, 24, 20, 20, 24, 20, 24, 24]],
-      ["Triangle \xB7 bottom left 2", 0, [4, 24, 8, 20, 12, 24]],
-      ["Triangle \xB7 bottom right 2", 0, [12, 24, 16, 20, 20, 24]]
-    ]
-  ],
-  eightstar: [
-    "Eight-point star",
-    [
-      ["Triangle \xB7 top 1", 0, [6, 0, 12, 0, 12, 6]],
-      ["Triangle \xB7 top 2", 0, [12, 0, 18, 0, 12, 6]],
-      ["Square \xB7 top left", 0, [6, 0, 6, 6, 0, 6, 0, 0]],
-      ["Square \xB7 top right", 0, [18, 0, 24, 0, 24, 6, 18, 6]],
-      ["Triangle \xB7 top left 1", 1, [6, 0, 12, 6, 6, 6]],
-      ["Triangle \xB7 top right 1", 1, [18, 0, 18, 6, 12, 6]],
-      ["Triangle \xB7 top left 2", 1, [6, 12, 0, 6, 6, 6]],
-      ["Triangle \xB7 top left 3", 0, [6, 12, 6, 6, 12, 6]],
-      ["Triangle \xB7 top right 2", 0, [18, 12, 12, 6, 18, 6]],
-      ["Triangle \xB7 top right 3", 1, [18, 12, 18, 6, 24, 6]],
-      ["Triangle \xB7 centre 1", 2, [12, 6, 12, 12, 9, 9]],
-      ["Triangle \xB7 centre 2", 2, [15, 9, 12, 12, 12, 6]],
-      ["Triangle \xB7 left 1", 0, [0, 12, 0, 6, 6, 12]],
-      ["Triangle \xB7 right 1", 0, [18, 12, 24, 6, 24, 12]],
-      ["Triangle \xB7 centre 3", 2, [6, 12, 9, 9, 12, 12]],
-      ["Triangle \xB7 centre 4", 2, [18, 12, 12, 12, 15, 9]],
-      ["Triangle \xB7 centre 5", 2, [6, 12, 12, 12, 9, 15]],
-      ["Triangle \xB7 centre 6", 2, [18, 12, 15, 15, 12, 12]],
-      ["Triangle \xB7 left 2", 0, [0, 12, 6, 12, 0, 18]],
-      ["Triangle \xB7 right 2", 0, [18, 12, 24, 12, 24, 18]],
-      ["Triangle \xB7 centre 7", 2, [9, 15, 12, 12, 12, 18]],
-      ["Triangle \xB7 centre 8", 2, [12, 12, 15, 15, 12, 18]],
-      ["Triangle \xB7 bottom left 1", 1, [6, 12, 6, 18, 0, 18]],
-      ["Triangle \xB7 bottom left 2", 0, [6, 12, 12, 18, 6, 18]],
-      ["Triangle \xB7 bottom right 1", 0, [18, 12, 18, 18, 12, 18]],
-      ["Triangle \xB7 bottom right 2", 1, [18, 12, 24, 18, 18, 18]],
-      ["Triangle \xB7 bottom left 3", 1, [6, 24, 6, 18, 12, 18]],
-      ["Triangle \xB7 bottom right 3", 1, [18, 18, 18, 24, 12, 18]],
-      ["Square \xB7 bottom left", 0, [0, 18, 6, 18, 6, 24, 0, 24]],
-      ["Square \xB7 bottom right", 0, [24, 18, 24, 24, 18, 24, 18, 18]],
-      ["Triangle \xB7 bottom 1", 0, [6, 24, 12, 18, 12, 24]],
-      ["Triangle \xB7 bottom 2", 0, [18, 24, 12, 24, 12, 18]]
-    ]
-  ],
-  nested: [
-    "Nested triangles",
-    [
-      ["Triangle \xB7 top right 1", 0, [18, 0, 18, 6, 12, 0]],
-      ["Triangle \xB7 top right 2", 0, [18, 0, 24, 0, 24, 6]],
-      ["Triangle \xB7 top left", 0, [12, 12, 0, 0, 12, 0]],
-      ["Triangle \xB7 top right 3", 2, [18, 0, 24, 6, 18, 6]],
-      ["Triangle \xB7 top right 4", 1, [24, 12, 12, 12, 12, 0]],
-      ["Triangle \xB7 top right 5", 0, [18, 6, 24, 6, 24, 12]],
-      ["Triangle \xB7 bottom left", 1, [24, 24, 0, 24, 0, 0]],
-      ["Triangle \xB7 bottom right", 0, [12, 12, 24, 12, 24, 24]]
-    ]
-  ],
-  twinbars: [
-    "Twin bars star",
-    [
-      ["Triangle \xB7 top 1", 1, [6, 0, 12, 0, 12, 6]],
-      ["Triangle \xB7 top 2", 1, [12, 0, 18, 0, 12, 6]],
-      ["Square \xB7 top left", 0, [6, 0, 6, 6, 0, 6, 0, 0]],
-      ["Square \xB7 top right", 0, [24, 6, 18, 6, 18, 0, 24, 0]],
-      ["Triangle \xB7 top left 1", 0, [6, 0, 12, 6, 6, 6]],
-      ["Triangle \xB7 top right 1", 0, [18, 0, 18, 6, 12, 6]],
-      ["Triangle \xB7 top left 2", 0, [0, 6, 6, 6, 6, 12]],
-      ["Triangle \xB7 top right 2", 0, [24, 6, 18, 12, 18, 6]],
-      ["Triangle \xB7 left", 1, [0, 6, 6, 12, 0, 18]],
-      ["Rectangle \xB7 centre 1", 2, [6, 6, 12, 6, 12, 18, 6, 18]],
-      ["Rectangle \xB7 centre 2", 2, [18, 18, 12, 18, 12, 6, 18, 6]],
-      ["Triangle \xB7 right", 1, [24, 6, 24, 18, 18, 12]],
-      ["Triangle \xB7 bottom left 1", 0, [0, 18, 6, 12, 6, 18]],
-      ["Triangle \xB7 bottom right 1", 0, [24, 18, 18, 18, 18, 12]],
-      ["Triangle \xB7 bottom left 2", 0, [6, 24, 6, 18, 12, 18]],
-      ["Triangle \xB7 bottom right 2", 0, [18, 18, 18, 24, 12, 18]],
-      ["Square \xB7 bottom left", 0, [0, 18, 6, 18, 6, 24, 0, 24]],
-      ["Square \xB7 bottom right", 0, [24, 18, 24, 24, 18, 24, 18, 18]],
-      ["Triangle \xB7 bottom 1", 1, [6, 24, 12, 18, 12, 24]],
-      ["Triangle \xB7 bottom 2", 1, [18, 24, 12, 24, 12, 18]]
-    ]
-  ],
-  twisted: [
-    "Twisted square",
-    [
-      ["Triangle \xB7 top left", 0, [0, 8, 0, 0, 8, 0]],
-      ["Triangle \xB7 top right", 0, [24, 8, 16, 0, 24, 0]],
-      ["Pentagon \xB7 top right", 1, [24, 8, 16, 16, 16, 8, 8, 0, 16, 0]],
-      ["Pentagon \xB7 top left", 2, [0, 16, 0, 8, 8, 0, 16, 8, 8, 8]],
-      ["Square \xB7 centre", 0, [16, 8, 16, 16, 8, 16, 8, 8]],
-      ["Pentagon \xB7 bottom right", 1, [24, 16, 16, 24, 8, 16, 16, 16, 24, 8]],
-      ["Pentagon \xB7 bottom left", 2, [0, 16, 8, 8, 8, 16, 16, 24, 8, 24]],
-      ["Triangle \xB7 bottom left", 0, [0, 16, 8, 24, 0, 24]],
-      ["Triangle \xB7 bottom right", 0, [24, 16, 24, 24, 16, 24]]
-    ]
-  ],
-  spindiamond: [
-    "Spinning diamond",
-    [
-      ["Triangle \xB7 top left 1", 0, [6, 0, 0, 6, 0, 0]],
-      ["Triangle \xB7 top right 1", 0, [12, 0, 18, 0, 18, 6]],
-      ["Triangle \xB7 top right 2", 0, [18, 0, 24, 0, 24, 6]],
-      ["Parallelogram \xB7 top left", 1, [6, 0, 12, 0, 6, 6, 0, 6]],
-      ["Triangle \xB7 top", 0, [12, 0, 12, 6, 6, 6]],
-      ["Parallelogram \xB7 top", 1, [12, 0, 18, 6, 18, 12, 12, 6]],
-      ["Parallelogram \xB7 top right", 1, [18, 0, 24, 6, 24, 12, 18, 6]],
-      ["Triangle \xB7 top left 2", 0, [0, 12, 0, 6, 6, 6]],
-      ["Parallelogram \xB7 left", 1, [0, 12, 6, 6, 12, 6, 6, 12]],
-      ["Triangle \xB7 centre 1", 2, [6, 12, 12, 6, 12, 12]],
-      ["Triangle \xB7 centre 2", 2, [12, 6, 18, 12, 12, 12]],
-      ["Triangle \xB7 right", 0, [18, 6, 24, 12, 18, 12]],
-      ["Triangle \xB7 left", 0, [0, 12, 6, 12, 6, 18]],
-      ["Triangle \xB7 centre 3", 2, [6, 12, 12, 12, 12, 18]],
-      ["Triangle \xB7 centre 4", 2, [18, 12, 12, 18, 12, 12]],
-      ["Parallelogram \xB7 right", 1, [18, 12, 24, 12, 18, 18, 12, 18]],
-      ["Triangle \xB7 bottom right 1", 0, [24, 12, 24, 18, 18, 18]],
-      ["Parallelogram \xB7 bottom left", 1, [0, 12, 6, 18, 6, 24, 0, 18]],
-      ["Parallelogram \xB7 bottom", 1, [6, 18, 6, 12, 12, 18, 12, 24]],
-      ["Triangle \xB7 bottom", 0, [12, 18, 18, 18, 12, 24]],
-      ["Parallelogram \xB7 bottom right", 1, [18, 24, 12, 24, 18, 18, 24, 18]],
-      ["Triangle \xB7 bottom left 1", 0, [0, 18, 6, 24, 0, 24]],
-      ["Triangle \xB7 bottom left 2", 0, [6, 18, 12, 24, 6, 24]],
-      ["Triangle \xB7 bottom right 2", 0, [18, 24, 24, 18, 24, 24]]
-    ]
-  ],
-  hourframe: [
-    "Hourglass frame",
-    [
-      ["Triangle \xB7 top left 1", 1, [4, 4, 0, 0, 8, 0]],
-      ["Triangle \xB7 top 1", 1, [12, 4, 8, 0, 16, 0]],
-      ["Triangle \xB7 top right 1", 1, [20, 4, 16, 0, 24, 0]],
-      ["Triangle \xB7 top left 2", 0, [12, 4, 4, 4, 8, 0]],
-      ["Triangle \xB7 top right 2", 0, [12, 4, 16, 0, 20, 4]],
-      ["Triangle \xB7 top left 3", 1, [4, 4, 0, 8, 0, 0]],
-      ["Triangle \xB7 top right 3", 1, [20, 4, 24, 0, 24, 8]],
-      ["Triangle \xB7 top left 4", 1, [12, 4, 8, 8, 4, 4]],
-      ["Triangle \xB7 top right 4", 1, [12, 4, 20, 4, 16, 8]],
-      ["Triangle \xB7 top left 5", 0, [4, 8, 4, 4, 8, 8]],
-      ["Triangle \xB7 top 2", 0, [12, 4, 16, 8, 8, 8]],
-      ["Triangle \xB7 top right 5", 0, [20, 4, 20, 8, 16, 8]],
-      ["Triangle \xB7 top left 6", 0, [4, 12, 0, 8, 4, 4]],
-      ["Triangle \xB7 top right 6", 0, [20, 4, 24, 8, 20, 12]],
-      ["Triangle \xB7 centre 1", 2, [12, 12, 8, 8, 16, 8]],
-      ["Triangle \xB7 left 1", 1, [0, 16, 0, 8, 4, 12]],
-      ["Triangle \xB7 left 2", 0, [4, 8, 8, 12, 4, 16]],
-      ["Hexagon \xB7 left", 1, [4, 8, 8, 8, 12, 12, 8, 16, 4, 16, 8, 12]],
-      ["Hexagon \xB7 right", 1, [12, 12, 16, 8, 20, 8, 16, 12, 20, 16, 16, 16]],
-      ["Triangle \xB7 right 1", 0, [16, 12, 20, 8, 20, 16]],
-      ["Triangle \xB7 right 2", 1, [24, 16, 20, 12, 24, 8]],
-      ["Triangle \xB7 centre 2", 2, [12, 12, 16, 16, 8, 16]],
-      ["Triangle \xB7 bottom left 1", 0, [4, 20, 0, 16, 4, 12]],
-      ["Triangle \xB7 bottom right 1", 0, [20, 20, 20, 12, 24, 16]],
-      ["Triangle \xB7 bottom left 2", 0, [4, 20, 4, 16, 8, 16]],
-      ["Triangle \xB7 bottom 1", 0, [12, 20, 8, 16, 16, 16]],
-      ["Triangle \xB7 bottom right 2", 0, [20, 20, 16, 16, 20, 16]],
-      ["Triangle \xB7 bottom left 3", 1, [4, 20, 8, 16, 12, 20]],
-      ["Triangle \xB7 bottom right 3", 1, [20, 20, 12, 20, 16, 16]],
-      ["Triangle \xB7 bottom left 4", 1, [0, 24, 0, 16, 4, 20]],
-      ["Triangle \xB7 bottom right 4", 1, [20, 20, 24, 16, 24, 24]],
-      ["Triangle \xB7 bottom left 5", 0, [4, 20, 12, 20, 8, 24]],
-      ["Triangle \xB7 bottom right 5", 0, [20, 20, 16, 24, 12, 20]],
-      ["Triangle \xB7 bottom left 6", 1, [0, 24, 4, 20, 8, 24]],
-      ["Triangle \xB7 bottom 2", 1, [8, 24, 12, 20, 16, 24]],
-      ["Triangle \xB7 bottom right 6", 1, [20, 20, 24, 24, 16, 24]]
-    ]
-  ],
-  window: [
-    "Window diamond",
-    [
-      ["Square \xB7 top left 1", 1, [4, 4, 0, 4, 0, 0, 4, 0]],
-      ["Square \xB7 top left 2", 0, [4, 4, 4, 0, 8, 0, 8, 4]],
-      ["Rectangle \xB7 top 1", 1, [16, 4, 8, 4, 8, 0, 16, 0]],
-      ["Square \xB7 top right 1", 0, [16, 4, 16, 0, 20, 0, 20, 4]],
-      ["Square \xB7 top right 2", 1, [20, 4, 20, 0, 24, 0, 24, 4]],
-      ["Square \xB7 top left 3", 0, [4, 4, 4, 8, 0, 8, 0, 4]],
-      ["Square \xB7 top left 4", 1, [4, 4, 8, 4, 8, 8, 4, 8]],
-      ["Rectangle \xB7 top 2", 0, [16, 4, 16, 8, 8, 8, 8, 4]],
-      ["Square \xB7 top right 3", 1, [16, 4, 20, 4, 20, 8, 16, 8]],
-      ["Square \xB7 top right 4", 0, [20, 4, 24, 4, 24, 8, 20, 8]],
-      ["Triangle \xB7 centre 1", 0, [8, 12, 8, 8, 12, 8]],
-      ["Triangle \xB7 centre 2", 0, [12, 8, 16, 8, 16, 12]],
-      ["Triangle \xB7 centre 3", 2, [8, 12, 12, 8, 12, 12]],
-      ["Triangle \xB7 centre 4", 2, [12, 8, 16, 12, 12, 12]],
-      ["Rectangle \xB7 left 1", 1, [0, 16, 0, 8, 4, 8, 4, 16]],
-      ["Rectangle \xB7 left 2", 0, [4, 8, 8, 8, 8, 16, 4, 16]],
-      ["Rectangle \xB7 right 1", 0, [20, 8, 20, 16, 16, 16, 16, 8]],
-      ["Rectangle \xB7 right 2", 1, [20, 8, 24, 8, 24, 16, 20, 16]],
-      ["Triangle \xB7 centre 5", 2, [8, 12, 12, 12, 12, 16]],
-      ["Triangle \xB7 centre 6", 2, [16, 12, 12, 16, 12, 12]],
-      ["Triangle \xB7 centre 7", 0, [8, 12, 12, 16, 8, 16]],
-      ["Triangle \xB7 centre 8", 0, [16, 12, 16, 16, 12, 16]],
-      ["Square \xB7 bottom left 1", 0, [4, 20, 0, 20, 0, 16, 4, 16]],
-      ["Square \xB7 bottom left 2", 1, [4, 20, 4, 16, 8, 16, 8, 20]],
-      ["Rectangle \xB7 bottom 1", 0, [8, 20, 8, 16, 16, 16, 16, 20]],
-      ["Square \xB7 bottom right 1", 1, [20, 16, 20, 20, 16, 20, 16, 16]],
-      ["Square \xB7 bottom right 2", 0, [20, 16, 24, 16, 24, 20, 20, 20]],
-      ["Square \xB7 bottom left 3", 1, [4, 20, 4, 24, 0, 24, 0, 20]],
-      ["Square \xB7 bottom left 4", 0, [4, 20, 8, 20, 8, 24, 4, 24]],
-      ["Rectangle \xB7 bottom 2", 1, [8, 20, 16, 20, 16, 24, 8, 24]],
-      ["Square \xB7 bottom right 3", 0, [20, 24, 16, 24, 16, 20, 20, 20]],
-      ["Square \xB7 bottom right 4", 1, [20, 24, 20, 20, 24, 20, 24, 24]]
-    ]
-  ],
-  totem: [
-    "Totem",
-    [
-      ["Triangle \xB7 top", 1, [12, 4, 8, 0, 16, 0]],
-      ["Hexagon \xB7 top left", 0, [12, 4, 4, 4, 8, 8, 0, 8, 0, 0, 8, 0]],
-      ["Hexagon \xB7 top right", 0, [12, 4, 16, 0, 24, 0, 24, 8, 16, 8, 20, 4]],
-      ["Trapezoid \xB7 top", 1, [20, 4, 16, 8, 8, 8, 4, 4]],
-      ["Triangle \xB7 centre 1", 2, [16, 8, 12, 12, 8, 8]],
-      ["Triangle \xB7 left", 1, [0, 16, 0, 8, 4, 12]],
-      ["Hexagon \xB7 left", 0, [0, 16, 4, 12, 0, 8, 8, 8, 12, 12, 8, 16]],
-      ["Hexagon \xB7 right", 0, [24, 16, 16, 16, 12, 12, 16, 8, 24, 8, 20, 12]],
-      ["Triangle \xB7 right", 1, [24, 16, 20, 12, 24, 8]],
-      ["Triangle \xB7 centre 2", 2, [12, 12, 16, 16, 8, 16]],
-      ["Trapezoid \xB7 bottom", 1, [4, 20, 8, 16, 16, 16, 20, 20]],
-      ["Hexagon \xB7 bottom left", 0, [0, 16, 8, 16, 4, 20, 12, 20, 8, 24, 0, 24]],
-      ["Hexagon \xB7 bottom right", 0, [24, 16, 24, 24, 16, 24, 12, 20, 20, 20, 16, 16]],
-      ["Triangle \xB7 bottom", 1, [12, 20, 16, 24, 8, 24]]
-    ]
-  ]
-};
-for (const [key, [label, parts]] of Object.entries(TRACED))
-  PATTERNS[key] = {
-    label,
-    parts: () => parts.map(
-      ([n, role, f]) => P_(
-        n,
-        role,
-        Array.from({ length: f.length / 2 }, (_, i) => [f[2 * i] / 24, f[2 * i + 1] / 24])
-      )
-    )
-  };
-Object.assign(PATTERNS, {
-  sqsq: {
-    label: "Square in a square",
-    parts: () => {
-      const c = [
-        [0.5, 0],
-        [1, 0.5],
-        [0.5, 1],
-        [0, 0.5]
-      ], names = ["top left", "top right", "bottom right", "bottom left"];
-      const out = [P_("Centre square", 1, c)];
-      [
-        [
-          [0, 0],
-          [0.5, 0],
-          [0, 0.5]
-        ],
-        [
-          [0.5, 0],
-          [1, 0],
-          [1, 0.5]
-        ],
-        [
-          [1, 0.5],
-          [1, 1],
-          [0.5, 1]
-        ],
-        [
-          [0, 0.5],
-          [0.5, 1],
-          [0, 1]
-        ]
-      ].forEach((t, k) => out.push(P_("Corner " + names[k], 0, t)));
-      return out;
-    }
-  },
-  economy: {
-    label: "Economy",
-    parts: () => {
-      const names = ["top left", "top right", "bottom right", "bottom left"];
-      const out = [P_("Centre square", 2, sq(0.25, 0.25, 0.75, 0.75))];
-      [
-        [
-          [0.25, 0.25],
-          [0.5, 0],
-          [0.75, 0.25]
-        ],
-        [
-          [0.75, 0.25],
-          [1, 0.5],
-          [0.75, 0.75]
-        ],
-        [
-          [0.75, 0.75],
-          [0.5, 1],
-          [0.25, 0.75]
-        ],
-        [
-          [0.25, 0.75],
-          [0, 0.5],
-          [0.25, 0.25]
-        ]
-      ].forEach((t, k) => out.push(P_("Inner triangle " + ["top", "right", "bottom", "left"][k], 1, t)));
-      [
-        [
-          [0, 0],
-          [0.5, 0],
-          [0, 0.5]
-        ],
-        [
-          [0.5, 0],
-          [1, 0],
-          [1, 0.5]
-        ],
-        [
-          [1, 0.5],
-          [1, 1],
-          [0.5, 1]
-        ],
-        [
-          [0, 0.5],
-          [0.5, 1],
-          [0, 1]
-        ]
-      ].forEach((t, k) => out.push(P_("Outer corner " + names[k], 0, t)));
-      return out;
-    }
-  },
-  dnine: {
-    label: "Double nine patch",
-    parts: () => {
-      const out = [], t = 1 / 3, m = t / 3, cell = ["top left", "top", "top right", "left", "centre", "right", "bottom left", "bottom", "bottom right"];
-      for (let J = 0; J < 3; J++)
-        for (let I = 0; I < 3; I++) {
-          const n = cell[J * 3 + I];
-          if ((I + J) % 2) {
-            out.push(P_("Plain " + n, 0, sq(I * t, J * t, (I + 1) * t, (J + 1) * t)));
-            continue;
-          }
-          for (let j = 0; j < 3; j++)
-            for (let i = 0; i < 3; i++)
-              out.push(
-                P_(
-                  `Patch ${n} \xB7 ${cell[j * 3 + i]}`,
-                  (i + j) % 2 ? 0 : 1,
-                  sq(I * t + i * m, J * t + j * m, I * t + (i + 1) * m, J * t + (j + 1) * m)
-                )
-              );
-        }
-      return out;
-    }
-  },
-  sawstar: {
-    label: "Sawtooth star",
-    parts: () => {
-      const q = 0.25, out = [], names = ["top left", "top right", "bottom right", "bottom left"];
-      [
-        [0, 0],
-        [3, 0],
-        [3, 3],
-        [0, 3]
-      ].forEach(([i, j], k) => out.push(P_("Corner " + names[k], 0, sq(i * q, j * q, (i + 1) * q, (j + 1) * q))));
-      out.push(P_("Centre", 2, sq(q, q, 3 * q, 3 * q)));
-      const goose = [
-        [q, q],
-        [0.5, 0],
-        [3 * q, q]
-      ], skyL = [
-        [q, 0],
-        [0.5, 0],
-        [q, q]
-      ], skyR = [
-        [0.5, 0],
-        [3 * q, 0],
-        [3 * q, q]
-      ], sides = ["top", "right", "bottom", "left"];
-      for (let k = 0; k < 4; k++)
-        out.push(
-          P_("Point " + sides[k], 1, rotPoly(goose, k)),
-          P_("Sky " + sides[k] + " 1", 0, rotPoly(skyL, k)),
-          P_("Sky " + sides[k] + " 2", 0, rotPoly(skyR, k))
-        );
-      return out;
-    }
-  }
-});
-var PCACHE = {};
-var partsOf = (name) => PCACHE[name] = PCACHE[name] || PATTERNS[name].parts();
-
-// src/core/geometry.js
-var polyCentre = (p) => {
-  let x = 0, y = 0;
-  for (const q of p) {
-    x += q[0];
-    y += q[1];
-  }
-  return [x / p.length, y / p.length];
-};
-function blockPolys(b, x, y, w, h) {
-  return partsOf(b.pattern).map((p) => orientPoly(p.poly, b).map(([u, v]) => [x + u * w, y + v * h]));
-}
-function pathPoly(g, poly) {
-  g.beginPath();
-  poly.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
-  g.closePath();
-}
-var sashOf = (d) => {
-  const s = d && d.sashing;
-  return s && s.mm > 0 ? { mm: s.mm, fabric: s.fabric || "b0", corner: s.corner || s.fabric || "b0", border: !!s.border } : { mm: 0, fabric: "b0", corner: "b0", border: false };
-};
-function centreMm(d) {
-  const s = sashOf(d), e = s.border ? 2 : 0;
-  return { W: d.cols * d.blockMm + s.mm * (d.cols - 1 + e), H: d.rows * d.blockMm + s.mm * (d.rows - 1 + e) };
-}
-var bordersOf = (d) => d && Array.isArray(d.borders) ? d.borders.filter((b) => BORDER_TYPES[b.type] && b.mm > 0) : [];
-var borderTotal = (d) => bordersOf(d).reduce((a, b) => a + b.mm, 0);
-function quiltMm(d) {
-  const c = centreMm(d), t = borderTotal(d);
-  return { W: c.W + 2 * t, H: c.H + 2 * t };
-}
-var spanOf = (b) => b && b.span > 1 ? b.span : 1;
-var anchorOf = (d, i) => {
-  const b = d.blocks[i];
-  return b && b.under != null ? b.under : i;
-};
-function normalizeSpans(d) {
-  if (!d || !Array.isArray(d.blocks)) return d;
-  const C = d.cols, R2 = d.rows, n = d.blocks.length, taken = new Array(n).fill(false), span = new Array(n).fill(0), under = new Array(n).fill(-1);
-  for (let i = 0; i < n; i++) {
-    const b = d.blocks[i], c = i % C, r = Math.floor(i / C);
-    if (taken[i]) continue;
-    taken[i] = true;
-    if (!(b.span > 1)) continue;
-    let k = Math.min(b.span, C - c, R2 - r);
-    const free = (k2) => {
-      for (let y = r; y < r + k2; y++)
-        for (let x = c; x < c + k2; x++) if ((x !== c || y !== r) && taken[y * C + x]) return false;
-      return true;
-    };
-    while (k > 1 && !free(k)) k--;
-    if (k <= 1) continue;
-    span[i] = k;
-    for (let y = r; y < r + k; y++)
-      for (let x = c; x < c + k; x++) {
-        const j = y * C + x;
-        if (j !== i) {
-          taken[j] = true;
-          under[j] = i;
-        }
-      }
-  }
-  let changed = false;
-  const blocks = d.blocks.map((b, i) => {
-    const s = span[i] > 1 ? span[i] : void 0, u = under[i] >= 0 ? under[i] : void 0;
-    if (b.span === s && b.under === u) return b;
-    changed = true;
-    const { span: _s, under: _u, ...rest } = b;
-    return { ...rest, ...s ? { span: s } : {}, ...u != null ? { under: u } : {} };
-  });
-  return changed ? { ...d, blocks } : d;
-}
-function setSpan(d, i, k0) {
-  const C = d.cols, c = i % C, r = Math.floor(i / C), k = Math.max(1, Math.min(k0, C - c, d.rows - r));
-  const blocks = d.blocks.map((b, j) => {
-    if (j === i) {
-      const { span: _s, ...rest } = b;
-      return k > 1 ? { ...rest, span: k } : rest;
-    }
-    if (!(b.span > 1)) return b;
-    const cj = j % C, rj = Math.floor(j / C), kj = b.span;
-    if (cj < c + k && cj + kj > c && rj < r + k && rj + kj > r) {
-      const { span: _s, ...rest } = b;
-      return rest;
-    }
-    return b;
-  });
-  return normalizeSpans({ ...d, blocks });
-}
-function cellRect(d, c, r, W, H) {
-  const s = sashOf(d), q = quiltMm(d), kx = W / q.W, ky = H / q.H, off = (s.border ? s.mm : 0) + borderTotal(d);
-  return {
-    x: (off + c * (d.blockMm + s.mm)) * kx,
-    y: (off + r * (d.blockMm + s.mm)) * ky,
-    w: d.blockMm * kx,
-    h: d.blockMm * ky
-  };
-}
-function blockRect(d, c0, r0, W, H) {
-  const i0 = r0 * d.cols + c0, i = d.blocks ? anchorOf(d, i0) : i0, c = i % d.cols, r = Math.floor(i / d.cols);
-  const R2 = cellRect(d, c, r, W, H), k = d.blocks ? spanOf(d.blocks[i]) : 1;
-  if (k === 1) return R2;
-  const s = sashOf(d), q = quiltMm(d), kx = W / q.W, ky = H / q.H, mm = k * d.blockMm + (k - 1) * s.mm;
-  return { x: R2.x, y: R2.y, w: mm * kx, h: mm * ky };
-}
-var blockSizeMm = (d, k) => k * d.blockMm + (k - 1) * sashOf(d).mm;
-function blockAt(d, x, y, W, H) {
-  const s = sashOf(d), q = quiltMm(d), o = (s.border ? s.mm : 0) + borderTotal(d), mx = x / W * q.W - o, my = y / H * q.H - o, p = d.blockMm + s.mm;
-  const c = Math.floor(mx / p), r = Math.floor(my / p);
-  if (c < 0 || r < 0 || c >= d.cols || r >= d.rows) return -1;
-  const a = anchorOf(d, r * d.cols + c), R2 = blockRect(d, c, r, W, H);
-  return x >= R2.x && x <= R2.x + R2.w && y >= R2.y && y <= R2.y + R2.h ? a : -1;
-}
-function sashRects(d, W, H) {
-  const s = sashOf(d);
-  if (!s.mm) return [];
-  const q = quiltMm(d), kx = W / q.W, ky = H / q.H, bt = borderTotal(d), off = (s.border ? s.mm : 0) + bt, p = d.blockMm + s.mm, out = [];
-  const xs = [], ys = [];
-  if (s.border) {
-    xs.push(bt);
-    ys.push(bt);
-  }
-  for (let c = 1; c < d.cols; c++) xs.push(off + c * p - s.mm);
-  for (let r = 1; r < d.rows; r++) ys.push(off + r * p - s.mm);
-  if (s.border) {
-    xs.push(q.W - bt - s.mm);
-    ys.push(q.H - bt - s.mm);
-  }
-  for (const x of xs)
-    for (let r = 0; r < d.rows; r++)
-      out.push({ kind: "sash", x: x * kx, y: (off + r * p) * ky, w: s.mm * kx, h: d.blockMm * ky });
-  for (const y of ys)
-    for (let c = 0; c < d.cols; c++)
-      out.push({ kind: "sash", x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
-  for (const x of xs)
-    for (const y of ys) out.push({ kind: "corner", x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
-  const big = (d.blocks || []).map((b, i) => b.span > 1 && b.under == null ? blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H) : null).filter(Boolean);
-  if (!big.length) return out;
-  return out.filter((rc) => {
-    const cx = rc.x + rc.w / 2, cy = rc.y + rc.h / 2;
-    return !big.some((B) => cx > B.x && cx < B.x + B.w && cy > B.y && cy < B.y + B.h);
-  });
-}
-var BORDER_TYPES = {
-  plain: { label: "Plain strip", slots: ["Fabric", "Corner squares"], mm: 100, unit: null },
-  piano: { label: "Piano keys", slots: ["Key A", "Key B", "Corners"], mm: 100, unit: (T) => T / 2 },
-  squares: { label: "Row of squares", slots: ["Square A", "Square B", "Corners"], mm: 64, unit: (T) => T },
-  checker: { label: "Checkerboard", slots: ["Square A", "Square B", "Corners"], mm: 76, unit: (T) => T / 2 },
-  sawtooth: { label: "Sawtooth", slots: ["Teeth", "Background", "Corners"], mm: 64, unit: (T) => T },
-  geese: { label: "Flying geese", slots: ["Geese", "Sky", "Corners"], mm: 76, unit: (T) => T / 2 }
-};
-var borderUnits = (b, L) => {
-  const u = BORDER_TYPES[b.type].unit;
-  return u ? Math.max(1, Math.round(L / u(b.mm))) : 1;
-};
-function borderSidePieces(b, L) {
-  const T = b.mm, out = [], n = borderUnits(b, L), u = L / n, R2 = (x0, y0, x1, y1) => [
-    [x0, y0],
-    [x1, y0],
-    [x1, y1],
-    [x0, y1]
-  ];
-  if (b.type === "plain") {
-    out.push({ poly: R2(0, 0, L, T), slot: 0 });
-    return out;
-  }
-  for (let i = 0; i < n; i++) {
-    const x0 = i * u, x1 = x0 + u, alt = i % 2;
-    if (b.type === "piano" || b.type === "squares") out.push({ poly: R2(x0, 0, x1, T), slot: alt });
-    else if (b.type === "checker") {
-      out.push({ poly: R2(x0, 0, x1, T / 2), slot: alt });
-      out.push({ poly: R2(x0, T / 2, x1, T), slot: 1 - alt });
-    } else if (b.type === "sawtooth") {
-      out.push({
-        poly: [
-          [x0, T],
-          [x1, 0],
-          [x1, T]
-        ],
-        slot: 0
-      });
-      out.push({
-        poly: [
-          [x0, 0],
-          [x1, 0],
-          [x0, T]
-        ],
-        slot: 1
-      });
-    } else if (b.type === "geese") {
-      out.push({
-        poly: [
-          [x0, 0],
-          [x1, T / 2],
-          [x0, T]
-        ],
-        slot: 0
-      });
-      out.push({
-        poly: [
-          [x0, 0],
-          [x1, 0],
-          [x1, T / 2]
-        ],
-        slot: 1
-      });
-      out.push({
-        poly: [
-          [x0, T],
-          [x1, T / 2],
-          [x1, T]
-        ],
-        slot: 1
-      });
-    }
-  }
-  return out;
-}
-var borderFab = (b, slot) => b.fabrics && b.fabrics[slot] || b.fabrics && b.fabrics[0] || "b0";
-var borderCornerSlot = (b) => b.type === "plain" ? 1 : 2;
-var plainButted = (b) => b.type === "plain" && borderFab(b, 1) === borderFab(b, 0);
-function pointInPoly(x, y, poly) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i], [xj, yj] = poly[j];
-    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-function pathPolyInto(g, poly) {
-  poly.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
-  g.closePath();
-}
-
-// src/core/design.js
-var FORMAT_VERSION = 1;
-var ROLE_DEFAULT = ["b0", "b1", "b3"];
-function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
-  return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
-}
-function defaultDesign() {
-  const d = { v: FORMAT_VERSION, cols: 5, rows: 5, blockMm: 458, backFabric: "b0", blocks: [] };
-  for (let r = 0; r < 5; r++)
-    for (let c = 0; c < 5; c++)
-      d.blocks.push((r + c) % 2 === 0 ? newBlock("ohio", ["b0", "b1", "b3"]) : newBlock("nine", ["b0", "b4", "b3"]));
-  return d;
-}
-function rolesOf(b) {
-  const roles = [...ROLE_DEFAULT], seen = [false, false, false];
-  partsOf(b.pattern).forEach((p, i) => {
-    if (!seen[p.role]) {
-      roles[p.role] = b.fabrics[i];
-      seen[p.role] = true;
-    }
-  });
-  return roles;
-}
-
-// src/core/format.js
-var MIGRATIONS = [
-  // 0 → 1: designs saved before block sizes and backing fabrics existed
-  (d) => ({
-    ...d,
-    blockMm: d.blockMm > 0 ? d.blockMm : Math.round(2290 / (d.cols || 5)),
-    backFabric: d.backFabric || "b0",
-    v: 1
-  })
-];
-var LIMITS = { grid: [1, 20], blockMm: [50, 1e3], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
-var SYMS = ["off", "lr", "tb", "both", "kal"];
-var QUILTING = ["ditch", "cross", "fans", "meander"];
-var isObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
-var isFabric = (x) => typeof x === "string" && x.length > 0 && x.length < 64;
-var num = (x) => typeof x === "number" && Number.isFinite(x);
-var clamp = (x, [lo, hi]) => Math.max(lo, Math.min(hi, x));
-var plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-function check(d) {
-  if (!isObj(d) || !num(d.cols) || !num(d.rows) || !Array.isArray(d.blocks)) return null;
-  const problems = [];
-  const count = {};
-  const note = (key, n2 = 1) => count[key] = (count[key] || 0) + n2;
-  const cols = clamp(Math.round(d.cols), LIMITS.grid), rows = clamp(Math.round(d.rows), LIMITS.grid);
-  if (cols !== d.cols || rows !== d.rows) problems.push(`The layout was changed to ${cols} \xD7 ${rows}.`);
-  const n = cols * rows;
-  if (d.blocks.length !== n) {
-    if (d.blocks.length > n) note("extra", d.blocks.length - n);
-  }
-  const blocks = [];
-  for (let i = 0; i < n; i++) blocks.push(checkBlock(d.blocks[i], note));
-  if (count.missing)
-    problems.push(
-      `${plural(count.missing, "missing block")} ${count.missing === 1 ? "was" : "were"} filled with a plain square.`
-    );
-  if (count.extra)
-    problems.push(`${plural(count.extra, "extra block")} ${count.extra === 1 ? "was" : "were"} left out.`);
-  if (count.pattern)
-    problems.push(
-      `${plural(count.pattern, "block")} with an unknown pattern became ${count.pattern === 1 ? "a plain square" : "plain squares"}.`
-    );
-  if (count.fabric)
-    problems.push(
-      `${plural(count.fabric, "missing fabric")} ${count.fabric === 1 ? "was" : "were"} filled in with the default colours.`
-    );
-  if (count.block)
-    problems.push(
-      `${plural(count.block, "block setting")} that could not be read ${count.block === 1 ? "was" : "were"} reset.`
-    );
-  const out = { ...d, v: FORMAT_VERSION, cols, rows, blocks };
-  if (!num(d.blockMm) || d.blockMm !== clamp(Math.round(d.blockMm), LIMITS.blockMm)) {
-    out.blockMm = num(d.blockMm) ? clamp(Math.round(d.blockMm), LIMITS.blockMm) : Math.round(2290 / cols);
-    problems.push(`The block size was changed to ${out.blockMm} mm.`);
-  }
-  if (!isFabric(d.backFabric)) {
-    out.backFabric = "b0";
-    if (d.backFabric !== void 0) problems.push("The backing fabric was reset.");
-  }
-  if (d.sashing !== void 0) {
-    const s = d.sashing;
-    if (isObj(s) && num(s.mm)) {
-      out.sashing = {
-        mm: clamp(Math.round(s.mm), LIMITS.sashMm),
-        fabric: isFabric(s.fabric) ? s.fabric : "b0",
-        corner: isFabric(s.corner) ? s.corner : "b3",
-        border: s.border === true
-      };
-    } else {
-      delete out.sashing;
-      problems.push("The sashing could not be read and was taken off.");
-    }
-  }
-  if (d.borders !== void 0) {
-    const list = Array.isArray(d.borders) ? d.borders : [];
-    let adjusted = 0;
-    out.borders = list.filter((b) => isObj(b) && BORDER_TYPES[b.type] && num(b.mm)).map((b) => {
-      const nb = {
-        ...b,
-        mm: clamp(Math.round(b.mm), LIMITS.borderMm),
-        fabrics: (Array.isArray(b.fabrics) ? b.fabrics : []).map((f) => isFabric(f) ? f : "b0")
-      };
-      if (nb.mm !== b.mm || !Array.isArray(b.fabrics) || !b.fabrics.every(isFabric)) adjusted++;
-      return nb;
-    });
-    if (!out.borders.length) delete out.borders;
-    const lost = (Array.isArray(d.borders) ? d.borders.length : 1) - (out.borders || []).length;
-    if (adjusted) problems.push(`${plural(adjusted, "border")} had a width or fabric that was put right.`);
-    if (lost)
-      problems.push(`${plural(lost, "border")} that could not be read ${lost === 1 ? "was" : "were"} taken off.`);
-  }
-  if (d.sym !== void 0 && !SYMS.includes(d.sym)) {
-    delete out.sym;
-    problems.push("The symmetry setting was turned off.");
-  }
-  if (d.quilting !== void 0 && !QUILTING.includes(d.quilting)) {
-    delete out.quilting;
-    problems.push("The quilting went back to stitch in the ditch.");
-  }
-  return { design: normalizeSpans(out), problems };
-}
-function checkBlock(b, note) {
-  if (b === void 0) {
-    note("missing");
-    return { pattern: "plain", rot: 0, fabrics: ["b0"] };
-  }
-  if (!isObj(b) || !PATTERNS[b.pattern]) {
-    note("pattern");
-    return {
-      pattern: "plain",
-      rot: 0,
-      fabrics: [isObj(b) && Array.isArray(b.fabrics) && isFabric(b.fabrics[0]) ? b.fabrics[0] : "b0"]
-    };
-  }
-  const parts = partsOf(b.pattern), given = Array.isArray(b.fabrics) ? b.fabrics : [];
-  const fabrics = parts.map((p, k) => {
-    if (isFabric(given[k])) return given[k];
-    note("fabric");
-    return ROLE_DEFAULT[p.role] || "b0";
-  });
-  if (given.length > parts.length) note("block");
-  const out = { ...b, fabrics, rot: num(b.rot) ? (Math.round(b.rot) % 4 + 4) % 4 : 0 };
-  if (b.rot !== out.rot && b.rot !== void 0) note("block");
-  delete out.under;
-  if ("flip" in b && typeof b.flip !== "boolean") {
-    delete out.flip;
-    note("block");
-  }
-  if ("span" in b && !(num(b.span) && b.span === clamp(Math.round(b.span), LIMITS.span))) {
-    delete out.span;
-    note("block");
-  }
-  if ("fussy" in b) {
-    const ok = {};
-    if (isObj(b.fussy)) {
-      for (const [k, uv] of Object.entries(b.fussy))
-        if (+k >= 0 && +k < parts.length && Array.isArray(uv) && uv.length === 2 && uv.every(num)) ok[k] = uv;
-    }
-    if (Object.keys(ok).length) out.fussy = ok;
-    else delete out.fussy;
-    if (!isObj(b.fussy) || Object.keys(ok).length !== Object.keys(b.fussy).length) note("block");
-  }
-  return out;
-}
-function readDesign(raw) {
-  let d = raw;
-  if (typeof raw === "string") {
-    try {
-      d = JSON.parse(raw);
-    } catch (e) {
-      return null;
-    }
-  }
-  if (!isObj(d)) return null;
-  const from = num(d.v) ? d.v : 0;
-  const newer = from > FORMAT_VERSION;
-  if (!newer) for (let v = from; v < FORMAT_VERSION; v++) d = MIGRATIONS[v](d);
-  const r = check(d);
-  if (!r) return null;
-  if (newer) r.design.v = from;
-  return { ...r, from, newer };
-}
-function readDesignOrDefault(raw) {
-  return readDesign(raw) || { design: defaultDesign(), problems: [], from: FORMAT_VERSION, newer: false };
-}
-
-// src/ui/notice.js
-var box = null;
-var timer = 0;
-function notify(text, opts = {}) {
-  if (typeof document === "undefined") return;
-  if (!box) {
-    box = document.createElement("div");
-    box.id = "notice";
-    box.setAttribute("role", "status");
-    box.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;max-width:min(560px,calc(100vw - 32px));background:#2f466f;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);font:14px/1.45 system-ui,sans-serif;cursor:pointer;white-space:pre-line";
-    box.addEventListener("click", () => box.hidden = true);
-    document.body.appendChild(box);
-  }
-  box.textContent = text;
-  box.hidden = false;
-  clearTimeout(timer);
-  timer = setTimeout(() => box.hidden = true, opts.ms || Math.max(5e3, text.length * 60));
+  const { id } = await fabrics.add(blob, meta);
+  if (!fabricLib.some((f) => f.id === id)) fabricLib.push({ id, name: meta.name, canvas: canvas2, cm: meta.cm });
+  return id;
 }
 
 // src/designer/design-state.js
-var DESIGN_KEY = "quilt-designer.v1";
 function loadDesign() {
-  let raw = null;
-  try {
-    raw = localStorage.getItem(DESIGN_KEY);
-  } catch (e) {
-  }
+  const raw = getSession("current");
   const r = raw ? readDesign(raw) : null;
   if (raw && !r) notify("The quilt saved in this browser could not be read, so a new one was started.");
   return r || readDesignOrDefault(null);
 }
 function saveDesign() {
   if (readOnly) return;
-  try {
-    localStorage.setItem(DESIGN_KEY, JSON.stringify(design));
-  } catch (e) {
-  }
+  setSession("current", design);
   scheduleSync();
 }
 
@@ -6362,9 +6725,9 @@ function initDesignerUI() {
     const polys = blockPolys(design.blocks[focusBlock], 0, 0, BLOCK_PX, BLOCK_PX);
     const hit = polys.findIndex((p) => pointInPoly(x, y, p));
     if (hit < 0) return;
-    const now = performance.now(), last = partTap;
-    setPartTap({ t: now, hit });
-    if (last && last.hit === hit && now - last.t < 380) {
+    const now2 = performance.now(), last = partTap;
+    setPartTap({ t: now2, hit });
+    if (last && last.hit === hit && now2 - last.t < 380) {
       selectSameFabric(hit);
       setPartTap(null);
       return;
@@ -6530,11 +6893,8 @@ function initDesignerUI() {
       return;
     }
     setMineCur(null);
-    try {
-      localStorage.removeItem("quilt-mydesigns-current.v1");
-      localStorage.removeItem(tlKeyFor(null));
-    } catch (e) {
-    }
+    setSession("mineCur", void 0);
+    timelines.remove(tlKeyFor(null));
     replaceDesign(defaultDesign(), { timeline: null });
     $("dz-reset").dataset.armed = "";
     $("dz-reset").textContent = "Start over";
@@ -6547,16 +6907,11 @@ function initDesignerUI() {
       c.width = im.naturalWidth;
       c.height = im.naturalHeight;
       c.getContext("2d").drawImage(im, 0, 0);
-      fabricLib.push({
-        id: "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        name: f.name.replace(/\.[^.]+$/, ""),
-        canvas: c,
-        cm: +$("dz-cm").value
-      });
+      await addFabric(c, { name: f.name.replace(/\.[^.]+$/, "").slice(0, 40), cm: +$("dz-cm").value });
     }
     e.target.value = "";
     drawFabricPalette();
-    $("dz-fabnote").textContent = `${files.length} photo${files.length === 1 ? "" : "s"} added. Your photos are kept only until you reload the page.`;
+    $("dz-fabnote").textContent = `${files.length} photo${files.length === 1 ? "" : "s"} added. They are kept in this browser with your designs.`;
   });
   const cmOut2 = () => {
     $("dz-cm-o").textContent = $("dz-cm").value + " cm";
@@ -7584,23 +7939,23 @@ var CG = /* @__PURE__ */ (() => {
       for (const pc of pieces) pc.form = rows.get(pc.rowKey).form;
       blocks.push({ ...g, label: opts.label(g.block.pattern), pieces, list });
     }
-    const fabrics = /* @__PURE__ */ new Map();
+    const fabrics2 = /* @__PURE__ */ new Map();
     for (const b of blocks)
       for (const r of b.list) {
-        const f = fabrics.get(r.fabric) || { id: r.fabric, letter: r.letter, cuts: /* @__PURE__ */ new Map() };
+        const f = fabrics2.get(r.fabric) || { id: r.fabric, letter: r.letter, cuts: /* @__PURE__ */ new Map() };
         const k = r.kind + "|" + r.cut.join("x");
         const c = f.cuts.get(k) || { kind: r.kind, cut: r.cut, yield: r.yield, how: r.how, pieces: 0 };
         c.pieces += r.pieces * b.count;
         f.cuts.set(k, c);
-        fabrics.set(r.fabric, f);
+        fabrics2.set(r.fabric, f);
       }
     const sashList = [];
     for (const x of opts.extra || []) {
-      const letter = letterOf(x.fabric), f = fabrics.get(x.fabric) || { id: x.fabric, letter, cuts: /* @__PURE__ */ new Map() };
+      const letter = letterOf(x.fabric), f = fabrics2.get(x.fabric) || { id: x.fabric, letter, cuts: /* @__PURE__ */ new Map() };
       if (x.wof) {
         const width = upmm(x.w + 2 * s), total = x.lens.reduce((a, l) => a + l + 2 * s, 0), strips = Math.ceil(total / usable);
         (f.wof = f.wof || []).push({ strips, width });
-        fabrics.set(x.fabric, f);
+        fabrics2.set(x.fabric, f);
         sashList.push({
           ...x,
           letter,
@@ -7621,11 +7976,11 @@ var CG = /* @__PURE__ */ (() => {
       const c = f.cuts.get(k) || { kind, cut, yield: yld, how, pieces: 0 };
       c.pieces += x.n;
       f.cuts.set(k, c);
-      fabrics.set(x.fabric, f);
+      fabrics2.set(x.fabric, f);
       sashList.push({ ...x, letter, how, kind, cut, yield: yld });
     }
     const result = [];
-    for (const f of fabrics.values()) {
+    for (const f of fabrics2.values()) {
       let length = 0, oneStrip = true, maxW = 0;
       const cuts = [...f.cuts.values()].map((c) => {
         const n = Math.ceil(c.pieces / c.yield), sp = stripPlan(c.cut[0], c.cut[1], n, usable);
@@ -8627,10 +8982,7 @@ function tourBegin() {
   if (state.page !== "design") showPage("design");
   hideTools();
   const fresh = () => {
-    try {
-      localStorage.removeItem(tlKeyFor("tour"));
-    } catch (e) {
-    }
+    timelines.remove(tlKeyFor("tour"));
     replaceDesign(defaultDesign(), { timeline: "tour" });
   };
   if (design) fresh();
@@ -8680,10 +9032,7 @@ function tourEnd(how) {
     mineSave();
     openDesign(tour.saved, { timeline: mineCur, quiet: true });
   }
-  try {
-    localStorage.removeItem(tlKeyFor("tour"));
-  } catch (e) {
-  }
+  timelines.remove(tlKeyFor("tour"));
   showPage("design");
 }
 $("tour-start").addEventListener("click", tourBegin);
@@ -8709,30 +9058,9 @@ setTimeout(() => {
 }, 1200);
 
 // src/mine/my-designs.js
-var MINE_KEY = "quilt-mydesigns.v1";
-var MINE_CUR = "quilt-mydesigns-current.v1";
-var mine = [];
-try {
-  mine = JSON.parse(localStorage.getItem(MINE_KEY) || "[]");
-} catch (e) {
-}
-try {
-  setMineCur(localStorage.getItem(MINE_CUR) || null);
-} catch (e) {
-}
+setMineCur(getSession("mineCur") || null);
 function mineSave() {
-  try {
-    localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    if (mineCur) localStorage.setItem(MINE_CUR, mineCur);
-    else localStorage.removeItem(MINE_CUR);
-  } catch (e) {
-    alertMine("Your browser storage is full: delete a design to save new ones.");
-  }
-}
-function alertMine(t) {
-  const el = $("mine-empty");
-  el.textContent = t;
-  el.hidden = false;
+  setSession("mineCur", mineCur || void 0);
 }
 function quiltPicture(d, width) {
   const qq = quiltMm(d), dpr = Math.min(window.devicePixelRatio || 1, 2), w = width, h = Math.round(width * qq.H / qq.W);
@@ -8751,8 +9079,8 @@ var saveForceNew = false;
 function openSaveDialog(forceNew) {
   if (!design) return;
   saveForceNew = !!forceNew;
-  const cur = !saveForceNew && mine.find((m) => m.id === mineCur);
-  $("save-name").value = cur ? cur.name : `Quilt ${mine.length + 1}`;
+  const cur = !saveForceNew && mineCur && designs.get(mineCur);
+  $("save-name").value = cur ? cur.name : `Quilt ${designs.list().length + 1}`;
   $("save-title").textContent = cur ? "Save changes" : "Save design";
   $("save-asnew").hidden = !cur;
   const pic = quiltPicture(design, 300), cv = $("save-cv");
@@ -8776,23 +9104,13 @@ function doSave(asNew) {
     $("save-dlg").close();
     return;
   }
-  const name = ($("save-name").value || "").trim() || `Quilt ${mine.length + 1}`, now = Date.now(), d = JSON.stringify(design);
-  let cur = !asNew && !saveForceNew && mine.find((m) => m.id === mineCur);
+  const name = ($("save-name").value || "").trim() || `Quilt ${designs.list().length + 1}`;
+  const old = !asNew && !saveForceNew && mineCur && designs.get(mineCur);
   const prev = mineCur;
-  if (cur) {
-    cur.name = name;
-    cur.d = d;
-    cur.updated = now;
-  } else {
-    cur = { id: "q" + now.toString(36) + Math.random().toString(36).slice(2, 5), name, d, created: now, updated: now };
-    mine.push(cur);
+  const cur = designs.save({ id: old ? old.id : designs.newId(), name, design });
+  if (!old) {
     tlCopy(void 0, cur.id);
-    if (!prev) {
-      try {
-        localStorage.removeItem(tlKeyFor(null));
-      } catch (e) {
-      }
-    }
+    if (!prev) timelines.remove(tlKeyFor(null));
     tl.key = tlKeyFor(cur.id);
   }
   saveForceNew = false;
@@ -8808,29 +9126,30 @@ function doSave(asNew) {
   }, 1600);
 }
 function openMine(id) {
-  const m = mine.find((x) => x.id === id);
+  const m = designs.get(id);
   if (!m) return;
-  if (!readDesign(m.d)) {
+  if (!readDesign(m.design)) {
     notify(`\u201C${m.name}\u201D could not be read.`);
     return;
   }
   setMineCur(id);
   mineSave();
-  openDesign(m.d, { timeline: id, what: `\u201C${m.name}\u201D` });
+  openDesign(m.design, { timeline: id, what: `\u201C${m.name}\u201D` });
   showPage("design");
 }
 function renderMine() {
   const grid = $("mine-grid"), q = ($("mine-q").value || "").trim().toLowerCase(), sort = $("mine-sort").value;
-  let list = mine.filter((m) => !q || m.name.toLowerCase().includes(q));
-  list.sort(sort === "name" ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[sort] - a[sort]);
+  const all = designs.list(), key = sort === "created" ? "createdAt" : "updatedAt";
+  const list = all.filter((m) => !q || m.name.toLowerCase().includes(q));
+  list.sort(sort === "name" ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[key] - a[key]);
   grid.innerHTML = "";
-  $("mine-empty").hidden = mine.length > 0 && list.length > 0;
-  if (mine.length && !list.length) $("mine-empty").textContent = "No designs match your search.";
+  $("mine-empty").hidden = all.length > 0 && list.length > 0;
+  if (all.length && !list.length) $("mine-empty").textContent = "No designs match your search.";
   else
     $("mine-empty").innerHTML = "No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.";
   const when = (t) => new Date(t).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
   for (const m of list) {
-    const r = readDesign(m.d);
+    const r = readDesign(m.design);
     if (!r) continue;
     const d = r.design;
     const pin = document.createElement("article");
@@ -8848,7 +9167,7 @@ function renderMine() {
     const nm = document.createElement("b");
     nm.textContent = m.name;
     const sm = document.createElement("small");
-    sm.textContent = `${d.cols} \xD7 ${d.rows} blocks \xB7 ${quiltMm(d).W} \xD7 ${quiltMm(d).H} mm \xB7 ${when(m.updated)}`;
+    sm.textContent = `${d.cols} \xD7 ${d.rows} blocks \xB7 ${quiltMm(d).W} \xD7 ${quiltMm(d).H} mm \xB7 ${when(m.updatedAt)}`;
     meta.append(nm, sm);
     pin.append(img, meta);
     grid.appendChild(pin);
@@ -8868,8 +9187,8 @@ function renderMine() {
         inp.focus();
         inp.select();
         const done = () => {
-          m.name = inp.value.trim() || m.name;
-          mineSave();
+          const name = inp.value.trim();
+          if (name && name !== m.name) designs.save({ id: m.id, name });
           renderMine();
         };
         inp.addEventListener("keydown", (ev) => {
@@ -8878,10 +9197,8 @@ function renderMine() {
         });
         inp.addEventListener("blur", done);
       } else if (a === "dup") {
-        const now = Date.now(), nid = "q" + now.toString(36) + Math.random().toString(36).slice(2, 5);
-        mine.push({ ...m, id: nid, name: m.name + " (copy)", created: now, updated: now });
-        tlCopy(m.id, nid);
-        mineSave();
+        const copy = designs.save({ id: designs.newId(), name: m.name + " (copy)", design: m.design });
+        tlCopy(m.id, copy.id);
         renderMine();
       } else if (a === "del") {
         const btn = e.target.closest("[data-a]");
@@ -8901,11 +9218,8 @@ function renderMine() {
           }, 2500);
           return;
         }
-        mine = mine.filter((x) => x.id !== m.id);
-        try {
-          localStorage.removeItem(tlKeyFor(m.id));
-        } catch (e2) {
-        }
+        designs.remove(m.id);
+        timelines.remove(tlKeyFor(m.id));
         if (mineCur === m.id) {
           setMineCur(null);
           tlCopy(void 0, null);
@@ -8924,10 +9238,7 @@ function initMine() {
     setMineCur(null);
     mineSave();
     if ($("dz-dialog").open) $("dz-dialog").close();
-    try {
-      localStorage.removeItem(tlKeyFor(null));
-    } catch (e) {
-    }
+    timelines.remove(tlKeyFor(null));
     replaceDesign(defaultDesign(), { timeline: null });
   });
   $("mine-new").addEventListener("click", () => openSaveDialog(true));
@@ -8965,35 +9276,35 @@ function medallionDesign() {
     ]
   };
   for (let i = 0; i < N2 * N2; i++) d.blocks.push(newBlock("plain", [WH, WH, WH]));
-  const put = (c, r, pattern, roles, rot = 0, extra = {}) => {
+  const put2 = (c, r, pattern, roles, rot = 0, extra = {}) => {
     d.blocks[r * N2 + c] = { ...newBlock(pattern, roles), rot, ...extra };
   };
-  put(0, 0, "nine", [CR, CH, CH]);
-  put(1, 0, "nine", [CR, CH, CH]);
-  put(2, 0, "hst", [WH, MI, MI], 1);
-  put(3, 0, "geese", [WH, CH, CH], 2);
-  put(4, 0, "sawstar", [WH, MU, FL]);
-  put(5, 0, "hst", [WH, CH, CH], 0);
-  put(6, 0, "economy", [WH, CH, FL]);
-  put(1, 1, "nine", [WH, MI, MI]);
-  put(2, 1, "nine", [CR, CH, CH]);
-  put(3, 1, "hst", [WH, CH, CH], 0);
-  put(4, 1, "hst", [WH, MI, MI], 1);
-  put(5, 1, "sawstar", [WH, CH, MI]);
-  put(6, 1, "economy", [MI, CH, FL]);
-  put(2, 2, "hst", [WH, MI, MI], 1);
-  put(3, 2, "nine", [CR, CH, CH]);
-  put(4, 2, "nine", [WH, MU, MU]);
-  put(5, 2, "hst", [MI, WH, WH], 1);
-  put(6, 2, "economy", [WH, CH, FL]);
-  put(3, 3, "sawstar", [WH, CH, MI]);
-  put(4, 3, "nine", [WH, MU, MU]);
-  put(5, 3, "geese", [WH, CH, CH], 1);
-  put(6, 3, "hst", [WH, MI, MI], 0);
-  put(4, 4, "sawstar", [WH, CH, CH]);
-  put(5, 4, "hst", [WH, CH, CH], 3);
-  put(6, 4, "geese", [WH, CH, MI], 2);
-  put(5, 5, "eightstar", [WH, CH, MU], 0, { span: 4 });
+  put2(0, 0, "nine", [CR, CH, CH]);
+  put2(1, 0, "nine", [CR, CH, CH]);
+  put2(2, 0, "hst", [WH, MI, MI], 1);
+  put2(3, 0, "geese", [WH, CH, CH], 2);
+  put2(4, 0, "sawstar", [WH, MU, FL]);
+  put2(5, 0, "hst", [WH, CH, CH], 0);
+  put2(6, 0, "economy", [WH, CH, FL]);
+  put2(1, 1, "nine", [WH, MI, MI]);
+  put2(2, 1, "nine", [CR, CH, CH]);
+  put2(3, 1, "hst", [WH, CH, CH], 0);
+  put2(4, 1, "hst", [WH, MI, MI], 1);
+  put2(5, 1, "sawstar", [WH, CH, MI]);
+  put2(6, 1, "economy", [MI, CH, FL]);
+  put2(2, 2, "hst", [WH, MI, MI], 1);
+  put2(3, 2, "nine", [CR, CH, CH]);
+  put2(4, 2, "nine", [WH, MU, MU]);
+  put2(5, 2, "hst", [MI, WH, WH], 1);
+  put2(6, 2, "economy", [WH, CH, FL]);
+  put2(3, 3, "sawstar", [WH, CH, MI]);
+  put2(4, 3, "nine", [WH, MU, MU]);
+  put2(5, 3, "geese", [WH, CH, CH], 1);
+  put2(6, 3, "hst", [WH, MI, MI], 0);
+  put2(4, 4, "sawstar", [WH, CH, CH]);
+  put2(5, 4, "hst", [WH, CH, CH], 3);
+  put2(6, 4, "geese", [WH, CH, MI], 2);
+  put2(5, 5, "eightstar", [WH, CH, MU], 0, { span: 4 });
   const src = [];
   for (let r = 0; r < 7; r++) for (let c = r; c < 7; c++) src.push(r * N2 + c);
   const out = withSymmetry(normalizeSpans(d), src);
@@ -9015,118 +9326,67 @@ function photoMedallion() {
     ]
   };
   for (let i = 0; i < N2 * N2; i++) d.blocks.push(newBlock("plain", [WH, WH, WH]));
-  const put = (c, r, pattern, roles, rot = 0, extra = {}) => {
+  const put2 = (c, r, pattern, roles, rot = 0, extra = {}) => {
     d.blocks[r * N2 + c] = { ...newBlock(pattern, roles), rot, ...extra };
   };
   const chain = [WH, MO, MO], dark9 = [WH, CH, CH], gold9 = [WH, MU, MU];
   const mintH = [WH, MI, MI], darkH = [WH, CH, CH];
-  put(0, 0, "dnine", chain);
-  put(1, 0, "nine", chain);
-  put(2, 0, "hst", mintH, 0);
-  put(3, 0, "hst", darkH, 0);
-  put(4, 0, "sawstar", [WH, MU, FL]);
-  put(5, 0, "hst", mintH, 1);
-  put(6, 0, "hst", darkH, 1);
-  put(7, 0, "economy", [MI, TE, CH]);
-  put(1, 1, "nine", chain);
-  put(2, 1, "nine", chain);
-  put(3, 1, "hst", mintH, 0);
-  put(4, 1, "hst", darkH, 0);
-  put(5, 1, "hst", darkH, 1);
-  put(6, 1, "hst", mintH, 1);
-  put(7, 1, "economy", [MI, TE, CH]);
-  put(2, 2, "nine", chain);
-  put(3, 2, "nine", dark9);
-  put(4, 2, "nine", dark9);
-  put(5, 2, "sawstar", [WH, CH, TE]);
-  put(6, 2, "hst", mintH, 0);
-  put(7, 2, "economy", [MI, TE, CH]);
-  put(3, 3, "nine", chain);
-  put(4, 3, "hst", mintH, 0);
-  put(5, 3, "nine", gold9);
-  put(6, 3, "sawstar", [WH, CH, MO]);
-  put(7, 3, "sawstar", [WH, CH, MO]);
-  put(4, 4, "sawstar", [WH, CH, CH]);
-  put(5, 4, "hst", mintH, 0);
-  put(6, 4, "geese", [WH, MO, MO], 2);
-  put(7, 4, "geese", [WH, MO, MO], 2);
-  put(5, 5, "sqsq", [WH, MI, MI]);
-  put(6, 5, "hst", [WH, MI, MI], 1);
-  put(7, 5, "plain", [WH, WH, WH]);
-  put(6, 6, "eightstar", [WH, CH, FL], 0, { span: 3 });
+  put2(0, 0, "dnine", chain);
+  put2(1, 0, "nine", chain);
+  put2(2, 0, "hst", mintH, 0);
+  put2(3, 0, "hst", darkH, 0);
+  put2(4, 0, "sawstar", [WH, MU, FL]);
+  put2(5, 0, "hst", mintH, 1);
+  put2(6, 0, "hst", darkH, 1);
+  put2(7, 0, "economy", [MI, TE, CH]);
+  put2(1, 1, "nine", chain);
+  put2(2, 1, "nine", chain);
+  put2(3, 1, "hst", mintH, 0);
+  put2(4, 1, "hst", darkH, 0);
+  put2(5, 1, "hst", darkH, 1);
+  put2(6, 1, "hst", mintH, 1);
+  put2(7, 1, "economy", [MI, TE, CH]);
+  put2(2, 2, "nine", chain);
+  put2(3, 2, "nine", dark9);
+  put2(4, 2, "nine", dark9);
+  put2(5, 2, "sawstar", [WH, CH, TE]);
+  put2(6, 2, "hst", mintH, 0);
+  put2(7, 2, "economy", [MI, TE, CH]);
+  put2(3, 3, "nine", chain);
+  put2(4, 3, "hst", mintH, 0);
+  put2(5, 3, "nine", gold9);
+  put2(6, 3, "sawstar", [WH, CH, MO]);
+  put2(7, 3, "sawstar", [WH, CH, MO]);
+  put2(4, 4, "sawstar", [WH, CH, CH]);
+  put2(5, 4, "hst", mintH, 0);
+  put2(6, 4, "geese", [WH, MO, MO], 2);
+  put2(7, 4, "geese", [WH, MO, MO], 2);
+  put2(5, 5, "sqsq", [WH, MI, MI]);
+  put2(6, 5, "hst", [WH, MI, MI], 1);
+  put2(7, 5, "plain", [WH, WH, WH]);
+  put2(6, 6, "eightstar", [WH, CH, FL], 0, { span: 3 });
   const src = [];
   for (let r = 0; r < 8; r++) for (let c = r; c < 8; c++) src.push(r * N2 + c);
   const out = withSymmetry(normalizeSpans(d), src);
   const { sym: _sym, ...laidOut } = out;
   return laidOut;
 }
-try {
-  if (!localStorage.getItem("quilt-medallion-seeded.v1")) {
-    const now = Date.now();
-    mine.push({
-      id: "qmedallion",
-      name: "Medallion sampler",
-      d: JSON.stringify(medallionDesign()),
-      created: now,
-      updated: now
-    });
-    localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    localStorage.setItem("quilt-medallion-seeded.v1", "1");
-  }
-  if (!localStorage.getItem("quilt-photo-seeded.v1")) {
-    const now = Date.now() + 1;
-    mine.push({
-      id: "qphoto",
-      name: "Medallion from the photo",
-      d: JSON.stringify(photoMedallion()),
-      created: now,
-      updated: now
-    });
-    localStorage.setItem(MINE_KEY, JSON.stringify(mine));
-    localStorage.setItem("quilt-photo-seeded.v1", "1");
-  }
-} catch (e) {
+if (!getSession("medallion-seeded")) {
+  designs.save({ id: "qmedallion", name: "Medallion sampler", design: medallionDesign() });
+  setSession("medallion-seeded", true);
+}
+if (!getSession("photo-seeded")) {
+  designs.save({ id: "qphoto", name: "Medallion from the photo", design: photoMedallion() });
+  setSession("photo-seeded", true);
 }
 
 // src/timeline/timeline.js
-var TL_KEY = "quilt-timeline.v1";
 var TL_MAX = 100;
 var tlBarOn = false;
 var tl = { steps: [], i: -1, ready: false, restoring: false, thumbs: /* @__PURE__ */ new Map(), seq: 0, key: "" };
-var tlKeyFor = (id) => TL_KEY + ":" + (id || "draft");
+var tlKeyFor = (id) => id || "draft";
 function tlSave() {
-  const v = JSON.stringify({ steps: tl.steps, i: tl.i, seq: tl.seq });
-  for (let tries = 0; tries < 8; tries++) {
-    try {
-      localStorage.setItem(tl.key, v);
-      return;
-    } catch (e) {
-      let worst = null, size = 0;
-      for (let k = 0; k < localStorage.length; k++) {
-        const n = localStorage.key(k);
-        if (n && n.startsWith(TL_KEY + ":") && n !== tl.key) {
-          const l = (localStorage.getItem(n) || "").length;
-          if (l > size) {
-            size = l;
-            worst = n;
-          }
-        }
-      }
-      if (!worst) return;
-      try {
-        const o = JSON.parse(localStorage.getItem(worst));
-        if (o.steps.length <= 2) localStorage.removeItem(worst);
-        else {
-          const cut = Math.ceil(o.steps.length / 2);
-          o.steps = o.steps.slice(cut);
-          o.i = Math.max(0, o.i - cut);
-          localStorage.setItem(worst, JSON.stringify(o));
-        }
-      } catch (e2) {
-        localStorage.removeItem(worst);
-      }
-    }
-  }
+  if (tl.key) timelines.set(tl.key, tl);
 }
 function tlSwitch(id) {
   if (tl.ready) tlSave();
@@ -9138,34 +9398,19 @@ function tlSwitch(id) {
   tl.thumbs.clear();
   tlEnsure();
 }
-function tlCopy(fromId, toId, move) {
-  try {
-    const v = fromId === void 0 ? JSON.stringify({ steps: tl.steps, i: tl.i, seq: tl.seq }) : localStorage.getItem(tlKeyFor(fromId));
-    if (v) localStorage.setItem(tlKeyFor(toId), v);
-    if (move && fromId !== void 0) localStorage.removeItem(tlKeyFor(fromId));
-  } catch (e) {
-  }
+function tlCopy(fromId, toId) {
+  if (fromId === void 0) timelines.set(tlKeyFor(toId), { steps: tl.steps.slice(), i: tl.i, seq: tl.seq });
+  else timelines.copy(tlKeyFor(fromId), tlKeyFor(toId));
 }
 function tlEnsure() {
   if (tl.ready || !design) return;
   tl.ready = true;
-  if (!tl.key) {
-    tl.key = tlKeyFor(typeof mineCur !== "undefined" ? mineCur : null);
-    try {
-      const old = localStorage.getItem(TL_KEY);
-      if (old && !localStorage.getItem(tl.key)) localStorage.setItem(tl.key, old);
-      localStorage.removeItem(TL_KEY);
-    } catch (e) {
-    }
-  }
-  try {
-    const o = JSON.parse(localStorage.getItem(tl.key) || "null");
-    if (o && Array.isArray(o.steps) && o.steps.length) {
-      tl.steps = o.steps;
-      tl.i = Math.min(o.i, o.steps.length - 1);
-      tl.seq = o.seq || o.steps.length;
-    }
-  } catch (e) {
+  if (!tl.key) tl.key = tlKeyFor(mineCur);
+  const o = timelines.get(tl.key);
+  if (o && Array.isArray(o.steps) && o.steps.length) {
+    tl.steps = o.steps.slice();
+    tl.i = Math.max(0, Math.min(o.i, o.steps.length - 1));
+    tl.seq = o.seq || o.steps.length;
   }
   const cur = JSON.stringify(design);
   if (!tl.steps.length || tl.steps[tl.i].d !== cur) tlPush(cur, tl.steps.length ? "Opened" : "Start");
@@ -9181,12 +9426,12 @@ function tlPush(d, label, merge) {
 function tlRecord(merge = null) {
   if (tl.restoring || !design) return;
   tlEnsure();
-  const cur = JSON.stringify(design), top = tl.steps[tl.i], now = Date.now();
+  const cur = JSON.stringify(design), top = tl.steps[tl.i], now2 = Date.now();
   if (top && top.d === cur) return;
   const below = tl.steps[tl.i - 1];
-  if (merge && top && below && top.merge === merge && tl.i === tl.steps.length - 1 && now - top.t < 1e3) {
+  if (merge && top && below && top.merge === merge && tl.i === tl.steps.length - 1 && now2 - top.t < 1e3) {
     top.d = cur;
-    top.t = now;
+    top.t = now2;
     top.label = tlDescribe(JSON.parse(below.d), design);
     tl.thumbs.delete(top.id);
     tlSave();
@@ -9282,8 +9527,8 @@ function tlUI() {
   $("tl-pos").textContent = `${tl.i + 1} / ${n} \xB7 ${tl.steps[tl.i] ? tl.steps[tl.i].label : ""}`;
   const list = $("tl-list");
   list.innerHTML = "";
-  const now = Date.now(), ago = (t) => {
-    const s = Math.round((now - t) / 1e3);
+  const now2 = Date.now(), ago = (t) => {
+    const s = Math.round((now2 - t) / 1e3);
     return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
   tl.steps.forEach((st, k) => {
@@ -9826,7 +10071,7 @@ function camReview(c) {
   $("cam-live-row").hidden = true;
   $("cam-review").hidden = false;
   if (!$("cam-name").value)
-    $("cam-name").value = `Photo fabric ${fabricLib.filter((f) => f.id.startsWith("u")).length + 1}`;
+    $("cam-name").value = `Photo fabric ${fabricLib.filter((f) => !/^b\d+$/.test(f.id)).length + 1}`;
   camMsg("Check the picture. Set how wide the square is on the real fabric, so the print shows at its true size.");
 }
 function openCamera() {
@@ -9877,16 +10122,15 @@ function initCamera() {
     $("cam-viewbox").hidden = false;
     camReview(camCrop(im, im.naturalWidth, im.naturalHeight));
   });
-  $("cam-use").addEventListener("click", () => {
+  $("cam-use").addEventListener("click", async () => {
     if (!cam.shot) return;
     const c = document.createElement("canvas");
     c.width = c.height = cam.shot.width;
     c.getContext("2d").drawImage(cam.shot, 0, 0);
     if ($("cam-fix").checked) makeSeamless(evenLighting(c));
     const cm = Math.max(3, Math.min(100, +$("cam-cm").value || 15));
-    const id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    fabricLib.push({ id, name: ($("cam-name").value || "Photo fabric").slice(0, 40), canvas: c, cm });
     $("cam-dialog").close();
+    const id = await addFabric(c, { name: ($("cam-name").value || "Photo fabric").slice(0, 40), cm });
     if (camTarget) {
       const f = camTarget;
       setCamTarget(null);
@@ -9896,7 +10140,7 @@ function initCamera() {
       setActiveFabric(id);
       drawFabricPalette();
     }
-    $("dz-fabnote").textContent = "Fabric added from the camera. Photos are kept only until you reload the page.";
+    $("dz-fabnote").textContent = "Fabric added from the camera. It is kept in this browser with your designs.";
   });
 }
 initCamera();
@@ -10640,43 +10884,43 @@ var canvasJpeg = (c) => new Promise(
 function buildPdf(pages) {
   const enc = new TextEncoder(), parts = [], offsets = [];
   let len = 0;
-  const put = (x2) => {
+  const put2 = (x2) => {
     const u = typeof x2 === "string" ? enc.encode(x2) : x2;
     parts.push(u);
     len += u.length;
   };
   const obj = (n2, body) => {
     offsets[n2] = len;
-    put(`${n2} 0 obj
+    put2(`${n2} 0 obj
 `);
     body();
-    put("\nendobj\n");
+    put2("\nendobj\n");
   };
   const W = (A4.w / 25.4 * 72).toFixed(2), H = (A4.h / 25.4 * 72).toFixed(2), n = pages.length;
-  put("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
-  obj(1, () => put("<< /Type /Catalog /Pages 2 0 R >>"));
-  obj(2, () => put(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>`));
+  put2("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+  obj(1, () => put2("<< /Type /Catalog /Pages 2 0 R >>"));
+  obj(2, () => put2(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>`));
   pages.forEach((p, i) => {
     const po = 3 + i * 3, co = po + 1, io = po + 2;
     obj(
       po,
-      () => put(
+      () => put2(
         `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${io} 0 R >> >> /Contents ${co} 0 R >>`
       )
     );
     const cs = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
-    obj(co, () => put(`<< /Length ${cs.length} >>
+    obj(co, () => put2(`<< /Length ${cs.length} >>
 stream
 ${cs}
 endstream`));
     obj(io, () => {
-      put(
+      put2(
         `<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpg.length} >>
 stream
 `
       );
-      put(p.jpg);
-      put("\nendstream");
+      put2(p.jpg);
+      put2("\nendstream");
     });
   });
   const xref = len, count = 3 + n * 3;
@@ -10685,7 +10929,7 @@ stream
 0000000000 65535 f 
 `;
   for (let i = 1; i < count; i++) x += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
-  put(x + `trailer
+  put2(x + `trailer
 << /Size ${count} /Root 1 0 R >>
 startxref
 ${xref}
@@ -11203,14 +11447,14 @@ $("cg-pdf").addEventListener("click", downloadCutPdf);
 // src/app/loop.js
 var lastT = performance.now();
 function frame(t) {
-  const now = t || performance.now();
+  const now2 = t || performance.now();
   if (state.page !== "sim") {
-    lastT = now;
+    lastT = now2;
     requestAnimationFrame(frame);
     return;
   }
-  const dt = Math.min(0.1, (now - lastT) / 1e3);
-  lastT = now;
+  const dt = Math.min(0.1, (now2 - lastT) / 1e3);
+  lastT = now2;
   if (grabMsg) {
     send(grabMsg);
     setGrabMsg(null);

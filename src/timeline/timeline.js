@@ -10,50 +10,17 @@ import { drawQuilt } from '../render/quilt-draw.js';
 import { drawDesignerCanvas } from '../designer/canvas.js';
 import { openDesign } from '../designer/dispatch.js';
 import { readDesign, readDesignOrDefault } from '../core/format.js';
+import { timelines } from '../storage/repo.js';
 
-// ---- design timeline: every change is a step (the last 100 are kept in this browser);
+// ---- design timeline: every change is a step (the last 100 are kept, in storage/repo.js timelines);
 // undo / redo, or jump to any step from the timeline strip.
-const TL_KEY = 'quilt-timeline.v1',
-  TL_MAX = 100;
+const TL_MAX = 100;
 var tlBarOn = false; // the timeline film strip opens with the arrow keys and closes on a double-click outside
 const tl = { steps: [], i: -1, ready: false, restoring: false, thumbs: new Map(), seq: 0, key: '' };
-// each design has its own timeline: saved designs by their id, the unsaved one as "draft"
-const tlKeyFor = id => TL_KEY + ':' + (id || 'draft');
+// each design has its own timeline: saved designs by their id, the unsaved one as "draft", the tour's as "tour"
+const tlKeyFor = id => id || 'draft';
 function tlSave() {
-  const v = JSON.stringify({ steps: tl.steps, i: tl.i, seq: tl.seq });
-  for (let tries = 0; tries < 8; tries++) {
-    try {
-      localStorage.setItem(tl.key, v);
-      return;
-    } catch (e) {
-      // storage full: shorten the longest other timeline and try again
-      let worst = null,
-        size = 0;
-      for (let k = 0; k < localStorage.length; k++) {
-        const n = localStorage.key(k);
-        if (n && n.startsWith(TL_KEY + ':') && n !== tl.key) {
-          const l = (localStorage.getItem(n) || '').length;
-          if (l > size) {
-            size = l;
-            worst = n;
-          }
-        }
-      }
-      if (!worst) return;
-      try {
-        const o = JSON.parse(localStorage.getItem(worst));
-        if (o.steps.length <= 2) localStorage.removeItem(worst);
-        else {
-          const cut = Math.ceil(o.steps.length / 2);
-          o.steps = o.steps.slice(cut);
-          o.i = Math.max(0, o.i - cut);
-          localStorage.setItem(worst, JSON.stringify(o));
-        }
-      } catch (e2) {
-        localStorage.removeItem(worst);
-      }
-    }
-  }
+  if (tl.key) timelines.set(tl.key, tl);
 }
 // switch to another design's timeline (loads it, or starts one)
 function tlSwitch(id) {
@@ -67,35 +34,21 @@ function tlSwitch(id) {
   tlEnsure();
 }
 // a design got a new id (first save, save as new, duplicate): give it a copy of a timeline
-function tlCopy(fromId, toId, move) {
-  try {
-    const v =
-      fromId === undefined
-        ? JSON.stringify({ steps: tl.steps, i: tl.i, seq: tl.seq })
-        : localStorage.getItem(tlKeyFor(fromId));
-    if (v) localStorage.setItem(tlKeyFor(toId), v);
-    if (move && fromId !== undefined) localStorage.removeItem(tlKeyFor(fromId));
-  } catch (e) {}
+// (fromId undefined: the timeline in use)
+function tlCopy(fromId, toId) {
+  if (fromId === undefined) timelines.set(tlKeyFor(toId), { steps: tl.steps.slice(), i: tl.i, seq: tl.seq });
+  else timelines.copy(tlKeyFor(fromId), tlKeyFor(toId));
 }
 function tlEnsure() {
   if (tl.ready || !design) return;
   tl.ready = true;
-  if (!tl.key) {
-    tl.key = tlKeyFor(typeof mineCur !== 'undefined' ? mineCur : null);
-    try {
-      const old = localStorage.getItem(TL_KEY);
-      if (old && !localStorage.getItem(tl.key)) localStorage.setItem(tl.key, old);
-      localStorage.removeItem(TL_KEY);
-    } catch (e) {} // timeline saved before designs had their own
+  if (!tl.key) tl.key = tlKeyFor(mineCur);
+  const o = timelines.get(tl.key);
+  if (o && Array.isArray(o.steps) && o.steps.length) {
+    tl.steps = o.steps.slice();
+    tl.i = Math.max(0, Math.min(o.i, o.steps.length - 1));
+    tl.seq = o.seq || o.steps.length;
   }
-  try {
-    const o = JSON.parse(localStorage.getItem(tl.key) || 'null');
-    if (o && Array.isArray(o.steps) && o.steps.length) {
-      tl.steps = o.steps;
-      tl.i = Math.min(o.i, o.steps.length - 1);
-      tl.seq = o.seq || o.steps.length;
-    }
-  } catch (e) {}
   const cur = JSON.stringify(design);
   if (!tl.steps.length || tl.steps[tl.i].d !== cur) tlPush(cur, tl.steps.length ? 'Opened' : 'Start');
   tlUI();

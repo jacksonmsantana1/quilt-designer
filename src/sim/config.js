@@ -1,4 +1,5 @@
 // Simulation settings: quilt size, beds and tables, fabric presets and physical parameters.
+import '../storage/boot.js'; // load order: runs after storage/boot
 
 const N = 40; // simulation grid (N × N nodes)
 const R = 2 * (N - 1) + 1; // render grid after 4-point subdivision

@@ -59,9 +59,22 @@ export const test = base.extend({
       },
       /** the design on screen: saved on every change (before the first change, the default 5 × 5 quilt) */
       async current() {
-        const d = await page.evaluate(() => JSON.parse(localStorage.getItem('quilt-designer.v1') || 'null'));
+        const d = await page.evaluate(async () => {
+          const s = globalThis.__quiltStorage;
+          await s.flush();
+          const c = s.getSession('current');
+          return typeof c === 'string' ? JSON.parse(c) : c || null;
+        });
         return (
           d || { cols: 5, rows: 5, blockMm: 458, backFabric: 'b0', blocks: Array.from({ length: 25 }, () => ({})) }
+        );
+      },
+      /** the app's storage (storage/repo.js) after pending writes: run fn(storage) in the page */
+      async storage(fn, arg) {
+        await page.evaluate(() => globalThis.__quiltStorage.flush());
+        return page.evaluate(
+          ([f, a]) => new Function('s', 'a', `return (${f})(s, a)`)(globalThis.__quiltStorage, a),
+          [fn.toString(), arg],
         );
       },
       /** page coordinates of the centre of block i of design d, on the designer's quilt canvas */
