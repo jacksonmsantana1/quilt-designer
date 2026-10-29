@@ -4,6 +4,10 @@ import { test as base, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { blockRect, quiltMm } from '../../src/core/geometry.js';
+import MCR from 'monocart-coverage-reports';
+import { coverageOptions } from './coverage.mjs';
+
+const COVERAGE = !!process.env.COVERAGE;
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const NM = path.join(ROOT, 'node_modules');
@@ -25,6 +29,7 @@ export const test = base.extend({
   app: async ({ page, firstVisit }, use) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
+    if (COVERAGE) await page.coverage.startJSCoverage({ resetOnNavigation: false });
     // every design is frozen once it is the current one: code that changed it in place would throw
     await page.addInitScript(() => {
       try {
@@ -86,6 +91,7 @@ export const test = base.extend({
       quiltMm,
     };
     await use(app);
+    if (COVERAGE) await MCR(coverageOptions).add(await page.coverage.stopJSCoverage());
     expect(errors, 'no errors in the page').toEqual([]);
   },
 });

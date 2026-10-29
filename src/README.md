@@ -65,4 +65,6 @@ main.js     entry point
 npm run build           # esbuild src/main.js -> dist/app.js, then quilt.html
 npm run check           # format, lint, types, unit tests
 npm run test:e2e        # browser tests
+npm run coverage        # unit-test coverage of the pure modules (Node's own coverage)
+npm run coverage:e2e    # browser-test coverage of all of src/ -> coverage/e2e/index.html (and lcov.info)
 ```
