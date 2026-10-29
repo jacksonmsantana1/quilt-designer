@@ -1,0 +1,41 @@
+const { chromium } = require('playwright');
+const fs = require('fs'), path = require('path');
+const NM = '/tmp/claude-0/-home-claude/cb9526ed-9012-5cf4-ac72-246e7bebad80/scratchpad/npm/node_modules';
+const MAP = [[/three@0\.183\.2\/(.*)$/, 'three'], [/three-mesh-bvh@0\.9\.14\/(.*)$/, 'three-mesh-bvh'], [/three-gpu-pathtracer@0\.0\.24\/(.*)$/, 'three-gpu-pathtracer']];
+(async () => {
+  const browser = await chromium.launch();
+  const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' + fs.readFileSync('/home/claude/quilt/quilt.html', 'utf8') + '</body></html>';
+  const page = await browser.newPage({ viewport: { width: 1300, height: 1000 } }); page.setDefaultTimeout(30000);
+  const errs = []; page.on('pageerror', e => errs.push(e.message));
+  await page.route('**/*', r => {
+    const u = r.request().url();
+    for (const [re, pkg] of MAP) { const m = u.match(re); if (m) return r.fulfill({ path: path.join(NM, pkg, m[1]), contentType: 'text/javascript' }); }
+    if (u.startsWith('https://fonts.')) return r.fulfill({ body: '', contentType: 'text/css' });
+    if (u.startsWith('http://x/assets/')) return r.fulfill({ path: '/home/claude/quilt/' + u.slice(9).split('#')[0] });
+    if (u.startsWith('http://x/')) return r.fulfill({ body: html, contentType: 'text/html' });
+    return r.abort();
+  });
+  await page.goto('http://x/');
+  await page.waitForTimeout(2500);
+  console.log('intro:', await page.textContent('#intro'));
+  console.log('bedsel:', await page.evaluate(() => { const e = document.getElementById('bedsel'); const r = e.getBoundingClientRect(); let p = e, h = []; while (p) { if (p.hidden) h.push(p.id || p.tagName); p = p.parentElement; } return JSON.stringify({ r, opts: e.options.length, hidden: h }); }));
+  await page.selectOption('#bedsel', 'br-solteiro'); await page.waitForTimeout(6000);
+  console.log('fit:', await page.textContent('#bed-fit'));
+  await page.screenshot({ path: '/home/claude/quilt/bed_single.png' });
+  await page.selectOption('#bedsel', 'br-king'); await page.waitForTimeout(6000);
+  await page.screenshot({ path: '/home/claude/quilt/bed_king.png' });
+  await page.click('text=Quilt designer'); await page.waitForTimeout(600);
+  if (await page.textContent('#dz-toggle') === 'Show design tools') await page.click('#dz-toggle');
+  await page.waitForTimeout(300);
+  console.log('target:', await page.textContent('#fit-target'));
+  console.log('options:', (await page.locator('.fitopt b').allTextContents()).join(' | '));
+  await page.locator('.fitopt button:not([disabled])').first().click(); await page.waitForTimeout(300);
+  console.log('design now:', await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('quilt-designer.v1')); return d.cols + 'x' + d.rows + ' @ ' + d.blockMm; }));
+  await page.locator('#fit-bed').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: '/home/claude/quilt/bed_fit.png' });
+  await page.click('#dz-simulate'); await page.waitForTimeout(7000);
+  console.log('fit after simulate:', await page.textContent('#bed-fit'));
+  await page.screenshot({ path: '/home/claude/quilt/bed_sim2.png' });
+  console.log('errors', errs);
+  await browser.close();
+})();

@@ -1,0 +1,42 @@
+const { chromium } = require('playwright');
+const fs = require('fs'), path = require('path');
+const NM = '/tmp/claude-0/-home-claude/cb9526ed-9012-5cf4-ac72-246e7bebad80/scratchpad/npm/node_modules';
+const MAP = [[/three@0\.183\.2\/(.*)$/, 'three'], [/three-mesh-bvh@0\.9\.14\/(.*)$/, 'three-mesh-bvh'], [/three-gpu-pathtracer@0\.0\.24\/(.*)$/, 'three-gpu-pathtracer']];
+(async () => {
+  const browser = await chromium.launch();
+  const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' + fs.readFileSync('/home/claude/quilt/quilt.html', 'utf8') + '</body></html>';
+  const page = await browser.newPage({ viewport: { width: 1100, height: 1000 } }); page.setDefaultTimeout(60000);
+  const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('crash', () => console.log('PAGE CRASHED')); page.on('framenavigated', f => { if (f === page.mainFrame()) console.log('navigated', f.url()); });
+  await page.route('**/*', r => {
+    const u = r.request().url();
+    for (const [re, pkg] of MAP) { const m = u.match(re); if (m) return r.fulfill({ path: path.join(NM, pkg, m[1]), contentType: 'text/javascript' }); }
+    if (u.startsWith('https://fonts.')) return r.fulfill({ body: '', contentType: 'text/css' });
+    if (u.startsWith('http://x/assets/')) return r.fulfill({ path: '/home/claude/quilt/' + u.slice(9).split('#')[0] });
+    if (u.startsWith('http://x/')) return r.fulfill({ body: html, contentType: 'text/html' });
+    return r.abort();
+  });
+  await page.goto('http://x/');
+  await page.waitForFunction(() => document.getElementById('atrest'));
+  await page.evaluate(() => { const s = document.getElementById('atrest'); s.value = 'none'; s.dispatchEvent(new Event('change')); });
+  console.log('step: atrest set', await page.evaluate(() => !!document.querySelector('[data-page="design"]')));
+  await page.click('[data-page="design"]');
+  await page.waitForFunction(() => document.querySelectorAll('#dz-fabrics2 .fab').length > 0);
+  await page.fill('#dz-bmm2', '450'); await page.press('#dz-bmm2', 'Tab');
+  await page.click('#dz-toggle');
+  await page.click('[data-step="c:1"]');
+  for (let k = 0; k < 2; k++) await page.click('[data-step="r:1"]');
+  await page.waitForTimeout(300);
+  console.log('designer:', await page.evaluate(() => document.getElementById('dz-size').textContent));
+  await page.screenshot({ path: '/home/claude/quilt/sz_design.png' });
+  await page.click('[data-page="cut"]');
+  await page.waitForFunction(() => document.querySelectorAll('.cgblock').length > 0);
+  console.log('cut facts:', await page.evaluate(() => document.getElementById('cg-facts').innerText.replace(/\n/g, ' | ')));
+  console.log('ohio:', await page.evaluate(() => [...document.querySelectorAll('.cgblock')[0].querySelectorAll('tbody tr')].map(r => r.innerText.replace(/\s+/g, ' ')).join(' | ')));
+  await page.click('[data-page="design"]');
+  await page.click('#dz-simulate2');
+  await page.waitForTimeout(9000);
+  console.log('sim intro:', await page.evaluate(() => document.getElementById('intro').textContent.slice(0, 60)), '| state', await page.evaluate(() => document.getElementById('state').textContent), '| mass', await page.evaluate(() => document.getElementById('m-mass').textContent));
+  await page.locator('#stage').screenshot({ path: '/home/claude/quilt/sz_sim.png' });
+  console.log('errors', errs);
+  await browser.close();
+})();

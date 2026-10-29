@@ -1,0 +1,9 @@
+*.png
+*.pdf
+*.log
+quilt_dbg.html
+pdfprev/
+blender/
+quilt_render_pkg/
+blocks12/
+node_modules/

@@ -1,0 +1,5 @@
+t=open('template.html').read()
+t=t.replace('/*PHYSICS*/', open('physics.js').read()).replace('/*MAIN*/', open('main2.js').read())
+t=t.replace("  @media (prefers-reduced-motion","  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }\n  @media (prefers-reduced-motion",1)
+open('quilt.html','w').write(t)
+print(len(t))

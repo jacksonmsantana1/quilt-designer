@@ -1,0 +1,1071 @@
+<title>Quilt Drape Simulation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* the hidden attribute always wins over layout rules (the page must not depend on its host for this) */
+  [hidden] { display: none !important; }
+  /* Layout: instrument bench — a large 3D stage with a measurement column beside it; stacks on phones. */
+  :root {
+    --bg: #eceff4;
+    --panel: #fafbfd;
+    --ink: #19202e;
+    --muted: #5a6377;
+    --line: #d5dae4;
+    --accent: #2b4a80;      /* quilt indigo */
+    --accent-ink: #ffffff;
+    --madder: #9a3324;      /* quilt red */
+    --held: #a86a12;
+    --rest: #2f7a4b;
+    --stage: #2a2622;
+    --font-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11141a; --panel: #191d26; --ink: #e5e8ef; --muted: #98a1b3; --line: #2a303d;
+      --accent: #93ade4; --accent-ink: #0f1420; --madder: #e0826f; --held: #e0a64a; --rest: #6cc48c;
+      --stage: #1b1916; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11141a; --panel: #191d26; --ink: #e5e8ef; --muted: #98a1b3; --line: #2a303d;
+    --accent: #93ade4; --accent-ink: #0f1420; --madder: #e0826f; --held: #e0a64a; --rest: #6cc48c;
+    --stage: #1b1916; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 16px 28px;
+  }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 6px 18px; margin-bottom: 14px; }
+  h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 72ch; flex-basis: 100%; }
+  .bench { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+  @media (max-width: 920px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+  /* wide screens: the 3D view stays put and the controls scroll in their own column */
+  @media (min-width: 921px) {
+    .bench > .col:first-child { position: sticky; top: 12px; }
+    .sim-side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; overscroll-behavior: contain;
+      padding-right: 6px; scrollbar-gutter: stable; scrollbar-width: thin; }
+    .sim-side::-webkit-scrollbar { width: 8px; }
+    .sim-side::-webkit-scrollbar-thumb { background: rgba(60,70,90,.3); border-radius: 4px; }
+  }
+
+  .stage { position: relative; background: var(--stage); border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; min-height: 320px; }
+  .stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  .stage canvas.grabbing { cursor: grabbing; }
+  .stage canvas.can-grab { cursor: pointer; }
+  .hud { position: absolute; left: 12px; top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; pointer-events: none; }
+  .hud .clock { font-family: var(--font-data); font-size: 1.05rem; color: #f3ede4; background: rgba(20,18,15,.55); padding: 4px 9px; border-radius: 5px; font-variant-numeric: tabular-nums; }
+  .pill { font-family: var(--font-display); font-weight: 600; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; color: #fff; background: #4a5368; }
+  .pill.held { background: #a86a12; } .pill.rest { background: #2f7a4b; } .pill.fall { background: #2b4a80; } .pill.settle { background: #5b4a8a; }
+  .hud .slow { font-family: var(--font-data); font-size: .78rem; color: #f3d9a8; background: rgba(20,18,15,.55); padding: 3px 7px; border-radius: 5px; }
+  .stagebar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-end; padding: 10px 12px; background: linear-gradient(to top, rgba(18,16,13,.72), rgba(18,16,13,0)); }
+  .stage[data-ctl="hidden"] .stagebar { display: none; }
+  .stagectl { position: absolute; right: 12px; bottom: 12px; z-index: 3; font: 600 .82rem var(--font-body); color: #1d1a16; background: rgba(243,237,228,.92); border: 0; border-radius: 7px; padding: 7px 12px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+  .stagectl:hover { background: #fff; }
+  .stagectl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stage[data-ctl="shown"] .stagebar { padding-right: 132px; }
+  .seg { display: inline-flex; flex-wrap: wrap; background: rgba(250,248,244,.12); border-radius: 7px; padding: 3px; gap: 3px; backdrop-filter: blur(4px); }
+  .seg button { font: 500 .85rem var(--font-body); color: #efe9df; background: transparent; border: 0; border-radius: 5px; padding: 6px 10px; cursor: pointer; white-space: nowrap; }
+  .seg button[aria-pressed="true"] { background: #f3ede4; color: #1d1a16; }
+  .seg button:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hint { position: absolute; right: 12px; top: 12px; font-size: .78rem; color: rgba(243,237,228,.75); pointer-events: none; text-align: right; }
+
+  @media (max-width: 640px) { .stage { aspect-ratio: 4 / 5; } .hint { display: none; } }
+  .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; min-width: 0; }
+  .card h2 { font-family: var(--font-display); font-weight: 600; font-size: .82rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  /* side-panel cards open and close from their title */
+  .fold-head { cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-radius: 4px; }
+  .fold-head:hover { color: var(--ink); }
+  .fold-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .fold-head::after { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-2px, -2px); transition: transform .18s ease; margin-right: 4px; }
+  .folded .fold-head::after { transform: rotate(-45deg); }
+  .card.folded > h2.fold-head { margin-bottom: 0; }
+  .card.folded:not(.dz-sideparts) > :not(.fold-head) { display: none !important; }
+  .dz-sideparts.folded #dz-partsbox > :not(.dlg-head), .dz-sideparts.folded #dz-fabbox, .dz-sideparts.folded #dz-libbox, .dz-sideparts.folded #dz-patbox { display: none !important; }
+  .dz-sideparts .dlg-head .fold-head { margin: 0; }
+  .dz-sideparts .dlg-head > div { flex: 1; min-width: 0; }
+  .dz-cancel { display: none; flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: .8rem; line-height: 1; cursor: pointer; align-self: flex-start; }
+  .dz-cancel:hover { background: #e0592a; border-color: #e0592a; color: #fff; }
+  .dz-sideparts .dz-cancel { display: inline-grid; place-items: center; }
+  .card.has-cancel { position: relative; }
+  .card.has-cancel > .card-cancel { display: inline-grid; place-items: center; position: absolute; left: 12px; top: 10px; }
+  .card.has-cancel > h2 { padding-left: 38px; min-height: 28px; display: flex; align-items: center; }
+  .dz-sideparts .dlg-head { justify-content: flex-start; }
+  .dz-sideparts.folded .dlg-head { margin-bottom: 0; padding-bottom: 0; }
+  .dz-sideparts.folded #dz-partsbox { margin: 0; }
+  .dz-sideparts.folded .dlg-head #dz-blockname { display: none; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button.btn { font: 500 .9rem var(--font-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+  button.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+
+  dl.meas { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
+  dl.meas dt { color: var(--muted); }
+  dl.meas dd { margin: 0; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
+  dl.meas .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+  .chart { width: 100%; height: 120px; display: block; margin-top: 10px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .78rem; color: var(--muted); margin-top: 6px; }
+  .legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+
+  .param { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin-top: 10px; }
+  .param label { font-size: .88rem; }
+  .param output { font-family: var(--font-data); font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .param input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+  .param small { grid-column: 1 / -1; color: var(--muted); font-size: .76rem; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; }
+  .toggles label { display: inline-flex; gap: 6px; align-items: center; font-size: .88rem; }
+
+  details.model { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-top: 14px; }
+  details.model summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; letter-spacing: .04em; }
+  .model-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 28px; margin-top: 8px; }
+  .model-grid section { min-width: 0; }
+  .model-grid h3 { font-size: .9rem; margin: 12px 0 4px; }
+  .model-grid p, .model-grid li { color: var(--muted); max-width: 68ch; margin: 0 0 6px; }
+  .model-grid ul { padding-left: 18px; margin: 0; }
+  code, .eq { font-family: var(--font-data); font-size: .82rem; color: var(--ink); }
+  .eq { display: block; overflow-x: auto; padding: 6px 8px; background: color-mix(in srgb, var(--accent) 8%, transparent); border-radius: 5px; margin: 4px 0 8px; white-space: nowrap; }
+  .err { color: var(--madder); }
+  .legend3d { position: absolute; right: 12px; top: 12px; background: rgba(247,248,250,.92); color: #1a1f27; border: 1px solid rgba(26,31,39,.2); border-radius: 6px; padding: 8px 10px 10px; font-family: var(--font-data); font-size: .72rem; max-width: 190px; pointer-events: none; }
+  .lg-title { font-family: var(--font-display); font-weight: 600; font-size: .78rem; letter-spacing: .03em; margin-bottom: 8px; }
+  .lg-row { display: flex; gap: 7px; height: 15px; align-items: flex-start; font-variant-numeric: tabular-nums; }
+  .lg-row i { display: block; width: 18px; height: 15px; border-left: 1px solid rgba(0,0,0,.35); border-right: 1px solid rgba(0,0,0,.35); }
+  .lg-row:first-child i { border-top: 1px solid rgba(0,0,0,.35); }
+  .lg-row:nth-last-child(2) i { border-bottom: 1px solid rgba(0,0,0,.35); }
+  .lg-row span { transform: translateY(-50%); line-height: 1; }
+  .lg-end { height: 0; padding-left: 25px; }
+  .lg-note { margin-top: 12px; font-family: var(--font-body); color: #4a5262; line-height: 1.3; }
+  @media (max-width: 640px) { .legend3d { padding: 6px 8px; font-size: .66rem; } .lg-note { display: none; } .lg-row, .lg-row i { height: 11px; } }
+  button.btn.sm { padding: 5px 11px; font-size: .84rem; }
+  .camrow { margin-top: 10px; }
+  .rstat { font-family: var(--font-data); font-size: .8rem; color: #e8f4ff; background: rgba(20,24,30,.62); padding: 4px 9px; border-radius: 5px; font-variant-numeric: tabular-nums; }
+  .rbar { flex-basis: 100%; height: 3px; background: rgba(255,255,255,.18); border-radius: 2px; overflow: hidden; max-width: 340px; }
+  .rbar > div { height: 100%; width: 0; background: #7cc7ff; transition: width .2s linear; }
+  .loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(20,18,15,.7); color: #f3ede4; padding: 8px 14px; border-radius: 6px; font-size: .88rem; pointer-events: none; text-align: center; max-width: 80%; }
+  .rnote { position: absolute; left: 12px; right: 12px; top: 96px; background: rgba(30,22,14,.82); color: #f6e7cf; padding: 8px 12px; border-radius: 6px; font-size: .85rem; max-width: 520px; }
+  .seg button:disabled { opacity: .4; cursor: not-allowed; }
+  .tabs { display: inline-flex; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 5px; box-shadow: 0 2px 10px rgba(20,25,40,.08); }
+  .tabs button { font: 600 1.05rem var(--font-body); border: 0; background: transparent; color: var(--muted); padding: 11px 26px; border-radius: 9px; cursor: pointer; }
+  .tabs button:hover:not([aria-selected="true"]) { background: rgba(224,89,42,.08); color: var(--ink); }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .dz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+  .dz.tools-open { grid-template-columns: minmax(0, 1fr) 360px; }
+  @media (max-width: 920px) { .dz.tools-open { grid-template-columns: minmax(0, 1fr); } }
+  /* design tools open on a wide screen: the quilt stays put and the tools scroll in their own panel */
+  @media (min-width: 921px) {
+    .dz.tools-open .dz-main { position: sticky; top: 12px; }
+    .dz.tools-open .dz-side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; overscroll-behavior: contain;
+      padding-right: 6px; scrollbar-gutter: stable; scrollbar-width: thin; }
+    .dz.tools-open .dz-side::-webkit-scrollbar { width: 8px; }
+    .dz.tools-open .dz-side::-webkit-scrollbar-thumb { background: rgba(60,70,90,.3); border-radius: 4px; }
+  }
+  .dz-toolbar { margin-bottom: 10px; }
+  .qlayout { gap: 6px; }
+  .qlayout .stepper input { width: 2.8em; padding: 5px 2px; }
+  .qlayout .stepper .btn { padding: 4px 8px; }
+  .dz-dialog { border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: var(--panel); color: var(--ink); width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 18px 50px rgba(10,15,30,.35); }
+  .dz-dialog::backdrop { background: rgba(15,18,26,.45); }
+  .dz-dialog h2 { font-family: var(--font-display); font-weight: 600; font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .dlg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .dlg-x { font-size: 1.1rem; line-height: 1; padding: 4px 10px; }
+  .dlg-tools { margin-bottom: 10px; }
+  .dlg-tools select { flex: 1; min-width: 0; }
+  .dlg-foot { display: flex; justify-content: flex-end; margin-top: 14px; }
+  .dz-main { min-width: 0; }
+  .dz-quiltwrap { width: 100%; max-width: 860px; }
+  /* design tools hidden: the quilt and its toolbar sit in the middle of the page */
+  /* the quilt is centred in its column, with or without the design tools */
+  .dz-quiltwrap, .dz:not(.tools-open) .dz-backbar { margin-left: auto; margin-right: auto; }
+  .dz:not(.tools-open) .dz-backbar { max-width: 860px; }
+  .flipper { margin-left: auto; margin-right: auto; }
+  .dz:not(.tools-open) .dz-toolbar { justify-content: center; }
+  .dz:not(.tools-open) .dz-main > p.fine { text-align: center; }
+  #dz-quilt { display: block; border-radius: 4px; box-shadow: 0 6px 24px rgba(20,25,40,.18); cursor: pointer; max-width: 100%; }
+  .dz-blockwrap { display: flex; justify-content: center; }
+  #bed-custom[hidden], #fit-custom[hidden] { display: none; }
+  .fitlist { display: grid; gap: 6px; }
+  /* round tool buttons beside the quilt */
+  .flipper { position: relative; padding-right: 62px; padding-left: 62px; }
+  .rail.rail-left { right: auto; left: 0; }
+  .rail-btn.rail-primary { background: #2f466f; color: #fff; border-color: #2f466f; }
+  .rail-btn.saved { background: #2e7d4f; border-color: #2e7d4f; color: #fff; }
+  .rail { position: absolute; right: 0; top: 0; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
+  .rail-btn { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: #2f466f; display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(20,25,40,.12); transition: transform .12s ease, background .12s ease; }
+  .rail-btn svg { width: 24px; height: 24px; }
+  .rail-btn:hover { transform: scale(1.07); border-color: #2f466f; }
+  .rail-btn[aria-pressed="true"] { background: #2f466f; color: #fff; border-color: #2f466f; }
+  .rail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .flipper.flipped .rail:not(.rail-left) .rail-btn:not(#dz-flip):not(#dz-sim) { visibility: hidden; }
+  @media (max-width: 640px) { .flipper { padding-right: 0; padding-left: 0; } .rail.rail-left { display: inline-flex; margin-right: 10px; } .rail { position: static; flex-direction: row; justify-content: center; margin-bottom: 8px; } }
+  /* guided tour: everything is greyed out and switched off except what the current step needs */
+  body.sim-over { overflow: hidden; }
+  body.sim-over::before { content: ''; position: fixed; inset: 0; z-index: 59; background: rgba(20,24,34,.5); }
+  body.sim-over #page-sim { position: fixed; inset: 18px 18px auto 18px; max-height: calc(100vh - 36px); z-index: 60; background: var(--bg); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.35); overflow: auto; padding: 18px 22px 22px; animation: simIn .22s ease; }
+  @keyframes simIn { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+  .sim-close { display: none; }
+  body.sim-over .sim-close { display: grid; place-items: center; position: sticky; top: 0; float: left; margin: -6px 0 0 -8px; z-index: 5; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: #2f466f; font: 600 1rem var(--font-body); cursor: pointer; box-shadow: 0 2px 8px rgba(20,25,40,.18); }
+  body.sim-over .sim-close:hover { background: #b23a3a; border-color: #b23a3a; color: #fff; }
+  body.sim-over #page-sim .stage { width: min(100%, calc((100vh - 210px) * 1.6)); margin-left: auto; margin-right: auto; }
+  @media (max-width: 640px) { body.sim-over #page-sim .stage { width: 100%; } body.sim-over #page-sim { inset: 6px 6px auto 6px; max-height: calc(100vh - 12px); padding: 12px; } }
+  .qlt { margin-left: 12px; display: inline-flex; align-items: center; gap: 6px; }
+  .qlt select { font-size: .8rem; padding: 2px 4px; }
+  .fussy-row { display: flex; align-items: flex-end; gap: 10px; }
+  #dz-fussy-cv { border-radius: 6px; box-shadow: 0 1px 6px rgba(20,25,40,.2); cursor: crosshair; touch-action: none; }
+  .symrow { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; font-size: .85rem; font-weight: 600; }
+  .symrow select { flex: 1; min-width: 0; }
+  .tour-btn { position: fixed; left: 18px; bottom: 18px; z-index: 45; width: 50px; height: 50px; transition: bottom .2s ease, transform .12s ease; }
+  .tour-btn svg { width: 26px; height: 26px; }
+  body.tl-open .tour-btn { bottom: calc(var(--tl-h, 170px) + 22px); }
+  body.tour-active :is(button, input, select, textarea, label.btn, label.filebtn, .fold-head):not(.tour-allow):not(.tour-allow *):not(#tour *) {
+    pointer-events: none !important; opacity: .32 !important; filter: grayscale(1) !important; }
+  body.tour-active canvas:is(#dz-quilt, #dz-block, #view):not(.tour-allow) { pointer-events: none !important; }
+  .tour-glow { outline: 3px solid #e0592a !important; outline-offset: 3px; border-radius: 8px; animation: tour-pulse 1.3s ease-in-out infinite; position: relative; z-index: 2; }
+  @keyframes tour-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(224,89,42,.55); } 50% { box-shadow: 0 0 0 9px rgba(224,89,42,0); } }
+  @media (prefers-reduced-motion: reduce) { .tour-glow { animation: none; } }
+  .tour { position: fixed; z-index: 1000; width: min(340px, calc(100vw - 24px)); background: #fff; color: #1f1d1a; border-radius: 14px; box-shadow: 0 18px 50px rgba(10,15,30,.35), 0 0 0 1px rgba(0,0,0,.06); padding: 14px 16px 12px; font-family: var(--font-body); }
+  .tour-head { display: flex; justify-content: space-between; align-items: center; font: 600 .72rem var(--font-body); color: #8a857c; text-transform: uppercase; letter-spacing: .06em; }
+  .tour-head { cursor: move; user-select: none; touch-action: none; }
+  .tour.min #tour-text, .tour.min .tour-actions { display: none; }
+  .tour.min h3 { font-size: .9rem; margin: 4px 0 0; }
+  .tour { width: min(300px, calc(100vw - 24px)); }
+  .tour-x { border: 0; background: none; color: #8a857c; font: 600 .75rem var(--font-body); cursor: pointer; padding: 2px 4px; }
+  .tour-x:hover { color: #1f1d1a; }
+  .tour h3 { margin: 6px 0 4px; font: 600 1.05rem var(--font-body); }
+  .tour p { margin: 0; font-size: .9rem; line-height: 1.45; color: #3a3732; }
+  .tour p b { color: #1f1d1a; }
+  .tour-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  .tour-actions:empty { display: none; }
+  .tour-actions button { font: 600 .88rem var(--font-body); border-radius: 8px; padding: 8px 14px; cursor: pointer; border: 1px solid #d9d3c7; background: #fff; color: #1f1d1a; }
+  .tour-actions button.primary { background: #2f466f; border-color: #2f466f; color: #fff; }
+  .tour-bar { height: 4px; background: #eee8de; border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .tour-bar div { height: 100%; background: #e0592a; transition: width .3s ease; }
+  .tour.center { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); }
+  .brd-types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .brd-type { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: 600 .74rem var(--font-body); cursor: pointer; }
+  .brd-type:hover { border-color: var(--accent); }
+  .brd-type canvas { width: 100%; height: auto; border-radius: 3px; }
+  .brd-list { display: grid; gap: 8px; }
+  .brd-row { border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 0; }
+  .brd-row > canvas { max-width: 100%; }
+  .brd-row .top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .brd-row .top b { font-size: .8rem; flex: 1 0 100%; }
+  .brd-row .top select { flex: 1; min-width: 0; }
+  .brd-row select, .brd-row input { font: inherit; font-size: .85rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
+  .brd-row input { width: 4.6em; text-align: right; }
+  .brd-row .ic { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; color: var(--ink); }
+  .brd-row .ic:disabled { opacity: .35; cursor: default; }
+  .brd-slots { display: flex; flex-wrap: wrap; gap: 6px; }
+  .brd-slot { display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px 3px 3px; background: var(--panel); cursor: pointer; font: .72rem var(--font-body); color: var(--ink); }
+  .brd-slot canvas { width: 22px; height: 22px; border-radius: 3px; }
+  .brd-slot[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .sash-presets { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+  .sash-presets button { font: 600 .75rem var(--font-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+  .sash-presets button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  /* the time / state / speed badges over the 3D view are not shown */
+  #clock, #state, #slow, #hint { display: none !important; }
+  /* My designs: a Pinterest-style masonry of saved quilts */
+  .mine-top { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin-bottom: 16px; }
+  .mine-top input, .mine-top select { font: inherit; font-size: .92rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; }
+  .mine-top input { width: min(340px, 70vw); }
+  .mine-grid { columns: 4 230px; column-gap: 16px; max-width: 1240px; margin: 0 auto; }
+  .pin { break-inside: avoid; margin: 0 0 16px; background: var(--panel); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(20,25,40,.08); transition: transform .18s ease, box-shadow .18s ease; position: relative; }
+  .pin:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(20,25,40,.18); }
+  .pin .img { position: relative; cursor: pointer; background: #e9e4da; padding: 14px; }
+  .pin canvas { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
+  .pin .over { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: flex-end; gap: 6px; padding: 10px; background: linear-gradient(rgba(0,0,0,.35), transparent 45%); opacity: 0; transition: opacity .18s ease; }
+  .pin:hover .over, .pin:focus-within .over { opacity: 1; }
+  .pin .over .open { margin-right: auto; background: var(--accent); color: #fff; border: 0; border-radius: 999px; padding: 8px 16px; font: 600 .85rem var(--font-body); cursor: pointer; }
+  .pin .over .ic { background: rgba(255,255,255,.92); color: #222; border: 0; border-radius: 999px; width: 34px; height: 34px; font-size: .95rem; cursor: pointer; }
+  .pin .meta { padding: 10px 14px 12px; }
+  .pin .meta b { display: block; font-size: .95rem; }
+  .pin .meta small { color: var(--muted); font-size: .76rem; }
+  .pin.current { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(20,25,40,.08); }
+  .mine-empty { text-align: center; font-size: .95rem; margin-top: 40px; }
+  .save-prev { display: flex; justify-content: center; margin-top: 8px; }
+  .save-prev canvas { max-width: 100%; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
+  /* design timeline */
+  .tl-btns { display: inline-flex; gap: 4px; }
+  .dz-size { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; margin: 0 0 10px; }
+  .dz-size2 { margin: 10px 0 0; }
+  .size-lbl { font-weight: 600; color: var(--ink); margin-right: 2px; }
+  .size-x { margin: 0 8px; color: var(--muted); }
+  .stepper.mini { display: inline-flex; gap: 2px; }
+  .stepper.mini input { width: 2.6em; padding: 2px; font-weight: 600; }
+  .stepper.mini .btn { padding: 1px 7px; min-height: 0; line-height: 1.3; }
+  .size-in { margin: 0 4px; width: 4.6em; padding: 2px 4px; font: inherit; font-weight: 600; color: var(--ink, #1d2230); border: 1px solid var(--line); border-radius: 6px; background: var(--panel); text-align: center; }
+  .size-in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tl-row { display: flex; justify-content: center; margin-top: 10px; transition: opacity .2s ease; }
+  .tl-row.tl-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .tl-btns .btn[aria-label] { min-width: 38px; font-size: 1.05rem; padding-left: 8px; padding-right: 8px; }
+  .tl-btns .btn:disabled { opacity: .4; cursor: default; }
+  /* timeline: a film strip fixed along the bottom of the designer, like a video editor */
+  .tl-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: #17191f; color: #e8e4dc; border-top: 1px solid #000; box-shadow: 0 -8px 24px rgba(0,0,0,.25); padding: 6px 14px 8px; }
+  .tl-bar:not([hidden]) { display: flex; flex-direction: column; }
+  .tl-film { order: 1; } #tl-slider { order: 2; } .tl-head { order: 3; margin-top: 6px; }
+  .tl-head { display: flex; align-items: center; gap: 6px; }
+  .tl-ic, .tl-txt { background: #2a2d36; color: #e8e4dc; border: 0; border-radius: 6px; height: 28px; min-width: 32px; padding: 0 8px; font: 600 .82rem var(--font-body); cursor: pointer; }
+  .tl-ic:hover, .tl-txt:hover { background: #3a3e4a; }
+  .tl-ic:disabled { opacity: .35; cursor: default; }
+  .tl-close { position: absolute; left: 14px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid #000; background: #2a2d36; color: #e8e4dc; display: grid; place-items: center; font: 600 .9rem var(--font-body); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.35); z-index: 1; }
+  .tl-close:hover { background: #b23a3a; }
+  .tl-play { background: var(--accent); color: #fff; min-width: 40px; }
+  .tl-pos { font: .78rem var(--font-data); color: #a9a397; margin-left: 6px; }
+  .tl-film { background: #0d0e12; border-radius: 4px; padding: 9px 0;
+    background-image: repeating-linear-gradient(90deg, #3b3f4a 0 8px, transparent 8px 18px), repeating-linear-gradient(90deg, #3b3f4a 0 8px, transparent 8px 18px);
+    background-size: 100% 5px, 100% 5px; background-position: 0 2px, 0 calc(100% - 2px); background-repeat: no-repeat; }
+  .tl-list { display: flex; gap: 3px; overflow-x: auto; padding: 0 6px; scroll-behavior: smooth; scrollbar-width: thin; }
+  .tl-step { flex: none; position: relative; width: 84px; height: 84px; padding: 0; border: 2px solid transparent; border-radius: 3px; background: #22252d; cursor: pointer; overflow: hidden; display: grid; place-items: center; }
+  .tl-step canvas { max-width: 80px; max-height: 80px; display: block; }
+  .tl-step .n { position: absolute; left: 3px; top: 2px; font: 600 .62rem var(--font-data); color: #fff; text-shadow: 0 1px 2px #000; }
+  .tl-step .l { position: absolute; left: 0; right: 0; bottom: 0; font-size: .6rem; line-height: 1.15; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.8)); padding: 8px 3px 2px; text-align: left; max-height: 3.2em; overflow: hidden; }
+  .tl-step:hover { border-color: #8a8f9c; }
+  .tl-step.cur { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .tl-step.future { opacity: .4; }
+  #tl-slider { width: 100%; margin: 6px 0 0; accent-color: var(--accent); }
+  body.tl-open { padding-bottom: var(--tl-h, 170px); }
+  .sim-side[data-adv="hidden"] .adv { display: none !important; }
+  .sim-top { text-align: center; margin-bottom: 10px; }
+  .restart-row { display: flex; justify-content: center; align-items: center; gap: 14px; }
+  .turn-btn { width: 52px; height: 52px; }
+  .droppos { display: flex; flex-direction: column; align-items: stretch; gap: 2px; font-size: .8rem; color: var(--muted); min-width: 220px; }
+  .droppos span { font-weight: 600; color: var(--ink); }
+  .droppos input { width: 100%; accent-color: #e0592a; }
+  .droppos output { font-size: .75rem; }
+  .restart-row { flex-wrap: wrap; }
+  .turn-btn svg { width: 26px; height: 26px; }
+  button.btn.restart-big { font-size: 1.15rem; font-weight: 600; padding: 14px 48px; min-height: 52px; border-radius: 10px; min-width: 200px; box-shadow: 0 4px 14px rgba(20,25,40,.15); }
+  .sim-toolbar { justify-content: center; align-items: center; }
+  .sim-toolbar select { font: inherit; font-size: .9rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .sim-top p.fine { margin: 6px 0 0; }
+  .sim-toolbar .btn[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  /* no side panel open: the 3D view takes the whole width, centred */
+  .bench.one { grid-template-columns: minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+  /* block pattern picker with a sketch of every pattern */
+  .patpick { position: relative; flex: 1; min-width: 0; }
+  .patbtn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; text-align: left; }
+  .patbtn:hover { border-color: var(--accent); }
+  .patbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .patbtn canvas, .patopt canvas { flex: none; width: 34px; height: 34px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
+  .patbtn span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .patbtn::after { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-2px, -2px); }
+  .patlist { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); max-height: 340px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 14px 34px rgba(15,20,35,.25); padding: 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px; }
+  .patopt { display: flex; align-items: center; gap: 10px; padding: 5px 8px 5px 5px; border-radius: 6px; cursor: pointer; font-size: .9rem; color: var(--ink); background: none; border: 0; text-align: left; font-family: inherit; }
+  .patopt:hover, .patopt.active { background: rgba(224,89,42,.12); }
+  .patopt[aria-selected="true"] { font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .patopt:hover canvas { transform: scale(1.5); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  .patopt canvas { transition: transform .15s ease; position: relative; z-index: 1; transform-origin: left center; }
+  .hover-layer { position: absolute; left: 0; top: 0; pointer-events: none; }
+  .flipper.flipped .hover-layer, .flipper.flipped .hover-rot { display: none; }
+  .hover-rot { position: absolute; z-index: 2; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); background: rgba(255,255,255,.95); color: #2f466f; display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: 0 2px 6px rgba(20,25,40,.3); transition: transform .12s ease; }
+  .hover-rot[hidden] { display: none; }
+  .hover-rot svg { width: 16px; height: 16px; }
+  .hover-rot:hover { transform: scale(1.12) rotate(30deg); background: #2f466f; color: #fff; }
+  .partdlg-prev { display: flex; justify-content: center; margin-top: 10px; }
+  .partdlg-prev canvas { width: 160px; height: 160px; border-radius: 4px; box-shadow: 0 2px 10px rgba(20,25,40,.15); }
+  #dz-partall-row[hidden] { display: none; }
+  .cam-view { position: relative; margin-top: 10px; background: #111; border-radius: 8px; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
+  .cam-view video, .cam-view canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .cam-view canvas { width: auto; height: 100%; max-width: 100%; aspect-ratio: 1; }
+  .cam-guide { position: absolute; aspect-ratio: 1; height: 70%; border: 2px dashed rgba(255,255,255,.9); border-radius: 4px; box-shadow: 0 0 0 9999px rgba(0,0,0,.35); pointer-events: none; }
+  .cam-warn { color: #8a3b1f; font-weight: 600; margin: 0 0 10px; }
+  #cam-ask[hidden], #cam-viewbox[hidden], #cam-review[hidden], #cam-live-row[hidden], #cam-shot[hidden], #cam-video[hidden], #cam-guide[hidden] { display: none; }
+  .fitopt { display: flex; gap: 10px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .fitopt small { display: block; color: var(--muted); margin-top: 2px; }
+  .fitopt .tag { font-size: .72rem; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
+  #dz-block { max-width: 100%; height: auto; aspect-ratio: 1; }
+  .dz-sideparts .dlg-x, .dz-sideparts .dlg-tools { display: none; }
+  .dz-sideparts .dlg-head h2 { margin: 0; }
+  #dz-block { cursor: pointer; border-radius: 3px; box-shadow: 0 2px 10px rgba(20,25,40,.15); max-width: 100%; }
+  .stepper { display: flex; align-items: center; gap: 4px; }
+  .stepper input { width: 3.4em; text-align: center; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 2px; }
+  .pats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .pats .pat, .fabs .fab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
+  .pats .pat canvas, .fabs .fab canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
+  .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; }
+  .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .fabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
+  .bmm-in { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: .85rem; }
+  .bmm-in input { width: 5.2em; font: inherit; font-size: .95rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 6px; text-align: right; }
+  .marquee { position: absolute; z-index: 2; border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 2px; pointer-events: none; }
+  .marquee::after { content: attr(data-count); position: absolute; right: 4px; bottom: 4px; font: 600 .72rem var(--font-body); color: var(--accent-ink); background: var(--accent); padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+  #dz-quilt { cursor: crosshair; user-select: none; -webkit-user-select: none; }
+  .flipper { perspective: 1800px; width: max-content; max-width: 100%; }
+  .flip-inner { position: relative; transform-style: preserve-3d; transition: transform .95s cubic-bezier(.45, .05, .25, 1); }
+  .flipper.flipped .flip-inner { transform: rotateY(180deg); }
+  .flipper .face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .flipper .face.back { position: absolute; left: 0; top: 0; transform: rotateY(180deg); border-radius: 4px; box-shadow: 0 6px 24px rgba(20,25,40,.18); }
+  .flipper.lift { animation: quilt-lift .95s cubic-bezier(.45, .05, .25, 1); }
+  @keyframes quilt-lift {
+    0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+    50% { transform: translateY(-14px) scale(.94); filter: drop-shadow(0 28px 24px rgba(10,15,30,.35)); }
+    100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .flip-inner { transition: none; } .flipper.lift { animation: none; } }
+  .dz-backbar { margin-bottom: 10px; }
+  .backfabs { display: flex; flex-wrap: wrap; justify-content: center; max-width: 860px; margin: 0 auto; }
+  .backfabs .fab { width: 74px; }
+  .dz-backbar { text-align: center; max-width: 860px; margin-left: auto; margin-right: auto; }
+  .blib { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+  .blib-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
+  .blib-item canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
+  .blib-item[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .dz-go { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .dz-go .fine { flex-basis: 100%; margin: 0; }
+  #page-cut { --head: #f6dfbd; }
+  .cg-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: .9rem; }
+  .facts b { font-family: var(--font-data); font-weight: 500; }
+  .cg-settings label { display: inline-flex; flex-direction: column; gap: 3px; font-size: .8rem; color: var(--muted); }
+  .cg-settings { align-items: flex-end; justify-content: center; gap: 10px 16px; }
+  .cg-sheet { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .cg-sheet { grid-template-columns: minmax(0, 1fr); } }
+  /* wide screens: the fabric list stays in view while the blocks scroll past */
+  @media (min-width: 901px) {
+    .cg-left { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  }
+  .tablewrap { overflow-x: auto; max-width: 100%; }
+  #page-cut table { border-collapse: collapse; width: 100%; background: var(--panel); color: var(--ink); }
+  #page-cut th, #page-cut td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: middle; }
+  #page-cut thead th { background: color-mix(in srgb, var(--head) 70%, var(--panel)); color: #2a2218; font-weight: 600; font-size: .8rem; text-align: center; }
+  .cg-fabrics td.sw { width: 82px; padding: 5px; }
+  .cg-fabrics td.sw canvas { display: block; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); }
+  .cg-fabrics td.letter { text-align: center; font: 600 1.1rem Georgia, "Times New Roman", serif; width: 96px; }
+  .cg-fabrics td.letter.small { font: 600 .85rem var(--font-body); }
+  .cg-fabrics .fname { display: block; font: 400 .72rem var(--font-body); color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+  .cg-fabrics td.req { font-family: var(--font-data); text-align: center; }
+  .cg-fabrics td.req small { display: block; color: var(--muted); font-size: .74rem; margin-top: 2px; }
+  .cg-fabrics tr.extra td { background: color-mix(in srgb, var(--bg) 60%, var(--panel)); }
+  .cg-quilt { margin: 36px auto 12px; max-width: 1100px; }
+  .cg-quilt h3 { font: 400 1.4rem Georgia, "Times New Roman", serif; text-align: center; margin: 0; }
+  .cg-quilt .meta { text-align: center; color: var(--muted); font-size: .85rem; margin: 2px 0 10px; }
+  .cg-quilt canvas { display: block; margin: 0 auto; max-width: 100%; }
+  .cg-quilt .meta.cg-hi-on { color: var(--accent); cursor: pointer; font-weight: 600; }
+  .cg-art { position: relative; width: fit-content; max-width: 100%; margin: 0 auto 10px; }
+  .cg-art canvas { margin: 0 !important; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, outline-color .18s ease; outline: 3px solid transparent; outline-offset: 3px; }
+  .cg-art:hover canvas { transform: translateY(-3px) scale(1.02); box-shadow: 0 10px 26px rgba(20,25,40,.28); outline-color: rgba(224,89,42,.55); }
+  .cg-hint { position: absolute; left: 50%; bottom: 10px; transform: translate(-50%, 6px); background: rgba(25,28,36,.88); color: #fff; font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; }
+  .cg-art:hover .cg-hint { opacity: 1; transform: translate(-50%, 0); }
+  .cgblock:hover h3 { color: var(--accent); }
+  .cgblock h3 { cursor: pointer; }
+  .cgblock h3.nofold { cursor: default; } .cgblock h3.nofold::after { content: none; }
+  .cg-sash canvas { display: block; margin: 0 auto 10px; border-radius: 2px; box-shadow: 0 2px 10px rgba(20,25,40,.15); }
+  #cg-blocks tr.cutrow { transition: background .12s ease; }
+  #cg-blocks tr.cutrow:hover, #cg-blocks tr.cut-on { background: rgba(224,89,42,.12); box-shadow: inset 3px 0 0 #e0592a; }
+  .cg-pdfrow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 14px 0 6px; }
+  .cg-pdfrow .btn { padding: 10px 22px; font-size: 1rem; }
+  .cg-pop { width: auto; max-width: calc(100vw - 32px); }
+  .cg-pop canvas { display: block; margin: 0 auto; max-width: 100%; }
+  .cg-list { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+  .cgblock h3::after { content: '▾'; margin-left: 6px; font-size: .8em; color: var(--muted); display: inline-block; transition: transform .2s ease; }
+  .cgblock.open h3::after { transform: rotate(180deg); }
+  .cgblock.picked canvas { outline-color: #e0592a; }
+  @media (hover: none) { .cg-hint { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .cg-art canvas, .cg-hint { transition: none; } .cg-art:hover canvas { transform: none; } }
+  .cg-blocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 24px; }
+  .cgblock { min-width: 0; }
+  .cgblock h3 { font: 400 1.25rem Georgia, "Times New Roman", serif; text-align: center; margin: 0; }
+  .cgblock .meta { text-align: center; color: var(--muted); font-size: .85rem; margin: 2px 0 8px; }
+  .cgblock canvas { display: block; margin: 0 auto 10px; border-radius: 2px; box-shadow: 0 2px 10px rgba(20,25,40,.15); }
+  .cgblock table { font-size: .84rem; }
+  .cgblock td.n { font-family: var(--font-data); text-align: right; white-space: nowrap; }
+  .cgblock td.l { text-align: center; font: 600 1rem Georgia, serif; width: 40px; }
+  .savebar { align-items: center; }
+  .savebar:has(> #saveimg[hidden]) { display: none; }
+  .savebar .savestat { color: #efe9df; font-size: .8rem; padding: 0 8px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .two label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 3px; }
+  .two select { width: 100%; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatches canvas { width: 44px; height: 44px; border-radius: 4px; border: 1px solid var(--line); }
+  label.filebtn { display: inline-block; font: 500 .9rem var(--font-body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+  label.filebtn.sm { padding: 5px 11px; font-size: .84rem; }
+  input.sr:focus-visible + label, label.filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stage.rendering .stagebar .seg:not(#views) { opacity: .45; }
+  .stage.analysis .hud { right: 214px; }
+  @media (max-width: 640px) { .stage.analysis .hud { right: 150px; } }
+  .fine { color: var(--muted); font-size: .78rem; margin: 10px 0 0; }
+  #dz-quilt, #dz-block { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .dz-toolbar .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  /* Phones: controls move below the 3D view, everything becomes thumb-sized. */
+  @media (max-width: 640px) {
+    .tabs button { padding: 10px 14px; font-size: .95rem; }
+    body { font-size: 15px; }
+    h1 { font-size: 1.35rem; }
+    header { gap: 8px 12px; }
+    header p { font-size: .88rem; }
+    .stage { aspect-ratio: auto; display: flex; flex-direction: column; overflow: visible; background: transparent; }
+    .stage canvas { aspect-ratio: 4 / 5; height: auto; border-radius: 8px 8px 0 0; background: var(--stage); }
+    .stagectl, .stage[data-ctl="shown"] .stagectl { position: static; width: 100%; border-radius: 0 0 8px 8px; padding: 10px; background: var(--panel); border: 1px solid var(--line); border-top: 0; box-shadow: none; min-height: 42px; }
+    .stage[data-ctl="shown"] .stagebar { padding-right: 10px; }
+    .stage[data-ctl="shown"] .stagectl { order: 2; }
+    .stagebar { order: 1; }
+    .stagebar { position: static; background: var(--panel); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 8px 8px; padding: 10px; gap: 8px; flex-direction: column; align-items: stretch; }
+    .stagebar .seg { background: var(--bg); width: 100%; backdrop-filter: none; }
+    .stagebar .seg button { color: var(--ink); flex: 1 1 auto; min-height: 42px; padding: 8px 10px; font-size: .9rem; }
+    .stagebar .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+    .stagebar .savebar .savestat { color: var(--muted); }
+    .stage.rendering .stagebar .seg:not(#views) { opacity: .55; }
+    .hud { left: 8px; top: 8px; right: 8px; gap: 6px; }
+    .hud .clock { font-size: .9rem; }
+    .rstat { font-size: .74rem; }
+    .rnote { top: 52px; left: 8px; right: 8px; font-size: .8rem; }
+    .legend3d { top: 52px; right: 8px; }
+    .stage.analysis .hud { right: 8px; }
+    button.btn, label.filebtn, .tabs button { min-height: 42px; }
+    button.btn.sm, label.filebtn.sm { min-height: 40px; padding: 7px 12px; }
+    input[type=number], select { font-size: 16px; min-height: 42px; }
+    .stepper input { width: 3.6em; }
+    input[type=range] { height: 28px; }
+    .toggles label { min-height: 36px; }
+    .toggles input { width: 20px; height: 20px; }
+    .dz-toolbar { gap: 8px; }
+    .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
+    .pats, .fabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+    .dlg-tools .btn { white-space: nowrap; }
+    details.model { padding: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<header>
+  <h1 class="sr">Quilt Drape Simulation</h1>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Pages">
+    <button type="button" role="tab" data-page="design" aria-selected="true">Quilt designer</button>
+    <button type="button" role="tab" data-page="cut" aria-selected="false">Cutting guide</button>
+    <button type="button" role="tab" data-page="mine" aria-selected="false">My designs</button>
+  </nav>
+  <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: a short exercise to make and change a three-block quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <p id="intro" hidden>A 2.29 m quilt meeting a queen bed. Every motion comes from the physics: gravity, fabric elasticity and bending, air drag, and Coulomb friction, in SI units.</p>
+</header>
+
+<section id="page-sim" hidden>
+<button type="button" class="sim-close" id="sim-close" title="Close the simulation and go back to the Quilt designer (Esc)" aria-label="Close the simulation">✕</button>
+<div class="sim-top">
+  <div class="row sim-toolbar">
+    <select id="bedsel" aria-label="Bed (mattress size)" title="Bed (mattress size)"></select>
+    <span class="bmm" id="bed-custom" hidden>
+      <label class="sr" for="bed-w">Mattress width (mm)</label><span class="bmm-in"><input id="bed-w" type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
+      <label class="sr" for="bed-l">Mattress length (mm)</label><span class="bmm-in"><input id="bed-l" type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> mm</span>
+    </span>
+    <span class="bmm" id="table-custom" hidden>
+      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width (mm)" aria-label="Table width in mm"> ×</span>
+      <span class="bmm-in"><input id="tbl-l" type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length (mm)" aria-label="Table length in mm"> mm,</span>
+      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor (mm)"> mm</span>
+    </span>
+    <button class="btn" id="saveimg3" type="button" title="Take a picture of the 3D view and save it as a PNG">Take picture</button>
+    <button class="btn" id="run-more" type="button" aria-expanded="false" aria-controls="run-card">More options</button>
+    <button class="btn" type="button" id="sim-adv" aria-expanded="false" aria-controls="sim-side">Show advanced settings</button>
+  </div>
+  <p class="fine" id="bed-fit" hidden></p>
+  <p class="fine" id="savestat3" hidden></p>
+</div>
+<div class="bench" id="bench">
+  <div class="col">
+    <div class="stage" id="stage" data-ctl="hidden">
+      <canvas id="view" aria-label="3D view of the quilt and bed"></canvas>
+      <div class="hud">
+        <span class="clock" id="clock">t = 0.00 s</span>
+        <span class="pill fall" id="state">Loading</span>
+        <span class="slow" id="slow" hidden></span>
+        <span class="rstat" id="rstat" hidden>Preparing render…</span>
+        <div class="rbar" id="rbar" hidden><div id="rbar-fill"></div></div>
+      </div>
+      <div class="rnote" id="rnote" hidden></div>
+      <div class="loading" id="loading">Loading fabric photos and studio lighting…</div>
+      <div class="legend3d" id="legend3d" hidden>
+        <div class="lg-title" id="lg-title"></div>
+        <div class="lg-bar" id="lg-bar"></div>
+        <div class="lg-note" id="lg-note"></div>
+      </div>
+      <div class="hint" id="hint">Drag to orbit · scroll to zoom</div>
+      <button type="button" class="stagectl" id="stage-ctl" aria-expanded="false" aria-controls="stagebar">Show controls</button>
+      <div class="stagebar" id="stagebar">
+        <div class="seg" role="group" aria-label="Scenario" id="scenarios">
+          <button type="button" data-sc="drop" aria-pressed="true">Drop flat</button>
+          <button type="button" data-sc="spread" aria-pressed="false">Two-person spread</button>
+          <button type="button" data-sc="corner" aria-pressed="false">Hang by one corner</button>
+        </div>
+        <div class="seg" role="group" aria-label="Display" id="views">
+          <button type="button" data-view="photo" aria-pressed="true">Preview</button>
+          <button type="button" data-view="render" aria-pressed="false" id="rbtn">Photo render</button>
+          <button type="button" data-view="analysis" aria-pressed="false">Analysis</button>
+        </div>
+        <div class="seg savebar"><button type="button" id="saveimg" hidden title="Save the current view as a PNG image">Save image</button><span class="savestat" id="savestat" hidden></span></div>
+        <div class="seg" role="group" aria-label="Pointer mode" id="modes">
+          <button type="button" data-mode="orbit" aria-pressed="true">Orbit</button>
+          <button type="button" data-mode="grab" aria-pressed="false">Grab fabric</button>
+        </div>
+      </div>
+    </div>
+    <div class="restart-row"><button class="btn primary restart-big" id="restart" type="button">↻ Restart</button><button type="button" class="rail-btn turn-btn" id="sim-turn" aria-pressed="false" aria-label="Turn the quilt 90° before dropping it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="11" height="13" rx="1" fill="currentColor" opacity=".45"/><rect x="9" y="4" width="11" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 1.6"/><path d="M14.5 21a6.5 6.5 0 0 0 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.2 14.6l2.3.3.3 2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <label class="droppos" title="Slide to choose where along the bed or table the quilt is dropped · double-click for the usual spot"><span>Drop position</span><input type="range" id="drop-pos"><output id="drop-pos-v"></output></label></div>
+  </div>
+
+  <div class="col sim-side" id="sim-side" data-adv="hidden" hidden>
+    <div class="card" id="run-card" hidden>
+      <h2>Run options</h2>
+      <div id="run-opts">
+        <div class="row">
+          <button class="btn" id="pause" type="button">Pause</button>
+          <select id="speed" aria-label="Playback speed">
+            <option value="1">1× real time</option>
+            <option value="0.5">0.5× slow motion</option>
+            <option value="0.25">0.25× slow motion</option>
+          </select>
+        </div>
+        <div class="param">
+          <label for="dropH">Release height above the mattress</label><output id="dropH-o"></output>
+          <input id="dropH" type="range" min="0.05" max="1.4" step="0.05" value="0.5">
+        </div>
+        <div class="param">
+          <label for="substeps">Solver accuracy</label><output id="substeps-o"></output>
+          <input id="substeps" type="range" min="0" max="2" step="1" value="1">
+          <small>More substeps per 1/60 s frame give stiffer, more accurate fabric but cost more compute.</small>
+        </div>
+      </div>
+    </div>
+    <div class="card adv" id="render-card">
+      <h2>Photo render</h2>
+      <div class="row" style="margin-bottom:6px">
+        <button class="btn primary" type="button" id="saveimg2" hidden>Save image (PNG)</button>
+        <span class="fine savestat" id="savestat2" hidden style="margin:0"></span>
+      </div>
+      <div class="param">
+        <label for="atrest">When the quilt comes to rest</label>
+        <select id="atrest" style="grid-column:1/-1">
+          <option value="render">Start a photo render</option>
+          <option value="analysis">Show the analysis view</option>
+          <option value="none" selected>Stay in preview</option>
+        </select>
+      </div>
+      <div class="two">
+        <div style="grid-column:1/-1"><label for="engine">Render engine</label>
+          <select id="engine"><option value="auto" selected>Automatic (path tracing, with fallback)</option><option value="path">Path tracing · most accurate</option><option value="raster">Fast raster · works on any GPU</option></select></div>
+        <div><label for="stagesel">Setting</label>
+          <select id="stagesel"><option value="studio" selected>Photo studio</option><option value="bedroom">Bedroom</option></select></div>
+        <div><label for="lightsel">Lighting</label>
+          <select id="lightsel"><option value="warm">Warm studio</option><option value="soft">Soft daylight studio</option></select></div>
+        <div><label for="quality">Quality</label>
+          <select id="quality"><option value="32">Draft · 32 samples</option><option value="128" selected>Good · 128 samples</option><option value="512">Final · 512 samples</option></select></div>
+        <div><label for="bounces">Light bounces</label>
+          <select id="bounces"><option value="3">3</option><option value="6" selected>6</option><option value="10">10</option></select></div>
+      </div>
+      <div class="param">
+        <label for="exposure">Exposure</label><output id="exposure-o"></output>
+        <input id="exposure" type="range" min="0.3" max="2.5" step="0.05" value="1">
+      </div>
+      <div class="toggles"><label><input type="checkbox" id="dof"> Depth of field</label></div>
+      <div class="param">
+        <label for="fstop">Aperture</label><output id="fstop-o"></output>
+        <input id="fstop" type="range" min="1.4" max="16" step="0.1" value="4">
+        <small>Focus is on the bed centre. Orbiting restarts the render. Fast raster renders twice as many frames as the sample count.</small>
+      </div>
+    </div>
+
+    <div class="card adv">
+      <h2>Measurements</h2>
+      <dl class="meas">
+        <dt>Kinetic energy</dt><dd id="m-ke">–</dd>
+        <dt>Gravitational energy</dt><dd id="m-pe">–</dd>
+        <dt>Elastic energy (stretch + bend)</dt><dd id="m-el">–</dd>
+        <dt>Dissipated since release</dt><dd id="m-dis">–</dd>
+        <dt>Mean vertical velocity</dt><dd id="m-vy">–</dd>
+        <dt>Peak fabric strain</dt><dd id="m-st">–</dd>
+        <dt>Quilt in contact</dt><dd id="m-ct">–</dd>
+        <div class="sep"></div>
+        <dt>Quilt mass</dt><dd id="m-mass">–</dd>
+        <dt>Bending length (Peirce)</dt><dd id="m-bl">–</dd>
+        <dt>Flat terminal velocity</dt><dd id="m-vt">–</dd>
+        <dt>Compute per frame</dt><dd id="m-ms">–</dd>
+      </dl>
+      <canvas class="chart" id="chart" aria-label="Energy over the last 10 seconds"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>Kinetic</span>
+        <span><i style="background:var(--madder)"></i>Elastic ×10</span>
+        <span><i style="background:var(--muted)"></i>Dissipated</span>
+      </div>
+    </div>
+
+    <div class="card adv">
+      <h2>Final-state analysis</h2>
+      <div class="row">
+        <select id="field" aria-label="Result shown on the quilt">
+          <option value="strain">Membrane strain</option>
+          <option value="curvature">Curvature (folds)</option>
+          <option value="clearance">Gap to bed or floor (contact)</option>
+          <option value="height">Height above floor</option>
+        </select>
+      </div>
+      <div class="row camrow" role="group" aria-label="Standard views">
+        <button class="btn sm" type="button" data-cam="iso">Iso</button>
+        <button class="btn sm" type="button" data-cam="foot">Foot</button>
+        <button class="btn sm" type="button" data-cam="side">Side</button>
+        <button class="btn sm" type="button" data-cam="top">Top</button>
+      </div>
+      <div class="toggles">
+        <label><input type="checkbox" id="meshlines" checked> Mesh lines</label>
+        <label><input type="checkbox" id="ortho"> Orthographic</label>
+
+      </div>
+      <dl class="meas" style="margin-top:12px">
+        <dt>Side drop, left</dt><dd id="r-dl">–</dd>
+        <dt>Side drop, right</dt><dd id="r-dr">–</dd>
+        <dt>Foot drop</dt><dd id="r-df">–</dd>
+        <dt>Head edge to headboard</dt><dd id="r-head">–</dd>
+        <dt>Lowest hem to floor</dt><dd id="r-hem">–</dd>
+        <dt>Touching bed or floor</dt><dd id="r-touch">–</dd>
+        <dt>Strain p98 · max</dt><dd id="r-strain">–</dd>
+        <dt>Tightest fold radius</dt><dd id="r-fold">–</dd>
+      </dl>
+      <p class="fine">Drops are measured below the mattress top at the middle of each edge. Contours are 10 equal bands computed from the solved node positions. Fold radii below about 6 cm are limited by the mesh spacing.</p>
+    </div>
+
+    <div class="card adv">
+      <h2>Fabric physics</h2>
+      <div class="row">
+        <label for="preset" class="sr">Preset</label>
+        <select id="preset">
+          <option value="cotton">Cotton quilt with batting</option>
+          <option value="down">Down comforter</option>
+          <option value="wool">Wool blanket</option>
+          <option value="silk">Silk throw</option>
+        </select>
+      </div>
+      <div id="params"></div>
+      <div class="toggles">
+        <label><input type="checkbox" id="pillows" checked> Pillows</label>
+        <label><input type="checkbox" id="selfc" checked> Self-contact</label>
+        <label><input type="checkbox" id="air" checked> Air</label>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="page-design">
+  <div class="dz" id="dz">
+    <div class="dz-main">
+      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="sr" id="dz-sync" aria-live="polite"></span></p>
+      <div class="dz-backbar" id="dz-backbar" hidden>
+        <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
+        <div class="fabs backfabs" id="dz-backfabs"></div>
+      </div>
+      <div class="dz-quiltwrap">
+        <div class="flipper" id="dz-flipper">
+          <div class="rail rail-left" role="toolbar" aria-label="File">
+            <button type="button" class="rail-btn" id="dz-new" aria-label="New design" title="New design: start a new quilt from the default pattern, with its own timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 3v18h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v4h4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M9 9h3v3H9z M12 12h3v3h-3z" fill="currentColor" opacity=".55"/><path d="M18 15v6M15 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+            <button type="button" class="rail-btn rail-primary" id="dz-save" aria-label="Save" title="Save this quilt to My designs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h13l3 3v13H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 4v5h7V4" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.5" y="13" width="9" height="7" rx=".8" fill="currentColor" opacity=".6"/></svg></button>
+          </div>
+          <div class="rail" role="toolbar" aria-label="Design tools">
+            <button type="button" class="rail-btn" id="rail-parts" aria-pressed="false" aria-label="Block parts" title="Block parts: pattern, pieces and fabrics"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18" stroke="currentColor" stroke-width="1"/><path d="M9 9l3 3 3-3v6l-3-3-3 3z" fill="currentColor"/><path d="M9 3l3 6 3-6M9 21l3-6 3 6M3 9l6 3-6 3M21 9l-6 3 6 3" fill="currentColor" opacity=".55"/></svg></button>
+            <button type="button" class="rail-btn" id="rail-sash" aria-pressed="false" aria-label="Sashing" title="Sashing: strips between the blocks"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1" fill="currentColor" opacity=".55"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1" fill="currentColor" opacity=".55"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1" fill="currentColor" opacity=".55"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1" fill="currentColor" opacity=".55"/><rect x="10.5" y="10.5" width="3" height="3" fill="currentColor"/></svg></button>
+            <button type="button" class="rail-btn" id="rail-brd" aria-pressed="false" aria-label="Borders" title="Borders around the quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="6" y="6" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 1.5"/><rect x="8.5" y="8.5" width="7" height="7" rx="1" fill="currentColor" opacity=".55"/></svg></button>
+            <button type="button" class="rail-btn" id="dz-flip" aria-pressed="false" aria-label="Turn over" title="Turn over: show the back of the quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v11H4z" fill="currentColor" opacity=".55"/><path d="M9 4h11v11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 1.6"/><path d="M15.5 21a6 6 0 0 0 5-5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M18.4 15.2l2.2-.2.4 2.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button type="button" class="rail-btn" id="dz-sim" data-page="sim" aria-label="Simulation" title="Simulation: see this quilt draped on a bed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6v13M21 13v6M3 16h18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><rect x="4.5" y="9.5" width="4" height="3" rx="1.2" fill="currentColor" opacity=".55"/><path d="M8.5 13.2c2.5-1.6 5.5-1.6 12.5-.2v3H8.5z" fill="currentColor"/><path d="M11 13.4v2.4M14 12.9v3M17 12.9v3" stroke="#fff" stroke-width=".8" opacity=".7"/></svg></button>
+          </div>
+          <div class="flip-inner">
+            <canvas id="dz-quilt" class="face front" aria-label="Your quilt. Click a block to edit it, or drag a rectangle to select several."></canvas>
+            <canvas id="dz-hover" class="hover-layer" aria-hidden="true"></canvas>
+            <button type="button" class="hover-rot" id="dz-hflip" hidden aria-label="Mirror this block" title="Mirror this block (flip it left to right)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2"/><path d="M10 6L3 18h7z" fill="currentColor"/><path d="M14 6l7 12h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+            <button type="button" class="hover-rot" id="dz-hrot" hidden aria-label="Rotate this block 90°" title="Rotate this block 90°"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M17.5 3.5v4.2h-4.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <div class="marquee" id="dz-marquee" hidden></div>
+            <canvas id="dz-back" class="face back" aria-label="The back of your quilt" aria-hidden="true"></canvas>
+          </div>
+        </div>
+      </div>
+      <p class="fine dz-size dz-size2" id="dz-size2">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size in millimetres" title="Type a new block size and press Enter"> mm<span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
+      <div class="tl-row" id="tl-row" hidden>
+          <span class="tl-btns" role="group" aria-label="Timeline">
+            <button class="btn" type="button" id="tl-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
+            <button class="btn" type="button" id="tl-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷</button>
+            <button class="btn" type="button" id="tl-open" aria-expanded="false" aria-controls="tl-panel">Timeline</button>
+          </span>
+      </div>
+    </div>
+    <div class="col dz-side" id="dz-side" hidden>
+      <div class="card dz-sideparts" id="dz-sideparts"><div id="dz-patbox">
+        <p class="fine" style="margin:14px 0 6px"><b>Block pattern</b></p>
+        <div class="pats" id="dz-patterns"></div>
+        <div class="row" hidden style="margin-top:10px">
+          <button class="btn sm" type="button" id="dz-rot">Rotate 90°</button>
+          <button class="btn sm" type="button" id="dz-copy">Copy this block to selected</button>
+        </div>
+        <div class="row" hidden style="margin-top:8px">
+          <button class="btn sm" type="button" id="dz-allblocks">Select all blocks</button>
+          <button class="btn sm" type="button" id="dz-sameblocks">Select blocks with this pattern</button>
+        </div></div>
+      </div>
+
+      <div class="card has-cancel" id="sash-card">
+        <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
+        <h2>Sashing</h2>
+        <div class="row" style="align-items:center">
+          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> mm</span></label>
+          <span class="sash-presets" id="sash-presets"></span>
+        </div>
+        <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="sash-border"> Also around the outside (border)</label>
+        <p class="fine" style="margin:10px 0 6px">Sashing fabric</p>
+        <div class="fabs" id="sash-fabs"></div>
+        <p class="fine" style="margin:10px 0 6px">Cornerstones (where strips cross)</p>
+        <div class="fabs" id="sash-corner"></div>
+        <p class="fine" id="sash-note" style="margin:8px 0 0"></p>
+      </div>
+
+      <div class="card has-cancel" id="brd-card">
+        <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
+        <h2>Borders</h2>
+        <p class="fine" style="margin:0 0 6px">Add one or more borders around the quilt; the first is next to the blocks, each new one goes outside it.</p>
+        <div class="brd-list" id="brd-list"></div>
+        <div class="brd-pal" id="brd-palbox" hidden>
+          <p class="fine" id="brd-paltitle" style="margin:8px 0 6px"></p>
+          <div class="fabs" id="brd-pal"></div>
+        </div>
+        <p class="fine" style="margin:12px 0 6px">Add a border</p>
+        <div class="brd-types" id="brd-types"></div>
+      </div>
+
+      <div class="card" hidden>
+        <h2>Add fabrics</h2>
+        <p class="fine" style="margin:0 0 8px">Add photos of your own fabrics. They join the fabric list under Block parts.</p>
+        <div class="row">
+          <label class="btn filebtn sm" for="dz-upload">Add fabric photos</label>
+          <button class="btn sm cam-open" type="button">Take a photo</button>
+          <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
+        </div>
+        <div class="param">
+          <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
+          <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
+        </div>
+        <p class="fine" id="dz-fabnote"></p>
+      </div>
+
+      <div class="card" hidden>
+        <h2>Fit to a bed</h2>
+        <label for="fit-bed" class="sr">Mattress size</label>
+        <select id="fit-bed" aria-label="Mattress size" style="width:100%"></select>
+        <div class="two" id="fit-custom" hidden style="margin-top:8px">
+          <div><label for="fit-w">Mattress width (mm)</label><input id="fit-w" type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-l">Mattress length (mm)</label><input id="fit-l" type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
+        </div>
+        <div class="two" style="margin-top:8px;align-items:end">
+          <div><label for="fit-drop">Drop (mm)</label><input id="fit-drop" type="number" min="0" max="800" step="10" inputmode="numeric"></div>
+          <label style="display:flex;gap:6px;align-items:center;padding-bottom:6px"><input type="checkbox" id="fit-tuck"> Pillow tuck (+250 mm)</label>
+        </div>
+        <p class="fine" style="margin:6px 0 0">Drop: about 250–300 mm covers the mattress, 450–550 mm the box spring too; floor length is the mattress-top height.</p>
+        <p class="fine" id="fit-target" style="margin:8px 0 6px"></p>
+        <div class="fitlist" id="fit-list"></div>
+        <p class="fine" id="fit-now" style="margin:8px 0 0"></p>
+      </div>
+
+      <div class="card dz-go" hidden>
+        <button class="btn" type="button" id="dz-reset">Start over</button>
+        <p class="fine">The simulation follows your design: every change is stitched into the quilt on the bed straight away, and a change of size drops the quilt again. Your design is kept in this browser.</p>
+      </div>
+    </div>
+  </div>
+  <div class="tl-bar" id="tl-panel" hidden role="region" aria-label="Design timeline">
+    <button type="button" class="tl-close" id="tl-close" title="Close the timeline" aria-label="Close the timeline">✕</button>
+    <div class="tl-head">
+      <button class="tl-ic" type="button" id="tl-first" title="First step" aria-label="First step">⏮</button>
+      <button class="tl-ic" type="button" id="tl-back" title="Previous step" aria-label="Previous step">◀</button>
+      <button class="tl-ic tl-play" type="button" id="tl-play" title="Play the history" aria-label="Play">▶</button>
+      <button class="tl-ic" type="button" id="tl-fwd" title="Next step" aria-label="Next step">▶︎|</button>
+      <button class="tl-ic" type="button" id="tl-last" title="Latest step" aria-label="Latest step">⏭</button>
+      <span class="tl-pos" id="tl-pos"></span>
+      <span style="flex:1"></span>
+      <button class="tl-txt" type="button" id="tl-clear" title="Forget the history, keep the current design">Clear history</button>
+    </div>
+    <div class="tl-film"><div class="tl-list" id="tl-list"></div></div>
+    <input type="range" id="tl-slider" min="0" max="0" step="1" value="0" aria-label="Go to a step in the timeline">
+  </div>
+  <dialog class="dz-dialog" id="dz-dialog" aria-labelledby="dz-dialog-title">
+    <div id="dz-partsbox">
+    <div class="dlg-head">
+      <button type="button" class="dz-cancel" id="dz-cancel" title="Cancel the changes made since the design tools were opened, and close them" aria-label="Cancel changes and close the design tools">✕</button>
+      <div>
+        <h2 id="dz-dialog-title">Block parts</h2>
+        <p class="fine" id="dz-blockname" style="margin:2px 0 0"></p>
+      </div>
+      <button class="btn sm dlg-x" type="button" id="dz-close" aria-label="Close the block editor">×</button>
+    </div>
+    <div class="symrow" title="Mirror the design: every change to a block is copied to its mirror partners"><label for="dz-sym">Symmetry</label>
+      <select id="dz-sym"><option value="off">Off</option><option value="lr">Mirror left–right</option><option value="tb">Mirror top–bottom</option><option value="both">Mirror both ways (4-way)</option><option value="kal">Kaleidoscope (8-way, square layouts)</option></select></div>
+    <div class="symrow" title="Make this block bigger: it covers several grid cells (and the sashing between them)"><label for="dz-span">Block size</label>
+      <select id="dz-span"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+    <div class="row dlg-tools">
+      <select id="dz-patsel" aria-hidden="true" tabindex="-1" hidden></select>
+      <div class="patpick" id="dz-patpick">
+        <button type="button" class="patbtn" id="dz-patbtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Block pattern"></button>
+        <div class="patlist" id="dz-patlist" role="listbox" aria-label="Block patterns" hidden></div>
+      </div>
+      <button class="btn sm" type="button" id="dz-rot2">Rotate 90°</button>
+    </div>
+    <div class="dz-blockwrap"><canvas id="dz-block" width="300" height="300" aria-label="Parts of the selected block. Click a part to select it; double-click to select every part in the same fabric."></canvas></div>
+    <p class="fine" id="dz-parts-info"></p>
+    <div class="row" style="margin-top:8px">
+      <button class="btn sm" type="button" id="dz-allparts">Select all parts</button>
+      <button class="btn sm" type="button" id="dz-sameparts">Select same fabric</button>
+      <button class="btn sm" type="button" id="dz-noparts">Clear</button>
+    </div>
+    </div>
+    <div id="dz-fabbox">
+    <p class="fine" style="margin:12px 0 6px">Fabric for the selected parts</p>
+    <div class="fabs" id="dz-fabrics2"></div>
+    <div class="fussy" id="dz-fussy" hidden>
+      <p class="fine" style="margin:12px 0 6px"><b>Fussy cut</b> · <span id="dz-fussy-st"></span></p>
+      <div class="fussy-row"><canvas id="dz-fussy-cv" aria-label="One repeat of the print: click to choose the part that shows in this piece"></canvas>
+      <button type="button" class="btn sm" id="dz-fussy-clear" hidden>Cut it normally</button></div>
+    </div>
+    <div class="row" style="margin-top:8px" hidden><button class="btn sm cam-open" type="button">Take a photo of a fabric</button></div>
+    </div>
+    <div id="dz-libbox">
+    <p class="fine" style="margin:14px 0 6px">Blocks in your quilt · click one to copy it into the block you are editing</p>
+    <div class="blib" id="dz-library" aria-label="Distinct blocks in your quilt"></div>
+    </div>
+    <div class="dlg-foot"><button class="btn primary" type="button" id="dz-done">Done</button></div>
+  </dialog>
+  <dialog class="dz-dialog" id="dz-partdlg" aria-labelledby="dz-partdlg-title">
+    <div class="dlg-head">
+      <div><h2 id="dz-partdlg-title">Fabric</h2><p class="fine" id="dz-partdlg-sub" style="margin:2px 0 0"></p></div>
+      <button class="btn sm dlg-x" type="button" id="dz-partdlg-x" aria-label="Close">×</button>
+    </div>
+    <div class="partdlg-prev"><canvas id="dz-partdlg-cv" width="160" height="160" aria-hidden="true"></canvas></div>
+    <div class="fabs" id="dz-partfabs" style="margin-top:10px"></div>
+    <label style="display:flex;gap:6px;align-items:center;margin-top:10px" id="dz-partall-row"><input type="checkbox" id="dz-partall"> <span id="dz-partall-txt"></span></label>
+    <div class="row" style="margin-top:10px;justify-content:space-between">
+      <button class="btn sm" type="button" id="dz-partcam" hidden>Take a photo of a fabric</button>
+      <button class="btn primary" type="button" id="dz-partdone">Done</button>
+    </div>
+  </dialog>
+  <dialog class="dz-dialog cam-dialog" id="cam-dialog" aria-labelledby="cam-title">
+    <div class="dlg-head">
+      <div><h2 id="cam-title">New fabric from the camera</h2>
+        <p class="fine" style="margin:2px 0 0">Lay the fabric flat in even light and fill the square with it.</p></div>
+      <button class="btn sm dlg-x" type="button" id="cam-close" aria-label="Close the camera">×</button>
+    </div>
+    <div class="cam-ask" id="cam-ask" hidden>
+      <p style="margin:10px 0 6px"><b>Use your computer's webcam?</b></p>
+      <p class="fine" style="margin:0 0 10px">The webcam is used only to photograph a fabric. The picture stays in this page on your device; nothing is uploaded. Your browser will ask you to allow the camera.</p>
+      <p class="fine cam-warn" id="cam-ask-note" hidden></p>
+      <div class="row">
+        <button class="btn primary" type="button" id="cam-allow">Allow webcam</button>
+        <button class="btn" type="button" id="cam-newtab" hidden style="display:none"></button>
+        <label class="btn filebtn" for="cam-file2">Use a photo file instead</label>
+        <input id="cam-file2" type="file" accept="image/*" capture="environment" class="sr">
+      </div>
+    </div>
+    <div class="cam-view" id="cam-viewbox">
+      <video id="cam-video" playsinline muted autoplay></video>
+      <canvas id="cam-shot" hidden></canvas>
+      <div class="cam-guide" id="cam-guide" aria-hidden="true"></div>
+    </div>
+    <p class="fine" id="cam-msg" style="margin:8px 0 0"></p>
+    <div class="row" style="margin-top:8px" id="cam-live-row">
+      <button class="btn primary" type="button" id="cam-snap">Take picture</button>
+      <button class="btn sm" type="button" id="cam-flip" hidden>Switch camera</button>
+      <label class="btn sm filebtn" for="cam-file">Use the phone camera or a file</label>
+      <input id="cam-file" type="file" accept="image/*" capture="environment" class="sr">
+    </div>
+    <div id="cam-review" hidden>
+      <div class="two" style="margin-top:8px">
+        <div><label for="cam-name">Fabric name</label><input id="cam-name" type="text" maxlength="40"></div>
+        <div><label for="cam-cm">Width of the square (cm)</label><input id="cam-cm" type="number" min="3" max="100" step="1" value="15" inputmode="numeric"></div>
+      </div>
+      <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="cam-fix" checked> Even out the lighting and make it tile without seams</label>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" type="button" id="cam-use">Add this fabric</button>
+        <button class="btn" type="button" id="cam-retake">Retake</button>
+      </div>
+    </div>
+  </dialog>
+</section>
+
+<div class="tour" id="tour" hidden role="dialog" aria-live="polite" aria-label="Guided tour">
+  <div class="tour-head" title="Drag to move"><span id="tour-count"></span><span><button type="button" class="tour-x" id="tour-min" title="Fold the instructions">–</button><button type="button" class="tour-x" id="tour-skip" title="End the tour">Skip tour ×</button></span></div>
+  <h3 id="tour-title"></h3>
+  <p id="tour-text"></p>
+  <div class="tour-actions" id="tour-actions"></div>
+  <div class="tour-bar"><div id="tour-prog"></div></div>
+</div>
+<section id="page-mine" hidden>
+  <div class="mine-top">
+    <input type="search" id="mine-q" placeholder="Search your designs" aria-label="Search your designs">
+    <select id="mine-sort" aria-label="Sort"><option value="updated">Recently saved</option><option value="created">Recently created</option><option value="name">Name</option></select>
+    <button class="btn primary" type="button" id="mine-new">Save current design</button>
+  </div>
+  <div class="mine-grid" id="mine-grid"></div>
+  <p class="fine mine-empty" id="mine-empty" hidden>No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.</p>
+  <p class="fine" style="text-align:center;margin-top:18px">Designs are kept in this browser. Fabrics you added from your own photos are not kept after a reload; those parts show the first fabric instead.</p>
+</section>
+<dialog class="dz-dialog" id="save-dlg" aria-labelledby="save-title">
+  <div class="dlg-head"><h2 id="save-title">Save design</h2><button class="btn sm dlg-x" type="button" id="save-x" aria-label="Close">×</button></div>
+  <div class="save-prev"><canvas id="save-cv" aria-hidden="true"></canvas></div>
+  <label for="save-name" style="display:block;margin-top:10px">Name</label>
+  <input type="text" id="save-name" maxlength="60" style="width:100%">
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button class="btn" type="button" id="save-asnew" hidden>Save as new</button>
+    <button class="btn primary" type="button" id="save-ok">Save</button>
+  </div>
+</dialog>
+<section id="page-cut" hidden>
+  <dialog class="dz-dialog cg-pop" id="cg-pop" aria-labelledby="cg-pop-title">
+    <div class="dlg-head">
+      <div><h2 id="cg-pop-title">Block</h2><p class="fine" id="cg-pop-sub" style="margin:2px 0 0"></p></div>
+      <button class="btn sm dlg-x" type="button" id="cg-pop-x" aria-label="Close">×</button>
+    </div>
+    <canvas id="cg-pop-cv" aria-label="The whole quilt with the chosen block highlighted"></canvas>
+  </dialog>
+  <div class="cg-head">
+    <div class="facts" id="cg-facts" hidden></div>
+    <div class="row cg-settings">
+      <label>Seam allowance
+        <select id="cg-seam"><option value="6">6 mm</option><option value="6.4">6.4 mm (¼″)</option><option value="7">7 mm</option><option value="7.5" selected>7.5 mm</option><option value="10">10 mm</option></select></label>
+      <label>Fabric width
+        <select id="cg-width"><option value="1100">110 cm</option><option value="1400">140 cm</option><option value="1500" selected>150 cm</option></select></label>
+      <label>Binding strips
+        <select id="cg-binding"><option value="50">50 mm</option><option value="60" selected>60 mm</option><option value="65">65 mm</option></select></label>
+      <button class="btn" type="button" id="cg-edit" hidden>Edit the design</button>
+    </div>
+  </div>
+  <div class="cg-sheet">
+    <div class="cg-left">
+      <div class="tablewrap"><table class="cg-fabrics" id="cg-fabrics"><thead><tr><th></th><th>Fabric</th><th>Fabric requirement</th></tr></thead><tbody></tbody></table></div>
+      <div class="cg-pdfrow"><button class="btn primary" type="button" id="cg-pdf" title="A4 PDF: the fabrics, the whole quilt, one page per block, the sashing and the borders, every piece labelled">Download PDF (A4)</button><span class="savestat" id="cg-pdfstat" hidden></span></div>
+      <p class="fine" id="cg-note"></p>
+    </div>
+    <div class="cg-blocks" id="cg-blocks"></div>
+  </div>
+  <div class="cg-quilt">
+    <h3>Whole quilt</h3>
+    <p class="meta" id="cg-quilt-meta"></p>
+    <canvas id="cg-quilt" aria-label="The whole quilt, every piece labelled with its ID"></canvas>
+  </div>
+</section>
+
+<script id="physics-src">
+/*PHYSICS*/
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/",
+    "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/",
+    "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.14/build/index.module.js",
+    "three-gpu-pathtracer": "https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.24/build/index.module.js"
+  }
+}
+</script>
+<script type="module">
+/*MAIN*/
+</script>

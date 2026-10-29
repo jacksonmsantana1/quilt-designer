@@ -1,0 +1,43 @@
+const { chromium } = require('playwright');
+const fs = require('fs'), path = require('path');
+const NM = '/tmp/claude-0/-home-claude/cb9526ed-9012-5cf4-ac72-246e7bebad80/scratchpad/npm/node_modules';
+const MAP = [[/three@0\.183\.2\/(.*)$/, 'three'], [/three-mesh-bvh@0\.9\.14\/(.*)$/, 'three-mesh-bvh'], [/three-gpu-pathtracer@0\.0\.24\/(.*)$/, 'three-gpu-pathtracer']];
+(async () => {
+  const browser = await chromium.launch();
+  const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' + fs.readFileSync('/home/claude/quilt/quilt.html', 'utf8') + '</body></html>';
+  const page = await browser.newPage({ viewport: { width: 1300, height: 1000 } }); page.setDefaultTimeout(30000);
+  const errs = []; page.on('pageerror', e => errs.push(e.message));
+  await page.addInitScript(() => { try { localStorage.setItem('quilt-tour.v1', 'done'); } catch (e) {} });
+  await page.route('**/*', r => {
+    const u = r.request().url();
+    for (const [re, pkg] of MAP) { const m = u.match(re); if (m) return r.fulfill({ path: path.join(NM, pkg, m[1]), contentType: 'text/javascript' }); }
+    if (u.startsWith('https://fonts.')) return r.fulfill({ body: '', contentType: 'text/css' });
+    if (u.startsWith('http://x/assets/')) return r.fulfill({ path: '/home/claude/quilt/' + u.slice(9).split('#')[0] });
+    if (u.startsWith('http://x/')) return r.fulfill({ body: html, contentType: 'text/html' });
+    return r.abort();
+  });
+  await page.goto('http://x/#design');
+  await page.waitForFunction(() => document.querySelectorAll('#dz-fabrics2 .fab').length > 0);
+  await page.waitForTimeout(400);
+  const save = async (name, asNew) => { await page.click('#dz-save'); await page.fill('#save-name', name); await page.click(asNew ? '#save-asnew' : '#save-ok'); await page.waitForTimeout(300); };
+  await save('Ohio classic');
+  await page.evaluate(() => { const i = document.getElementById('dz-bmm2'); i.value = 350; i.dispatchEvent(new Event('change')); }); await page.click('[data-step="r:1"]'); await page.waitForTimeout(600);
+  await save('Ohio tall', true);
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('quilt-designer.v1')); }); 
+  await page.click('[data-step="c:1"]'); await page.click('[data-step="c:1"]'); await page.waitForTimeout(600);
+  await save('Wide tulip', true);
+  await page.click('[data-page="mine"]'); await page.waitForTimeout(800);
+  console.log('pins:', await page.locator('.pin').count(), '|', (await page.locator('.pin .meta').allTextContents()).join(' || '));
+  await page.screenshot({ path: '/home/claude/quilt/mine.png' });
+  await page.locator('.pin').nth(2).hover(); await page.waitForTimeout(300);
+  await page.screenshot({ path: '/home/claude/quilt/mine_hover.png' });
+  await page.locator('.pin .img').nth(2).click({ position: { x: 60, y: 120 } }); await page.waitForTimeout(800);
+  console.log('opened ->', await page.evaluate(() => ['sim','design','cut','mine'].find(p => !document.getElementById('page-' + p).hidden)), await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('quilt-designer.v1')); return d.cols + 'x' + d.rows + '@' + d.blockMm; }));
+  await page.click('[data-page="mine"]'); await page.waitForTimeout(500);
+  await page.locator('.pin').nth(0).hover(); await page.locator('.pin [data-a="del"]').nth(0).click(); await page.locator('.pin [data-a="del"]').nth(0).click(); await page.waitForTimeout(300);
+  console.log('after delete:', await page.locator('.pin').count());
+  await page.fill('#mine-q', 'tulip'); await page.waitForTimeout(200);
+  console.log('search tulip:', await page.locator('.pin').count());
+  console.log('errors', errs);
+  await browser.close();
+})();

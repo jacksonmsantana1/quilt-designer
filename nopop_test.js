@@ -1,0 +1,98 @@
+const { chromium } = require('playwright');
+const fs = require('fs'), path = require('path');
+const NM = '/tmp/claude-0/-home-claude/cb9526ed-9012-5cf4-ac72-246e7bebad80/scratchpad/npm/node_modules';
+const MAP = [[/three@0\.183\.2\/(.*)$/, 'three'], [/three-mesh-bvh@0\.9\.14\/(.*)$/, 'three-mesh-bvh'], [/three-gpu-pathtracer@0\.0\.24\/(.*)$/, 'three-gpu-pathtracer']];
+(async () => {
+  const browser = await chromium.launch();
+  const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' + fs.readFileSync('/home/claude/quilt/quilt.html', 'utf8') + '</body></html>';
+  const page = await browser.newPage({ viewport: { width: 1300, height: 1000 } }); page.setDefaultTimeout(30000);
+  const errs = []; page.on('pageerror', e => errs.push(e.message));
+  await page.addInitScript(() => { try { localStorage.setItem('quilt-tour.v1', 'done'); } catch (e) {} });
+  await page.route('**/*', r => {
+    const u = r.request().url();
+    for (const [re, pkg] of MAP) { const m = u.match(re); if (m) return r.fulfill({ path: path.join(NM, pkg, m[1]), contentType: 'text/javascript' }); }
+    if (u.startsWith('https://fonts.')) return r.fulfill({ body: '', contentType: 'text/css' });
+    if (u.startsWith('http://x/assets/')) return r.fulfill({ path: '/home/claude/quilt/' + u.slice(9).split('#')[0] });
+    if (u.startsWith('http://x/')) return r.fulfill({ body: html, contentType: 'text/html' });
+    return r.abort();
+  });
+  await page.goto('http://x/#design');
+  await page.waitForFunction(() => document.querySelectorAll('#dz-fabrics2 .fab').length > 0);
+  for (const n of ['sash', 'brd', 'parts']) { await page.click('#rail-' + n); await page.waitForTimeout(300);
+    console.log('rail', n, await page.evaluate(() => [...document.querySelectorAll('#dz-side > .card')].filter(c => c.offsetParent).map(c => c.id).join(',') + ' | pressed ' + [...document.querySelectorAll('.rail-btn')].filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.id).join())); }
+  await page.screenshot({ path: '/home/claude/quilt/rail.png' });
+  await page.click('#rail-parts'); await page.waitForTimeout(300);
+  console.log('toggle off -> side hidden', await page.evaluate(() => document.getElementById('dz-side').hidden));
+  await page.screenshot({ path: '/home/claude/quilt/rail_closed.png' });
+  const st3 = () => page.evaluate(() => JSON.stringify({ side: !document.getElementById('dz-side').hidden, panel: [...document.querySelectorAll('#dz-side > .card')].filter(c => c.offsetParent).map(c => c.id).join(), name: document.getElementById('dz-blockname').textContent, info: document.getElementById('dz-parts-info').textContent.slice(0, 30) }));
+  await page.click('#rail-sash'); await page.waitForTimeout(300); await page.click('#rail-sash'); await page.waitForTimeout(300);
+  let q = await page.locator('#dz-quilt').boundingBox();
+  await page.mouse.click(q.x + q.width / 2, q.y + q.height / 2); await page.waitForTimeout(400); console.log('click  ', await st3());
+  await page.click('#rail-sash'); await page.waitForTimeout(300);
+  q = await page.locator('#dz-quilt').boundingBox();
+  await page.mouse.click(q.x + q.width * 0.1, q.y + q.height * 0.1); await page.waitForTimeout(400); console.log('click while sashing open', await st3());
+  q = await page.locator('#dz-quilt').boundingBox();
+  await page.mouse.move(q.x + 10, q.y + 10); await page.mouse.down(); await page.mouse.move(q.x + q.width * .5, q.y + q.height * .3, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(400);
+  console.log('marquee', await st3());
+  const dz = () => page.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith('quilt-timeline.v1:')); const o = JSON.parse(localStorage.getItem(k)); const d = JSON.parse(o.steps[o.i].d); return JSON.stringify(d.sashing || null) + ' / ' + (d.borders || []).length; });
+  // sashing cancel
+  console.log('at', await page.evaluate(() => { const e = document.elementFromPoint(30, 700); return e && (e.tagName + '#' + e.id + '.' + e.className); }), await page.evaluate(() => Object.keys(localStorage)));
+  if (!(await page.evaluate(() => document.getElementById('dz-side').hidden))) { await page.mouse.dblclick(30, 700); await page.waitForTimeout(300); }
+  console.log('dblclick empty -> hidden', await page.evaluate(() => document.getElementById('dz-side').hidden));
+  await page.click('#rail-sash'); await page.waitForTimeout(300); console.log('before', await dz());
+  await page.click('#sash-presets button:text("50 mm")'); await page.waitForTimeout(800); console.log('changed', await dz());
+  await page.screenshot({ path: '/home/claude/quilt/sash_cancel.png' });
+  await page.click('#sash-card .card-cancel'); await page.waitForTimeout(500); console.log('cancel', await dz(), '| hidden', await page.evaluate(() => document.getElementById('dz-side').hidden));
+  await page.click('#rail-brd'); await page.waitForTimeout(300); await page.click('.brd-type[data-t="plain"]'); await page.waitForTimeout(800); console.log('border added', await dz());
+  await page.click('#brd-card .card-cancel'); await page.waitForTimeout(500); console.log('cancel', await dz(), '| hidden', await page.evaluate(() => document.getElementById('dz-side').hidden));
+  // overlap check
+  await page.click('#rail-parts'); await page.waitForTimeout(400);
+  for (const w of [1100, 1300, 1500, 1700]) { await page.setViewportSize({ width: w, height: 1000 }); await page.waitForTimeout(300);
+    console.log(w, await page.evaluate(() => { const r = document.querySelector('.rail').getBoundingClientRect(), s = document.getElementById('dz-side').getBoundingClientRect(); return `rail right ${Math.round(r.right)} side left ${Math.round(s.left)} overlap ${r.right > s.left}`; })); }
+  await page.setViewportSize({ width: 1300, height: 900 }); await page.click('#rail-parts'); await page.waitForTimeout(300);
+  await page.click('#dz-flip'); await page.waitForTimeout(1300);
+  console.log('flip', await page.evaluate(() => [document.querySelector('.flipper').className, document.getElementById('dz-flip').getAttribute('aria-pressed'), document.getElementById('dz-backbar').hidden]));
+  await page.locator('.flipper').screenshot({ path: '/home/claude/quilt/flip.png' });
+  await page.click('#dz-flip'); await page.waitForTimeout(1300);
+  console.log('unflip', await page.evaluate(() => document.querySelector('.flipper').className));
+  await page.locator('.flipper').screenshot({ path: '/home/claude/quilt/flip2.png' }); await page.click('#dz-save'); await page.waitForTimeout(500); console.log('save dlg', await page.evaluate(() => [...document.querySelectorAll('dialog[open]')].map(d => d.id).join()));
+  const vis = () => page.evaluate(() => getComputedStyle(document.getElementById('tl-row')).visibility);
+  await page.keyboard.press('Escape'); await page.mouse.click(20, 600); console.log('row at start', await vis());
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(300); console.log('row after arrow', await vis());
+  const pos = () => page.evaluate(() => JSON.stringify(document.getElementById('tl-open').textContent) + ' | bar hidden ' + document.getElementById('tl-panel').hidden + ' | row ' + getComputedStyle(document.getElementById('tl-row')).visibility);
+  await page.click('[data-step="c:-1"]'); await page.waitForTimeout(900); await page.click('[data-step="c:-1"]'); await page.waitForTimeout(900);
+  console.log('arrows start', await pos());
+  await page.mouse.click(20, 600); await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(300); console.log('left', await pos());
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(300); console.log('left', await pos());
+  await page.keyboard.press('ArrowRight'); await page.waitForTimeout(300); console.log('right', await pos());
+  console.log('bar open', await pos());
+  await page.screenshot({ path: '/home/claude/quilt/tlclose.png', clip: { x: 0, y: 700, width: 500, height: 200 } });
+  await page.click('#tl-close'); await page.waitForTimeout(300); console.log('close btn', await pos());
+  await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(300);
+  await page.mouse.dblclick(20, 600); await page.waitForTimeout(400); console.log('after dblclick', await pos());
+  await page.fill('#dz-bmm3', '300'); await page.press('#dz-bmm3', 'Enter'); await page.waitForTimeout(500);
+  console.log('size line', await page.evaluate(() => document.getElementById('dz-size').textContent + ' | input ' + document.getElementById('dz-bmm3').value));
+  await page.screenshot({ path: '/home/claude/quilt/size.png' });
+  await page.keyboard.press('Escape'); await page.mouse.dblclick(20, 600); await page.waitForTimeout(300);
+  const qb = await page.locator('#dz-quilt').boundingBox();
+  await page.mouse.move(qb.x + qb.width * 0.5, qb.y + qb.height * 0.5); await page.waitForTimeout(200);
+  const rb = await page.evaluate(() => { const b = document.getElementById('dz-hrot'); const r = b.getBoundingClientRect(); return { hidden: b.hidden, x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+  console.log('hover rot', JSON.stringify(rb));
+  const rotOf = () => page.evaluate(() => { const k = Object.keys(localStorage).find(x => x.startsWith('quilt-timeline.v1:')); const o = JSON.parse(localStorage.getItem(k)); return JSON.parse(o.steps[o.i].d).blocks.map(b => b.rot).join(''); });
+  await page.mouse.move(rb.x, rb.y, { steps: 4 }); await page.waitForTimeout(200);
+  console.log('still shown on button', await page.evaluate(() => !document.getElementById('dz-hrot').hidden));
+  await page.locator('.flipper').screenshot({ path: '/home/claude/quilt/hrot.png' });
+  await page.mouse.click(rb.x, rb.y); await page.waitForTimeout(1200); console.log('rots after', await rotOf(), '| side hidden', await page.evaluate(() => document.getElementById('dz-side').hidden));
+  await page.locator('#dz-size').screenshot({ path: '/home/claude/quilt/dzsize.png' });
+  await page.locator('.rail:not(.rail-left)').screenshot({ path: '/home/claude/quilt/leftrail.png' });
+  await page.click('#dz-sim'); await page.waitForTimeout(800);
+  await page.waitForTimeout(4000); await page.screenshot({ path: '/home/claude/quilt/simover.png' });
+  await page.click('#sim-close'); await page.waitForTimeout(500);
+  console.log('after close', await page.evaluate(() => [document.getElementById('page-sim').hidden, document.getElementById('page-design').hidden, document.body.classList.contains('sim-over')]));
+  await page.click('#dz-sim'); await page.waitForTimeout(500); await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  console.log('after esc', await page.evaluate(() => document.getElementById('page-sim').hidden));
+  await page.click('#dz-sim'); await page.waitForTimeout(500);
+  console.log('page', await page.evaluate(() => [document.getElementById('page-sim').hidden, [...document.querySelectorAll('#tabs button')].map(b => b.textContent).join('|')]).catch(e => e.message.slice(0, 80)));
+  console.log('errors', errs);
+  await browser.close();
+})();

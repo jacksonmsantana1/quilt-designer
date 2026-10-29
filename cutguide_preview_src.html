@@ -1,0 +1,87 @@
+<title>Cutting Guide Preview</title>
+<style>
+  :root { --bg: #f4f2ee; --panel: #ffffff; --ink: #1f1d1a; --muted: #6b655c; --line: #e3ddd2; --head: #fbe3c2; --accent: #2b4a80;
+          --font-display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif; --font-body: "IBM Plex Sans", system-ui, sans-serif; --font-data: "IBM Plex Mono", ui-monospace, monospace; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font-body); padding: 20px max(16px, env(safe-area-inset-left, 0px)) 28px; }
+  h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 16px; max-width: 80ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 18px; font-size: .9rem; }
+  .facts b { font-family: var(--font-data); font-weight: 500; }
+  .sheet { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 24px; align-items: start; }
+  @media (max-width: 860px) { .sheet { grid-template-columns: minmax(0, 1fr); } }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); }
+  th, td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: middle; }
+  thead th { background: var(--head); font-weight: 600; font-size: .82rem; text-align: center; }
+  td.sw { width: 66px; padding: 4px; } td.sw span { display: block; width: 56px; height: 38px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); }
+  td.letter { text-align: center; font-weight: 600; font-family: var(--font-display); font-size: 1.05rem; width: 46px; }
+  td.req { font-family: var(--font-data); text-align: center; white-space: nowrap; }
+  td.req small { display: block; color: var(--muted); font-size: .76rem; white-space: normal; }
+  .extra td { background: #faf8f4; }
+  .blocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+  .block h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 1.25rem; text-align: center; margin: 0 0 2px; }
+  .block .meta { text-align: center; color: var(--muted); font-size: .85rem; margin: 0 0 8px; }
+  .block svg { display: block; width: 100%; max-width: 340px; margin: 0 auto 10px; }
+  .block table { font-size: .84rem; }
+  .block td.n { font-family: var(--font-data); text-align: right; white-space: nowrap; }
+  .block td.l { text-align: center; font-weight: 600; width: 34px; }
+  .note { color: var(--muted); font-size: .8rem; margin-top: 14px; max-width: 80ch; }
+</style>
+<h1>Cutting guide</h1>
+<p class="sub">Preview with the designer's default quilt. Every number below comes from your design: the fabric each part uses, the block size, and a ¼″ seam allowance.</p>
+<div class="facts" id="facts"></div>
+<div class="sheet">
+  <div>
+    <table id="fabrics"><thead><tr><th></th><th>Fabric</th><th>Fabric requirement</th></tr></thead><tbody></tbody></table>
+    <p class="note">WOF = width of fabric, a 42″ bolt with 40″ usable. Requirements include 2″ to straighten the edge. Cut sizes already include the seam allowance and are rounded up to the nearest ⅛″.</p>
+  </div>
+  <div class="blocks" id="blocks"></div>
+</div>
+<script>
+/*PATTERNS*/
+const PC = {}; const partsOf = n => (PC[n] = PC[n] || PATTERNS[n].parts());
+/*CORE*/
+const FABRICS = { b0: ['Cream cotton', '#efe5cf'], b1: ['Indigo cotton', '#2f466f'], b2: ['Woven paisley', '#9b7a52'], b3: ['Mustard cotton', '#c79a45'],
+                  b4: ['Red linen', '#7a1c1c'], b5: ['Sage cotton', '#7d8f70'], b6: ['Chenille stripe', '#6e5333'], b7: ['Damask', '#2a2220'], b8: ['Rose cotton', '#b26a5f'] };
+// the designer's default quilt: 5 x 5, Ohio stars alternating with nine-patches
+const ROLE = (pat, roles) => ({ pattern: pat, rot: 0, fabrics: partsOf(pat).map(p => roles[p.role] || roles[0]) });
+const design = { cols: 5, rows: 5, blocks: [] };
+for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) design.blocks.push((r + c) % 2 === 0 ? ROLE('ohio', ['b0', 'b1', 'b3']) : ROLE('nine', ['b0', 'b4', 'b3']));
+
+const P = CG.plan(design, { quiltCm: 229, seam: 0.25, wof: 42, usable: 40, bindingFabric: 'b1', bindingWidth: 2.5, partsOf, label: k => PATTERNS[k].label });
+const f = CG.fmt;
+document.getElementById('facts').innerHTML = [
+  ['Finished quilt', `${f(P.quiltW)} × ${f(P.quiltH)}`], ['Blocks', `${design.cols} × ${design.rows}`],
+  ['Block', `${f(P.blockW)} finished · ${f(P.blockW + 0.5)} unfinished`], ['Seam allowance', f(P.seam)],
+].map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join('');
+const tb = document.querySelector('#fabrics tbody');
+for (const r of P.fabrics) {
+  const [name, col] = FABRICS[r.id];
+  tb.insertAdjacentHTML('beforeend', `<tr><td class="sw"><span style="background:${col}" title="${name}"></span></td><td class="letter">${r.letter}<div style="font:400 .72rem var(--font-body);color:var(--muted)">${name}</div></td>
+    <td class="req">${r.requirement}${r.yards ? `<small>≈ ${r.yards}${r.binding ? ` · incl. binding: ${r.binding.strips} strips ${f(r.binding.width)} × WOF` : ''}</small>` : ''}</td></tr>`);
+}
+tb.insertAdjacentHTML('beforeend', `<tr class="extra"><td></td><td class="letter" style="font-size:.85rem">Backing</td><td class="req">${f(P.backing.w)} × ${f(P.backing.h)}<small>${P.backing.widths} widths of WOF · ≈ ${P.backing.yards}</small></td></tr>
+  <tr class="extra"><td></td><td class="letter" style="font-size:.85rem">Batting</td><td class="req">${f(P.batting.w)} × ${f(P.batting.h)}</td></tr>`);
+
+const box = document.getElementById('blocks');
+P.blocks.forEach((b, i) => {
+  const S = 300;
+  const polys = b.pieces.map(pc => pc.part.poly.map(([u, v]) => [u * S, v * S]));
+  let svg = `<svg viewBox="-2 -2 ${S + 4} ${S + 4}" role="img" aria-label="${b.label} block with fabric letters">`;
+  b.pieces.forEach((pc, k) => {
+    const pts = polys[k].map(p => p.join(',')).join(' ');
+    svg += `<polygon points="${pts}" fill="${FABRICS[pc.fabric][1]}" stroke="#ffffff" stroke-width="1.5"/>`;
+  });
+  b.pieces.forEach((pc, k) => {
+    const P2 = polys[k], cx = P2.reduce((a, p) => a + p[0], 0) / P2.length, cy = P2.reduce((a, p) => a + p[1], 0) / P2.length;
+    let area = 0; for (let j = 0; j < P2.length; j++) { const a = P2[j], c = P2[(j + 1) % P2.length]; area += a[0] * c[1] - c[0] * a[1]; }
+    const fs = Math.max(9, Math.min(22, Math.sqrt(Math.abs(area) / 2) * 0.45));
+    const dark = ['b1', 'b4', 'b6', 'b7'].includes(pc.fabric);
+    svg += `<text x="${cx}" y="${cy}" font-size="${fs}" text-anchor="middle" dominant-baseline="central" font-family="Georgia, serif" fill="${dark ? '#fff' : '#1f1d1a'}">${pc.letter}</text>`;
+  });
+  svg += `</svg>`;
+  const rows = b.list.map(r => `<tr><td class="l">${r.letter}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)} per block</td><td class="n">${Math.ceil(r.pieces * b.count / r.yield)} total</td></tr>`).join('');
+  box.insertAdjacentHTML('beforeend', `<div class="block"><h2>Block ${i + 1}</h2><p class="meta">${b.label} · make ${b.count} · ${f(P.blockW + 0.5)} unfinished</p>${svg}
+    <table><thead><tr><th>Fabric</th><th>Cut</th><th colspan="2">How many</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+});
+</script>
