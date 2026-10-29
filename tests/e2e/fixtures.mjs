@@ -25,6 +25,12 @@ export const test = base.extend({
   app: async ({ page, firstVisit }, use) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
+    // every design is frozen once it is the current one: code that changed it in place would throw
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('quilt-freeze.v1', '1');
+      } catch (e) {}
+    });
     if (!firstVisit)
       await page.addInitScript(() => {
         try {

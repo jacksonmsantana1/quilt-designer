@@ -6,13 +6,13 @@ import { state } from '../sim/config.js';
 import { resize } from '../sim/camera.js';
 import { startRender, stopRender } from '../sim/photo-render.js';
 import { initFabricLib } from '../designer/fabric-library.js';
-import { loadDesign } from '../designer/design-state.js';
 import { drawFabricPalette, renderDesigner } from '../designer/parts-editor.js';
 import { initDesignerUI } from '../designer/designer-ui.js';
 import { renderCut } from '../cutting/page.js';
 import { renderMine } from '../mine/my-designs.js';
 import { tlBarOn, tlUI } from '../timeline/timeline.js';
 import { fitSimSide } from './layout.js';
+import { ensureDesign } from '../designer/dispatch.js';
 
 // ---- pages
 function showPage(p) {
@@ -42,9 +42,7 @@ function showPage(p) {
       (async () => {
         await initFabricLib();
         if (!shared.design) {
-          shared.design = loadDesign();
-          shared.selBlocks = new Set([0]);
-          shared.focusBlock = 0;
+          ensureDesign();
           shared.activeFabric = 'b0';
         }
         drawFabricPalette();
@@ -60,9 +58,7 @@ function showPage(p) {
   (async () => {
     await initFabricLib();
     if (!shared.design) {
-      shared.design = loadDesign();
-      shared.selBlocks = new Set([0]);
-      shared.focusBlock = 0;
+      ensureDesign();
       shared.activeFabric = 'b0';
     }
     if (p === 'design') {

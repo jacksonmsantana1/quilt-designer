@@ -5,11 +5,10 @@ import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { PATTERNS } from '../core/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
-import { saveDesign } from '../designer/design-state.js';
 import { BORDER_TYPES, bordersOf, quiltMm, sashOf } from '../core/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
 import { drawDesignerCanvas } from '../designer/canvas.js';
-import { renderDesigner } from '../designer/parts-editor.js';
+import { replaceDesign } from '../designer/dispatch.js';
 
 // ---- design timeline: every change is a step (the last 100 are kept in this browser);
 // undo / redo, or jump to any step from the timeline strip.
@@ -183,14 +182,8 @@ function tlGo(i) {
   clearTimeout(tl.timer);
   tl.i = i;
   tlSave();
-  shared.design = JSON.parse(tl.steps[i].d);
-  const n = shared.design.blocks.length;
-  shared.selBlocks = new Set([Math.min(shared.focusBlock, n - 1)]);
-  shared.focusBlock = [...shared.selBlocks][0];
-  shared.selParts.clear();
-  tl.restoring = true;
-  saveDesign();
-  renderDesigner();
+  tl.restoring = true; // putting a step back is not a new step
+  replaceDesign(JSON.parse(tl.steps[i].d), { keepFocus: true });
   tl.restoring = false;
   tlUI();
 }
@@ -209,13 +202,7 @@ function tlThumb(step) {
   c.style.height = h + 'px';
   const g = c.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    drawQuilt(g, w, h);
-  } finally {
-    shared.design = keep;
-  }
+  drawQuilt(g, w, h, { design: d });
   tl.thumbs.set(step.id, c);
   if (tl.thumbs.size > 140) tl.thumbs.delete(tl.thumbs.keys().next().value);
   return c;

@@ -3,13 +3,12 @@ import '../tour/tour.js'; // load order: runs after tour/tour
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
-import { saveDesign } from '../designer/design-state.js';
 import { quiltMm } from '../core/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
-import { renderDesigner } from '../designer/parts-editor.js';
 import { showPage } from '../app/pages.js';
-import { tl, tlCopy, tlKeyFor, tlSave, tlSwitch } from '../timeline/timeline.js';
+import { tl, tlCopy, tlKeyFor, tlSave } from '../timeline/timeline.js';
 import { defaultDesign } from '../core/design.js';
+import { replaceDesign } from '../designer/dispatch.js';
 
 // ---- My designs: saved quilts, shown as a Pinterest-style masonry
 const MINE_KEY = 'quilt-mydesigns.v1',
@@ -46,16 +45,10 @@ function quiltPicture(d, width) {
   c.height = h * dpr;
   const g = c.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    drawQuilt(g, w, h, { seams: true });
-    g.strokeStyle = '#2f466f';
-    g.lineWidth = Math.max(2, w * 0.012);
-    g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
-  } finally {
-    shared.design = keep;
-  }
+  drawQuilt(g, w, h, { seams: true, design: d });
+  g.strokeStyle = '#2f466f';
+  g.lineWidth = Math.max(2, w * 0.012);
+  g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
   return c;
 }
 let saveForceNew = false;
@@ -119,14 +112,9 @@ function doSave(asNew) {
 function openMine(id) {
   const m = mine.find(x => x.id === id);
   if (!m) return;
-  shared.design = JSON.parse(m.d);
   shared.mineCur = id;
   mineSave();
-  shared.selBlocks = new Set([0]);
-  shared.focusBlock = 0;
-  shared.selParts.clear();
-  tlSwitch(id);
-  saveDesign();
+  replaceDesign(JSON.parse(m.d), { timeline: id });
   showPage('design');
 }
 function renderMine() {
@@ -238,19 +226,13 @@ function initMine() {
   $('dz-save').addEventListener('click', () => openSaveDialog(false));
   // New design: always the same default quilt (5 × 5 Ohio star / nine patch, 458 mm); the timeline keeps the previous one
   $('dz-new').addEventListener('click', () => {
-    shared.design = defaultDesign();
     shared.mineCur = null;
     mineSave();
-    shared.selBlocks = new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
     if ($('dz-dialog').open) $('dz-dialog').close();
     try {
       localStorage.removeItem(tlKeyFor(null));
     } catch (e) {} // a new design starts its own, empty timeline
-    tlSwitch(null);
-    saveDesign();
-    renderDesigner();
+    replaceDesign(defaultDesign(), { timeline: null });
   });
   $('mine-new').addEventListener('click', () => openSaveDialog(true));
   $('save-ok').addEventListener('click', () => doSave(false));

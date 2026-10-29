@@ -151,13 +151,7 @@ function sashPicH(S) {
 function drawSashPic(g, S, sashCuts, u) {
   const mini = sashMini(),
     H = sashPicH(S);
-  const keep = shared.design;
-  shared.design = mini;
-  try {
-    drawQuilt(g, S, H, { seams: true });
-  } finally {
-    shared.design = keep;
-  }
+  drawQuilt(g, S, H, { seams: true, design: mini });
   g.font = `600 ${11 * u}px Georgia, serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';

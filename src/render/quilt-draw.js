@@ -165,24 +165,22 @@ function drawBordersExploded(g, W, gap, focus = -1) {
     off += Tp + gap;
   }
   // the quilt inside all the borders
-  const keep = shared.design;
-  shared.design = { ...shared.design, borders: [] };
-  try {
-    g.save();
-    g.translate(off, off);
-    drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true });
-    if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
-    g.restore();
-  } finally {
-    shared.design = keep;
-  }
+  g.save();
+  g.translate(off, off);
+  drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...shared.design, borders: [] } });
+  if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
+  g.restore();
   return H;
 }
+/**
+ * Draws a quilt top (borders, sashing and blocks) into a W × H box at the context's origin.
+ * @param {CanvasRenderingContext2D} g @param {number} W @param {number} H
+ * @param {{ seams?: boolean, design?: import('../core/types.js').Design }} [opts] design: the one being edited by default
+ */
 function drawQuilt(g, W, H, opts = {}) {
-  if (bordersOf(shared.design).length)
-    drawBorders(g, shared.design, W, H, W / (quiltMm(shared.design).W / 10), opts.seams);
-  const d = shared.design,
-    q = quiltMm(d),
+  const d = opts.design || shared.design;
+  if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
+  const q = quiltMm(d),
     pxPerCm = W / (q.W / 10),
     s = sashOf(d);
   for (const [k, rc] of sashRects(d, W, H).entries()) {

@@ -9,11 +9,11 @@ import { applyLook } from '../sim/lighting.js';
 import { BUNDLED, useSwatches } from '../sim/patchwork.js';
 import { resize } from '../sim/camera.js';
 import { initFabricLib } from '../designer/fabric-library.js';
-import { loadDesign } from '../designer/design-state.js';
 import { syncSimulation } from '../sim/design-maps.js';
 import { showPage } from './pages.js';
 import { fitSimSide } from './layout.js';
 import { frame } from './loop.js';
+import { ensureDesign } from '../designer/dispatch.js';
 
 // ------------------------------------------------------------- start
 if (IS_PHONE) {
@@ -39,9 +39,7 @@ else showPage('design');
     // the quilt on the bed is your design from the start (the designer keeps it in this browser)
     await initFabricLib();
     if (!shared.design) {
-      shared.design = loadDesign();
-      shared.selBlocks = new Set([0]);
-      shared.focusBlock = 0;
+      ensureDesign();
       shared.activeFabric = shared.activeFabric || 'b0';
     }
     syncSimulation();

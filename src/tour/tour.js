@@ -5,14 +5,13 @@ import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { IS_PHONE } from '../sim/renderer.js';
 import { initFabricLib } from '../designer/fabric-library.js';
-import { loadDesign, saveDesign } from '../designer/design-state.js';
 import { bordersOf } from '../core/geometry.js';
-import { renderDesigner } from '../designer/parts-editor.js';
 import { blockKey } from '../designer/block-library.js';
 import { showPage } from '../app/pages.js';
 import { mineSave } from '../mine/my-designs.js';
 import { tl, tlCopy, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
 import { defaultDesign } from '../core/design.js';
+import { ensureDesign, replaceDesign } from '../designer/dispatch.js';
 
 // ---- guided tour: a short exercise for first-time users. Every control is greyed out and switched
 // off except the ones the current step needs; the step moves on by itself once it has been done.
@@ -340,22 +339,16 @@ function tourBegin() {
   // the tour always starts from the same default quilt (5 × 5, 458 mm, Ohio star and nine patch), with its
   // own timeline; the user's own quilt is put aside and comes back if they skip or ask for it at the end
   const fresh = () => {
-    shared.design = defaultDesign();
-    shared.selBlocks = new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
     try {
       localStorage.removeItem(tlKeyFor('tour'));
     } catch (e) {}
-    tlSwitch('tour');
-    saveDesign();
-    renderDesigner();
+    replaceDesign(defaultDesign(), { timeline: 'tour' });
   };
   if (shared.design) fresh();
   else
     (async () => {
       await initFabricLib();
-      if (!shared.design) shared.design = loadDesign();
+      ensureDesign();
       fresh();
     })();
   $('tour').hidden = false;
@@ -394,14 +387,9 @@ function tourEnd(how) {
     mineSave();
     tlSwitch(null);
   } else if (how === 'restore' && tour.saved) {
-    shared.design = JSON.parse(tour.saved);
     shared.mineCur = tour.savedCur;
     mineSave();
-    shared.selBlocks = new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
-    tlSwitch(shared.mineCur);
-    saveDesign();
+    replaceDesign(JSON.parse(tour.saved), { timeline: shared.mineCur });
   }
   try {
     localStorage.removeItem(tlKeyFor('tour'));

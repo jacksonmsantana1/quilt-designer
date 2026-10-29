@@ -20,15 +20,14 @@ import { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt } from './canvas.js';
 import { drawFabricPalette, drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { copyBlockFrom, selectSameFabric } from './block-library.js';
 import { PANEL_CARDS, openBlockEditor, placeBlockEditor, syncRail, updateMultiUI } from './side-panel.js';
-import { applyFabric } from './edits.js';
+import { applyFabric, choosePattern } from './edits.js';
 import { openSashing } from './sashing-ui.js';
 import { openBorders } from './borders-ui.js';
-import { tl, tlCommit, tlEnsure, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
+import { tl, tlCommit, tlEnsure, tlKeyFor } from '../timeline/timeline.js';
 import { setFold } from '../ui/folds.js';
 import { dispatch, replaceDesign, resizeTo } from './dispatch.js';
 import { copyBlock, rotateBlocks, setBackFabric, setBlockMm } from '../core/edits.js';
 import { defaultDesign } from '../core/design.js';
-import { choosePattern } from './edits.js';
 
 function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected
@@ -350,8 +349,7 @@ function initDesignerUI() {
       localStorage.removeItem('quilt-mydesigns-current.v1');
       localStorage.removeItem(tlKeyFor(null));
     } catch (e) {}
-    tlSwitch(null);
-    replaceDesign(defaultDesign());
+    replaceDesign(defaultDesign(), { timeline: null });
     $('dz-reset').dataset.armed = '';
     $('dz-reset').textContent = 'Start over';
   });

@@ -6,9 +6,28 @@ import { shared } from '../core/shared.js';
 import { normalizeSpans } from '../core/geometry.js';
 import { withSymmetry } from '../core/symmetry.js';
 import { resize } from '../core/edits.js';
-import { saveDesign } from './design-state.js';
+import { loadDesign, saveDesign } from './design-state.js';
+import { tlSwitch } from '../timeline/timeline.js';
 import { drawFabricPalette, renderDesigner } from './parts-editor.js';
 /** @typedef {import('../core/types.js').Design} Design */
+
+// In tests (localStorage 'quilt-freeze.v1' = '1') the design is frozen after every change, so any code that
+// still changed it in place would throw instead of silently skipping the save, symmetry and redraw.
+let freezeOn = false;
+try {
+  freezeOn = localStorage.getItem('quilt-freeze.v1') === '1';
+} catch (e) {}
+const deepFreeze = o => {
+  if (o && typeof o === 'object' && !Object.isFrozen(o)) {
+    Object.freeze(o);
+    for (const v of Object.values(o)) deepFreeze(v);
+  }
+  return o;
+};
+/** Makes a design the one being edited. @param {Design} d */
+function setCurrent(d) {
+  shared.design = freezeOn ? deepFreeze(d) : d;
+}
 
 /** The blocks an edit changed (a new object in the same place), not counting cells covered by a large block. */
 function changedBlocks(prev, next) {
@@ -33,7 +52,7 @@ function dispatch(edit, ...args) {
   let next = edit(prev, ...args);
   if (next === prev) return false;
   if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
-  shared.design = normalizeSpans(next);
+  setCurrent(normalizeSpans(next));
   saveDesign();
   renderDesigner();
   drawFabricPalette();
@@ -52,18 +71,27 @@ function resizeTo(cols, rows) {
 }
 
 /**
- * Puts a whole other design in place (new design, start over, cancel): no mirroring; saved and redrawn.
- * The selection goes back to the first block, or stays where it was with keepFocus.
- * @param {Design} d @param {{ keepFocus?: boolean }} [opts]
+ * Puts a whole other design in place (new design, opening a saved one, cancel, undo): no mirroring; saved and
+ * redrawn. The selection goes back to the first block, or stays where it was with keepFocus.
+ * With `timeline`, the design gets that timeline (a saved design's id, null for an unsaved one, 'tour').
+ * @param {Design} d @param {{ keepFocus?: boolean, timeline?: string | null }} [opts]
  */
 function replaceDesign(d, opts = {}) {
-  shared.design = normalizeSpans(d);
+  setCurrent(normalizeSpans(d));
   const f = opts.keepFocus ? Math.min(shared.focusBlock, d.blocks.length - 1) : 0;
   shared.selBlocks = new Set([f]);
   shared.focusBlock = f;
   shared.selParts.clear();
+  if ('timeline' in opts) tlSwitch(opts.timeline);
   saveDesign();
   renderDesigner();
 }
+/** Loads the saved design the first time it is needed (at start-up, or the first page that shows it). */
+function ensureDesign() {
+  if (shared.design) return;
+  setCurrent(loadDesign());
+  shared.selBlocks = new Set([0]);
+  shared.focusBlock = 0;
+}
 
-export { dispatch, replaceDesign, resizeTo };
+export { dispatch, ensureDesign, replaceDesign, resizeTo };

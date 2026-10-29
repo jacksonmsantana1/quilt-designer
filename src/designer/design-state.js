@@ -32,7 +32,6 @@ function loadDesign() {
   return defaultDesign();
 }
 function saveDesign() {
-  shared.design = normalizeSpans(shared.design);
   try {
     localStorage.setItem(DESIGN_KEY, JSON.stringify(shared.design));
   } catch (e) {}

@@ -5110,7 +5110,6 @@ function loadDesign() {
   return defaultDesign();
 }
 function saveDesign() {
-  shared.design = normalizeSpans(shared.design);
   try {
     localStorage.setItem(DESIGN_KEY, JSON.stringify(shared.design));
   } catch (e) {
@@ -5266,6 +5265,21 @@ function resize2(d, cols, rows) {
 resize2.mirror = false;
 
 // src/designer/dispatch.js
+var freezeOn = false;
+try {
+  freezeOn = localStorage.getItem("quilt-freeze.v1") === "1";
+} catch (e) {
+}
+var deepFreeze = (o) => {
+  if (o && typeof o === "object" && !Object.isFrozen(o)) {
+    Object.freeze(o);
+    for (const v of Object.values(o)) deepFreeze(v);
+  }
+  return o;
+};
+function setCurrent(d) {
+  shared.design = freezeOn ? deepFreeze(d) : d;
+}
 function changedBlocks(prev, next) {
   if (!prev || prev.blocks.length !== next.blocks.length) return [];
   const out = [];
@@ -5280,7 +5294,7 @@ function dispatch(edit, ...args) {
   let next = edit(prev, ...args);
   if (next === prev) return false;
   if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
-  shared.design = normalizeSpans(next);
+  setCurrent(normalizeSpans(next));
   saveDesign();
   renderDesigner();
   drawFabricPalette();
@@ -5296,13 +5310,20 @@ function resizeTo(cols, rows) {
   return dispatch(resize2, cols, rows);
 }
 function replaceDesign(d, opts = {}) {
-  shared.design = normalizeSpans(d);
+  setCurrent(normalizeSpans(d));
   const f = opts.keepFocus ? Math.min(shared.focusBlock, d.blocks.length - 1) : 0;
   shared.selBlocks = /* @__PURE__ */ new Set([f]);
   shared.focusBlock = f;
   shared.selParts.clear();
+  if ("timeline" in opts) tlSwitch(opts.timeline);
   saveDesign();
   renderDesigner();
+}
+function ensureDesign() {
+  if (shared.design) return;
+  setCurrent(loadDesign());
+  shared.selBlocks = /* @__PURE__ */ new Set([0]);
+  shared.focusBlock = 0;
 }
 
 // src/render/fabric-fill.js
@@ -5447,23 +5468,17 @@ function drawBordersExploded(g, W, gap, focus = -1) {
     if (focus >= 0 && i !== focus) fade(X, X, BW, BH, Tp);
     off += Tp + gap;
   }
-  const keep = shared.design;
-  shared.design = { ...shared.design, borders: [] };
-  try {
-    g.save();
-    g.translate(off, off);
-    drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true });
-    if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
-    g.restore();
-  } finally {
-    shared.design = keep;
-  }
+  g.save();
+  g.translate(off, off);
+  drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...shared.design, borders: [] } });
+  if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
+  g.restore();
   return H;
 }
 function drawQuilt(g, W, H, opts = {}) {
-  if (bordersOf(shared.design).length)
-    drawBorders(g, shared.design, W, H, W / (quiltMm(shared.design).W / 10), opts.seams);
-  const d = shared.design, q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
+  const d = opts.design || shared.design;
+  if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
+  const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
   for (const [k, rc] of sashRects(d, W, H).entries()) {
     g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + k);
     g.fillRect(rc.x, rc.y, rc.w, rc.h);
@@ -5814,7 +5829,6 @@ function drawPaletteInto(box, selected = shared.activeFabric) {
 }
 function renderDesigner() {
   if (!shared.design) return;
-  shared.design = normalizeSpans(shared.design);
   if (shared.design.blocks[shared.focusBlock] && shared.design.blocks[shared.focusBlock].under != null)
     shared.focusBlock = shared.design.blocks[shared.focusBlock].under;
   $("dz-cols").value = shared.design.cols;
@@ -6271,8 +6285,7 @@ function initDesignerUI() {
       localStorage.removeItem(tlKeyFor(null));
     } catch (e) {
     }
-    tlSwitch(null);
-    replaceDesign(defaultDesign());
+    replaceDesign(defaultDesign(), { timeline: null });
     $("dz-reset").dataset.armed = "";
     $("dz-reset").textContent = "Start over";
   });
@@ -6771,9 +6784,7 @@ function showPage(p) {
       (async () => {
         await initFabricLib();
         if (!shared.design) {
-          shared.design = loadDesign();
-          shared.selBlocks = /* @__PURE__ */ new Set([0]);
-          shared.focusBlock = 0;
+          ensureDesign();
           shared.activeFabric = "b0";
         }
         drawFabricPalette();
@@ -6788,9 +6799,7 @@ function showPage(p) {
   (async () => {
     await initFabricLib();
     if (!shared.design) {
-      shared.design = loadDesign();
-      shared.selBlocks = /* @__PURE__ */ new Set([0]);
-      shared.focusBlock = 0;
+      ensureDesign();
       shared.activeFabric = "b0";
     }
     if (p === "design") {
@@ -6918,13 +6927,7 @@ function sashPicH(S) {
 }
 function drawSashPic(g, S, sashCuts, u) {
   const mini = sashMini(), H = sashPicH(S);
-  const keep = shared.design;
-  shared.design = mini;
-  try {
-    drawQuilt(g, S, H, { seams: true });
-  } finally {
-    shared.design = keep;
-  }
+  drawQuilt(g, S, H, { seams: true, design: mini });
   g.font = `600 ${11 * u}px Georgia, serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
@@ -8390,23 +8393,17 @@ function tourBegin() {
   if (state.page !== "design") showPage("design");
   shared.hideTools();
   const fresh = () => {
-    shared.design = defaultDesign();
-    shared.selBlocks = /* @__PURE__ */ new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
     try {
       localStorage.removeItem(tlKeyFor("tour"));
     } catch (e) {
     }
-    tlSwitch("tour");
-    saveDesign();
-    renderDesigner();
+    replaceDesign(defaultDesign(), { timeline: "tour" });
   };
   if (shared.design) fresh();
   else
     (async () => {
       await initFabricLib();
-      if (!shared.design) shared.design = loadDesign();
+      ensureDesign();
       fresh();
     })();
   $("tour").hidden = false;
@@ -8445,14 +8442,9 @@ function tourEnd(how) {
     mineSave();
     tlSwitch(null);
   } else if (how === "restore" && tour.saved) {
-    shared.design = JSON.parse(tour.saved);
     shared.mineCur = tour.savedCur;
     mineSave();
-    shared.selBlocks = /* @__PURE__ */ new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
-    tlSwitch(shared.mineCur);
-    saveDesign();
+    replaceDesign(JSON.parse(tour.saved), { timeline: shared.mineCur });
   }
   try {
     localStorage.removeItem(tlKeyFor("tour"));
@@ -8516,16 +8508,10 @@ function quiltPicture(d, width) {
   c.height = h * dpr;
   const g = c.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    drawQuilt(g, w, h, { seams: true });
-    g.strokeStyle = "#2f466f";
-    g.lineWidth = Math.max(2, w * 0.012);
-    g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
-  } finally {
-    shared.design = keep;
-  }
+  drawQuilt(g, w, h, { seams: true, design: d });
+  g.strokeStyle = "#2f466f";
+  g.lineWidth = Math.max(2, w * 0.012);
+  g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
   return c;
 }
 var saveForceNew = false;
@@ -8586,14 +8572,9 @@ function doSave(asNew) {
 function openMine(id) {
   const m = mine.find((x) => x.id === id);
   if (!m) return;
-  shared.design = JSON.parse(m.d);
   shared.mineCur = id;
   mineSave();
-  shared.selBlocks = /* @__PURE__ */ new Set([0]);
-  shared.focusBlock = 0;
-  shared.selParts.clear();
-  tlSwitch(id);
-  saveDesign();
+  replaceDesign(JSON.parse(m.d), { timeline: id });
   showPage("design");
 }
 function renderMine() {
@@ -8701,20 +8682,14 @@ function renderMine() {
 function initMine() {
   $("dz-save").addEventListener("click", () => openSaveDialog(false));
   $("dz-new").addEventListener("click", () => {
-    shared.design = defaultDesign();
     shared.mineCur = null;
     mineSave();
-    shared.selBlocks = /* @__PURE__ */ new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
     if ($("dz-dialog").open) $("dz-dialog").close();
     try {
       localStorage.removeItem(tlKeyFor(null));
     } catch (e) {
     }
-    tlSwitch(null);
-    saveDesign();
-    renderDesigner();
+    replaceDesign(defaultDesign(), { timeline: null });
   });
   $("mine-new").addEventListener("click", () => openSaveDialog(true));
   $("save-ok").addEventListener("click", () => doSave(false));
@@ -9032,14 +9007,8 @@ function tlGo(i) {
   clearTimeout(tl.timer);
   tl.i = i;
   tlSave();
-  shared.design = JSON.parse(tl.steps[i].d);
-  const n = shared.design.blocks.length;
-  shared.selBlocks = /* @__PURE__ */ new Set([Math.min(shared.focusBlock, n - 1)]);
-  shared.focusBlock = [...shared.selBlocks][0];
-  shared.selParts.clear();
   tl.restoring = true;
-  saveDesign();
-  renderDesigner();
+  replaceDesign(JSON.parse(tl.steps[i].d), { keepFocus: true });
   tl.restoring = false;
   tlUI();
 }
@@ -9053,13 +9022,7 @@ function tlThumb(step) {
   c.style.height = h + "px";
   const g = c.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    drawQuilt(g, w, h);
-  } finally {
-    shared.design = keep;
-  }
+  drawQuilt(g, w, h, { design: d });
   tl.thumbs.set(step.id, c);
   if (tl.thumbs.size > 140) tl.thumbs.delete(tl.thumbs.keys().next().value);
   return c;
@@ -11052,9 +11015,7 @@ else showPage("design");
     await Promise.all([useSwatches(BUNDLED), applyLook()]);
     await initFabricLib();
     if (!shared.design) {
-      shared.design = loadDesign();
-      shared.selBlocks = /* @__PURE__ */ new Set([0]);
-      shared.focusBlock = 0;
+      ensureDesign();
       shared.activeFabric = shared.activeFabric || "b0";
     }
     syncSimulation();

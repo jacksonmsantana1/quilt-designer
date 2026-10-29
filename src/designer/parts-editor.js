@@ -4,7 +4,7 @@ import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { PATTERNS, partsOf } from '../core/patterns.js';
 import { fabricById, fabricLib } from './fabric-library.js';
-import { blockPolys, normalizeSpans, pathPoly } from '../core/geometry.js';
+import { blockPolys, pathPoly } from '../core/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas } from './canvas.js';
 import { drawFussy } from './fussy-cut.js';
 import { drawBlockLibrary } from './block-library.js';
@@ -124,7 +124,6 @@ function drawPaletteInto(box, selected = shared.activeFabric) {
 }
 function renderDesigner() {
   if (!shared.design) return;
-  shared.design = normalizeSpans(shared.design);
   if (shared.design.blocks[shared.focusBlock] && shared.design.blocks[shared.focusBlock].under != null)
     shared.focusBlock = shared.design.blocks[shared.focusBlock].under;
   $('dz-cols').value = shared.design.cols;
