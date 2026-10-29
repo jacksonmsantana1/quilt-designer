@@ -1,0 +1,150 @@
+{
+ "cols": 3,
+ "rows": 3,
+ "blockMm": 300,
+ "backFabric": "b2",
+ "sym": "lr",
+ "quilting": "fans",
+ "sashing": {
+  "mm": 40,
+  "fabric": "b0",
+  "corner": "b3",
+  "border": true
+ },
+ "borders": [
+  {
+   "type": "piano",
+   "mm": 100,
+   "fabrics": [
+    "b1",
+    "b0",
+    "b1"
+   ]
+  }
+ ],
+ "blocks": [
+  {
+   "pattern": "ohio",
+   "rot": 0,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ],
+   "span": 2
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b0"
+   ]
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ]
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b0"
+   ]
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b0"
+   ]
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ]
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ]
+  },
+  {
+   "pattern": "nine",
+   "rot": 1,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ],
+   "flip": true
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b9"
+   ],
+   "fussy": {
+    "0": [
+     0.25,
+     0.5
+    ]
+   }
+  }
+ ]
+}

@@ -12,7 +12,7 @@ import { showPage } from '../app/pages.js';
 import { mineSave } from '../mine/my-designs.js';
 import { tl, tlCopy, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
 import { defaultDesign } from '../core/design.js';
-import { ensureDesign, replaceDesign } from '../designer/dispatch.js';
+import { ensureDesign, openDesign, replaceDesign } from '../designer/dispatch.js';
 
 // ---- guided tour: a short exercise for first-time users. Every control is greyed out and switched
 // off except the ones the current step needs; the step moves on by itself once it has been done.
@@ -390,7 +390,7 @@ function tourEnd(how) {
   } else if (how === 'restore' && tour.saved) {
     setMineCur(tour.savedCur);
     mineSave();
-    replaceDesign(JSON.parse(tour.saved), { timeline: mineCur });
+    openDesign(tour.saved, { timeline: mineCur, quiet: true });
   }
   try {
     localStorage.removeItem(tlKeyFor('tour'));

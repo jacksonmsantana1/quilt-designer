@@ -8,7 +8,8 @@ import { fabricById } from '../designer/fabric-library.js';
 import { BORDER_TYPES, bordersOf, quiltMm, sashOf } from '../core/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
 import { drawDesignerCanvas } from '../designer/canvas.js';
-import { replaceDesign } from '../designer/dispatch.js';
+import { openDesign } from '../designer/dispatch.js';
+import { readDesign, readDesignOrDefault } from '../core/format.js';
 
 // ---- design timeline: every change is a step (the last 100 are kept in this browser);
 // undo / redo, or jump to any step from the timeline strip.
@@ -190,13 +191,13 @@ function tlGo(to) {
   tl.i = i;
   tlSave();
   tl.restoring = true; // putting a step back is not a new step
-  replaceDesign(JSON.parse(tl.steps[i].d), { keepFocus: true });
+  openDesign(tl.steps[i].d, { keepFocus: true, quiet: true });
   tl.restoring = false;
   tlUI();
 }
 function tlThumb(step) {
   if (tl.thumbs.has(step.id)) return tl.thumbs.get(step.id);
-  const d = JSON.parse(step.d),
+  const d = (readDesign(step.d) || readDesignOrDefault(null)).design,
     S = 82,
     c = document.createElement('canvas'),
     dpr = Math.min(window.devicePixelRatio || 1, 2);

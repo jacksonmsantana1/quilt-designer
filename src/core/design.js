@@ -3,6 +3,9 @@
 import { partsOf } from './patterns.js';
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Block} Block */
 
+/** Version of the saved design format (see core/format.js). */
+const FORMAT_VERSION = 1;
+
 /** Default fabric for each colour role: cream, indigo, mustard. */
 const ROLE_DEFAULT = ['b0', 'b1', 'b3'];
 
@@ -13,7 +16,7 @@ function newBlock(pattern = 'ohio', roles = ROLE_DEFAULT) {
 
 /** The quilt every new design starts from: 5 × 5, Ohio stars and nine-patches, 458 mm blocks. @returns {Design} */
 function defaultDesign() {
-  const d = { cols: 5, rows: 5, blockMm: 458, backFabric: 'b0', blocks: [] };
+  const d = { v: FORMAT_VERSION, cols: 5, rows: 5, blockMm: 458, backFabric: 'b0', blocks: [] };
   for (let r = 0; r < 5; r++)
     for (let c = 0; c < 5; c++)
       d.blocks.push((r + c) % 2 === 0 ? newBlock('ohio', ['b0', 'b1', 'b3']) : newBlock('nine', ['b0', 'b4', 'b3']));
@@ -33,4 +36,4 @@ function rolesOf(b) {
   return roles;
 }
 
-export { ROLE_DEFAULT, defaultDesign, newBlock, rolesOf };
+export { FORMAT_VERSION, ROLE_DEFAULT, defaultDesign, newBlock, rolesOf };

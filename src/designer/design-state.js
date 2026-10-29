@@ -1,32 +1,27 @@
 // The design being edited: loading, saving, new design, resizing.
 import './fabric-library.js'; // load order: runs after designer/fabric-library
-import { design } from '../core/store.js';
-import { PATTERNS, partsOf } from '../core/patterns.js';
-import { normalizeSpans } from '../core/geometry.js';
+import { design, readOnly } from '../core/store.js';
+import { readDesign, readDesignOrDefault } from '../core/format.js';
+import { notify } from '../ui/notice.js';
 import { scheduleSync } from '../sim/design-maps.js';
-import { defaultDesign } from '../core/design.js';
 
 // ---- design state
 const DESIGN_KEY = 'quilt-designer.v1';
+/**
+ * The design saved in this browser, upgraded and checked (core/format.js); the default design if there is none
+ * or it cannot be read. @returns {NonNullable<ReturnType<typeof readDesign>>}
+ */
 function loadDesign() {
+  let raw = null;
   try {
-    const d = JSON.parse(localStorage.getItem(DESIGN_KEY) || 'null');
-    if (
-      d &&
-      d.cols &&
-      d.rows &&
-      Array.isArray(d.blocks) &&
-      d.blocks.length === d.cols * d.rows &&
-      d.blocks.every(b => PATTERNS[b.pattern] && b.fabrics.length === partsOf(b.pattern).length)
-    ) {
-      if (!(d.blockMm > 0)) d.blockMm = Math.round(2290 / d.cols); // designs saved before block sizes existed
-      if (!d.backFabric) d.backFabric = 'b0';
-      return normalizeSpans(d);
-    }
+    raw = localStorage.getItem(DESIGN_KEY);
   } catch (e) {}
-  return defaultDesign();
+  const r = raw ? readDesign(raw) : null;
+  if (raw && !r) notify('The quilt saved in this browser could not be read, so a new one was started.');
+  return r || readDesignOrDefault(null);
 }
 function saveDesign() {
+  if (readOnly) return; // a design from a newer version of the app: never saved over
   try {
     localStorage.setItem(DESIGN_KEY, JSON.stringify(design));
   } catch (e) {}

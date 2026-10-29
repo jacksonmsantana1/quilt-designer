@@ -47,6 +47,7 @@
 /**
  * The quilt being designed. Saved as JSON in localStorage and in My designs.
  * @typedef {object} Design
+ * @property {number} [v]        format version (core/format.js); missing in designs saved before versions
  * @property {number} cols
  * @property {number} rows
  * @property {number} blockMm      finished size of one grid cell

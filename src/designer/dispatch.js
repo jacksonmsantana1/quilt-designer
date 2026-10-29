@@ -2,7 +2,18 @@
 // this order: mirrors the changed blocks (symmetry), repairs large blocks, saves (storage, timeline, simulation)
 // and redraws the designer.
 import './design-state.js'; // load order: runs after designer/design-state
-import { design, focusBlock, selBlocks, selParts, setDesign, setFocusBlock, setSelBlocks } from '../core/store.js';
+import {
+  design,
+  focusBlock,
+  selBlocks,
+  selParts,
+  setDesign,
+  setFocusBlock,
+  setReadOnly,
+  setSelBlocks,
+} from '../core/store.js';
+import { readDesign } from '../core/format.js';
+import { notify } from '../ui/notice.js';
 import { normalizeSpans } from '../core/geometry.js';
 import { withSymmetry } from '../core/symmetry.js';
 import { resize } from '../core/edits.js';
@@ -76,9 +87,11 @@ function resizeTo(cols, rows) {
  * Puts a whole other design in place (new design, opening a saved one, cancel, undo): no mirroring; saved and
  * redrawn. The selection goes back to the first block, or stays where it was with keepFocus.
  * With `timeline`, the design gets that timeline (a saved design's id, null for an unsaved one, 'tour').
- * @param {Design} d @param {{ keepFocus?: boolean, timeline?: string | null }} [opts]
+ * `newer`: the design comes from a newer version of the app, so it is shown but not saved (see openDesign).
+ * @param {Design} d @param {{ keepFocus?: boolean, timeline?: string | null, newer?: boolean }} [opts]
  */
 function replaceDesign(d, opts = {}) {
+  setReadOnly(!!opts.newer);
   setCurrent(normalizeSpans(d));
   const f = opts.keepFocus ? Math.min(focusBlock, d.blocks.length - 1) : 0;
   setSelBlocks(new Set([f]));
@@ -89,12 +102,44 @@ function replaceDesign(d, opts = {}) {
   tlRecord(null);
   renderDesigner();
 }
+/**
+ * Tells the user what opening a saved design repaired (core/format.js), and warns when it comes from a newer
+ * version of the app. @param {NonNullable<ReturnType<typeof readDesign>>} r @param {string} [what]
+ */
+function announce(r, what = 'This quilt') {
+  if (r.newer)
+    notify(
+      `${what} was made with a newer version of the app. You can look at it here, but changes will not be saved: open it in the newer version to edit it.`,
+    );
+  else if (r.problems.length) notify(`${what} needed some repairs:\n• ${r.problems.join('\n• ')}`);
+}
+
+/**
+ * Opens a saved design (JSON text or a parsed design from storage, a file, a timeline step): upgrades and checks
+ * it, says what was repaired (unless `quiet`), then puts it in place with replaceDesign. False if it can't be read.
+ * @param {string | object} raw
+ * @param {{ keepFocus?: boolean, timeline?: string | null, quiet?: boolean, what?: string }} [opts]
+ */
+function openDesign(raw, opts = {}) {
+  const r = readDesign(raw);
+  if (!r) {
+    notify(`${opts.what || 'This quilt'} could not be read.`);
+    return false;
+  }
+  if (!opts.quiet) announce(r, opts.what);
+  const { quiet: _q, what: _w, ...rest } = opts;
+  replaceDesign(r.design, { ...rest, newer: r.newer });
+  return true;
+}
+
 /** Loads the saved design the first time it is needed (at start-up, or the first page that shows it). */
 function ensureDesign() {
   if (design) return;
-  setCurrent(loadDesign());
+  const r = loadDesign();
+  announce(r, 'The quilt saved in this browser');
+  setReadOnly(r.newer);
+  setCurrent(r.design);
   setSelBlocks(new Set([0]));
   setFocusBlock(0);
 }
-
-export { dispatch, ensureDesign, replaceDesign, resizeTo };
+export { dispatch, ensureDesign, openDesign, replaceDesign, resizeTo };

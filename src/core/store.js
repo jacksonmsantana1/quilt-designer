@@ -34,3 +34,7 @@ export const setMineCur = id => (mineCur = id);
 export let toolsSnap = null;
 /** @param {Design | null} d */
 export const setToolsSnap = d => (toolsSnap = d);
+/** true while the design was saved by a newer version of the app: it is shown, but never saved over */
+export let readOnly = false;
+/** @param {boolean} v */
+export const setReadOnly = v => (readOnly = v);

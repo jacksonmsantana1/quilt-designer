@@ -1,0 +1,64 @@
+{
+ "v": 1,
+ "cols": 2,
+ "rows": 2,
+ "blockMm": 5000,
+ "backFabric": 42,
+ "sym": "sideways",
+ "quilting": "zigzag",
+ "sashing": "thin",
+ "borders": [
+  {
+   "type": "lace",
+   "mm": 50,
+   "fabrics": []
+  },
+  {
+   "type": "plain",
+   "mm": 2,
+   "fabrics": [
+    "b1",
+    null
+   ]
+  }
+ ],
+ "blocks": [
+  {
+   "pattern": "no-such-pattern",
+   "rot": 0,
+   "fabrics": [
+    "b5"
+   ]
+  },
+  {
+   "pattern": "ohio",
+   "rot": 7,
+   "fabrics": [
+    "b1"
+   ]
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ],
+   "span": 9,
+   "under": 0,
+   "fussy": {
+    "99": [
+     0,
+     0
+    ]
+   }
+  }
+ ]
+}

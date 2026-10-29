@@ -1,6 +1,6 @@
 // My designs: saved quilts.
 import '../tour/tour.js'; // load order: runs after tour/tour
-import { design, mineCur, setMineCur } from '../core/store.js';
+import { design, mineCur, readOnly, setMineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { quiltMm } from '../core/geometry.js';
@@ -8,7 +8,9 @@ import { drawQuilt } from '../render/quilt-draw.js';
 import { showPage } from '../app/pages.js';
 import { tl, tlCopy, tlKeyFor, tlSave } from '../timeline/timeline.js';
 import { defaultDesign } from '../core/design.js';
-import { replaceDesign } from '../designer/dispatch.js';
+import { openDesign, replaceDesign } from '../designer/dispatch.js';
+import { readDesign } from '../core/format.js';
+import { notify } from '../ui/notice.js';
 
 // ---- My designs: saved quilts, shown as a Pinterest-style masonry
 const MINE_KEY = 'quilt-mydesigns.v1',
@@ -75,6 +77,11 @@ function openSaveDialog(forceNew) {
   $('save-name').select();
 }
 function doSave(asNew) {
+  if (readOnly) {
+    notify('This quilt was made with a newer version of the app, so it cannot be saved here.');
+    $('save-dlg').close();
+    return;
+  }
   const name = ($('save-name').value || '').trim() || `Quilt ${mine.length + 1}`,
     now = Date.now(),
     d = JSON.stringify(design);
@@ -111,9 +118,13 @@ function doSave(asNew) {
 function openMine(id) {
   const m = mine.find(x => x.id === id);
   if (!m) return;
+  if (!readDesign(m.d)) {
+    notify(`“${m.name}” could not be read.`);
+    return;
+  }
   setMineCur(id);
   mineSave();
-  replaceDesign(JSON.parse(m.d), { timeline: id });
+  openDesign(m.d, { timeline: id, what: `“${m.name}”` });
   showPage('design');
 }
 function renderMine() {
@@ -129,12 +140,9 @@ function renderMine() {
     $('mine-empty').innerHTML = 'No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.';
   const when = t => new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
   for (const m of list) {
-    let d;
-    try {
-      d = JSON.parse(m.d);
-    } catch (e) {
-      continue;
-    }
+    const r = readDesign(m.d);
+    if (!r) continue;
+    const d = r.design;
     const pin = document.createElement('article');
     pin.className = 'pin' + (m.id === mineCur ? ' current' : '');
     const img = document.createElement('div');

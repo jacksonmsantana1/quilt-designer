@@ -8,7 +8,7 @@ import { blockSizeMm, spanOf } from '../core/geometry.js';
 import { quiltingOf } from '../render/quilting.js';
 import { tl, tlCommit, tlGo } from '../timeline/timeline.js';
 import { setSymmetry, symOf } from '../core/symmetry.js';
-import { dispatch, replaceDesign } from './dispatch.js';
+import { dispatch, openDesign } from './dispatch.js';
 import { setBlockSpan, setQuilting } from '../core/edits.js';
 
 // small round button on the Block parts card: undo everything done since the design tools were opened, and close them
@@ -51,7 +51,7 @@ const cancelTools = () => {
     if (tl.key === toolsSnap.key && JSON.stringify(design) !== toolsSnap.d && k >= 0)
       tlGo(k); // the later steps stay available as redo
     else if (JSON.stringify(design) !== toolsSnap.d) {
-      replaceDesign(JSON.parse(toolsSnap.d), { keepFocus: true });
+      openDesign(toolsSnap.d, { keepFocus: true, quiet: true });
     }
   }
   setToolsSnap(null);

@@ -24,7 +24,7 @@ main.js     entry point
 ## Rules
 
 - **Pure modules** (`core/patterns`, `core/geometry`, `core/symmetry`, `core/types`, `core/design`, `core/edits`,
-  `core/dom`, `cutting/plan` and the state modules below) are not in the chain: they have no side effects when loaded and import nothing that is, so they
+  `core/format`, `core/dom`, `cutting/plan`, `ui/notice` and the state modules below) are not in the chain: they have no side effects when loaded and import nothing that is, so they
   can be imported anywhere, including the unit tests in Node. Keep them that way.
 - **Load order.** Each other module's first import is the module before it (`import './previous.js'`), and `main.js`
   imports the last one. ES modules run depth-first and skip modules that are already loading, so the modules run
@@ -41,6 +41,12 @@ main.js     entry point
   the active fabric), `designer/ui-state.js`, `render/hi-state.js`, `sim/sim-state.js` — and changes only through
   their setters (`setFocusBlock(i)`), so searching for a setter finds every writer. Only `dispatch.js` sets the
   design. The e2e tests deep-freeze the design (`quilt-freeze.v1`), so an in-place change throws.
+- **Saved format.** Designs carry a format version `v` (`FORMAT_VERSION` in `core/design.js`). Everything that
+  opens a design (storage, My designs, undo steps, the tour, Cancel) goes through `readDesign` in
+  `core/format.js` (via `openDesign` in the UI): it upgrades old saves one version at a time (`MIGRATIONS`), checks
+  and repairs the design, and reports each repair to the user. A design from a newer version is shown but never
+  saved over. To change the format: bump the version, add one migration, add a saved example to
+  `tests/fixtures/designs/` (the unit tests open every file there).
 - **Tools.** `node tools/move.mjs from to name…` moves declarations between modules and fixes every import;
   `node tools/chain.mjs list | unchain | insert` manages the load-order chain.
 
