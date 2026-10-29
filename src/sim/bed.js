@@ -8,9 +8,9 @@ import { buildBedMeshes, colliderMeshes } from './stage.js';
 import { placeCamera, target } from './camera.js';
 import { MAT, analysis, buildBedExtras, setEngineering } from './analysis.js';
 import { restart, syncDropUI } from './controls.js';
-import { resizeDesign, saveDesign } from '../designer/design-state.js';
 import { borderTotal, sashOf } from '../core/geometry.js';
-import { renderDesigner } from '../designer/parts-editor.js';
+import { dispatch, resizeTo } from '../designer/dispatch.js';
+import { setBlockMm } from '../core/edits.js';
 
 // Change the quilt's size: canvases take its proportions (long side 2048 / 1024 px),
 // textures are recreated at the new size, and the physics rebuilds the cloth.
@@ -179,10 +179,8 @@ function renderFitSuggestions() {
     btn.textContent = isNow ? 'In use' : 'Use';
     btn.disabled = isNow;
     btn.addEventListener('click', () => {
-      shared.design.blockMm = o.B;
-      resizeDesign(o.c, o.r);
-      saveDesign();
-      renderDesigner();
+      dispatch(setBlockMm, o.B);
+      resizeTo(o.c, o.r);
       renderFitSuggestions();
     });
     row.appendChild(btn);

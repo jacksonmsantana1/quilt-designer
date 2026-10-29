@@ -2,9 +2,10 @@
 import '../cutting/page.js'; // load order: runs after cutting/page
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
-import { saveDesign } from './design-state.js';
 import { quiltMm, sashOf } from '../core/geometry.js';
-import { drawPaletteInto, renderDesigner } from './parts-editor.js';
+import { drawPaletteInto } from './parts-editor.js';
+import { dispatch } from './dispatch.js';
+import { setSashing } from '../core/edits.js';
 
 // ---- sashing settings
 function renderSashUI() {
@@ -31,11 +32,7 @@ function renderSashUI() {
     : 'Choose a width to add strips of fabric between the blocks.';
 }
 function setSash(patch) {
-  const cur = shared.design.sashing || { mm: 0, fabric: 'b0', corner: 'b3', border: false };
-  shared.design.sashing = { ...cur, ...patch };
-  if (!(shared.design.sashing.mm > 0)) shared.design.sashing.mm = 0;
-  saveDesign();
-  renderDesigner();
+  dispatch(setSashing, patch);
   renderSashUI();
 }
 function openSashing() {

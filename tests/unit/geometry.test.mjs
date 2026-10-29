@@ -87,8 +87,7 @@ test('sashing strips and cornerstones: counts, with and without the outside fram
 });
 
 test('a large block covers its cells and the sashing between them', () => {
-  const d = grid(4, 4, { blockMm: 100, sashing: { mm: 10, fabric: 'b0', corner: 'b1', border: false } });
-  setSpan(d, 5, 2); // cell (1, 1) spans 2 × 2
+  const d = setSpan(grid(4, 4, { blockMm: 100, sashing: { mm: 10, fabric: 'b0', corner: 'b1', border: false } }), 5, 2); // cell (1, 1) spans 2 × 2
   assert.equal(spanOf(d.blocks[5]), 2);
   for (const i of [6, 9, 10]) assert.equal(anchorOf(d, i), 5);
   assert.equal(anchorOf(d, 0), 0);
@@ -103,10 +102,9 @@ test('a large block covers its cells and the sashing between them', () => {
 });
 
 test('a large block is clipped at the edge of the quilt, and replaces a large block it overlaps', () => {
-  const d = grid(3, 3);
-  setSpan(d, 4, 4); // centre cell: only 2 × 2 fits
+  let d = setSpan(grid(3, 3), 4, 4); // centre cell: only 2 × 2 fits
   assert.equal(spanOf(d.blocks[4]), 2);
-  setSpan(d, 0, 2); // overlaps the first one, which goes back to 1 × 1
+  d = setSpan(d, 0, 2); // overlaps the first one, which goes back to 1 × 1
   assert.equal(spanOf(d.blocks[0]), 2);
   assert.equal(spanOf(d.blocks[4]), 1);
   assert.equal(anchorOf(d, 4), 0);
@@ -117,11 +115,14 @@ test('normalizeSpans repairs saved data: overlapping spans and stale covered mar
   d.blocks[0].span = 2;
   d.blocks[1].span = 2; // the second overlaps the first
   d.blocks[8].under = 0; // stale
-  normalizeSpans(d);
-  assert.equal(spanOf(d.blocks[0]), 2);
-  assert.equal(d.blocks[1].under, 0);
-  assert.equal(d.blocks[1].span, undefined);
-  assert.equal(d.blocks[8].under, undefined);
+  const before = JSON.stringify(d);
+  const n = normalizeSpans(d);
+  assert.equal(JSON.stringify(d), before, 'the input is not changed');
+  assert.equal(spanOf(n.blocks[0]), 2);
+  assert.equal(n.blocks[1].under, 0);
+  assert.equal(n.blocks[1].span, undefined);
+  assert.equal(n.blocks[8].under, undefined);
+  assert.equal(normalizeSpans(n), n, 'a consistent design comes back unchanged');
 });
 
 test('every border type fills its side exactly', () => {

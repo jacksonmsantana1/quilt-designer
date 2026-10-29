@@ -58,25 +58,26 @@ const anchorOf = (d, i) => {
   const b = d.blocks[i];
   return b && b.under != null ? b.under : i;
 };
-/** Repairs large blocks in place: clips them to the grid, resolves overlaps, marks covered cells. @param {Design} d @returns {Design} */
+/**
+ * Large blocks made consistent (pure: returns a new design, or the same one if nothing changes): each large block
+ * is clipped to the grid and shrunk until it overlaps no earlier one; the cells it covers get `under`.
+ * @param {Design} d @returns {Design}
+ */
 function normalizeSpans(d) {
   if (!d || !Array.isArray(d.blocks)) return d;
   const C = d.cols,
     R = d.rows,
-    taken = new Array(C * R).fill(false);
-  for (const b of d.blocks) delete b.under;
-  d.blocks.forEach((b, i) => {
-    const c = i % C,
+    n = d.blocks.length,
+    taken = new Array(n).fill(false),
+    span = new Array(n).fill(0),
+    under = new Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
+    const b = d.blocks[i],
+      c = i % C,
       r = Math.floor(i / C);
-    if (taken[i]) {
-      delete b.span;
-      return;
-    }
+    if (taken[i]) continue;
     taken[i] = true;
-    if (!(b.span > 1)) {
-      delete b.span;
-      return;
-    }
+    if (!(b.span > 1)) continue;
     let k = Math.min(b.span, C - c, R - r);
     const free = k => {
       for (let y = r; y < r + k; y++)
@@ -84,41 +85,54 @@ function normalizeSpans(d) {
       return true;
     };
     while (k > 1 && !free(k)) k--;
-    if (k <= 1) {
-      delete b.span;
-      return;
-    }
-    b.span = k;
+    if (k <= 1) continue;
+    span[i] = k;
     for (let y = r; y < r + k; y++)
       for (let x = c; x < c + k; x++) {
         const j = y * C + x;
         if (j !== i) {
           taken[j] = true;
-          d.blocks[j].under = i;
+          under[j] = i;
         }
       }
+  }
+  let changed = false;
+  const blocks = d.blocks.map((b, i) => {
+    const s = span[i] > 1 ? span[i] : undefined,
+      u = under[i] >= 0 ? under[i] : undefined;
+    if (b.span === s && b.under === u) return b;
+    changed = true;
+    const { span: _s, under: _u, ...rest } = b;
+    return { ...rest, ...(s ? { span: s } : {}), ...(u != null ? { under: u } : {}) };
   });
-  return d;
+  return changed ? { ...d, blocks } : d;
 }
-// make block i span k × k cells: other large blocks in the way go back to single cells first
-/** Makes block i cover k × k cells (in place); large blocks in the way go back to 1 × 1. @param {Design} d @param {number} i @param {number} k */
+/**
+ * Block i made to cover k × k cells (pure); large blocks in the way go back to 1 × 1.
+ * @param {Design} d @param {number} i @param {number} k @returns {Design}
+ */
 function setSpan(d, i, k) {
   const C = d.cols,
     c = i % C,
     r = Math.floor(i / C);
   k = Math.max(1, Math.min(k, C - c, d.rows - r));
-  d.blocks.forEach((b, j) => {
-    if (j === i || !(b.span > 1)) return;
+  const blocks = d.blocks.map((b, j) => {
+    if (j === i) {
+      const { span: _s, ...rest } = b;
+      return k > 1 ? { ...rest, span: k } : rest;
+    }
+    if (!(b.span > 1)) return b;
     const cj = j % C,
       rj = Math.floor(j / C),
       kj = b.span;
-    if (cj < c + k && cj + kj > c && rj < r + k && rj + kj > r) delete b.span;
+    if (cj < c + k && cj + kj > c && rj < r + k && rj + kj > r) {
+      const { span: _s, ...rest } = b;
+      return rest;
+    }
+    return b;
   });
-  if (k > 1) d.blocks[i].span = k;
-  else delete d.blocks[i].span;
-  normalizeSpans(d);
+  return normalizeSpans({ ...d, blocks });
 }
-// where one grid cell (c, r) sits on a W × H drawing of the quilt
 /** Where grid cell (c, r) sits on a W × H drawing. @param {Design} d @param {number} c @param {number} r @param {number} W @param {number} H @returns {Rect} */
 function cellRect(d, c, r, W, H) {
   const s = sashOf(d),

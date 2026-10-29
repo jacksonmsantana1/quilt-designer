@@ -2,14 +2,14 @@
 import './hover.js'; // load order: runs after designer/hover
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
-import { saveDesign } from './design-state.js';
 import { blockPolys, pathPoly, pathPolyInto } from '../core/geometry.js';
 import { drawDesignerCanvas } from './canvas.js';
 import { drawFabricPalette, drawPaletteInto } from './parts-editor.js';
-import { symApply } from './symmetry.js';
 import { openCamera } from '../camera/fabric-camera.js';
 import { initHover } from './hover.js';
 import { pieceFill } from '../render/fabric-fill.js';
+import { dispatch } from './dispatch.js';
+import { setPartFabric as setPartFabricEdit } from '../core/edits.js';
 
 // ---- the fabric-only pop-up for one part
 const partEdit = { bi: -1, part: -1, twins: [] };
@@ -47,12 +47,9 @@ function drawPartDialog() {
 }
 function setPartFabric(fid) {
   const targets = [partEdit.bi, ...($('dz-partall').checked ? partEdit.twins : [])];
-  for (const bi of targets) shared.design.blocks[bi].fabrics[partEdit.part] = fid;
-  symApply(targets);
   shared.activeFabric = fid;
-  saveDesign();
+  dispatch(setPartFabricEdit, targets, shared.design.blocks[partEdit.bi].pattern, [partEdit.part], fid);
   drawPartDialog();
-  drawDesignerCanvas();
   drawFabricPalette();
 }
 function initPartDialog() {

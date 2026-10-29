@@ -1,5 +1,5 @@
 // Fabric fills for canvas drawing: a print at its real scale, and fussy-cut pieces.
-import '../designer/design-state.js'; // load order: runs after designer/design-state
+import '../designer/dispatch.js'; // load order: runs after designer/dispatch
 import { fabricById } from '../designer/fabric-library.js';
 import { polyCentre } from '../core/geometry.js';
 

@@ -3,12 +3,11 @@ import './parts-editor.js'; // load order: runs after designer/parts-editor
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { PATTERNS } from '../core/patterns.js';
-import { saveDesign } from './design-state.js';
 import { blockPolys, pathPoly } from '../core/geometry.js';
-import { drawPartsEditor, renderDesigner } from './parts-editor.js';
-import { eachSelected } from './side-panel.js';
-import { symApply } from './symmetry.js';
+import { drawPartsEditor } from './parts-editor.js';
 import { pieceFill } from '../render/fabric-fill.js';
+import { dispatch } from './dispatch.js';
+import { copyBlock } from '../core/edits.js';
 
 // ---- library of the distinct blocks in the quilt (pop-up)
 // Two blocks count as the same when they look the same: same fabric on the same piece positions,
@@ -86,17 +85,8 @@ function drawBlockLibrary() {
   }
 }
 function copyBlockFrom(srcIndex) {
-  const src = JSON.parse(JSON.stringify(shared.design.blocks[srcIndex]));
-  eachSelected((b, bi) => {
-    const k = b.span;
-    shared.design.blocks[bi] = JSON.parse(JSON.stringify(src));
-    if (k > 1) shared.design.blocks[bi].span = k;
-    else delete shared.design.blocks[bi].span;
-  });
-  symApply([...shared.selBlocks]);
   shared.selParts.clear();
-  saveDesign();
-  renderDesigner();
+  dispatch(copyBlock, shared.design.blocks[srcIndex], shared.selBlocks);
 }
 shared.partTap = null;
 function selectSameFabric(pi) {

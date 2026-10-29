@@ -5,13 +5,14 @@ import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { IS_PHONE } from '../sim/renderer.js';
 import { initFabricLib } from '../designer/fabric-library.js';
-import { defaultDesign, loadDesign, saveDesign } from '../designer/design-state.js';
+import { loadDesign, saveDesign } from '../designer/design-state.js';
 import { bordersOf } from '../core/geometry.js';
 import { renderDesigner } from '../designer/parts-editor.js';
 import { blockKey } from '../designer/block-library.js';
 import { showPage } from '../app/pages.js';
 import { mineSave } from '../mine/my-designs.js';
 import { tl, tlCopy, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
+import { defaultDesign } from '../core/design.js';
 
 // ---- guided tour: a short exercise for first-time users. Every control is greyed out and switched
 // off except the ones the current step needs; the step moves on by itself once it has been done.

@@ -6,7 +6,6 @@ import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
 import { partsOf } from '../core/patterns.js';
 import { fabricLib } from './fabric-library.js';
-import { defaultDesign, resizeDesign, saveDesign } from './design-state.js';
 import {
   anchorOf,
   blockAt,
@@ -20,13 +19,16 @@ import {
 import { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt } from './canvas.js';
 import { drawFabricPalette, drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { copyBlockFrom, selectSameFabric } from './block-library.js';
-import { PANEL_CARDS, eachSelected, openBlockEditor, placeBlockEditor, syncRail, updateMultiUI } from './side-panel.js';
-import { symApply } from './symmetry.js';
-import { applyFabric, setPattern } from './edits.js';
+import { PANEL_CARDS, openBlockEditor, placeBlockEditor, syncRail, updateMultiUI } from './side-panel.js';
+import { applyFabric } from './edits.js';
 import { openSashing } from './sashing-ui.js';
 import { openBorders } from './borders-ui.js';
 import { tl, tlCommit, tlEnsure, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
 import { setFold } from '../ui/folds.js';
+import { dispatch, replaceDesign, resizeTo } from './dispatch.js';
+import { copyBlock, rotateBlocks, setBackFabric, setBlockMm } from '../core/edits.js';
+import { defaultDesign } from '../core/design.js';
+import { choosePattern } from './edits.js';
 
 function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected
@@ -222,19 +224,12 @@ function initDesignerUI() {
   });
   $('dz-patterns').addEventListener('click', e => {
     const b = e.target.closest('button');
-    if (b) setPattern(b.dataset.p);
+    if (b) choosePattern(b.dataset.p);
   });
-  const rotate = () => {
-    eachSelected(b => {
-      b.rot = (b.rot + 1) % 4;
-    });
-    symApply([...shared.selBlocks]);
-    saveDesign();
-    renderDesigner();
-  };
+  const rotate = () => dispatch(rotateBlocks, shared.selBlocks);
   $('dz-rot').addEventListener('click', rotate);
   $('dz-rot2').addEventListener('click', rotate);
-  $('dz-patsel').addEventListener('change', e => setPattern(e.target.value));
+  $('dz-patsel').addEventListener('change', e => choosePattern(e.target.value));
   $('dz-fabrics2').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (b) applyFabric(b.dataset.f);
@@ -311,36 +306,26 @@ function initDesignerUI() {
   $('dz-backfabs').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b) return;
-    shared.design.backFabric = b.dataset.f;
-    saveDesign();
+    dispatch(setBackFabric, b.dataset.f);
     drawPaletteInto($('dz-backfabs'), shared.design.backFabric);
-    drawDesignerCanvas();
   });
   setTools(false); // the side panel starts closed
   $('dz-copy').addEventListener('click', () => {
     const src = shared.design.blocks[shared.focusBlock];
-    eachSelected((b, bi) => {
-      if (bi !== shared.focusBlock) {
-        const k = b.span;
-        shared.design.blocks[bi] = JSON.parse(JSON.stringify(src));
-        if (k > 1) shared.design.blocks[bi].span = k;
-        else delete shared.design.blocks[bi].span;
-      }
-    });
-    symApply([...shared.selBlocks]);
-    saveDesign();
-    drawDesignerCanvas();
+    dispatch(
+      copyBlock,
+      src,
+      [...shared.selBlocks].filter(bi => bi !== shared.focusBlock),
+    );
   });
-  const sizeChange = () => resizeDesign(+$('dz-cols').value, +$('dz-rows').value);
+  const sizeChange = () => resizeTo(+$('dz-cols').value, +$('dz-rows').value);
   const blockSize = e => {
     const v = Math.round(+e.target.value);
     if (!(v >= 50 && v <= 1000)) {
       e.target.value = shared.design.blockMm;
       return;
     }
-    shared.design.blockMm = v;
-    saveDesign();
-    renderDesigner();
+    dispatch(setBlockMm, v);
   };
   for (const id of ['dz-bmm3']) $(id).addEventListener('change', blockSize);
   $('dz-cols').addEventListener('change', sizeChange);
@@ -348,7 +333,7 @@ function initDesignerUI() {
   for (const b of document.querySelectorAll('[data-step]'))
     b.addEventListener('click', () => {
       const [which, d] = b.dataset.step.split(':');
-      resizeDesign(shared.design.cols + (which === 'c' ? +d : 0), shared.design.rows + (which === 'r' ? +d : 0));
+      resizeTo(shared.design.cols + (which === 'c' ? +d : 0), shared.design.rows + (which === 'r' ? +d : 0));
     });
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {
@@ -360,18 +345,13 @@ function initDesignerUI() {
       }, 3000);
       return;
     }
-    shared.design = defaultDesign();
-    shared.selBlocks = new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
     shared.mineCur = null;
     try {
       localStorage.removeItem('quilt-mydesigns-current.v1');
       localStorage.removeItem(tlKeyFor(null));
     } catch (e) {}
     tlSwitch(null);
-    saveDesign();
-    renderDesigner();
+    replaceDesign(defaultDesign());
     $('dz-reset').dataset.armed = '';
     $('dz-reset').textContent = 'Start over';
   });

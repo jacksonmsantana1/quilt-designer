@@ -1,10 +1,9 @@
 // Sample designs added to My designs.
 import './my-designs.js'; // load order: runs after mine/my-designs
-import { shared } from '../core/shared.js';
-import { newBlock } from '../designer/design-state.js';
 import { normalizeSpans } from '../core/geometry.js';
-import { symApply } from '../designer/symmetry.js';
 import { MINE_KEY, mine } from './my-designs.js';
+import { newBlock } from '../core/design.js';
+import { withSymmetry } from '../core/symmetry.js';
 
 // A medallion sampler in the style of a quilt the user shared: a large eight-point star in the centre, rings of
 // nine-patches, half-square triangles, flying geese, sawtooth stars and economy blocks mirrored eight ways,
@@ -61,18 +60,10 @@ function medallionDesign() {
   put(6, 4, 'geese', [WH, CH, MI], 2);
   // the large centre star: 4 × 4 cells
   put(5, 5, 'eightstar', [WH, CH, MU], 0, { span: 4 });
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    normalizeSpans(d);
-    const src = [];
-    for (let r = 0; r < 7; r++) for (let c = r; c < 7; c++) src.push(r * N + c);
-    symApply(src);
-    normalizeSpans(d);
-  } finally {
-    shared.design = keep;
-  }
-  return d;
+  const src = [];
+  for (let r = 0; r < 7; r++) for (let c = r; c < 7; c++) src.push(r * N + c);
+  const out = withSymmetry(normalizeSpans(d), src);
+  return out;
 }
 // The quilt in the user's photo, laid out on a 15 × 15 grid: the top-left eighth is entered cell by cell
 // (c >= r) and mirrored eight ways; the 3 × 3 star sits in the middle.
@@ -149,19 +140,11 @@ function photoMedallion() {
   put(7, 5, 'plain', [WH, WH, WH]);
   // the centre star: 3 × 3 cells, a floral centre
   put(6, 6, 'eightstar', [WH, CH, FL], 0, { span: 3 });
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    normalizeSpans(d);
-    const src = [];
-    for (let r = 0; r < 8; r++) for (let c = r; c < 8; c++) src.push(r * N + c);
-    symApply(src);
-    normalizeSpans(d);
-  } finally {
-    shared.design = keep;
-  }
-  delete d.sym; // laid out; mirroring stays off until the user turns it on
-  return d;
+  const src = [];
+  for (let r = 0; r < 8; r++) for (let c = r; c < 8; c++) src.push(r * N + c);
+  const out = withSymmetry(normalizeSpans(d), src);
+  const { sym: _sym, ...laidOut } = out; // laid out; mirroring stays off until the user turns it on
+  return laidOut;
 }
 // add it to My designs once
 try {

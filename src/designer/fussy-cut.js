@@ -4,12 +4,9 @@ import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { orientPoly, partsOf } from '../core/patterns.js';
 import { fabricById } from './fabric-library.js';
-import { saveDesign } from './design-state.js';
 import { blockSizeMm, pathPoly, pathPolyInto, polyCentre, spanOf } from '../core/geometry.js';
-import { drawDesignerCanvas } from './canvas.js';
-import { drawPartsEditor } from './parts-editor.js';
-import { eachSelected } from './side-panel.js';
-import { symApply } from './symmetry.js';
+import { dispatch } from './dispatch.js';
+import { setFussy as setFussyEdit } from '../core/edits.js';
 
 // ---- fussy cut: with one part selected in a printed fabric, click the print to choose what shows in that part
 function drawFussy() {
@@ -64,18 +61,13 @@ function drawFussy() {
 }
 function setFussy(u, v) {
   const pi = [...shared.selParts][0];
-  eachSelected(b => {
-    if (b.pattern === shared.design.blocks[shared.focusBlock].pattern) {
-      b.fussy = b.fussy || {};
-      if (u == null) delete b.fussy[pi];
-      else b.fussy[pi] = [u, v];
-      if (!Object.keys(b.fussy).length) delete b.fussy;
-    }
-  });
-  symApply([...shared.selBlocks]);
-  saveDesign();
-  drawDesignerCanvas();
-  drawPartsEditor();
+  dispatch(
+    setFussyEdit,
+    shared.selBlocks,
+    shared.design.blocks[shared.focusBlock].pattern,
+    pi,
+    u == null ? null : [u, v],
+  );
 }
 {
   const cv = $('dz-fussy-cv');

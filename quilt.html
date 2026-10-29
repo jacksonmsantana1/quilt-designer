@@ -4014,7 +4014,6 @@ async function initFabricLib() {
     (s, i) => fabricLib.push({ id: "b" + i, name: s.name, canvas: s.canvas, cm: s.cm, print: !s.tint && !/linen/i.test(s.name) })
   );
 }
-var ROLE_DEFAULT = ["b0", "b1", "b3"];
 
 // src/core/patterns.js
 var P_ = (name, role, poly) => ({ name, role, poly });
@@ -4866,19 +4865,12 @@ var anchorOf = (d, i) => {
 };
 function normalizeSpans(d) {
   if (!d || !Array.isArray(d.blocks)) return d;
-  const C = d.cols, R2 = d.rows, taken = new Array(C * R2).fill(false);
-  for (const b of d.blocks) delete b.under;
-  d.blocks.forEach((b, i) => {
-    const c = i % C, r = Math.floor(i / C);
-    if (taken[i]) {
-      delete b.span;
-      return;
-    }
+  const C = d.cols, R2 = d.rows, n = d.blocks.length, taken = new Array(n).fill(false), span = new Array(n).fill(0), under = new Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
+    const b = d.blocks[i], c = i % C, r = Math.floor(i / C);
+    if (taken[i]) continue;
     taken[i] = true;
-    if (!(b.span > 1)) {
-      delete b.span;
-      return;
-    }
+    if (!(b.span > 1)) continue;
     let k = Math.min(b.span, C - c, R2 - r);
     const free = (k2) => {
       for (let y = r; y < r + k2; y++)
@@ -4886,33 +4878,44 @@ function normalizeSpans(d) {
       return true;
     };
     while (k > 1 && !free(k)) k--;
-    if (k <= 1) {
-      delete b.span;
-      return;
-    }
-    b.span = k;
+    if (k <= 1) continue;
+    span[i] = k;
     for (let y = r; y < r + k; y++)
       for (let x = c; x < c + k; x++) {
         const j = y * C + x;
         if (j !== i) {
           taken[j] = true;
-          d.blocks[j].under = i;
+          under[j] = i;
         }
       }
+  }
+  let changed = false;
+  const blocks = d.blocks.map((b, i) => {
+    const s = span[i] > 1 ? span[i] : void 0, u = under[i] >= 0 ? under[i] : void 0;
+    if (b.span === s && b.under === u) return b;
+    changed = true;
+    const { span: _s, under: _u, ...rest } = b;
+    return { ...rest, ...s ? { span: s } : {}, ...u != null ? { under: u } : {} };
   });
-  return d;
+  return changed ? { ...d, blocks } : d;
 }
 function setSpan(d, i, k) {
   const C = d.cols, c = i % C, r = Math.floor(i / C);
   k = Math.max(1, Math.min(k, C - c, d.rows - r));
-  d.blocks.forEach((b, j) => {
-    if (j === i || !(b.span > 1)) return;
+  const blocks = d.blocks.map((b, j) => {
+    if (j === i) {
+      const { span: _s, ...rest } = b;
+      return k > 1 ? { ...rest, span: k } : rest;
+    }
+    if (!(b.span > 1)) return b;
     const cj = j % C, rj = Math.floor(j / C), kj = b.span;
-    if (cj < c + k && cj + kj > c && rj < r + k && rj + kj > r) delete b.span;
+    if (cj < c + k && cj + kj > c && rj < r + k && rj + kj > r) {
+      const { span: _s, ...rest } = b;
+      return rest;
+    }
+    return b;
   });
-  if (k > 1) d.blocks[i].span = k;
-  else delete d.blocks[i].span;
-  normalizeSpans(d);
+  return normalizeSpans({ ...d, blocks });
 }
 function cellRect(d, c, r, W, H) {
   const s = sashOf(d), q = quiltMm(d), kx = W / q.W, ky = H / q.H, off = (s.border ? s.mm : 0) + borderTotal(d);
@@ -5065,12 +5068,8 @@ function pathPolyInto(g, poly) {
   g.closePath();
 }
 
-// src/designer/design-state.js
-var DESIGN_KEY = "quilt-designer.v1";
-shared.design = null;
-shared.selBlocks = /* @__PURE__ */ new Set();
-shared.focusBlock = 0;
-shared.selParts = /* @__PURE__ */ new Set();
+// src/core/design.js
+var ROLE_DEFAULT = ["b0", "b1", "b3"];
 function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
   return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
 }
@@ -5081,6 +5080,23 @@ function defaultDesign() {
       d.blocks.push((r + c) % 2 === 0 ? newBlock("ohio", ["b0", "b1", "b3"]) : newBlock("nine", ["b0", "b4", "b3"]));
   return d;
 }
+function rolesOf(b) {
+  const roles = [...ROLE_DEFAULT], seen = [false, false, false];
+  partsOf(b.pattern).forEach((p, i) => {
+    if (!seen[p.role]) {
+      roles[p.role] = b.fabrics[i];
+      seen[p.role] = true;
+    }
+  });
+  return roles;
+}
+
+// src/designer/design-state.js
+var DESIGN_KEY = "quilt-designer.v1";
+shared.design = null;
+shared.selBlocks = /* @__PURE__ */ new Set();
+shared.focusBlock = 0;
+shared.selParts = /* @__PURE__ */ new Set();
 function loadDesign() {
   try {
     const d = JSON.parse(localStorage.getItem(DESIGN_KEY) || "null");
@@ -5094,7 +5110,7 @@ function loadDesign() {
   return defaultDesign();
 }
 function saveDesign() {
-  normalizeSpans(shared.design);
+  shared.design = normalizeSpans(shared.design);
   try {
     localStorage.setItem(DESIGN_KEY, JSON.stringify(shared.design));
   } catch (e) {
@@ -5102,31 +5118,188 @@ function saveDesign() {
   scheduleSync();
   tlRecord();
 }
-function resizeDesign(cols, rows) {
+
+// src/core/symmetry.js
+var SYMS = {
+  off: "Off",
+  lr: "Mirror left\u2013right",
+  tb: "Mirror top\u2013bottom",
+  both: "Mirror both ways (4-way)",
+  kal: "Kaleidoscope (8-way)"
+};
+var symOf = (d) => {
+  const s = d ? d.sym : void 0;
+  return s === "kal" && d.cols !== d.rows ? "both" : SYMS[s] ? s : "off";
+};
+var oLR = (o) => ({ rot: o.rot, flip: !o.flip });
+var oTB = (o) => ({ rot: (o.rot + 2) % 4, flip: !o.flip });
+var oDiag = (o) => o.flip ? { rot: (o.rot + 3) % 4, flip: false } : { rot: (o.rot + 1) % 4, flip: true };
+function symPartners(bi, d) {
+  const s = symOf(d);
+  if (s === "off") return [];
+  const C = d.cols, Rr = d.rows, c = bi % C, r = Math.floor(bi / C), out = [], k = spanOf(d.blocks[bi]);
+  const add = (cc, rr, f) => {
+    const j = rr * C + cc;
+    if (j !== bi && !out.some((x) => x[0] === j)) out.push([j, f]);
+  };
+  const id = (o) => o, comp = (f, g) => (o) => f(g(o));
+  const base = [[c, r, id]];
+  if (s === "lr" || s === "both" || s === "kal") base.push([C - k - c, r, oLR]);
+  if (s === "tb" || s === "both" || s === "kal") base.push([c, Rr - k - r, oTB]);
+  if (s === "both" || s === "kal") base.push([C - k - c, Rr - k - r, comp(oLR, oTB)]);
+  for (const [cc, rr, f] of base) {
+    add(cc, rr, f);
+    if (s === "kal") add(rr, cc, comp(oDiag, f));
+  }
+  return out;
+}
+function withSymmetry(d, sources) {
+  if (symOf(d) === "off" || !sources.length) return d;
+  let out = { ...d, blocks: d.blocks.slice() };
+  const done = /* @__PURE__ */ new Set();
+  for (const bi of sources) {
+    if (done.has(bi)) continue;
+    const src = out.blocks[bi];
+    if (!src || src.under != null) continue;
+    const o = { rot: src.rot || 0, flip: !!src.flip };
+    for (const [j, f] of symPartners(bi, out)) {
+      if (sources.includes(j) && j !== bi && done.has(j)) continue;
+      const t = f(o), { span: _s, under: _u, flip: _f, ...rest } = JSON.parse(JSON.stringify(src)), nb = { ...rest, rot: t.rot, ...t.flip ? { flip: true } : {} };
+      if (spanOf(src) > 1) {
+        out.blocks[j] = nb;
+        out = setSpan(out, j, spanOf(src));
+        out = { ...out, blocks: out.blocks.slice() };
+      } else out.blocks[j] = nb;
+      done.add(j);
+    }
+    done.add(bi);
+  }
+  return normalizeSpans(out);
+}
+function symmetrySources(d) {
+  const s = symOf(d), C = d.cols, R2 = d.rows, src = [];
+  for (let r = 0; r < R2; r++)
+    for (let c = 0; c < C; c++) {
+      const inL = c < Math.ceil(C / 2), inT = r < Math.ceil(R2 / 2);
+      if (s === "lr" ? inL : s === "tb" ? inT : s === "both" ? inL && inT : s === "kal" ? inL && inT && c >= r : false)
+        src.push(r * C + c);
+    }
+  return src;
+}
+function setSymmetry(d, mode) {
+  const { sym: _old, ...rest } = d;
+  const next = mode === "off" ? rest : { ...rest, sym: mode };
+  return withSymmetry(next, symmetrySources(next));
+}
+setSymmetry.mirror = false;
+
+// src/core/edits.js
+var clone = (x) => JSON.parse(JSON.stringify(x));
+function mapBlocks(d, ids, fn) {
+  const set = new Set(ids);
+  let changed = false;
+  const blocks = d.blocks.map((b, i) => {
+    if (!set.has(i) || b.under != null) return b;
+    const nb = fn(b, i);
+    if (nb !== b) changed = true;
+    return nb;
+  });
+  return changed ? { ...d, blocks } : d;
+}
+function withField(b, key, value, none = void 0) {
+  const { [key]: _old, ...rest } = b;
+  return value === none ? rest : { ...rest, [key]: value };
+}
+var rotateBlocks = (d, ids) => mapBlocks(d, ids, (b) => ({ ...b, rot: ((b.rot || 0) + 1) % 4 }));
+var flipBlocks = (d, ids) => mapBlocks(d, ids, (b) => withField(b, "flip", !b.flip, false));
+function setPartFabric(d, ids, pattern, parts, fid) {
+  const ps = new Set(parts);
+  return mapBlocks(
+    d,
+    ids,
+    (b) => b.pattern !== pattern || [...ps].every((pi) => b.fabrics[pi] === fid) ? b : { ...b, fabrics: b.fabrics.map((f, pi) => ps.has(pi) ? fid : f) }
+  );
+}
+var setPattern = (d, ids, key, roles) => mapBlocks(d, ids, (b) => ({
+  ...newBlock(key, roles),
+  rot: b.rot,
+  ...b.flip ? { flip: true } : {},
+  ...b.span > 1 ? { span: b.span } : {}
+}));
+var copyBlock = (d, src, ids) => mapBlocks(d, ids, (b) => {
+  const { span: _s, under: _u, ...copy } = clone(src);
+  return b.span > 1 ? { ...copy, span: b.span } : copy;
+});
+var setFussy = (d, ids, pattern, part, uv) => mapBlocks(d, ids, (b) => {
+  if (b.pattern !== pattern) return b;
+  const f = { ...b.fussy || {} };
+  if (uv == null) delete f[part];
+  else f[part] = uv;
+  return withField(b, "fussy", Object.keys(f).length ? f : void 0);
+});
+var setBlockSpan = (d, i, k) => setSpan(d, i, k);
+var setBackFabric = (d, fid) => d.backFabric === fid ? d : { ...d, backFabric: fid };
+var setBlockMm = (d, mm) => d.blockMm === mm ? d : { ...d, blockMm: mm };
+var setQuilting = (d, kind) => withField(d, "quilting", kind, "ditch");
+function setSashing(d, patch) {
+  const cur = d.sashing || { mm: 0, fabric: "b0", corner: "b3", border: false }, next = { ...cur, ...patch };
+  if (!(next.mm > 0)) next.mm = 0;
+  return { ...d, sashing: next };
+}
+function setBorders(d, fn) {
+  const bs = clone(d.borders || []);
+  fn(bs);
+  return { ...d, borders: bs };
+}
+function resize2(d, cols, rows) {
   cols = Math.max(1, Math.min(20, cols | 0));
   rows = Math.max(1, Math.min(20, rows | 0));
-  const old = shared.design, blocks = [];
+  if (cols === d.cols && rows === d.rows) return d;
+  const blocks = [];
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
-      if (r < old.rows && c < old.cols) blocks.push(old.blocks[r * old.cols + c]);
-      else {
-        const src = old.blocks[Math.min(r, old.rows - 1) * old.cols + Math.min(c, old.cols - 1)];
-        blocks.push(JSON.parse(JSON.stringify(src)));
-      }
+      if (r < d.rows && c < d.cols) blocks.push(d.blocks[r * d.cols + c]);
+      else blocks.push(clone(d.blocks[Math.min(r, d.rows - 1) * d.cols + Math.min(c, d.cols - 1)]));
     }
-  shared.design = {
-    cols,
-    rows,
-    blockMm: old.blockMm,
-    backFabric: old.backFabric,
-    blocks,
-    ...old.sashing ? { sashing: old.sashing } : {},
-    ...old.borders ? { borders: old.borders } : {},
-    ...old.sym ? { sym: old.sym } : {},
-    ...old.quilting ? { quilting: old.quilting } : {}
-  };
-  shared.selBlocks = /* @__PURE__ */ new Set([Math.min(shared.focusBlock, blocks.length - 1)]);
+  return { ...d, cols, rows, blocks };
+}
+resize2.mirror = false;
+
+// src/designer/dispatch.js
+function changedBlocks(prev, next) {
+  if (!prev || prev.blocks.length !== next.blocks.length) return [];
+  const out = [];
+  next.blocks.forEach((b, i) => {
+    if (b !== prev.blocks[i] && b.under == null) out.push(i);
+  });
+  return out;
+}
+function dispatch(edit, ...args) {
+  const prev = shared.design;
+  if (!prev) return false;
+  let next = edit(prev, ...args);
+  if (next === prev) return false;
+  if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
+  shared.design = normalizeSpans(next);
+  saveDesign();
+  renderDesigner();
+  drawFabricPalette();
+  return true;
+}
+function resizeTo(cols, rows) {
+  const d = shared.design;
+  if (!d) return false;
+  const n = Math.max(1, Math.min(20, cols | 0)) * Math.max(1, Math.min(20, rows | 0));
+  shared.selBlocks = /* @__PURE__ */ new Set([Math.min(shared.focusBlock, n - 1)]);
   shared.focusBlock = [...shared.selBlocks][0];
+  shared.selParts.clear();
+  return dispatch(resize2, cols, rows);
+}
+function replaceDesign(d, opts = {}) {
+  shared.design = normalizeSpans(d);
+  const f = opts.keepFocus ? Math.min(shared.focusBlock, d.blocks.length - 1) : 0;
+  shared.selBlocks = /* @__PURE__ */ new Set([f]);
+  shared.focusBlock = f;
   shared.selParts.clear();
   saveDesign();
   renderDesigner();
@@ -5325,41 +5498,6 @@ function drawQuilt(g, W, H, opts = {}) {
     }
 }
 
-// src/core/symmetry.js
-var SYMS = {
-  off: "Off",
-  lr: "Mirror left\u2013right",
-  tb: "Mirror top\u2013bottom",
-  both: "Mirror both ways (4-way)",
-  kal: "Kaleidoscope (8-way)"
-};
-var symOf = (d) => {
-  const s = d ? d.sym : void 0;
-  return s === "kal" && d.cols !== d.rows ? "both" : SYMS[s] ? s : "off";
-};
-var oLR = (o) => ({ rot: o.rot, flip: !o.flip });
-var oTB = (o) => ({ rot: (o.rot + 2) % 4, flip: !o.flip });
-var oDiag = (o) => o.flip ? { rot: (o.rot + 3) % 4, flip: false } : { rot: (o.rot + 1) % 4, flip: true };
-function symPartners(bi, d) {
-  const s = symOf(d);
-  if (s === "off") return [];
-  const C = d.cols, Rr = d.rows, c = bi % C, r = Math.floor(bi / C), out = [], k = spanOf(d.blocks[bi]);
-  const add = (cc, rr, f) => {
-    const j = rr * C + cc;
-    if (j !== bi && !out.some((x) => x[0] === j)) out.push([j, f]);
-  };
-  const id = (o) => o, comp = (f, g) => (o) => f(g(o));
-  const base = [[c, r, id]];
-  if (s === "lr" || s === "both" || s === "kal") base.push([C - k - c, r, oLR]);
-  if (s === "tb" || s === "both" || s === "kal") base.push([c, Rr - k - r, oTB]);
-  if (s === "both" || s === "kal") base.push([C - k - c, Rr - k - r, comp(oLR, oTB)]);
-  for (const [cc, rr, f] of base) {
-    add(cc, rr, f);
-    if (s === "kal") add(rr, cc, comp(oDiag, f));
-  }
-  return out;
-}
-
 // src/designer/canvas.js
 function drawDesignerCanvas() {
   if (!shared.design) return;
@@ -5544,27 +5682,22 @@ function drawFussy() {
   }
   g.restore();
 }
-function setFussy(u, v) {
+function setFussy2(u, v) {
   const pi = [...shared.selParts][0];
-  eachSelected((b) => {
-    if (b.pattern === shared.design.blocks[shared.focusBlock].pattern) {
-      b.fussy = b.fussy || {};
-      if (u == null) delete b.fussy[pi];
-      else b.fussy[pi] = [u, v];
-      if (!Object.keys(b.fussy).length) delete b.fussy;
-    }
-  });
-  symApply([...shared.selBlocks]);
-  saveDesign();
-  drawDesignerCanvas();
-  drawPartsEditor();
+  dispatch(
+    setFussy,
+    shared.selBlocks,
+    shared.design.blocks[shared.focusBlock].pattern,
+    pi,
+    u == null ? null : [u, v]
+  );
 }
 {
   const cv = $("dz-fussy-cv");
   let drag2 = false;
   const at = (e) => {
     const r = cv.getBoundingClientRect();
-    setFussy(
+    setFussy2(
       Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
       Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))
     );
@@ -5580,7 +5713,7 @@ function setFussy(u, v) {
   cv.addEventListener("pointerup", () => {
     drag2 = false;
   });
-  $("dz-fussy-clear").addEventListener("click", () => setFussy(null));
+  $("dz-fussy-clear").addEventListener("click", () => setFussy2(null));
 }
 
 // src/designer/parts-editor.js
@@ -5681,7 +5814,7 @@ function drawPaletteInto(box, selected = shared.activeFabric) {
 }
 function renderDesigner() {
   if (!shared.design) return;
-  normalizeSpans(shared.design);
+  shared.design = normalizeSpans(shared.design);
   if (shared.design.blocks[shared.focusBlock] && shared.design.blocks[shared.focusBlock].under != null)
     shared.focusBlock = shared.design.blocks[shared.focusBlock].under;
   $("dz-cols").value = shared.design.cols;
@@ -5759,17 +5892,8 @@ function drawBlockLibrary() {
   }
 }
 function copyBlockFrom(srcIndex) {
-  const src = JSON.parse(JSON.stringify(shared.design.blocks[srcIndex]));
-  eachSelected((b, bi) => {
-    const k = b.span;
-    shared.design.blocks[bi] = JSON.parse(JSON.stringify(src));
-    if (k > 1) shared.design.blocks[bi].span = k;
-    else delete shared.design.blocks[bi].span;
-  });
-  symApply([...shared.selBlocks]);
   shared.selParts.clear();
-  saveDesign();
-  renderDesigner();
+  dispatch(copyBlock, shared.design.blocks[srcIndex], shared.selBlocks);
 }
 shared.partTap = null;
 function selectSameFabric(pi) {
@@ -5832,38 +5956,6 @@ function openBlockEditor() {
 }
 function updateMultiUI() {
 }
-function eachSelected(fn) {
-  for (const bi of shared.selBlocks) if (shared.design.blocks[bi].under == null) fn(shared.design.blocks[bi], bi);
-}
-
-// src/designer/symmetry.js
-function symApply(sources) {
-  if (symOf(shared.design) === "off") return;
-  const done = /* @__PURE__ */ new Set();
-  for (const bi of sources) {
-    if (done.has(bi)) continue;
-    const src = shared.design.blocks[bi];
-    if (src.under != null) continue;
-    const o = { rot: src.rot || 0, flip: !!src.flip };
-    for (const [j, f] of symPartners(bi, shared.design)) {
-      if (sources.includes(j) && j !== bi && done.has(j)) continue;
-      const t = f(o), nb = JSON.parse(JSON.stringify(src));
-      nb.rot = t.rot;
-      if (t.flip) nb.flip = true;
-      else delete nb.flip;
-      if (spanOf(src) > 1) {
-        shared.design.blocks[j] = nb;
-        setSpan(shared.design, j, spanOf(src));
-      } else {
-        delete nb.span;
-        shared.design.blocks[j] = nb;
-      }
-      done.add(j);
-    }
-    done.add(bi);
-  }
-  normalizeSpans(shared.design);
-}
 
 // src/designer/edits.js
 function applyFabric(fid) {
@@ -5875,35 +5967,11 @@ function applyFabric(fid) {
     return;
   }
   const focus = shared.design.blocks[shared.focusBlock];
-  eachSelected((b) => {
-    if (b.pattern === focus.pattern) for (const pi of shared.selParts) b.fabrics[pi] = fid;
-  });
-  symApply([...shared.selBlocks]);
-  saveDesign();
-  drawFabricPalette();
-  drawDesignerCanvas();
-  drawPartsEditor();
+  if (!dispatch(setPartFabric, shared.selBlocks, focus.pattern, shared.selParts, fid)) drawFabricPalette();
 }
-function setPattern(key) {
-  const b0 = shared.design.blocks[shared.focusBlock], roles = [...ROLE_DEFAULT], seen = [false, false, false];
-  partsOf(b0.pattern).forEach((p, i) => {
-    if (!seen[p.role]) {
-      roles[p.role] = b0.fabrics[i];
-      seen[p.role] = true;
-    }
-  });
-  eachSelected((b, bi) => {
-    shared.design.blocks[bi] = {
-      ...newBlock(key, roles),
-      rot: b.rot,
-      ...b.flip ? { flip: true } : {},
-      ...b.span > 1 ? { span: b.span } : {}
-    };
-  });
-  symApply([...shared.selBlocks]);
+function choosePattern(key) {
   shared.selParts.clear();
-  saveDesign();
-  renderDesigner();
+  dispatch(setPattern, shared.selBlocks, key, rolesOf(shared.design.blocks[shared.focusBlock]));
 }
 
 // src/designer/designer-ui.js
@@ -6078,19 +6146,12 @@ function initDesignerUI() {
   });
   $("dz-patterns").addEventListener("click", (e) => {
     const b = e.target.closest("button");
-    if (b) setPattern(b.dataset.p);
+    if (b) choosePattern(b.dataset.p);
   });
-  const rotate = () => {
-    eachSelected((b) => {
-      b.rot = (b.rot + 1) % 4;
-    });
-    symApply([...shared.selBlocks]);
-    saveDesign();
-    renderDesigner();
-  };
+  const rotate = () => dispatch(rotateBlocks, shared.selBlocks);
   $("dz-rot").addEventListener("click", rotate);
   $("dz-rot2").addEventListener("click", rotate);
-  $("dz-patsel").addEventListener("change", (e) => setPattern(e.target.value));
+  $("dz-patsel").addEventListener("change", (e) => choosePattern(e.target.value));
   $("dz-fabrics2").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (b) applyFabric(b.dataset.f);
@@ -6165,36 +6226,26 @@ function initDesignerUI() {
   $("dz-backfabs").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    shared.design.backFabric = b.dataset.f;
-    saveDesign();
+    dispatch(setBackFabric, b.dataset.f);
     drawPaletteInto($("dz-backfabs"), shared.design.backFabric);
-    drawDesignerCanvas();
   });
   setTools(false);
   $("dz-copy").addEventListener("click", () => {
     const src = shared.design.blocks[shared.focusBlock];
-    eachSelected((b, bi) => {
-      if (bi !== shared.focusBlock) {
-        const k = b.span;
-        shared.design.blocks[bi] = JSON.parse(JSON.stringify(src));
-        if (k > 1) shared.design.blocks[bi].span = k;
-        else delete shared.design.blocks[bi].span;
-      }
-    });
-    symApply([...shared.selBlocks]);
-    saveDesign();
-    drawDesignerCanvas();
+    dispatch(
+      copyBlock,
+      src,
+      [...shared.selBlocks].filter((bi) => bi !== shared.focusBlock)
+    );
   });
-  const sizeChange = () => resizeDesign(+$("dz-cols").value, +$("dz-rows").value);
+  const sizeChange = () => resizeTo(+$("dz-cols").value, +$("dz-rows").value);
   const blockSize = (e) => {
     const v = Math.round(+e.target.value);
     if (!(v >= 50 && v <= 1e3)) {
       e.target.value = shared.design.blockMm;
       return;
     }
-    shared.design.blockMm = v;
-    saveDesign();
-    renderDesigner();
+    dispatch(setBlockMm, v);
   };
   for (const id of ["dz-bmm3"]) $(id).addEventListener("change", blockSize);
   $("dz-cols").addEventListener("change", sizeChange);
@@ -6202,7 +6253,7 @@ function initDesignerUI() {
   for (const b of document.querySelectorAll("[data-step]"))
     b.addEventListener("click", () => {
       const [which, d] = b.dataset.step.split(":");
-      resizeDesign(shared.design.cols + (which === "c" ? +d : 0), shared.design.rows + (which === "r" ? +d : 0));
+      resizeTo(shared.design.cols + (which === "c" ? +d : 0), shared.design.rows + (which === "r" ? +d : 0));
     });
   $("dz-reset").addEventListener("click", () => {
     if ($("dz-reset").dataset.armed !== "1") {
@@ -6214,10 +6265,6 @@ function initDesignerUI() {
       }, 3e3);
       return;
     }
-    shared.design = defaultDesign();
-    shared.selBlocks = /* @__PURE__ */ new Set([0]);
-    shared.focusBlock = 0;
-    shared.selParts.clear();
     shared.mineCur = null;
     try {
       localStorage.removeItem("quilt-mydesigns-current.v1");
@@ -6225,8 +6272,7 @@ function initDesignerUI() {
     } catch (e) {
     }
     tlSwitch(null);
-    saveDesign();
-    renderDesigner();
+    replaceDesign(defaultDesign());
     $("dz-reset").dataset.armed = "";
     $("dz-reset").textContent = "Start over";
   });
@@ -6504,10 +6550,8 @@ function renderFitSuggestions() {
     btn.textContent = isNow ? "In use" : "Use";
     btn.disabled = isNow;
     btn.addEventListener("click", () => {
-      shared.design.blockMm = o.B;
-      resizeDesign(o.c, o.r);
-      saveDesign();
-      renderDesigner();
+      dispatch(setBlockMm, o.B);
+      resizeTo(o.c, o.r);
       renderFitSuggestions();
     });
     row.appendChild(btn);
@@ -7755,11 +7799,7 @@ function renderSashUI() {
   $("sash-note").textContent = s.mm ? `Finished quilt with sashing: ${q.W} \xD7 ${q.H} mm. Click the sashing on the quilt to come back here.` : "Choose a width to add strips of fabric between the blocks.";
 }
 function setSash(patch) {
-  const cur = shared.design.sashing || { mm: 0, fabric: "b0", corner: "b3", border: false };
-  shared.design.sashing = { ...cur, ...patch };
-  if (!(shared.design.sashing.mm > 0)) shared.design.sashing.mm = 0;
-  saveDesign();
-  renderDesigner();
+  dispatch(setSashing, patch);
   renderSashUI();
 }
 function openSashing() {
@@ -7908,11 +7948,8 @@ function renderBorderUI() {
     brdActive = null;
   }
 }
-function setBorders(fn) {
-  shared.design.borders = JSON.parse(JSON.stringify(shared.design.borders || []));
-  fn(shared.design.borders);
-  saveDesign();
-  renderDesigner();
+function setBorders2(fn) {
+  dispatch(setBorders, fn);
   renderBorderUI();
 }
 function openBorders() {
@@ -7931,7 +7968,7 @@ function initBorderUI() {
       sawtooth: ["b4", "b0", "b4"],
       geese: ["b1", "b0", "b1"]
     }[b.dataset.t];
-    setBorders((bs) => bs.push({ type: b.dataset.t, mm: t.mm, fabrics: def }));
+    setBorders2((bs) => bs.push({ type: b.dataset.t, mm: t.mm, fabrics: def }));
     brdActive = null;
     renderBorderUI();
     if (n === 0) $("brd-list").scrollIntoView({ block: "nearest" });
@@ -7941,12 +7978,12 @@ function initBorderUI() {
     if (!row) return;
     const i = +row.dataset.i;
     if (e.target.dataset.a === "type")
-      setBorders((bs) => {
+      setBorders2((bs) => {
         bs[i].type = e.target.value;
       });
     if (e.target.dataset.a === "mm") {
       const v = Math.max(10, Math.min(400, Math.round(+e.target.value || 0)));
-      setBorders((bs) => {
+      setBorders2((bs) => {
         bs[i].mm = v;
       });
     }
@@ -7964,15 +8001,15 @@ function initBorderUI() {
     }
     if (a === "del") {
       brdActive = null;
-      setBorders((bs) => bs.splice(i, 1));
+      setBorders2((bs) => bs.splice(i, 1));
     } else if (a === "in" && i > 0) {
       brdActive = null;
-      setBorders((bs) => {
+      setBorders2((bs) => {
         [bs[i - 1], bs[i]] = [bs[i], bs[i - 1]];
       });
     } else if (a === "out" && i < (shared.design.borders || []).length - 1) {
       brdActive = null;
-      setBorders((bs) => {
+      setBorders2((bs) => {
         [bs[i + 1], bs[i]] = [bs[i], bs[i + 1]];
       });
     }
@@ -7981,7 +8018,7 @@ function initBorderUI() {
     const f = e.target.closest("button.fab");
     if (!f || !brdActive) return;
     const { i, slot } = brdActive;
-    setBorders((bs) => {
+    setBorders2((bs) => {
       const fb = (bs[i].fabrics || []).slice();
       while (fb.length <= slot) fb.push(fb[0] || "b0");
       fb[slot] = f.dataset.f;
@@ -8009,34 +8046,16 @@ function syncSymUI() {
 }
 $("dz-quilting").addEventListener("change", (e) => {
   if (!shared.design) return;
-  shared.design.quilting = e.target.value;
-  if (shared.design.quilting === "ditch") delete shared.design.quilting;
-  saveDesign();
-  renderDesigner();
+  dispatch(setQuilting, e.target.value);
 });
 $("dz-span").addEventListener("change", (e) => {
   if (!shared.design) return;
-  setSpan(shared.design, shared.focusBlock, +e.target.value);
   shared.selBlocks = /* @__PURE__ */ new Set([shared.focusBlock]);
-  symApply([shared.focusBlock]);
-  saveDesign();
-  renderDesigner();
-  drawPartsEditor();
+  dispatch(setBlockSpan, shared.focusBlock, +e.target.value);
 });
 $("dz-sym").addEventListener("change", (e) => {
   if (!shared.design) return;
-  shared.design.sym = e.target.value;
-  if (shared.design.sym === "off") delete shared.design.sym;
-  const s = symOf(shared.design), C = shared.design.cols, R2 = shared.design.rows, src = [];
-  for (let r = 0; r < R2; r++)
-    for (let c = 0; c < C; c++) {
-      const inL = c < Math.ceil(C / 2), inT = r < Math.ceil(R2 / 2);
-      if (s === "lr" ? inL : s === "tb" ? inT : s === "both" ? inL && inT : s === "kal" ? inL && inT && c >= r : false)
-        src.push(r * C + c);
-    }
-  symApply(src);
-  saveDesign();
-  renderDesigner();
+  dispatch(setSymmetry, e.target.value);
 });
 var cancelTools = () => {
   if (shared.toolsSnap && shared.design) {
@@ -8045,12 +8064,7 @@ var cancelTools = () => {
     if (tl.key === shared.toolsSnap.key && JSON.stringify(shared.design) !== shared.toolsSnap.d && k >= 0)
       tlGo(k);
     else if (JSON.stringify(shared.design) !== shared.toolsSnap.d) {
-      shared.design = JSON.parse(shared.toolsSnap.d);
-      shared.selBlocks = /* @__PURE__ */ new Set([Math.min(shared.focusBlock, shared.design.blocks.length - 1)]);
-      shared.focusBlock = [...shared.selBlocks][0];
-      shared.selParts.clear();
-      saveDesign();
-      renderDesigner();
+      replaceDesign(JSON.parse(shared.toolsSnap.d), { keepFocus: true });
     }
   }
   shared.toolsSnap = null;
@@ -8766,18 +8780,10 @@ function medallionDesign() {
   put(5, 4, "hst", [WH, CH, CH], 3);
   put(6, 4, "geese", [WH, CH, MI], 2);
   put(5, 5, "eightstar", [WH, CH, MU], 0, { span: 4 });
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    normalizeSpans(d);
-    const src = [];
-    for (let r = 0; r < 7; r++) for (let c = r; c < 7; c++) src.push(r * N2 + c);
-    symApply(src);
-    normalizeSpans(d);
-  } finally {
-    shared.design = keep;
-  }
-  return d;
+  const src = [];
+  for (let r = 0; r < 7; r++) for (let c = r; c < 7; c++) src.push(r * N2 + c);
+  const out = withSymmetry(normalizeSpans(d), src);
+  return out;
 }
 function photoMedallion() {
   const N2 = 15, WH = "b11", MI = "b9", CH = "b10", MU = "b3", FL = "b12", MO = "b13", TE = "b14", CR = "b0";
@@ -8834,19 +8840,11 @@ function photoMedallion() {
   put(6, 5, "hst", [WH, MI, MI], 1);
   put(7, 5, "plain", [WH, WH, WH]);
   put(6, 6, "eightstar", [WH, CH, FL], 0, { span: 3 });
-  const keep = shared.design;
-  shared.design = d;
-  try {
-    normalizeSpans(d);
-    const src = [];
-    for (let r = 0; r < 8; r++) for (let c = r; c < 8; c++) src.push(r * N2 + c);
-    symApply(src);
-    normalizeSpans(d);
-  } finally {
-    shared.design = keep;
-  }
-  delete d.sym;
-  return d;
+  const src = [];
+  for (let r = 0; r < 8; r++) for (let c = r; c < 8; c++) src.push(r * N2 + c);
+  const out = withSymmetry(normalizeSpans(d), src);
+  const { sym: _sym, ...laidOut } = out;
+  return laidOut;
 }
 try {
   if (!localStorage.getItem("quilt-medallion-seeded.v1")) {
@@ -9930,15 +9928,7 @@ function initHover() {
     const bi = hover.bi;
     if (bi < 0 || !shared.design) return;
     const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
-    for (const i of targets) {
-      const b = shared.design.blocks[i];
-      if (b.flip) delete b.flip;
-      else b.flip = true;
-    }
-    symApply(targets);
-    saveDesign();
-    renderDesigner();
-    drawPartsEditor();
+    dispatch(flipBlocks, targets);
     hover.bi = bi;
     drawHover();
   });
@@ -9955,11 +9945,7 @@ function initHover() {
     const bi = hover.bi;
     if (bi < 0 || !shared.design) return;
     const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
-    for (const i of targets) shared.design.blocks[i].rot = (shared.design.blocks[i].rot + 1) % 4;
-    symApply(targets);
-    saveDesign();
-    renderDesigner();
-    drawPartsEditor();
+    dispatch(rotateBlocks, targets);
     hover.bi = bi;
     drawHover();
   });
@@ -10018,20 +10004,17 @@ function drawPartDialog() {
   g.strokeStyle = "#e0592a";
   g.stroke();
 }
-function setPartFabric(fid) {
+function setPartFabric2(fid) {
   const targets = [partEdit.bi, ...$("dz-partall").checked ? partEdit.twins : []];
-  for (const bi of targets) shared.design.blocks[bi].fabrics[partEdit.part] = fid;
-  symApply(targets);
   shared.activeFabric = fid;
-  saveDesign();
+  dispatch(setPartFabric, targets, shared.design.blocks[partEdit.bi].pattern, [partEdit.part], fid);
   drawPartDialog();
-  drawDesignerCanvas();
   drawFabricPalette();
 }
 function initPartDialog() {
   $("dz-partfabs").addEventListener("click", (e) => {
     const b = e.target.closest("button.fab");
-    if (b) setPartFabric(b.dataset.f);
+    if (b) setPartFabric2(b.dataset.f);
   });
   const close = () => $("dz-partdlg").close();
   $("dz-partdlg-x").addEventListener("click", close);
@@ -10041,7 +10024,7 @@ function initPartDialog() {
     drawDesignerCanvas();
   });
   $("dz-partcam").addEventListener("click", () => {
-    shared.camTarget = (id) => setPartFabric(id);
+    shared.camTarget = (id) => setPartFabric2(id);
     openCamera();
   });
 }

@@ -83,9 +83,9 @@ test('every fabric gets its own letter, in the order it is first used', () => {
 });
 
 test('a large block is planned at its own size', () => {
-  const d = grid(3, 3, { blockMm: 100 });
-  d.blocks[0].span = 2;
-  normalizeSpans(d);
+  const d0 = grid(3, 3, { blockMm: 100 });
+  d0.blocks[0].span = 2;
+  const d = normalizeSpans(d0);
   const P = plan(d);
   const big = P.blocks.find(b => b.span === 2),
     small = P.blocks.find(b => b.span === 1);

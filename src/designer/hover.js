@@ -4,7 +4,6 @@ import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { partsOf } from '../core/patterns.js';
 import { fabricById } from './fabric-library.js';
-import { saveDesign } from './design-state.js';
 import {
   BORDER_TYPES,
   blockAt,
@@ -22,7 +21,8 @@ import {
 import { flipped } from './canvas.js';
 import { drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { openBlockEditor } from './side-panel.js';
-import { symApply } from './symmetry.js';
+import { dispatch } from './dispatch.js';
+import { flipBlocks, rotateBlocks } from '../core/edits.js';
 
 // ---- hover: highlight the block under the mouse; rest on one part and only that part lights up.
 // A click while a part is lit opens a small pop-up with just the fabrics, for that part.
@@ -287,15 +287,7 @@ function initHover() {
     const bi = hover.bi;
     if (bi < 0 || !shared.design) return;
     const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
-    for (const i of targets) {
-      const b = shared.design.blocks[i];
-      if (b.flip) delete b.flip;
-      else b.flip = true;
-    }
-    symApply(targets);
-    saveDesign();
-    renderDesigner();
-    drawPartsEditor();
+    dispatch(flipBlocks, targets);
     hover.bi = bi;
     drawHover();
   });
@@ -313,11 +305,7 @@ function initHover() {
     if (bi < 0 || !shared.design) return;
     // rotate the hovered block, or every selected block when it is one of several selected
     const targets = shared.selBlocks.size > 1 && shared.selBlocks.has(bi) ? [...shared.selBlocks] : [bi];
-    for (const i of targets) shared.design.blocks[i].rot = (shared.design.blocks[i].rot + 1) % 4;
-    symApply(targets);
-    saveDesign();
-    renderDesigner();
-    drawPartsEditor();
+    dispatch(rotateBlocks, targets);
     hover.bi = bi;
     drawHover();
   });

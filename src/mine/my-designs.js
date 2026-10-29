@@ -3,12 +3,13 @@ import '../tour/tour.js'; // load order: runs after tour/tour
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
-import { defaultDesign, saveDesign } from '../designer/design-state.js';
+import { saveDesign } from '../designer/design-state.js';
 import { quiltMm } from '../core/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
 import { renderDesigner } from '../designer/parts-editor.js';
 import { showPage } from '../app/pages.js';
 import { tl, tlCopy, tlKeyFor, tlSave, tlSwitch } from '../timeline/timeline.js';
+import { defaultDesign } from '../core/design.js';
 
 // ---- My designs: saved quilts, shown as a Pinterest-style masonry
 const MINE_KEY = 'quilt-mydesigns.v1',

@@ -3,13 +3,12 @@ import './borders-ui.js'; // load order: runs after designer/borders-ui
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
-import { saveDesign } from './design-state.js';
-import { blockSizeMm, setSpan, spanOf } from '../core/geometry.js';
-import { drawPartsEditor, renderDesigner } from './parts-editor.js';
-import { symApply } from './symmetry.js';
+import { blockSizeMm, spanOf } from '../core/geometry.js';
 import { quiltingOf } from '../render/quilting.js';
 import { tl, tlCommit, tlGo } from '../timeline/timeline.js';
-import { symOf } from '../core/symmetry.js';
+import { setSymmetry, symOf } from '../core/symmetry.js';
+import { dispatch, replaceDesign } from './dispatch.js';
+import { setBlockSpan, setQuilting } from '../core/edits.js';
 
 // small round button on the Block parts card: undo everything done since the design tools were opened, and close them
 // symmetry setting (Block parts): turning one on mirrors the design from its top-left part straight away
@@ -33,38 +32,16 @@ function syncSymUI() {
 }
 $('dz-quilting').addEventListener('change', e => {
   if (!shared.design) return;
-  shared.design.quilting = e.target.value;
-  if (shared.design.quilting === 'ditch') delete shared.design.quilting;
-  saveDesign();
-  renderDesigner();
+  dispatch(setQuilting, e.target.value);
 });
 $('dz-span').addEventListener('change', e => {
   if (!shared.design) return;
-  setSpan(shared.design, shared.focusBlock, +e.target.value);
   shared.selBlocks = new Set([shared.focusBlock]);
-  symApply([shared.focusBlock]);
-  saveDesign();
-  renderDesigner();
-  drawPartsEditor();
+  dispatch(setBlockSpan, shared.focusBlock, +e.target.value);
 });
 $('dz-sym').addEventListener('change', e => {
   if (!shared.design) return;
-  shared.design.sym = e.target.value;
-  if (shared.design.sym === 'off') delete shared.design.sym;
-  const s = symOf(shared.design),
-    C = shared.design.cols,
-    R = shared.design.rows,
-    src = [];
-  for (let r = 0; r < R; r++)
-    for (let c = 0; c < C; c++) {
-      const inL = c < Math.ceil(C / 2),
-        inT = r < Math.ceil(R / 2);
-      if (s === 'lr' ? inL : s === 'tb' ? inT : s === 'both' ? inL && inT : s === 'kal' ? inL && inT && c >= r : false)
-        src.push(r * C + c);
-    }
-  symApply(src);
-  saveDesign();
-  renderDesigner();
+  dispatch(setSymmetry, e.target.value);
 });
 const cancelTools = () => {
   if (shared.toolsSnap && shared.design) {
@@ -73,12 +50,7 @@ const cancelTools = () => {
     if (tl.key === shared.toolsSnap.key && JSON.stringify(shared.design) !== shared.toolsSnap.d && k >= 0)
       tlGo(k); // the later steps stay available as redo
     else if (JSON.stringify(shared.design) !== shared.toolsSnap.d) {
-      shared.design = JSON.parse(shared.toolsSnap.d);
-      shared.selBlocks = new Set([Math.min(shared.focusBlock, shared.design.blocks.length - 1)]);
-      shared.focusBlock = [...shared.selBlocks][0];
-      shared.selParts.clear();
-      saveDesign();
-      renderDesigner();
+      replaceDesign(JSON.parse(shared.toolsSnap.d), { keepFocus: true });
     }
   }
   shared.toolsSnap = null;

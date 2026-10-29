@@ -124,7 +124,7 @@ function drawPaletteInto(box, selected = shared.activeFabric) {
 }
 function renderDesigner() {
   if (!shared.design) return;
-  normalizeSpans(shared.design);
+  shared.design = normalizeSpans(shared.design);
   if (shared.design.blocks[shared.focusBlock] && shared.design.blocks[shared.focusBlock].under != null)
     shared.focusBlock = shared.design.blocks[shared.focusBlock].under;
   $('dz-cols').value = shared.design.cols;

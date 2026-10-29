@@ -12,7 +12,7 @@ export default [
       globals: { ...globals.browser, ClothSim: 'readonly' }, // ClothSim: physics.js, loaded as a classic script
     },
     rules: {
-      'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none' }],
+      'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none', ignoreRestSiblings: true, varsIgnorePattern: '^_' }],
       'no-empty': ['error', { allowEmptyCatch: true }], // storage may be blocked: those catches are deliberate
       // mutation we plan to remove with the pure core (step C): shown as warnings, not errors
       'no-param-reassign': [

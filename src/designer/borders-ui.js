@@ -3,10 +3,11 @@ import './sashing-ui.js'; // load order: runs after designer/sashing-ui
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { fabricById } from './fabric-library.js';
-import { saveDesign } from './design-state.js';
 import { BORDER_TYPES, borderFab, borderSidePieces, pathPoly } from '../core/geometry.js';
-import { drawPaletteInto, renderDesigner } from './parts-editor.js';
+import { drawPaletteInto } from './parts-editor.js';
 import { fabricFill } from '../render/fabric-fill.js';
+import { dispatch } from './dispatch.js';
+import { setBorders as setBordersEdit } from '../core/edits.js';
 
 // ---- borders UI
 let brdActive = null; // { i, slot } — which border colour the palette is choosing
@@ -135,10 +136,7 @@ function renderBorderUI() {
   }
 }
 function setBorders(fn) {
-  shared.design.borders = JSON.parse(JSON.stringify(shared.design.borders || []));
-  fn(shared.design.borders);
-  saveDesign();
-  renderDesigner();
+  dispatch(setBordersEdit, fn);
   renderBorderUI();
 }
 function openBorders() {
