@@ -14,7 +14,7 @@ import {
 } from '@quilt/shared/geometry.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { newBlock } from '@quilt/shared/design.js';
-import { fabricById } from './fabric-library.js';
+import { fabricById, onFabricsLoaded } from './fabric-library.js';
 import { pieceFill } from '../render/fabric-fill.js';
 import { drawPaletteInto } from './parts-editor.js';
 import { dispatch } from './dispatch.js';
@@ -189,5 +189,8 @@ function initSashUI() {
   });
 }
 initSashUI();
+onFabricsLoaded(() => {
+  if (design && !$('sash-card').hidden) renderSashUI();
+});
 
 export { openSashing, renderSashUI };

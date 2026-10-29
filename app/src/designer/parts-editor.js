@@ -3,7 +3,8 @@ import './fussy-cut.js'; // load order: runs after designer/fussy-cut
 import { activeFabric, design, focusBlock, selBlocks, selParts, setFocusBlock } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
-import { fabricById, fabricLib } from './fabric-library.js';
+import { fabricById } from './fabric-library.js';
+import { drawShortList } from './fabric-picker.js';
 import { blockPolys, pathPoly } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas } from './canvas.js';
 import { drawFussy } from './fussy-cut.js';
@@ -100,26 +101,14 @@ function drawPatternButtons() {
 }
 function drawFabricPalette() {
   for (const id of ['dz-fabrics', 'dz-fabrics2']) if ($(id)) drawPaletteInto($(id));
-  if (design) drawPaletteInto($('dz-backfabs'), design.backFabric);
-}
-function drawPaletteInto(box, selected = activeFabric) {
-  box.innerHTML = '';
-  for (const f of fabricLib) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'fab';
-    b.dataset.f = f.id;
-    b.title = f.name;
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const k = Math.min(f.canvas.width, f.canvas.height, 360);
-    c.getContext('2d').drawImage(f.canvas, 0, 0, k, k, 0, 0, 64, 64);
-    const s = document.createElement('span');
-    s.textContent = f.name;
-    b.append(c, s);
-    b.setAttribute('aria-pressed', String(f.id === selected));
-    box.appendChild(b);
+  if (design) {
+    drawPaletteInto($('dz-backfabs'), design.backFabric);
+    if ($('set-fabs')) drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');
   }
+}
+/** A fabric choice: its short list (designer/fabric-picker.js) with the chosen fabric pressed. */
+function drawPaletteInto(box, selected = activeFabric) {
+  drawShortList(box, selected);
 }
 function renderDesigner() {
   if (!design) return;

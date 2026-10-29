@@ -25,6 +25,7 @@ import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
 import { partsOf } from '@quilt/shared/patterns.js';
 import { addFabric } from './fabric-library.js';
+import { refreshLibrary } from './fabric-picker.js';
 import {
   anchorOf,
   blockAt,
@@ -378,6 +379,7 @@ function initDesignerUI() {
     }
     e.target.value = '';
     drawFabricPalette();
+    refreshLibrary();
     $('dz-fabnote').textContent =
       `${files.length} photo${files.length === 1 ? '' : 's'} added. They are kept in this browser with your designs.`;
   });

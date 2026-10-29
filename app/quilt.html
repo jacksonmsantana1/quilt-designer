@@ -384,6 +384,19 @@
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .pats .pat:disabled { opacity: .4; cursor: not-allowed; } /* e.g. cornerstone blocks on narrow sashing */
   .fabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
+  /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
+  .fabs .fab-more { border-style: dashed; color: var(--muted); }
+  .fabs .fab-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
+  /* a steady height, from near the top: the window doesn't jump about as the search narrows the list */
+  .fablib { width: min(760px, calc(100vw - 32px)); height: min(860px, calc(100dvh - 48px)); margin-top: 24px; }
+  .fablib input[type="search"] { width: 100%; margin: 10px 0 8px; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+  .fablib-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .fablib-groups button { font: 500 .78rem var(--font-body); padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  .fablib-groups button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .fabs.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .fablib-more { display: block; margin: 10px auto 0; }
+  .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
   .bmm-in { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: .85rem; }
   .bmm-in input { width: 5.2em; font: inherit; font-size: .95rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 6px; text-align: right; }
@@ -522,6 +535,7 @@
     .dz-toolbar { gap: 8px; }
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
     .pats, .fabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .fabs.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
     details.model { padding: 12px; }
   }
@@ -836,20 +850,6 @@
       </div>
 
       <div class="card" hidden>
-        <h2>Add fabrics</h2>
-        <p class="fine" style="margin:0 0 8px">Add photos of your own fabrics. They join the fabric list under Block parts.</p>
-        <div class="row">
-          <label class="btn filebtn sm" for="dz-upload">Add fabric photos</label>
-          <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
-        </div>
-        <div class="param">
-          <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
-          <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
-        </div>
-        <p class="fine" id="dz-fabnote"></p>
-      </div>
-
-      <div class="card" hidden>
         <h2>Fit to a bed</h2>
         <label for="fit-bed" class="sr">Mattress size</label>
         <select id="fit-bed" aria-label="Mattress size" style="width:100%"></select>
@@ -970,6 +970,22 @@
   <div class="row" style="margin-top:12px;justify-content:flex-end">
     <button class="btn" type="button" id="save-asnew" hidden>Save as new</button>
     <button class="btn primary" type="button" id="save-ok">Save</button>
+  </div>
+</dialog>
+<dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
+  <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>
+  <input type="search" id="fablib-q" placeholder="Search: gingham, teal, chintz…" aria-label="Search fabrics by name" autocomplete="off">
+  <div class="fablib-groups" id="fablib-groups" role="group" aria-label="Which fabrics"></div>
+  <div class="fabs fablib-grid" id="fablib-grid" aria-label="Fabrics: click one to use it"></div>
+  <p class="fine" id="fablib-none" hidden></p>
+  <button class="btn sm fablib-more" type="button" id="fablib-more" hidden></button>
+  <div class="fablib-foot">
+    <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
+    <div class="param">
+      <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
+      <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
+    </div>
+    <p class="fine" id="dz-fabnote"></p>
   </div>
 </dialog>
 <section id="page-cut" hidden>
@@ -1862,7 +1878,7 @@ function memoryDb() {
   };
 }
 
-// ../shared/src/patterns.js
+// ../node_modules/@quilt/shared/src/patterns.js
 var P_ = (name, role, poly) => ({ name, role, poly });
 function rotPoly(poly, k) {
   let p = poly;
@@ -2674,7 +2690,7 @@ Object.assign(PATTERNS, {
 var PCACHE = {};
 var partsOf = (name) => PCACHE[name] = PCACHE[name] || PATTERNS[name].parts();
 
-// ../shared/src/geometry.js
+// ../node_modules/@quilt/shared/src/geometry.js
 var polyCentre = (p) => {
   let x = 0, y = 0;
   for (const q of p) {
@@ -2963,7 +2979,7 @@ function pathPolyInto(g, poly) {
   g.closePath();
 }
 
-// ../shared/src/design.js
+// ../node_modules/@quilt/shared/src/design.js
 var FORMAT_VERSION = 3;
 var ROLE_DEFAULT = ["b0", "b1", "b3"];
 function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
@@ -2987,7 +3003,7 @@ function rolesOf(b) {
   return roles;
 }
 
-// ../shared/src/format.js
+// ../node_modules/@quilt/shared/src/format.js
 var MIGRATIONS = [
   // 0 → 1: designs saved before block sizes and backing fabrics existed
   (d) => ({
@@ -3321,8 +3337,8 @@ function createRepo() {
     let migrated = false;
     if (!cache.session.has("migrated")) {
       const out = legacy ? migrateLocalStorage(legacy) : { designs: [], timelines: [], session: [] };
-      for (const r of out.designs) put("designs", r.id, r);
-      for (const r of out.timelines) put("timelines", r.key, r);
+      for (const r of out.designs) put2("designs", r.id, r);
+      for (const r of out.timelines) put2("timelines", r.key, r);
       for (const [k, v] of out.session) setSession2(k, v);
       setSession2("migrated", now());
       migrated = out.designs.length + out.timelines.length + out.session.length > 0;
@@ -3330,7 +3346,7 @@ function createRepo() {
     }
     return { persistent, migrated };
   }
-  function put(store, key, value) {
+  function put2(store, key, value) {
     cache[store].set(key, value);
     queue(store, key, value);
   }
@@ -3341,7 +3357,7 @@ function createRepo() {
   const getSession2 = (key) => cache.session.get(key)?.value;
   function setSession2(key, value) {
     if (value === void 0) del("session", key);
-    else put("session", key, { key, value });
+    else put2("session", key, { key, value });
   }
   const syncSide = (store) => ({
     /** records changed here since the last upload, deletion markers included */
@@ -3357,7 +3373,7 @@ function createRepo() {
       const r = cache[store].get(id);
       if (!r) return;
       if (r.deleted && r.rev === localRev) return del(store, id);
-      put(store, id, { ...r, ...r.rev === localRev ? patch : {}, syncRev, dirty: r.rev !== localRev });
+      put2(store, id, { ...r, ...r.rev === localRev ? patch : {}, syncRev, dirty: r.rev !== localRev });
     },
     /** Puts the server's copy here (from another device): not dirty. @param {any} rec */
     applyRemote(rec) {
@@ -3366,7 +3382,7 @@ function createRepo() {
         if (old) del(store, rec.id);
         return;
       }
-      put(store, rec.id, {
+      put2(store, rec.id, {
         createdAt: rec.createdAt || now(),
         ...old,
         ...rec,
@@ -3382,7 +3398,7 @@ function createRepo() {
     resetSync() {
       for (const r of [...cache[store].values()]) {
         if (r.deleted) del(store, r.id);
-        else put(store, r.id, { ...r, syncRev: 0, dirty: true });
+        else put2(store, r.id, { ...r, syncRev: 0, dirty: true });
       }
     }
   });
@@ -3412,7 +3428,7 @@ function createRepo() {
         deleted: false,
         dirty: true
       };
-      put("designs", next.id, next);
+      put2("designs", next.id, next);
       changed("designs", next.id);
       return next;
     },
@@ -3420,7 +3436,7 @@ function createRepo() {
     remove(id) {
       const old = cache.designs.get(id);
       if (!old || old.deleted) return;
-      put("designs", id, { ...old, design: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+      put2("designs", id, { ...old, design: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
       changed("designs", id);
     },
     newId,
@@ -3442,7 +3458,7 @@ function createRepo() {
       const id = await blobHash(blob), old = cache.fabrics.get(id);
       if (old && !old.deleted) return { id, isNew: false };
       const t = now();
-      put("fabrics", id, {
+      put2("fabrics", id, {
         id,
         name: meta.name,
         cm: meta.cm,
@@ -3463,7 +3479,7 @@ function createRepo() {
     /** @param {string} key */
     get: (key) => cache.timelines.get(key) || null,
     /** @param {string} key @param {{ steps: any[], i: number, seq: number }} t */
-    set: (key, t) => put("timelines", key, { key, steps: t.steps, i: t.i, seq: t.seq }),
+    set: (key, t) => put2("timelines", key, { key, steps: t.steps, i: t.i, seq: t.seq }),
     /** @param {string} key */
     remove: (key) => cache.timelines.has(key) && del("timelines", key),
     /** @param {string} from @param {string} to */
@@ -5749,28 +5765,72 @@ function rebuildRenderScene() {
   }
 }
 
+// src/core/fabric-picks.js
+function fabricIdsIn(value, isFabric3) {
+  const out = /* @__PURE__ */ new Set();
+  const walk = (v) => {
+    if (typeof v === "string") {
+      if (isFabric3(v)) out.add(v);
+    } else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.values(v).forEach(walk);
+  };
+  walk(value);
+  return out;
+}
+function shortList({ basics, selected = null, inQuilt = [], recent = [], newest = [], max = 10, fill = 5 }) {
+  const basic = new Set(basics), extra = [];
+  const add = (id) => {
+    if (id && !basic.has(id) && !extra.includes(id) && extra.length < max) extra.push(id);
+  };
+  [selected, ...inQuilt, ...recent].forEach(add);
+  for (const id of newest) if (extra.length < fill) add(id);
+  return [...basics, ...extra];
+}
+var withRecent = (list, id, max = 12) => [id, ...list.filter((x) => x !== id)].slice(0, max);
+function findFabrics(fabrics2, { query = "", group = "all", inQuilt = /* @__PURE__ */ new Set(), recent = [] }) {
+  const plain = (s) => s.normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase();
+  const words = plain(query).split(/[\s,]+/).filter(Boolean);
+  const named = (f) => {
+    const n = plain(f.name);
+    return words.every((w) => n.includes(w));
+  };
+  if (group === "recent") {
+    const byId2 = new Map(fabrics2.map((f) => [f.id, f]));
+    return recent.map((id) => byId2.get(id)).filter((f) => f && named(f));
+  }
+  const inGroup = {
+    all: () => true,
+    quilt: (f) => inQuilt.has(f.id),
+    basic: (f) => !!f.basic,
+    mine: (f) => !f.basic
+  }[group];
+  return fabrics2.filter((f) => inGroup(f) && named(f)).sort((a, b) => a.basic === b.basic ? a.basic ? 0 : (b.added || 0) - (a.added || 0) : a.basic ? -1 : 1);
+}
+
 // src/designer/fabric-library.js
 var fabricLib = [];
-var fabricById = (id) => fabricLib.find((f) => f.id === id) || fabricLib[0];
+var byId = /* @__PURE__ */ new Map();
+var put = (f) => {
+  fabricLib.push(f);
+  byId.set(f.id, f);
+};
+var isFabric2 = (id) => byId.has(id);
 var loading = null;
 function initFabricLib() {
   return loading ??= (async () => {
     const preps = await Promise.all(BUNDLED.map(prepareSwatch));
     preps.forEach(
-      (s, i) => fabricLib.push({
+      (s, i) => put({
         id: "b" + i,
         name: s.name,
         canvas: s.canvas,
         cm: s.cm,
+        basic: true,
         print: !s.tint && !/linen/i.test(s.name)
       })
     );
-    for (const r of fabrics.list()) {
-      try {
-        fabricLib.push({ id: r.id, name: r.name, canvas: await blobCanvas(r.blob), cm: r.cm });
-      } catch (e) {
-      }
-    }
+    for (const r of fabrics.list()) addStoredFabric(r);
+    await loadFabrics(fabricIdsIn(getSession("current"), isFabric2));
   })();
 }
 async function blobCanvas(blob) {
@@ -5781,17 +5841,255 @@ async function blobCanvas(blob) {
   bm.close?.();
   return c;
 }
-async function addStoredFabric(r) {
-  if (fabricLib.some((f) => f.id === r.id)) return;
-  fabricLib.push({ id: r.id, name: r.name, canvas: await blobCanvas(r.blob), cm: r.cm });
+function addStoredFabric(r) {
+  if (!byId.has(r.id)) put({ id: r.id, name: r.name, cm: r.cm, canvas: null, blob: r.blob, added: r.createdAt || 0 });
+}
+var loadedListeners = [];
+var loadedSoon = false;
+var onFabricsLoaded = (fn) => loadedListeners.push(fn);
+async function loadFabrics(ids) {
+  const jobs = [];
+  for (const id of ids) {
+    const fab = byId.get(id);
+    if (!fab || fab.canvas) continue;
+    fab.loading ??= blobCanvas(fab.blob).then(
+      (c) => {
+        fab.canvas = c;
+      },
+      () => {
+        fab.broken = true;
+        fab.canvas = fabricLib[0].canvas;
+      }
+    );
+    jobs.push(fab.loading);
+  }
+  await Promise.all(jobs);
+}
+var fabricById = (id) => {
+  const f = byId.get(id) || fabricLib[0];
+  if (f.canvas) return f;
+  loadFabrics([f.id]).then(() => {
+    if (loadedSoon) return;
+    loadedSoon = true;
+    setTimeout(() => {
+      loadedSoon = false;
+      loadedListeners.forEach((fn) => fn());
+    }, 0);
+  });
+  return { ...f, canvas: fabricLib[0].canvas };
+};
+var listedFabrics = () => fabricLib.filter((f) => !f.broken);
+var urls = /* @__PURE__ */ new Map();
+var thumbUrl = (f) => {
+  if (!urls.has(f.id)) urls.set(f.id, URL.createObjectURL(f.blob));
+  return urls.get(f.id);
+};
+var RECENT_KEY = "quilt-recent-fabrics.v1";
+function recentFabrics() {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    return Array.isArray(v) ? v.filter(isFabric2) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function noteRecent(id) {
+  if (!byId.get(id) || byId.get(id).basic) return;
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(withRecent(recentFabrics(), id)));
+  } catch (e) {
+  }
 }
 async function addFabric(canvas2, meta) {
   const blob = await new Promise(
     (resolve, reject) => canvas2.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
   );
   const { id } = await fabrics.add(blob, meta);
-  if (!fabricLib.some((f) => f.id === id)) fabricLib.push({ id, name: meta.name, canvas: canvas2, cm: meta.cm });
+  if (!byId.has(id)) put({ id, name: meta.name, canvas: canvas2, cm: meta.cm, blob, added: Date.now() });
+  noteRecent(id);
   return id;
+}
+
+// src/designer/fabric-picker.js
+var PAGE = 60;
+function fabricTile(f, pressed) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "fab";
+  b.dataset.f = f.id;
+  b.title = f.name;
+  let pic;
+  if (f.blob) {
+    pic = document.createElement("img");
+    pic.loading = "lazy";
+    pic.decoding = "async";
+    pic.alt = "";
+    pic.src = thumbUrl(f);
+  } else {
+    pic = document.createElement("canvas");
+    pic.width = pic.height = 64;
+    const k = Math.min(f.canvas.width, f.canvas.height, 360);
+    pic.getContext("2d").drawImage(f.canvas, 0, 0, k, k, 0, 0, 64, 64);
+  }
+  const s = document.createElement("span");
+  s.textContent = f.name;
+  b.append(pic, s);
+  b.setAttribute("aria-pressed", String(!!pressed));
+  return b;
+}
+function shortListFabrics(selected) {
+  const listed = listedFabrics(), byId2 = new Map(listed.map((f) => [f.id, f]));
+  const newest = listed.filter((f) => !f.basic).sort((a, b) => (b.added || 0) - (a.added || 0)).map((f) => f.id);
+  const ids = shortList({
+    basics: listed.filter((f) => f.basic).map((f) => f.id),
+    selected,
+    inQuilt: design ? fabricIdsIn(design, isFabric2) : [],
+    recent: recentFabrics(),
+    newest
+  });
+  return ids.map((id) => byId2.get(id)).filter(Boolean);
+}
+function moreTile(box2, shown) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "fab fab-more";
+  const rest = listedFabrics().length - shown;
+  b.title = "All fabrics: search, and add photos of your own";
+  const plus = document.createElement("b");
+  plus.textContent = rest > 0 ? "\u22EF" : "+";
+  plus.setAttribute("aria-hidden", "true");
+  const s = document.createElement("span");
+  s.textContent = rest > 0 ? `More fabrics (${rest})` : "Add a fabric photo";
+  b.append(plus, s);
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openLibrary(box2);
+  });
+  return b;
+}
+function drawShortList(box2, selected) {
+  box2.innerHTML = "";
+  const fabs = shortListFabrics(selected);
+  for (const f of fabs) box2.appendChild(fabricTile(f, f.id === selected));
+  box2.appendChild(moreTile(box2, fabs.length));
+}
+var lib = { source: (
+  /** @type {HTMLElement | null} */
+  null
+), selected: null, group: "all", shown: PAGE };
+var GROUPS = { all: "All", quilt: "In this quilt", recent: "Recent", basic: "Basics", mine: "My photos" };
+function openLibrary(box2) {
+  lib.source = box2;
+  lib.selected = /** @type {HTMLElement | null} */
+  box2.querySelector('.fab[aria-pressed="true"]')?.dataset.f ?? null;
+  lib.group = "all";
+  lib.shown = PAGE;
+  $("fablib-q").value = "";
+  drawLibrary();
+  const dlg = $("fablib");
+  if (!dlg.open) {
+    try {
+      dlg.showModal();
+    } catch (e) {
+      dlg.setAttribute("open", "");
+    }
+  }
+  $("fablib-q").focus();
+}
+function drawLibrary() {
+  if (!$("fablib").open && !lib.source) return;
+  const all = listedFabrics(), inQuilt = design ? fabricIdsIn(design, isFabric2) : /* @__PURE__ */ new Set(), recent = recentFabrics(), query = $("fablib-q").value;
+  const groups = $("fablib-groups");
+  groups.innerHTML = "";
+  for (const [g, label] of Object.entries(GROUPS)) {
+    const n = findFabrics(all, { group: (
+      /** @type {any} */
+      g
+    ), inQuilt, recent }).length;
+    if (!n && g !== "all" && g !== lib.group) continue;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.g = g;
+    b.textContent = `${label} ${n}`;
+    b.setAttribute("aria-pressed", String(g === lib.group));
+    groups.appendChild(b);
+  }
+  const found = findFabrics(all, { query, group: (
+    /** @type {any} */
+    lib.group
+  ), inQuilt, recent });
+  const grid = $("fablib-grid");
+  grid.innerHTML = "";
+  if (lib.group === "all" || lib.group === "mine") {
+    const add = document.createElement("label");
+    add.className = "fab fab-more";
+    add.htmlFor = "dz-upload";
+    add.title = "Add photos of your own fabrics";
+    add.innerHTML = '<b aria-hidden="true">+</b><span>Add fabric photo</span>';
+    grid.appendChild(add);
+  }
+  for (const f of found.slice(0, lib.shown)) grid.appendChild(fabricTile(f, f.id === lib.selected));
+  const left = found.length - lib.shown;
+  $("fablib-more").hidden = left <= 0;
+  $("fablib-more").textContent = `Show more (${left} more)`;
+  $("fablib-none").hidden = found.length > 0;
+  $("fablib-none").textContent = query.trim() ? `No fabrics match \u201C${query.trim()}\u201D.` : "No fabrics here yet.";
+}
+function pickFromLibrary(id) {
+  const box2 = lib.source;
+  $("fablib").close();
+  if (!box2) return;
+  loadFabrics([id]);
+  noteRecent(id);
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "fab";
+  b.dataset.f = id;
+  b.hidden = true;
+  box2.appendChild(b);
+  b.click();
+  b.remove();
+}
+function initLibrary() {
+  const dlg = $("fablib");
+  $("fablib-x").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("close", () => {
+    lib.source = null;
+  });
+  dlg.addEventListener("click", (e) => {
+    if (e.target !== dlg) return;
+    const r = dlg.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+  });
+  $("fablib-q").addEventListener("input", () => {
+    lib.shown = PAGE;
+    drawLibrary();
+  });
+  $("fablib-groups").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (!b) return;
+    lib.group = b.dataset.g;
+    lib.shown = PAGE;
+    drawLibrary();
+  });
+  $("fablib-grid").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button.fab")
+    );
+    if (b?.dataset.f) pickFromLibrary(b.dataset.f);
+  });
+  $("fablib-more").addEventListener("click", () => {
+    lib.shown += PAGE;
+    drawLibrary();
+  });
+}
+initLibrary();
+function refreshLibrary() {
+  if ($("fablib").open) drawLibrary();
 }
 
 // src/designer/design-state.js
@@ -5981,6 +6279,7 @@ var deepFreeze = (o) => {
 };
 function setCurrent(d) {
   setDesign(freezeOn ? deepFreeze(d) : d);
+  loadFabrics(fabricIdsIn(d, isFabric2));
 }
 function changedBlocks(prev, next) {
   if (!prev || prev.blocks.length !== next.blocks.length) return [];
@@ -6547,26 +6846,13 @@ function drawPatternButtons() {
 }
 function drawFabricPalette() {
   for (const id of ["dz-fabrics", "dz-fabrics2"]) if ($(id)) drawPaletteInto($(id));
-  if (design) drawPaletteInto($("dz-backfabs"), design.backFabric);
+  if (design) {
+    drawPaletteInto($("dz-backfabs"), design.backFabric);
+    if ($("set-fabs")) drawPaletteInto($("set-fabs"), design.settingFabric || "b0");
+  }
 }
 function drawPaletteInto(box2, selected = activeFabric) {
-  box2.innerHTML = "";
-  for (const f of fabricLib) {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "fab";
-    b.dataset.f = f.id;
-    b.title = f.name;
-    const c = document.createElement("canvas");
-    c.width = c.height = 64;
-    const k = Math.min(f.canvas.width, f.canvas.height, 360);
-    c.getContext("2d").drawImage(f.canvas, 0, 0, k, k, 0, 0, 64, 64);
-    const s = document.createElement("span");
-    s.textContent = f.name;
-    b.append(c, s);
-    b.setAttribute("aria-pressed", String(f.id === selected));
-    box2.appendChild(b);
-  }
+  drawShortList(box2, selected);
 }
 function renderDesigner() {
   if (!design) return;
@@ -7034,6 +7320,7 @@ function initDesignerUI() {
     }
     e.target.value = "";
     drawFabricPalette();
+    refreshLibrary();
     $("dz-fabnote").textContent = `${files.length} photo${files.length === 1 ? "" : "s"} added. They are kept in this browser with your designs.`;
   });
   const cmOut2 = () => {
@@ -7537,6 +7824,14 @@ function showPage(p) {
     else renderCut();
   })();
 }
+onFabricsLoaded(() => {
+  if (!design) return;
+  scheduleSync();
+  if (state.page === "design" || state.page === "sim") {
+    renderDesigner();
+    drawFabricPalette();
+  } else if (state.page === "cut") renderCut();
+});
 $("tabs").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (b) showPage(b.dataset.page);
@@ -8692,6 +8987,9 @@ function initSashUI() {
   });
 }
 initSashUI();
+onFabricsLoaded(() => {
+  if (design && !$("sash-card").hidden) renderSashUI();
+});
 
 // src/designer/borders-ui.js
 var brdActive = null;
@@ -8880,6 +9178,9 @@ function initBorderUI() {
   });
 }
 initBorderUI();
+onFabricsLoaded(() => {
+  if (design && !$("brd-card").hidden) renderBorderUI();
+});
 
 // src/designer/settings.js
 function syncSymUI() {
@@ -9554,35 +9855,35 @@ function medallionDesign() {
     ]
   };
   for (let i = 0; i < N2 * N2; i++) d.blocks.push(newBlock("plain", [WH, WH, WH]));
-  const put = (c, r, pattern, roles, rot = 0, extra = {}) => {
+  const put2 = (c, r, pattern, roles, rot = 0, extra = {}) => {
     d.blocks[r * N2 + c] = { ...newBlock(pattern, roles), rot, ...extra };
   };
-  put(0, 0, "nine", [CR, CH, CH]);
-  put(1, 0, "nine", [CR, CH, CH]);
-  put(2, 0, "hst", [WH, MI, MI], 1);
-  put(3, 0, "geese", [WH, CH, CH], 2);
-  put(4, 0, "sawstar", [WH, MU, FL]);
-  put(5, 0, "hst", [WH, CH, CH], 0);
-  put(6, 0, "economy", [WH, CH, FL]);
-  put(1, 1, "nine", [WH, MI, MI]);
-  put(2, 1, "nine", [CR, CH, CH]);
-  put(3, 1, "hst", [WH, CH, CH], 0);
-  put(4, 1, "hst", [WH, MI, MI], 1);
-  put(5, 1, "sawstar", [WH, CH, MI]);
-  put(6, 1, "economy", [MI, CH, FL]);
-  put(2, 2, "hst", [WH, MI, MI], 1);
-  put(3, 2, "nine", [CR, CH, CH]);
-  put(4, 2, "nine", [WH, MU, MU]);
-  put(5, 2, "hst", [MI, WH, WH], 1);
-  put(6, 2, "economy", [WH, CH, FL]);
-  put(3, 3, "sawstar", [WH, CH, MI]);
-  put(4, 3, "nine", [WH, MU, MU]);
-  put(5, 3, "geese", [WH, CH, CH], 1);
-  put(6, 3, "hst", [WH, MI, MI], 0);
-  put(4, 4, "sawstar", [WH, CH, CH]);
-  put(5, 4, "hst", [WH, CH, CH], 3);
-  put(6, 4, "geese", [WH, CH, MI], 2);
-  put(5, 5, "eightstar", [WH, CH, MU], 0, { span: 4 });
+  put2(0, 0, "nine", [CR, CH, CH]);
+  put2(1, 0, "nine", [CR, CH, CH]);
+  put2(2, 0, "hst", [WH, MI, MI], 1);
+  put2(3, 0, "geese", [WH, CH, CH], 2);
+  put2(4, 0, "sawstar", [WH, MU, FL]);
+  put2(5, 0, "hst", [WH, CH, CH], 0);
+  put2(6, 0, "economy", [WH, CH, FL]);
+  put2(1, 1, "nine", [WH, MI, MI]);
+  put2(2, 1, "nine", [CR, CH, CH]);
+  put2(3, 1, "hst", [WH, CH, CH], 0);
+  put2(4, 1, "hst", [WH, MI, MI], 1);
+  put2(5, 1, "sawstar", [WH, CH, MI]);
+  put2(6, 1, "economy", [MI, CH, FL]);
+  put2(2, 2, "hst", [WH, MI, MI], 1);
+  put2(3, 2, "nine", [CR, CH, CH]);
+  put2(4, 2, "nine", [WH, MU, MU]);
+  put2(5, 2, "hst", [MI, WH, WH], 1);
+  put2(6, 2, "economy", [WH, CH, FL]);
+  put2(3, 3, "sawstar", [WH, CH, MI]);
+  put2(4, 3, "nine", [WH, MU, MU]);
+  put2(5, 3, "geese", [WH, CH, CH], 1);
+  put2(6, 3, "hst", [WH, MI, MI], 0);
+  put2(4, 4, "sawstar", [WH, CH, CH]);
+  put2(5, 4, "hst", [WH, CH, CH], 3);
+  put2(6, 4, "geese", [WH, CH, MI], 2);
+  put2(5, 5, "eightstar", [WH, CH, MU], 0, { span: 4 });
   const src = [];
   for (let r = 0; r < 7; r++) for (let c = r; c < 7; c++) src.push(r * N2 + c);
   const out = withSymmetry(normalizeSpans(d), src);
@@ -9604,45 +9905,45 @@ function photoMedallion() {
     ]
   };
   for (let i = 0; i < N2 * N2; i++) d.blocks.push(newBlock("plain", [WH, WH, WH]));
-  const put = (c, r, pattern, roles, rot = 0, extra = {}) => {
+  const put2 = (c, r, pattern, roles, rot = 0, extra = {}) => {
     d.blocks[r * N2 + c] = { ...newBlock(pattern, roles), rot, ...extra };
   };
   const chain = [WH, MO, MO], dark9 = [WH, CH, CH], gold9 = [WH, MU, MU];
   const mintH = [WH, MI, MI], darkH = [WH, CH, CH];
-  put(0, 0, "dnine", chain);
-  put(1, 0, "nine", chain);
-  put(2, 0, "hst", mintH, 0);
-  put(3, 0, "hst", darkH, 0);
-  put(4, 0, "sawstar", [WH, MU, FL]);
-  put(5, 0, "hst", mintH, 1);
-  put(6, 0, "hst", darkH, 1);
-  put(7, 0, "economy", [MI, TE, CH]);
-  put(1, 1, "nine", chain);
-  put(2, 1, "nine", chain);
-  put(3, 1, "hst", mintH, 0);
-  put(4, 1, "hst", darkH, 0);
-  put(5, 1, "hst", darkH, 1);
-  put(6, 1, "hst", mintH, 1);
-  put(7, 1, "economy", [MI, TE, CH]);
-  put(2, 2, "nine", chain);
-  put(3, 2, "nine", dark9);
-  put(4, 2, "nine", dark9);
-  put(5, 2, "sawstar", [WH, CH, TE]);
-  put(6, 2, "hst", mintH, 0);
-  put(7, 2, "economy", [MI, TE, CH]);
-  put(3, 3, "nine", chain);
-  put(4, 3, "hst", mintH, 0);
-  put(5, 3, "nine", gold9);
-  put(6, 3, "sawstar", [WH, CH, MO]);
-  put(7, 3, "sawstar", [WH, CH, MO]);
-  put(4, 4, "sawstar", [WH, CH, CH]);
-  put(5, 4, "hst", mintH, 0);
-  put(6, 4, "geese", [WH, MO, MO], 2);
-  put(7, 4, "geese", [WH, MO, MO], 2);
-  put(5, 5, "sqsq", [WH, MI, MI]);
-  put(6, 5, "hst", [WH, MI, MI], 1);
-  put(7, 5, "plain", [WH, WH, WH]);
-  put(6, 6, "eightstar", [WH, CH, FL], 0, { span: 3 });
+  put2(0, 0, "dnine", chain);
+  put2(1, 0, "nine", chain);
+  put2(2, 0, "hst", mintH, 0);
+  put2(3, 0, "hst", darkH, 0);
+  put2(4, 0, "sawstar", [WH, MU, FL]);
+  put2(5, 0, "hst", mintH, 1);
+  put2(6, 0, "hst", darkH, 1);
+  put2(7, 0, "economy", [MI, TE, CH]);
+  put2(1, 1, "nine", chain);
+  put2(2, 1, "nine", chain);
+  put2(3, 1, "hst", mintH, 0);
+  put2(4, 1, "hst", darkH, 0);
+  put2(5, 1, "hst", darkH, 1);
+  put2(6, 1, "hst", mintH, 1);
+  put2(7, 1, "economy", [MI, TE, CH]);
+  put2(2, 2, "nine", chain);
+  put2(3, 2, "nine", dark9);
+  put2(4, 2, "nine", dark9);
+  put2(5, 2, "sawstar", [WH, CH, TE]);
+  put2(6, 2, "hst", mintH, 0);
+  put2(7, 2, "economy", [MI, TE, CH]);
+  put2(3, 3, "nine", chain);
+  put2(4, 3, "hst", mintH, 0);
+  put2(5, 3, "nine", gold9);
+  put2(6, 3, "sawstar", [WH, CH, MO]);
+  put2(7, 3, "sawstar", [WH, CH, MO]);
+  put2(4, 4, "sawstar", [WH, CH, CH]);
+  put2(5, 4, "hst", mintH, 0);
+  put2(6, 4, "geese", [WH, MO, MO], 2);
+  put2(7, 4, "geese", [WH, MO, MO], 2);
+  put2(5, 5, "sqsq", [WH, MI, MI]);
+  put2(6, 5, "hst", [WH, MI, MI], 1);
+  put2(7, 5, "plain", [WH, WH, WH]);
+  put2(6, 6, "eightstar", [WH, CH, FL], 0, { span: 3 });
   const src = [];
   for (let r = 0; r < 8; r++) for (let c = r; c < 8; c++) src.push(r * N2 + c);
   const out = withSymmetry(normalizeSpans(d), src);
@@ -10037,14 +10338,14 @@ function createSync({
         continue;
       }
       if (up.body.status === "upload") {
-        let put;
+        let put2;
         try {
-          put = await fetchFn(up.body.url, { method: "PUT", headers: up.body.headers, body: r.blob });
+          put2 = await fetchFn(up.body.url, { method: "PUT", headers: up.body.headers, body: r.blob });
         } catch (e) {
           throw new StopSync("offline", "The photo storage could not be reached.");
         }
-        if (!put.ok) {
-          errors.push(`The photo \u201C${r.name}\u201D could not be uploaded (${put.status}).`);
+        if (!put2.ok) {
+          errors.push(`The photo \u201C${r.name}\u201D could not be uploaded (${put2.status}).`);
           continue;
         }
         const done = await api("POST", `/v1/fabrics/${r.id}/done`);
@@ -10200,8 +10501,7 @@ async function fitIn(events) {
     if (e.kind === "fabric") {
       const f = repo.fabrics.get(e.id);
       if (f?.blob) {
-        await addStoredFabric(f).catch(() => {
-        });
+        addStoredFabric(f);
         fabricsChanged = true;
       }
       continue;
@@ -11087,43 +11387,43 @@ var canvasJpeg = (c) => new Promise(
 function buildPdf(pages) {
   const enc = new TextEncoder(), parts = [], offsets = [];
   let len = 0;
-  const put = (x2) => {
+  const put2 = (x2) => {
     const u = typeof x2 === "string" ? enc.encode(x2) : x2;
     parts.push(u);
     len += u.length;
   };
   const obj = (n2, body) => {
     offsets[n2] = len;
-    put(`${n2} 0 obj
+    put2(`${n2} 0 obj
 `);
     body();
-    put("\nendobj\n");
+    put2("\nendobj\n");
   };
   const W = (A4.w / 25.4 * 72).toFixed(2), H = (A4.h / 25.4 * 72).toFixed(2), n = pages.length;
-  put("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
-  obj(1, () => put("<< /Type /Catalog /Pages 2 0 R >>"));
-  obj(2, () => put(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>`));
+  put2("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+  obj(1, () => put2("<< /Type /Catalog /Pages 2 0 R >>"));
+  obj(2, () => put2(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>`));
   pages.forEach((p, i) => {
     const po = 3 + i * 3, co = po + 1, io = po + 2;
     obj(
       po,
-      () => put(
+      () => put2(
         `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${io} 0 R >> >> /Contents ${co} 0 R >>`
       )
     );
     const cs = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
-    obj(co, () => put(`<< /Length ${cs.length} >>
+    obj(co, () => put2(`<< /Length ${cs.length} >>
 stream
 ${cs}
 endstream`));
     obj(io, () => {
-      put(
+      put2(
         `<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpg.length} >>
 stream
 `
       );
-      put(p.jpg);
-      put("\nendstream");
+      put2(p.jpg);
+      put2("\nendstream");
     });
   });
   const xref = len, count = 3 + n * 3;
@@ -11132,7 +11432,7 @@ stream
 0000000000 65535 f 
 `;
   for (let i = 1; i < count; i++) x += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
-  put(x + `trailer
+  put2(x + `trailer
 << /Size ${count} /Root 1 0 R >>
 startxref
 ${xref}
@@ -11584,6 +11884,7 @@ function templateJobs(P, b, i) {
 // src/pdf/download.js
 async function makeCutPdf() {
   if (!design) return null;
+  await loadFabrics(fabricIdsIn(design, isFabric2));
   if (!lastPlan) renderCut();
   const P = lastPlan, jobs = [];
   jobs.push(

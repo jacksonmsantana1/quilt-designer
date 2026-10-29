@@ -1,5 +1,5 @@
 // The design being edited: loading, saving, new design, resizing.
-import './fabric-library.js'; // load order: runs after designer/fabric-library
+import './fabric-picker.js'; // load order: runs after designer/fabric-picker
 import { design, readOnly } from '../core/store.js';
 import { readDesign, readDesignOrDefault } from '@quilt/shared/format.js';
 import { notify } from '../ui/notice.js';

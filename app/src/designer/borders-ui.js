@@ -3,7 +3,7 @@ import './sashing-ui.js'; // load order: runs after designer/sashing-ui
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
-import { fabricById } from './fabric-library.js';
+import { fabricById, onFabricsLoaded } from './fabric-library.js';
 import { BORDER_TYPES, borderFab, borderSidePieces, pathPoly } from '@quilt/shared/geometry.js';
 import { drawPaletteInto } from './parts-editor.js';
 import { fabricFill } from '../render/fabric-fill.js';
@@ -204,5 +204,8 @@ function initBorderUI() {
   });
 }
 initBorderUI();
+onFabricsLoaded(() => {
+  if (design && !$('brd-card').hidden) renderBorderUI();
+});
 
 export { openBorders, renderBorderUI };

@@ -5,7 +5,8 @@ import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { resize } from '../sim/camera.js';
 import { startRender, stopRender } from '../sim/photo-render.js';
-import { initFabricLib } from '../designer/fabric-library.js';
+import { initFabricLib, onFabricsLoaded } from '../designer/fabric-library.js';
+import { scheduleSync } from '../sim/design-maps.js';
 import { drawFabricPalette, renderDesigner } from '../designer/parts-editor.js';
 import { initDesignerUI } from '../designer/designer-ui.js';
 import { renderCut } from '../cutting/page.js';
@@ -68,6 +69,15 @@ function showPage(p) {
     else renderCut();
   })();
 }
+// a photo's picture was made after the page was drawn with a stand-in for it: draw again, and the quilt on the bed
+onFabricsLoaded(() => {
+  if (!design) return;
+  scheduleSync();
+  if (state.page === 'design' || state.page === 'sim') {
+    renderDesigner();
+    drawFabricPalette();
+  } else if (state.page === 'cut') renderCut();
+});
 $('tabs').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) showPage(b.dataset.page);

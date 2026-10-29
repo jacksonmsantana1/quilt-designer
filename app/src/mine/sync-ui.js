@@ -59,7 +59,7 @@ async function fitIn(events) {
     if (e.kind === 'fabric') {
       const f = repo.fabrics.get(e.id);
       if (f?.blob) {
-        await addStoredFabric(f).catch(() => {});
+        addStoredFabric(f);
         fabricsChanged = true;
       }
       continue;

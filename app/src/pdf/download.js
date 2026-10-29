@@ -16,9 +16,12 @@ import {
   pdfSashPage,
 } from './pages.js';
 import { templateJobs } from './templates.js';
+import { isFabric, loadFabrics } from '../designer/fabric-library.js';
+import { fabricIdsIn } from '../core/fabric-picks.js';
 
 async function makeCutPdf() {
   if (!design) return null;
+  await loadFabrics(fabricIdsIn(design, isFabric)); // the real pictures, never the stand-in of one still loading
   if (!lastPlan) renderCut();
   const P = lastPlan,
     jobs = [];

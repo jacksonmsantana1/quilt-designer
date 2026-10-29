@@ -20,6 +20,8 @@ import { resize } from '../core/edits.js';
 import { loadDesign, saveDesign } from './design-state.js';
 import { tlRecord, tlSwitch } from '../timeline/timeline.js';
 import { drawFabricPalette, renderDesigner } from './parts-editor.js';
+import { isFabric, loadFabrics } from './fabric-library.js';
+import { fabricIdsIn } from '../core/fabric-picks.js';
 /** @typedef {import('@quilt/shared/types.js').Design} Design */
 
 // In tests (localStorage 'quilt-freeze.v1' = '1') the design is frozen after every change, so any code that
@@ -35,9 +37,10 @@ const deepFreeze = o => {
   }
   return o;
 };
-/** Makes a design the one being edited. @param {Design} d */
+/** Makes a design the one being edited, and starts making the pictures of the photos it uses. @param {Design} d */
 function setCurrent(d) {
   setDesign(freezeOn ? deepFreeze(d) : d);
+  loadFabrics(fabricIdsIn(d, isFabric));
 }
 
 /** The blocks an edit changed (a new object in the same place), not counting cells covered by a large block. */

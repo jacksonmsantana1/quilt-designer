@@ -383,6 +383,19 @@
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .pats .pat:disabled { opacity: .4; cursor: not-allowed; } /* e.g. cornerstone blocks on narrow sashing */
   .fabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
+  /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
+  .fabs .fab-more { border-style: dashed; color: var(--muted); }
+  .fabs .fab-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
+  /* a steady height, from near the top: the window doesn't jump about as the search narrows the list */
+  .fablib { width: min(760px, calc(100vw - 32px)); height: min(860px, calc(100dvh - 48px)); margin-top: 24px; }
+  .fablib input[type="search"] { width: 100%; margin: 10px 0 8px; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+  .fablib-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .fablib-groups button { font: 500 .78rem var(--font-body); padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  .fablib-groups button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .fabs.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .fablib-more { display: block; margin: 10px auto 0; }
+  .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
   .bmm-in { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: .85rem; }
   .bmm-in input { width: 5.2em; font: inherit; font-size: .95rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 6px; text-align: right; }
@@ -521,6 +534,7 @@
     .dz-toolbar { gap: 8px; }
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
     .pats, .fabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .fabs.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
     details.model { padding: 12px; }
   }
@@ -835,20 +849,6 @@
       </div>
 
       <div class="card" hidden>
-        <h2>Add fabrics</h2>
-        <p class="fine" style="margin:0 0 8px">Add photos of your own fabrics. They join the fabric list under Block parts.</p>
-        <div class="row">
-          <label class="btn filebtn sm" for="dz-upload">Add fabric photos</label>
-          <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
-        </div>
-        <div class="param">
-          <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
-          <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
-        </div>
-        <p class="fine" id="dz-fabnote"></p>
-      </div>
-
-      <div class="card" hidden>
         <h2>Fit to a bed</h2>
         <label for="fit-bed" class="sr">Mattress size</label>
         <select id="fit-bed" aria-label="Mattress size" style="width:100%"></select>
@@ -969,6 +969,22 @@
   <div class="row" style="margin-top:12px;justify-content:flex-end">
     <button class="btn" type="button" id="save-asnew" hidden>Save as new</button>
     <button class="btn primary" type="button" id="save-ok">Save</button>
+  </div>
+</dialog>
+<dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
+  <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>
+  <input type="search" id="fablib-q" placeholder="Search: gingham, teal, chintz…" aria-label="Search fabrics by name" autocomplete="off">
+  <div class="fablib-groups" id="fablib-groups" role="group" aria-label="Which fabrics"></div>
+  <div class="fabs fablib-grid" id="fablib-grid" aria-label="Fabrics: click one to use it"></div>
+  <p class="fine" id="fablib-none" hidden></p>
+  <button class="btn sm fablib-more" type="button" id="fablib-more" hidden></button>
+  <div class="fablib-foot">
+    <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
+    <div class="param">
+      <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
+      <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
+    </div>
+    <p class="fine" id="dz-fabnote"></p>
   </div>
 </dialog>
 <section id="page-cut" hidden>
