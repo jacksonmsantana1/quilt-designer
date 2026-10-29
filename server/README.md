@@ -11,6 +11,7 @@ docker compose up -d                       # PostgreSQL + SeaweedFS (docker-comp
 cp server/.env.example server/.env
 npm run dev -w @quilt/server               # http://localhost:8787, restarts on changes; migrates the database
 API_URL=http://localhost:8787 npm run smoke -w @quilt/server   # end-to-end check of a running server
+npm run seed -w @quilt/server             # 500 test fabrics (patterns + Met museum photos) for user "seed"
 ```
 
 Without SeaweedFS, `STORAGE=local` keeps photos in `server/.data/photos` and the API serves them itself (signed

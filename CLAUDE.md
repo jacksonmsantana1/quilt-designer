@@ -27,6 +27,7 @@ npm run check              # prettier check, eslint, tsc (JSDoc types), unit tes
 npm run test:e2e           # Playwright browser tests of the app (build first; ~5 min; workers: 1)
 npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e/index.html
 npm run dev -w @quilt/server         # API on :8787 (needs server/.env, see server/.env.example)
+npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabrics for user "seed" (sync as "seed")
 ```
 
 Server tests and `app/tests/e2e/sync.spec.mjs` need PostgreSQL: `TEST_DATABASE_URL` (default
