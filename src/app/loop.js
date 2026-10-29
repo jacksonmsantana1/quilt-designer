@@ -1,5 +1,5 @@
 // The animation loop of the 3D view.
-import '../pdf/download.js';          // load order: runs after pdf/download
+import '../pdf/download.js'; // load order: runs after pdf/download
 import { shared } from '../core/shared.js';
 import { state } from '../sim/config.js';
 import { send } from '../sim/worker-link.js';
@@ -14,11 +14,20 @@ import { handsData } from '../sim/messages.js';
 let lastT = performance.now();
 function frame(now) {
   now = now || performance.now();
-  if (state.page !== 'sim') { lastT = now; requestAnimationFrame(frame); return; }   // the 3D view is hidden
-  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
-  if (shared.grabMsg) { send(shared.grabMsg); shared.grabMsg = null; }
+  if (state.page !== 'sim') {
+    lastT = now;
+    requestAnimationFrame(frame);
+    return;
+  } // the 3D view is hidden
+  const dt = Math.min(0.1, (now - lastT) / 1000);
+  lastT = now;
+  if (shared.grabMsg) {
+    send(shared.grabMsg);
+    shared.grabMsg = null;
+  }
   if (shared.newFrame) {
-    upsample(); shared.newFrame = false;
+    upsample();
+    shared.newFrame = false;
     computeAnalysis();
     for (let k = 0; k < handMeshes.length; k++) {
       const on = 3 * k + 2 < handsData.length && state.view !== 'render';

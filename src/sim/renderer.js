@@ -1,5 +1,5 @@
 // three.js renderer, scene, camera and sun.
-import './worker-link.js';          // load order: runs after sim/worker-link
+import './worker-link.js'; // load order: runs after sim/worker-link
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { PhysicalCamera } from 'three-gpu-pathtracer';
@@ -18,7 +18,7 @@ renderer.localClippingEnabled = true;
 RectAreaLightUniformsLib.init();
 const scene = new THREE.Scene();
 const camera = new PhysicalCamera(38, 16 / 10, 0.05, 50);
-camera.bokehSize = 0;                     // depth of field off until asked for
+camera.bokehSize = 0; // depth of field off until asked for
 camera.apertureBlades = 6;
 
 // Raster key light: gives the live preview its shadows. The path tracer uses
@@ -28,8 +28,8 @@ sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -2.8, right: 2.8, top: 2.8, bottom: -2.8, near: 0.5, far: 14 });
 sun.shadow.bias = -0.0004;
- sun.shadow.normalBias = 0.02;
- sun.shadow.radius = 4;
+sun.shadow.normalBias = 0.02;
+sun.shadow.radius = 4;
 scene.add(sun);
 
 export { IS_PHONE, camera, canvas, renderer, scene, sun };

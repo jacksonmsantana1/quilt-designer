@@ -1,5 +1,5 @@
 // Start-up.
-import './loop.js';          // load order: runs after app/loop
+import './loop.js'; // load order: runs after app/loop
 import { shared } from '../core/shared.js';
 import { $ } from '../core/dom.js';
 import { startSim } from '../sim/worker-link.js';
@@ -20,7 +20,8 @@ if (IS_PHONE) {
   document.documentElement.classList.add('phone');
   $('rbtn').hidden = true;
   $('render-card').hidden = true;
-  const ar = $('atrest'); ar.value = 'none';
+  const ar = $('atrest');
+  ar.value = 'none';
 }
 resize();
 startSim();
@@ -37,11 +38,18 @@ else showPage('design');
     await Promise.all([useSwatches(BUNDLED), applyLook()]);
     // the quilt on the bed is your design from the start (the designer keeps it in this browser)
     await initFabricLib();
-    if (!shared.design) { shared.design = loadDesign(); shared.selBlocks = new Set([0]); shared.focusBlock = 0; shared.activeFabric = shared.activeFabric || 'b0'; }
+    if (!shared.design) {
+      shared.design = loadDesign();
+      shared.selBlocks = new Set([0]);
+      shared.focusBlock = 0;
+      shared.activeFabric = shared.activeFabric || 'b0';
+    }
     syncSimulation();
   } catch (e) {
     $('loading').textContent = 'Some photos or lighting could not load. Showing a plain preview.';
-    setTimeout(() => { $('loading').hidden = true; }, 4000);
+    setTimeout(() => {
+      $('loading').hidden = true;
+    }, 4000);
     return;
   }
   $('loading').hidden = true;

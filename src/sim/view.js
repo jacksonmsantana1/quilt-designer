@@ -1,5 +1,5 @@
 // Switching between the live preview, the photo render and the analysis view.
-import './photo-render.js';          // load order: runs after sim/photo-render
+import './photo-render.js'; // load order: runs after sim/photo-render
 import { $ } from '../core/dom.js';
 import { state } from './config.js';
 import { applyLook } from './lighting.js';
@@ -18,7 +18,8 @@ function setView(v) {
   $('hint').hidden = v !== 'photo';
   if (v === 'render') $('slow').hidden = true;
   $('stage').classList.toggle('rendering', v === 'render');
-  if (v === 'render') startRender(); else applyLook();
+  if (v === 'render') startRender();
+  else applyLook();
 }
 
 export { setView };

@@ -23,19 +23,23 @@ main.js     entry point
 
 ## Rules
 
-- **Load order.** Each module's first import is the module before it (`import './previous.js'`), and `main.js`
+- **Pure modules** (`core/patterns`, `core/geometry`, `core/symmetry`, `core/types`, `cutting/plan`, `core/dom`,
+  `core/shared`) are not in the chain: they have no side effects when loaded and import nothing that is, so they
+  can be imported anywhere, including the unit tests in Node. Keep them that way.
+- **Load order.** Each other module's first import is the module before it (`import './previous.js'`), and `main.js`
   imports the last one. ES modules run depth-first and skip modules that are already loading, so the modules run
   in exactly the order the app was written in. Keep that first import when you add a module: put the new module
   in the chain where its top-level code has to run.
 - **Shared state.** ES module imports are read-only. Top-level values that several modules assign (`design`,
   `selBlocks`, `focusBlock`, `mineCur`, …) live on the `shared` object in `core/shared.js`; the comment there says
   which module sets each one. Everything else is exported by the module that declares it.
-- **No behaviour change.** This structure was produced from the single `main2.js` (kept in git history); the
-  Playwright tests in the project folder check the app after every build.
+- **Tools.** `node tools/move.mjs from to name…` moves declarations between modules and fixes every import;
+  `node tools/chain.mjs list | unchain | insert` manages the load-order chain.
 
 ## Build
 
 ```
-python3 build.py        # esbuild src/main.js -> dist/app.js, then quilt.html
-python3 standalone.py   # one HTML file with every asset inlined
+npm run build           # esbuild src/main.js -> dist/app.js, then quilt.html
+npm run check           # format, lint, types, unit tests
+npm run test:e2e        # browser tests
 ```
