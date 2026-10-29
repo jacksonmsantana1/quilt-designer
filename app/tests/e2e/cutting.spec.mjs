@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.mjs';
+import { newBlock } from '@quilt/shared/design.js';
 
 test.beforeEach(async ({ app, page }) => {
   await app.open();
@@ -52,6 +53,65 @@ test('without cornerstones: long strips between the rows, and no cornerstones to
   await page.locator('#sash-cs').check();
   await expect(page.locator('#sash-cs-box')).toBeVisible();
   expect((await app.current()).sashing.cornerstones).toBe(true);
+});
+
+test('cornerstones pieced as a block: only on sashing over 75 mm, parts in their own fabrics, cut like a block', async ({
+  app,
+  page,
+}) => {
+  const sashPanel = async () => {
+    await page.locator('#tabs [data-page="design"]').click();
+    if (!(await page.locator('#sash-card').isVisible())) await page.locator('#rail-sash').click();
+  };
+  const nine = page.locator('#sash-cpats button[data-p="nine"]');
+  await sashPanel();
+  await expect(nine).toBeDisabled(); // 50 mm: too narrow to sew a block
+  await expect(page.locator('#sash-cb-note')).toContainText('wider than 75 mm');
+
+  await page.locator('#sash-presets button', { hasText: '76 mm' }).click();
+  await expect(nine).toBeEnabled();
+  await nine.click();
+  await expect(page.locator('#sash-cb-edit')).toBeVisible();
+  expect((await app.current()).sashing.cornerBlock.pattern).toBe('nine');
+  // the centre square of the nine-patch gets a fabric of its own; the other parts keep theirs
+  await page.locator('#sash-cb').click();
+  await expect(page.locator('#sash-cb-info')).toContainText('Selected:');
+  await expect(page.locator('#sash-corner-lbl')).toHaveText('Fabric for the selected parts');
+  await page.locator('#sash-corner .fab[data-f="b2"]').click();
+  const fabrics = (await app.current()).sashing.cornerBlock.fabrics;
+  expect(fabrics[4]).toBe('b2');
+  expect(fabrics.filter(f => f === 'b2')).toHaveLength(1);
+
+  // the cutting guide: a card of its own, one block per cornerstone (4 × 4 crossings), and no plain squares
+  await page.locator('#tabs [data-page="cut"]').click();
+  const card = page.locator('#cg-blocks .cgblock', { has: page.locator('h3', { hasText: 'Cornerstone block' }) });
+  await expect(card.locator('.meta')).toContainText('Cornerstone · Nine patch · 76 mm · make 16');
+  const sash = page.locator('#cg-blocks .cgblock', { has: page.locator('h3', { hasText: 'Sashing' }) });
+  await expect(sash).not.toContainText('Cornerstones');
+
+  // narrower again: plain cornerstones, but the block is still saved for later
+  await sashPanel();
+  await page.locator('#sash-presets button', { hasText: '50 mm' }).click();
+  await expect(page.locator('#sash-cb-edit')).toBeHidden();
+  await expect(page.locator('#sash-cb-note')).toContainText('plain ones until then');
+  expect((await app.current()).sashing.cornerBlock.pattern).toBe('nine');
+  await page.locator('#tabs [data-page="cut"]').click();
+  await expect(page.locator('#cg-blocks h3', { hasText: 'Cornerstone block' })).toHaveCount(0);
+  await expect(sash).toContainText('Cornerstones');
+});
+
+test('a cornerstone pattern starts in the colours of its button, whatever the last block had', async ({
+  app,
+  page,
+}) => {
+  await page.locator('#tabs [data-page="design"]').click();
+  if (!(await page.locator('#sash-card').isVisible())) await page.locator('#rail-sash').click();
+  await page.locator('#sash-presets button', { hasText: '76 mm' }).click();
+  await page.locator('#sash-cpats button[data-p="four"]').click();
+  await page.locator('#sash-corner .fab[data-f="b2"]').click(); // nothing selected: every part in one fabric
+  expect(new Set((await app.current()).sashing.cornerBlock.fabrics)).toEqual(new Set(['b2']));
+  await page.locator('#sash-cpats button[data-p="ohio"]').click();
+  expect((await app.current()).sashing.cornerBlock.fabrics).toEqual(newBlock('ohio').fabrics); // cream, indigo, mustard
 });
 
 test('a click opens and closes a cutting list', async ({ page }) => {

@@ -177,6 +177,23 @@ function drawBordersExploded(g, W, gap, focus = -1) {
  * @param {CanvasRenderingContext2D} g @param {number} W @param {number} H
  * @param {{ seams?: boolean, design?: import('@quilt/shared/types.js').Design }} [opts] design: the one being edited by default
  */
+// a cornerstone pieced as a block (sashing.cornerBlock), filling the cornerstone rc
+function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
+  const polys = blockPolys(cb, rc.x, rc.y, rc.w, rc.h);
+  polys.forEach((poly, pi) => {
+    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi);
+    pathPoly(g, poly);
+    g.fill();
+    dimUnlessHi(g, { t: 'sash', kind: 'corner', fabric: cb.fabrics[pi] });
+  });
+  if (!seams) return;
+  g.strokeStyle = 'rgba(40,30,20,.35)';
+  g.lineWidth = lineW;
+  for (const poly of polys) {
+    pathPoly(g, poly);
+    g.stroke();
+  }
+}
 function drawQuilt(g, W, H, opts = {}) {
   const d = opts.design || design;
   if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
@@ -184,6 +201,10 @@ function drawQuilt(g, W, H, opts = {}) {
     pxPerCm = W / (q.W / 10),
     s = sashOf(d);
   for (const [k, rc] of sashRects(d, W, H).entries()) {
+    if (rc.kind === 'corner' && s.cornerBlock) {
+      drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
+      continue;
+    }
     g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + k);
     g.fillRect(rc.x, rc.y, rc.w, rc.h);
     g.beginPath();
@@ -219,4 +240,4 @@ function drawQuilt(g, W, H, opts = {}) {
     }
 }
 
-export { drawBorders, drawBordersExploded, drawQuilt, explodedH };
+export { drawBorders, drawBordersExploded, drawCornerBlock, drawQuilt, explodedH };

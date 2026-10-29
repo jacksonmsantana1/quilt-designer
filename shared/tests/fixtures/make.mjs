@@ -69,6 +69,16 @@ w('v2-sashing-without-cornerstones.json', {
   sashing: { mm: 50, fabric: 'b2', corner: 'b3', border: true, cornerstones: false },
   blocks: [blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4')],
 });
+// version 3: cornerstones pieced as a nine-patch (the sashing is wide enough: over 75 mm)
+w('v3-cornerstone-block.json', {
+  v: 3,
+  cols: 3,
+  rows: 2,
+  blockMm: 250,
+  backFabric: 'b0',
+  sashing: { mm: 80, fabric: 'b0', corner: 'b3', border: true, cornerBlock: blk('nine', 'b1') },
+  blocks: [blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4')],
+});
 // saved by a later version of the app
 w('newer.json', {
   ...JSON.parse(fs.readFileSync(new URL('v0-before-block-sizes.json', D))),

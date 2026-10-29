@@ -16,6 +16,7 @@ import {
   borderTotal,
   pointInPoly,
   sashOf,
+  CORNER_BLOCK_MIN_MM,
 } from '@quilt/shared/geometry.js';
 import { grid } from './fixtures.mjs';
 import { area, close } from './helpers.mjs';
@@ -84,6 +85,17 @@ test('without cornerstones, a large block breaks the long strips', () => {
   // two large blocks side by side: the crossing between them joins the strips above and below it
   const two = setSpan(setSpan(grid(4, 2, { blockMm: 100, sashing: s }), 0, 2), 2, 2);
   assert.deepEqual(sashKinds(two), { 'long 10x210': 1 });
+});
+
+test('a cornerstone block is used only on sashing wider than 75 mm, with cornerstones on', () => {
+  const cornerBlock = { pattern: 'nine', rot: 0, fabrics: Array(9).fill('b1') };
+  const at = (mm, more = {}) =>
+    sashOf(grid(2, 2, { sashing: { mm, fabric: 'b0', corner: 'b3', cornerBlock, ...more } }));
+  assert.equal(CORNER_BLOCK_MIN_MM, 76);
+  assert.equal(at(75).cornerBlock, null); // too narrow: plain cornerstones, the block stays saved
+  assert.equal(at(76).cornerBlock, cornerBlock);
+  assert.equal(at(100, { cornerstones: false }).cornerBlock, null); // no cornerstones at all
+  assert.equal(sashOf(grid(2, 2, { sashing: { mm: 100 } })).cornerBlock, null); // none chosen
 });
 
 test('sashing with no width counts as none', () => {

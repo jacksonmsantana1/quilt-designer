@@ -2,7 +2,7 @@
 import '../app/layout.js'; // load order: runs after app/layout
 import { design, selBlocks, setFocusBlock, setSelBlocks, setSelParts } from '../core/store.js';
 import { $ } from '../core/dom.js';
-import { partsOf } from '@quilt/shared/patterns.js';
+import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
 import {
   BORDER_TYPES,
@@ -114,7 +114,11 @@ function drawHover() {
       g,
       hover.zone === 'brd'
         ? `Border ${hover.zi + 1} · ${BORDER_TYPES[b.type].label} · ${b.mm} mm · click to edit`
-        : `${z.kind === 'corner' ? 'Cornerstone' : 'Sashing'} · ${fabricById(z.kind === 'corner' ? s.corner : s.fabric).name} · ${s.mm} mm · click to edit`,
+        : `${z.kind === 'corner' ? 'Cornerstone' : 'Sashing'} · ${
+            z.kind === 'corner' && s.cornerBlock
+              ? PATTERNS[s.cornerBlock.pattern].label
+              : fabricById(z.kind === 'corner' ? s.corner : s.fabric).name
+          } · ${s.mm} mm · click to edit`,
       W,
     );
     return;

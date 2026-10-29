@@ -382,6 +382,7 @@
   .pats .pat canvas, .fabs .fab canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
   .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .pats .pat:disabled { opacity: .4; cursor: not-allowed; } /* e.g. cornerstone blocks on narrow sashing */
   .fabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
   .bmm-in { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: .85rem; }
@@ -808,7 +809,14 @@
         <p class="fine" style="margin:10px 0 6px">Sashing fabric</p>
         <div class="fabs" id="sash-fabs"></div>
         <div id="sash-cs-box">
-          <p class="fine" style="margin:10px 0 6px">Cornerstone fabric</p>
+          <p class="fine" style="margin:10px 0 6px">Cornerstones: plain fabric, or pieced as a block</p>
+          <div class="pats" id="sash-cpats" role="group" aria-label="Cornerstone pattern"></div>
+          <p class="fine" id="sash-cb-note" style="margin:6px 0 0"></p>
+          <div id="sash-cb-edit" hidden style="margin-top:8px">
+            <canvas id="sash-cb" width="240" height="240" style="width:160px;height:160px;cursor:pointer;border-radius:3px;box-shadow:0 2px 10px rgba(20,25,40,.15)" aria-label="The cornerstone block. Click a part to select it, then pick its fabric; shift-click to select several."></canvas>
+            <p class="fine" id="sash-cb-info" style="margin:4px 0 0"></p>
+          </div>
+          <p class="fine" id="sash-corner-lbl" style="margin:10px 0 6px">Cornerstone fabric</p>
           <div class="fabs" id="sash-corner"></div>
         </div>
         <p class="fine" id="sash-note" style="margin:8px 0 0"></p>
@@ -2683,15 +2691,21 @@ function pathPoly(g, poly) {
   poly.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
   g.closePath();
 }
+var CORNER_BLOCK_MIN_MM = 76;
+var CORNER_PATTERNS = ["four", "nine", "hst", "hourglass", "sqsq", "pinwheel", "ohio"];
 var sashOf = (d) => {
   const s = d && d.sashing;
-  return s && s.mm > 0 ? {
+  if (!(s && s.mm > 0))
+    return { mm: 0, fabric: "b0", corner: "b0", border: false, cornerstones: true, cornerBlock: null };
+  const cornerstones = s.cornerstones !== false;
+  return {
     mm: s.mm,
     fabric: s.fabric || "b0",
     corner: s.corner || s.fabric || "b0",
     border: !!s.border,
-    cornerstones: s.cornerstones !== false
-  } : { mm: 0, fabric: "b0", corner: "b0", border: false, cornerstones: true };
+    cornerstones,
+    cornerBlock: cornerstones && s.mm >= CORNER_BLOCK_MIN_MM && s.cornerBlock ? s.cornerBlock : null
+  };
 };
 function centreMm(d) {
   const s = sashOf(d), e = s.border ? 2 : 0;
@@ -2950,7 +2964,7 @@ function pathPolyInto(g, poly) {
 }
 
 // ../shared/src/design.js
-var FORMAT_VERSION = 2;
+var FORMAT_VERSION = 3;
 var ROLE_DEFAULT = ["b0", "b1", "b3"];
 function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
   return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
@@ -2985,7 +2999,9 @@ var MIGRATIONS = [
   // 1 → 2: sashing can leave out its cornerstones (sashing.cornerstones false); older saves all have them,
   // which is what a missing value means, so nothing changes. (Older apps open version 2 read-only, so they
   // can't save over the setting.)
-  (d) => ({ ...d, v: 2 })
+  (d) => ({ ...d, v: 2 }),
+  // 2 → 3: cornerstones can be pieced as a block (sashing.cornerBlock); older saves have plain ones
+  (d) => ({ ...d, v: 3 })
 ];
 var LIMITS = { grid: [1, 20], blockMm: [50, 1e3], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
 var SYMS = ["off", "lr", "tb", "both", "kal"];
@@ -3046,6 +3062,13 @@ function check(d) {
         ...s.cornerstones === false ? { cornerstones: false } : {}
         // kept only when off (the default is on)
       };
+      if (s.cornerBlock !== void 0) {
+        let bad = 0;
+        const cb = isObj(s.cornerBlock) && PATTERNS[s.cornerBlock.pattern] ? checkBlock(s.cornerBlock, () => bad++) : null;
+        if (cb) out.sashing.cornerBlock = { pattern: cb.pattern, rot: cb.rot, fabrics: cb.fabrics };
+        if (!cb) problems.push("The cornerstone block could not be read and was taken off.");
+        else if (bad) problems.push("The cornerstone block was repaired.");
+      }
     } else {
       delete out.sashing;
       problems.push("The sashing could not be read and was taken off.");
@@ -6179,11 +6202,31 @@ function drawBordersExploded(g, W, gap, focus = -1) {
   g.restore();
   return H;
 }
+function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
+  const polys = blockPolys(cb, rc.x, rc.y, rc.w, rc.h);
+  polys.forEach((poly, pi) => {
+    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi);
+    pathPoly(g, poly);
+    g.fill();
+    dimUnlessHi(g, { t: "sash", kind: "corner", fabric: cb.fabrics[pi] });
+  });
+  if (!seams) return;
+  g.strokeStyle = "rgba(40,30,20,.35)";
+  g.lineWidth = lineW;
+  for (const poly of polys) {
+    pathPoly(g, poly);
+    g.stroke();
+  }
+}
 function drawQuilt(g, W, H, opts = {}) {
   const d = opts.design || design;
   if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
   const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
   for (const [k, rc] of sashRects(d, W, H).entries()) {
+    if (rc.kind === "corner" && s.cornerBlock) {
+      drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
+      continue;
+    }
     g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + k);
     g.fillRect(rc.x, rc.y, rc.w, rc.h);
     g.beginPath();
@@ -7701,7 +7744,7 @@ function hasChiralPiece(pattern) {
   return patternChiral[pattern];
 }
 function mirroredCount(pb) {
-  if (!hasChiralPiece(pb.block.pattern)) return 0;
+  if (pb.corner || !hasChiralPiece(pb.block.pattern)) return 0;
   const k = pb.block.pattern + "|" + pb.span + "|" + pb.block.fabrics.join(",");
   return design.blocks.filter(
     (b) => b.flip && b.under == null && b.pattern + "|" + spanOf(b) + "|" + b.fabrics.join(",") === k
@@ -7762,8 +7805,16 @@ function drawCutQuilt(P, into) {
   g.translate(lab, lab);
   const pxPerCm = k * 10;
   if (bordersOf(design).length) drawBorders(g, d2, W, H, pxPerCm, true);
-  const sr = s.mm ? sashRects(d2, W, H) : [];
+  const sr = s.mm ? sashRects(d2, W, H) : [], ci = P.blocks.findIndex((b) => b.corner), rects = [];
   sr.forEach((rc, i) => {
+    if (rc.kind === "corner" && ci >= 0) {
+      g.save();
+      g.translate(rc.x, rc.y);
+      drawBlockArt(g, P.blocks[ci], P, ci + 1, rc.w, rc.h);
+      g.restore();
+      rects.push({ ...rc, i: ci });
+      return;
+    }
     g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + i);
     g.fillRect(rc.x, rc.y, rc.w, rc.h);
     g.beginPath();
@@ -7773,8 +7824,9 @@ function drawCutQuilt(P, into) {
     g.lineWidth = u;
     g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
   });
-  const numOf = new Map(P.blocks.map((b, i) => [b.block.pattern + "|" + b.span + "|" + b.block.fabrics.join(","), i]));
-  const rects = [];
+  const numOf = new Map(
+    P.blocks.map((b, i) => [b.block.pattern + "|" + b.span + "|" + b.block.fabrics.join(","), i]).filter(([, i]) => !P.blocks[i].corner)
+  );
   design.blocks.forEach((blk2, bi) => {
     if (blk2.under != null) return;
     const i = numOf.get(blk2.pattern + "|" + spanOf(blk2) + "|" + blk2.fabrics.join(",")), pb = P.blocks[i];
@@ -7884,7 +7936,7 @@ function drawCutQuilt(P, into) {
   }
   if (into) return;
   const nHi = typeof cgHi === "number" && cgHi >= 0 ? P.blocks[cgHi].count : 0;
-  $("cg-quilt-meta").textContent = typeof cgHi === "string" ? `Showing the ${cgHi === "sash" ? "sashing" : cgHi === "brd" ? "borders" : "border " + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : cgHi >= 0 ? `Showing block ${cgHi + 1} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${design.cols} \xD7 ${design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
+  $("cg-quilt-meta").textContent = typeof cgHi === "string" ? `Showing the ${cgHi === "sash" ? "sashing" : cgHi === "brd" ? "borders" : "border " + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : cgHi >= 0 ? `Showing ${P.blocks[cgHi].corner ? "the cornerstone blocks" : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${design.cols} \xD7 ${design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
   $("cg-quilt-meta").classList.toggle("cg-hi-on", cgHi !== -1);
   document.querySelectorAll(".cgblock").forEach((el) => el.classList.toggle("picked", el.dataset.key === String(cgHi)));
 }
@@ -7970,6 +8022,17 @@ var CG = /* @__PURE__ */ (() => {
         groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
       groups.get(key).count++;
     });
+    (opts.extraBlocks || []).forEach(
+      (x, k) => groups.set("extra|" + k, {
+        block: x.block,
+        count: x.count,
+        index: -1,
+        span: 1,
+        size: x.size,
+        corner: true,
+        label: x.label
+      })
+    );
     const letters = /* @__PURE__ */ new Map();
     const letterOf = (id) => {
       if (!letters.has(id)) letters.set(id, String.fromCharCode(65 + letters.size));
@@ -8018,7 +8081,7 @@ var CG = /* @__PURE__ */ (() => {
       const nForm = {};
       for (const r of list) r.form = nForm[r.letter] = (nForm[r.letter] || 0) + 1;
       for (const pc of pieces) pc.form = rows.get(pc.rowKey).form;
-      blocks.push({ ...g, label: opts.label(g.block.pattern), pieces, list });
+      blocks.push({ ...g, label: g.label || opts.label(g.block.pattern), pieces, list });
     }
     const fabrics2 = /* @__PURE__ */ new Map();
     for (const b of blocks)
@@ -8120,7 +8183,7 @@ var CG = /* @__PURE__ */ (() => {
 // src/cutting/page.js
 function openQuiltPop(P, i) {
   const d = $("cg-pop"), b = P.blocks[i];
-  $("cg-pop-title").textContent = `Block ${i + 1} \xB7 ${b.label}`;
+  $("cg-pop-title").textContent = b.corner ? b.label : `Block ${i + 1} \xB7 ${b.label}`;
   $("cg-pop-sub").textContent = `${b.count} in the quilt, marked in orange \xB7 ${design.cols} \xD7 ${design.rows} blocks, ${P.quiltW} \xD7 ${P.quiltH} mm`;
   if (!d.open) {
     try {
@@ -8211,7 +8274,7 @@ function renderCut() {
   if (!design) return;
   cgRedraws.length = 0;
   setFabHi(null);
-  const sz = sashOf(design), qm = quiltMm(design), extra = [];
+  const sz = sashOf(design), qm = quiltMm(design), extra = [], extraBlocks = [];
   if (sz.mm) {
     const sr = sashRects(design, qm.W, qm.H), strips = sr.filter((x) => x.kind === "sash").length, corners = sr.filter((x) => x.kind === "corner").length, lens = sr.filter((x) => x.kind === "long").map((x) => Math.round(Math.max(x.w, x.h)));
     if (strips)
@@ -8238,7 +8301,14 @@ function renderCut() {
             n: lens.filter((l) => l === L).length
           });
     }
-    if (corners)
+    if (corners && sz.cornerBlock)
+      extraBlocks.push({
+        block: sz.cornerBlock,
+        count: corners,
+        size: sz.mm,
+        label: `Cornerstone \xB7 ${PATTERNS[sz.cornerBlock.pattern].label}`
+      });
+    else if (corners)
       extra.push({ group: "sash", what: SASH_WHAT.corner, fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
   }
   const bs = bordersOf(design), cm = centreMm(design);
@@ -8283,6 +8353,7 @@ function renderCut() {
     partsOf,
     label: (k) => PATTERNS[k].label,
     extra,
+    extraBlocks,
     quiltW: qm.W,
     quiltH: qm.H
   });
@@ -8294,7 +8365,7 @@ function renderCut() {
       "Block",
       `${P.blockW} \xD7 ${P.blockH} mm finished \xB7 ${P.blockW + 2 * P.seam} \xD7 ${P.blockH + 2 * P.seam} mm with seam allowance`
     ],
-    ["Distinct blocks", P.blocks.length]
+    ["Distinct blocks", P.blocks.filter((b) => !b.corner).length]
   ].map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join("");
   const tb = $("cg-fabrics").querySelector("tbody");
   tb.innerHTML = "";
@@ -8322,7 +8393,7 @@ function renderCut() {
     const rows = b.list.map(
       (r) => `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil(r.pieces * b.count / r.yield)}</td></tr>`
     ).join("");
-    div.innerHTML = `<h3>Block ${i + 1}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` \xB7 large block, ${b.span} \xD7 ${b.span} cells (${b.size} mm)` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ""}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list \xB7 double-click: see it in the quilt</span></div>
+    div.innerHTML = `<h3>${b.corner ? "Cornerstone block" : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` \xB7 large block, ${b.span} \xD7 ${b.span} cells (${b.size} mm)` : ""}${b.corner ? ` \xB7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ""}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list \xB7 double-click: see it in the quilt</span></div>
       <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>Fabric</th><th>Cut</th><th>Per block</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     box2.appendChild(div);
     {
@@ -8481,6 +8552,63 @@ $("cg-pop").addEventListener("close", () => {
 });
 
 // src/designer/sashing-ui.js
+var cbSel = /* @__PURE__ */ new Set();
+function drawCornerPatterns(current, allowed) {
+  const box2 = $("sash-cpats");
+  if (!box2.childElementCount)
+    for (const key of ["", ...CORNER_PATTERNS]) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "pat";
+      b.dataset.p = key;
+      b.title = key ? PATTERNS[key].label : "Plain fabric";
+      const c = document.createElement("canvas");
+      c.width = c.height = 64;
+      const g = c.getContext("2d");
+      const cols = ["#efe5cf", "#2f466f", "#c79a45"];
+      for (const part of partsOf(key || "plain")) {
+        g.fillStyle = cols[part.role];
+        pathPoly(
+          g,
+          part.poly.map(([u, v]) => [u * 64, v * 64])
+        );
+        g.fill();
+        g.strokeStyle = "rgba(0,0,0,.25)";
+        g.stroke();
+      }
+      const s = document.createElement("span");
+      s.textContent = b.title;
+      b.append(c, s);
+      box2.appendChild(b);
+    }
+  for (const b of box2.querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b.dataset.p === current));
+    b.disabled = !!b.dataset.p && !allowed;
+  }
+}
+function drawCornerBlockEditor(cb, mm) {
+  const cv = $("sash-cb"), g = cv.getContext("2d"), S = cv.width, polys = blockPolys(cb, 0, 0, S, S);
+  g.clearRect(0, 0, S, S);
+  polys.forEach((poly, pi) => {
+    g.fillStyle = pieceFill(g, cb, pi, poly, S / (mm / 10), pi);
+    pathPoly(g, poly);
+    g.fill();
+    g.strokeStyle = "rgba(40,30,20,.45)";
+    g.lineWidth = 1;
+    g.stroke();
+  });
+  for (const pi of cbSel) {
+    pathPoly(g, polys[pi]);
+    g.strokeStyle = "#ffffff";
+    g.lineWidth = 5;
+    g.stroke();
+    g.strokeStyle = "#e0592a";
+    g.lineWidth = 2.5;
+    g.stroke();
+  }
+  const names = partsOf(cb.pattern).map((p) => p.name), pick = [...cbSel];
+  $("sash-cb-info").textContent = !pick.length ? `${PATTERNS[cb.pattern].label} \xB7 click a part to choose its fabric` : pick.length === 1 ? `Selected: ${names[pick[0]]} \xB7 ${fabricById(cb.fabrics[pick[0]]).name}` : `${pick.length} parts selected`;
+}
 function renderSashUI() {
   if (!design || !$("sash-card")) return;
   const s = sashOf(design), raw = design.sashing || {};
@@ -8499,7 +8627,15 @@ function renderSashUI() {
     box2.appendChild(b);
   }
   drawPaletteInto($("sash-fabs"), raw.fabric || "b0");
-  drawPaletteInto($("sash-corner"), raw.corner || raw.fabric || "b0");
+  const wide = s.mm >= CORNER_BLOCK_MIN_MM, cb = s.cornerBlock;
+  cbSel = cb ? new Set([...cbSel].filter((i) => i < cb.fabrics.length)) : /* @__PURE__ */ new Set();
+  drawCornerPatterns(cb ? cb.pattern : "", wide);
+  $("sash-cb-note").textContent = wide ? "" : `Pieced cornerstones need sashing wider than ${CORNER_BLOCK_MIN_MM - 1} mm${raw.cornerBlock ? ": plain ones until then" : ""}.`;
+  $("sash-cb-edit").hidden = !cb;
+  if (cb) drawCornerBlockEditor(cb, s.mm);
+  $("sash-corner-lbl").textContent = !cb ? "Cornerstone fabric" : cbSel.size ? "Fabric for the selected parts" : "Fabric for every part (or click parts above first)";
+  const picked = cb ? new Set((cbSel.size ? [...cbSel] : cb.fabrics.map((_, i) => i)).map((i) => cb.fabrics[i])) : null;
+  drawPaletteInto($("sash-corner"), !cb ? raw.corner || raw.fabric || "b0" : picked.size === 1 ? [...picked][0] : null);
   const q = quiltMm(design);
   $("sash-note").textContent = s.mm ? `Finished quilt with sashing: ${q.W} \xD7 ${q.H} mm. Click the sashing on the quilt to come back here.` : "Choose a width to add strips of fabric between the blocks.";
 }
@@ -8525,9 +8661,34 @@ function initSashUI() {
     const b = e.target.closest("button.fab");
     if (b) setSash({ fabric: b.dataset.f, ...design.sashing && design.sashing.mm ? {} : { mm: 50 } });
   });
+  $("sash-cpats").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.disabled) return;
+    const p = b.dataset.p, cur = sashOf(design).cornerBlock;
+    if ((cur ? cur.pattern : "") === p) return;
+    cbSel = /* @__PURE__ */ new Set();
+    if (!p) return setSash({ cornerBlock: void 0 });
+    setSash({ cornerBlock: newBlock(p) });
+  });
+  $("sash-cb").addEventListener("click", (e) => {
+    const cb = sashOf(design).cornerBlock;
+    if (!cb) return;
+    const r = e.currentTarget.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    const hit = blockPolys(cb, 0, 0, 1, 1).findIndex((p) => pointInPoly(x, y, p));
+    if (hit < 0) return;
+    if (e.shiftKey || e.ctrlKey || e.metaKey) cbSel.has(hit) ? cbSel.delete(hit) : cbSel.add(hit);
+    else cbSel = cbSel.size === 1 && cbSel.has(hit) ? /* @__PURE__ */ new Set() : /* @__PURE__ */ new Set([hit]);
+    renderSashUI();
+  });
   $("sash-corner").addEventListener("click", (e) => {
     const b = e.target.closest("button.fab");
-    if (b) setSash({ corner: b.dataset.f, ...design.sashing && design.sashing.mm ? {} : { mm: 50 } });
+    if (!b) return;
+    const cb = sashOf(design).cornerBlock;
+    if (cb)
+      setSash({
+        cornerBlock: { ...cb, fabrics: cb.fabrics.map((f, i) => !cbSel.size || cbSel.has(i) ? b.dataset.f : f) }
+      });
+    else setSash({ corner: b.dataset.f, ...design.sashing && design.sashing.mm ? {} : { mm: 50 } });
   });
 }
 initSashUI();
@@ -10317,7 +10478,7 @@ function drawHover() {
     const s = sashOf(design), b2 = hover.zone === "brd" ? bordersOf(design)[hover.zi] : null;
     hoverLabel(
       g,
-      hover.zone === "brd" ? `Border ${hover.zi + 1} \xB7 ${BORDER_TYPES[b2.type].label} \xB7 ${b2.mm} mm \xB7 click to edit` : `${z.kind === "corner" ? "Cornerstone" : "Sashing"} \xB7 ${fabricById(z.kind === "corner" ? s.corner : s.fabric).name} \xB7 ${s.mm} mm \xB7 click to edit`,
+      hover.zone === "brd" ? `Border ${hover.zi + 1} \xB7 ${BORDER_TYPES[b2.type].label} \xB7 ${b2.mm} mm \xB7 click to edit` : `${z.kind === "corner" ? "Cornerstone" : "Sashing"} \xB7 ${z.kind === "corner" && s.cornerBlock ? PATTERNS[s.cornerBlock.pattern].label : fabricById(z.kind === "corner" ? s.corner : s.fabric).name} \xB7 ${s.mm} mm \xB7 click to edit`,
       W2
     );
     return;
@@ -10889,8 +11050,8 @@ function pdfBlockPage(P, b, i, page, pages) {
   pdfHeader(
     g,
     P,
-    `Block ${i + 1}`,
-    `${b.label}${b.span > 1 ? ` \xB7 large block, ${b.size} \xD7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ""}`,
+    b.corner ? "Cornerstone block" : `Block ${i + 1}`,
+    `${b.label}${b.span > 1 ? ` \xB7 large block, ${b.size} \xD7 ${b.size} mm` : ""}${b.corner ? ` \xB7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ""}`,
     page,
     pages
   );

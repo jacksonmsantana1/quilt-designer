@@ -41,7 +41,7 @@ import {
 function openQuiltPop(P, i) {
   const d = $('cg-pop'),
     b = P.blocks[i];
-  $('cg-pop-title').textContent = `Block ${i + 1} · ${b.label}`;
+  $('cg-pop-title').textContent = b.corner ? b.label : `Block ${i + 1} · ${b.label}`;
   $('cg-pop-sub').textContent =
     `${b.count} in the quilt, marked in orange · ${design.cols} × ${design.rows} blocks, ${P.quiltW} × ${P.quiltH} mm`;
   if (!d.open) {
@@ -147,7 +147,8 @@ function renderCut() {
   setFabHi(null);
   const sz = sashOf(design),
     qm = quiltMm(design),
-    extra = [];
+    extra = [],
+    extraBlocks = [];
   if (sz.mm) {
     // counted from the drawn sashing (in mm), so strips hidden under large blocks are left out
     const sr = sashRects(design, qm.W, qm.H),
@@ -180,7 +181,15 @@ function renderCut() {
             n: lens.filter(l => l === L).length,
           });
     }
-    if (corners)
+    // pieced cornerstones are cut like blocks (a card of their own, below); plain ones are squares
+    if (corners && sz.cornerBlock)
+      extraBlocks.push({
+        block: sz.cornerBlock,
+        count: corners,
+        size: sz.mm,
+        label: `Cornerstone · ${PATTERNS[sz.cornerBlock.pattern].label}`,
+      });
+    else if (corners)
       extra.push({ group: 'sash', what: SASH_WHAT.corner, fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
   }
   // borders: every piece of every side, classified into standard cuts (or long strips cut across the width)
@@ -236,6 +245,7 @@ function renderCut() {
     partsOf,
     label: k => PATTERNS[k].label,
     extra,
+    extraBlocks,
     quiltW: qm.W,
     quiltH: qm.H,
   });
@@ -247,7 +257,7 @@ function renderCut() {
       'Block',
       `${P.blockW} × ${P.blockH} mm finished · ${P.blockW + 2 * P.seam} × ${P.blockH + 2 * P.seam} mm with seam allowance`,
     ],
-    ['Distinct blocks', P.blocks.length],
+    ['Distinct blocks', P.blocks.filter(b => !b.corner).length],
   ]
     .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`)
     .join('');
@@ -283,7 +293,8 @@ function renderCut() {
           `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil((r.pieces * b.count) / r.yield)}</td></tr>`,
       )
       .join('');
-    div.innerHTML = `<h3>Block ${i + 1}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` · large block, ${b.span} × ${b.span} cells (${b.size} mm)` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ''}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list · double-click: see it in the quilt</span></div>
+    // pieced cornerstones are a block card too (their IDs carry its number), named for what they are
+    div.innerHTML = `<h3>${b.corner ? 'Cornerstone block' : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` · large block, ${b.span} × ${b.span} cells (${b.size} mm)` : ''}${b.corner ? ` · ${b.size} mm` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ''}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list · double-click: see it in the quilt</span></div>
       <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>Fabric</th><th>Cut</th><th>Per block</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     box.appendChild(div);
     {

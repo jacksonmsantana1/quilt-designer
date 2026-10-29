@@ -381,6 +381,7 @@
   .pats .pat canvas, .fabs .fab canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
   .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .pats .pat:disabled { opacity: .4; cursor: not-allowed; } /* e.g. cornerstone blocks on narrow sashing */
   .fabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
   .bmm-in { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: .85rem; }
@@ -807,7 +808,14 @@
         <p class="fine" style="margin:10px 0 6px">Sashing fabric</p>
         <div class="fabs" id="sash-fabs"></div>
         <div id="sash-cs-box">
-          <p class="fine" style="margin:10px 0 6px">Cornerstone fabric</p>
+          <p class="fine" style="margin:10px 0 6px">Cornerstones: plain fabric, or pieced as a block</p>
+          <div class="pats" id="sash-cpats" role="group" aria-label="Cornerstone pattern"></div>
+          <p class="fine" id="sash-cb-note" style="margin:6px 0 0"></p>
+          <div id="sash-cb-edit" hidden style="margin-top:8px">
+            <canvas id="sash-cb" width="240" height="240" style="width:160px;height:160px;cursor:pointer;border-radius:3px;box-shadow:0 2px 10px rgba(20,25,40,.15)" aria-label="The cornerstone block. Click a part to select it, then pick its fabric; shift-click to select several."></canvas>
+            <p class="fine" id="sash-cb-info" style="margin:4px 0 0"></p>
+          </div>
+          <p class="fine" id="sash-corner-lbl" style="margin:10px 0 6px">Cornerstone fabric</p>
           <div class="fabs" id="sash-corner"></div>
         </div>
         <p class="fine" id="sash-note" style="margin:8px 0 0"></p>

@@ -22,19 +22,28 @@ function pathPoly(g, poly) {
   g.closePath();
 }
 // ---- sashing: strips of fabric between the blocks (optionally all round the outside too), with
-// cornerstones where strips cross. design.sashing = { mm, fabric, corner, border, cornerstones }; mm 0 = none.
-/** Sashing with defaults filled in (mm 0 = none). @param {Design} d @returns {Required<import('./types.js').Sashing>} */
+// cornerstones where strips cross. design.sashing = { mm, fabric, corner, border, cornerstones, cornerBlock };
+// mm 0 = none. A cornerstone can be pieced as a block, from a few simple patterns, once the sashing is wide enough
+// to sew one (narrower, the block stays saved but the cornerstones are plain again).
+const CORNER_BLOCK_MIN_MM = 76;
+const CORNER_PATTERNS = ['four', 'nine', 'hst', 'hourglass', 'sqsq', 'pinwheel', 'ohio'];
+/**
+ * Sashing with defaults filled in (mm 0 = none); cornerBlock is the block in use, or null.
+ * @param {Design} d @returns {Required<Omit<import('./types.js').Sashing, 'cornerBlock'>> & { cornerBlock: import('./types.js').Block | null }}
+ */
 const sashOf = d => {
   const s = d && d.sashing;
-  return s && s.mm > 0
-    ? {
-        mm: s.mm,
-        fabric: s.fabric || 'b0',
-        corner: s.corner || s.fabric || 'b0',
-        border: !!s.border,
-        cornerstones: s.cornerstones !== false,
-      }
-    : { mm: 0, fabric: 'b0', corner: 'b0', border: false, cornerstones: true };
+  if (!(s && s.mm > 0))
+    return { mm: 0, fabric: 'b0', corner: 'b0', border: false, cornerstones: true, cornerBlock: null };
+  const cornerstones = s.cornerstones !== false;
+  return {
+    mm: s.mm,
+    fabric: s.fabric || 'b0',
+    corner: s.corner || s.fabric || 'b0',
+    border: !!s.border,
+    cornerstones,
+    cornerBlock: cornerstones && s.mm >= CORNER_BLOCK_MIN_MM && s.cornerBlock ? s.cornerBlock : null,
+  };
 };
 // finished size of the quilt top in mm
 // the centre (blocks + sashing), before any borders
@@ -401,6 +410,8 @@ function pathPolyInto(g, poly) {
 
 export {
   BORDER_TYPES,
+  CORNER_BLOCK_MIN_MM,
+  CORNER_PATTERNS,
   anchorOf,
   blockAt,
   blockPolys,

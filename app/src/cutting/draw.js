@@ -261,7 +261,7 @@ function hasChiralPiece(pattern) {
   return patternChiral[pattern];
 }
 function mirroredCount(pb) {
-  if (!hasChiralPiece(pb.block.pattern)) return 0;
+  if (pb.corner || !hasChiralPiece(pb.block.pattern)) return 0; // cornerstone blocks are never turned over
   const k = pb.block.pattern + '|' + pb.span + '|' + pb.block.fabrics.join(',');
   return design.blocks.filter(
     b => b.flip && b.under == null && b.pattern + '|' + spanOf(b) + '|' + b.fabrics.join(',') === k,
@@ -337,8 +337,18 @@ function drawCutQuilt(P, into) {
   const pxPerCm = k * 10;
   // borders and sashing in their fabrics
   if (bordersOf(design).length) drawBorders(g, d2, W, H, pxPerCm, true);
-  const sr = s.mm ? sashRects(d2, W, H) : [];
+  const sr = s.mm ? sashRects(d2, W, H) : [],
+    ci = P.blocks.findIndex(b => b.corner), // pieced cornerstones: drawn like their block card, pieces labelled
+    rects = [];
   sr.forEach((rc, i) => {
+    if (rc.kind === 'corner' && ci >= 0) {
+      g.save();
+      g.translate(rc.x, rc.y);
+      drawBlockArt(g, P.blocks[ci], P, ci + 1, rc.w, rc.h);
+      g.restore();
+      rects.push({ ...rc, i: ci });
+      return;
+    }
     g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + i);
     g.fillRect(rc.x, rc.y, rc.w, rc.h);
     g.beginPath();
@@ -349,8 +359,11 @@ function drawCutQuilt(P, into) {
     g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
   });
   // blocks, each turned as designed, every piece labelled with its ID
-  const numOf = new Map(P.blocks.map((b, i) => [b.block.pattern + '|' + b.span + '|' + b.block.fabrics.join(','), i]));
-  const rects = [];
+  const numOf = new Map(
+    P.blocks
+      .map((b, i) => [b.block.pattern + '|' + b.span + '|' + b.block.fabrics.join(','), i])
+      .filter(([, i]) => !P.blocks[i].corner),
+  );
   design.blocks.forEach((blk, bi) => {
     if (blk.under != null) return;
     const i = numOf.get(blk.pattern + '|' + spanOf(blk) + '|' + blk.fabrics.join(',')),
@@ -482,7 +495,7 @@ function drawCutQuilt(P, into) {
     typeof cgHi === 'string'
       ? `Showing the ${cgHi === 'sash' ? 'sashing' : cgHi === 'brd' ? 'borders' : 'border ' + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.`
       : cgHi >= 0
-        ? `Showing block ${cgHi + 1} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.`
+        ? `Showing ${P.blocks[cgHi].corner ? 'the cornerstone blocks' : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.`
         : `${design.cols} × ${design.rows} blocks${s.mm ? ` · ${s.mm} mm sashing` : ''}${bs.length ? ` · ${bs.length} border${bs.length > 1 ? 's' : ''}` : ''} · finished ${P.quiltW} × ${P.quiltH} mm · each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
   $('cg-quilt-meta').classList.toggle('cg-hi-on', cgHi !== -1);
   document.querySelectorAll('.cgblock').forEach(el => el.classList.toggle('picked', el.dataset.key === String(cgHi)));

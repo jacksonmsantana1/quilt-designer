@@ -26,6 +26,8 @@ const MIGRATIONS = [
   // which is what a missing value means, so nothing changes. (Older apps open version 2 read-only, so they
   // can't save over the setting.)
   d => ({ ...d, v: 2 }),
+  // 2 → 3: cornerstones can be pieced as a block (sashing.cornerBlock); older saves have plain ones
+  d => ({ ...d, v: 3 }),
 ];
 
 /** @type {Record<string, [number, number]>} */
@@ -102,6 +104,15 @@ function check(d) {
         border: s.border === true,
         ...(s.cornerstones === false ? { cornerstones: false } : {}), // kept only when off (the default is on)
       };
+      if (s.cornerBlock !== undefined) {
+        // a block of a known pattern: its fabrics are filled in or trimmed like any block's; anything else goes
+        let bad = 0;
+        const cb =
+          isObj(s.cornerBlock) && PATTERNS[s.cornerBlock.pattern] ? checkBlock(s.cornerBlock, () => bad++) : null;
+        if (cb) out.sashing.cornerBlock = { pattern: cb.pattern, rot: cb.rot, fabrics: cb.fabrics };
+        if (!cb) problems.push('The cornerstone block could not be read and was taken off.');
+        else if (bad) problems.push('The cornerstone block was repaired.');
+      }
     } else {
       delete out.sashing;
       problems.push('The sashing could not be read and was taken off.');

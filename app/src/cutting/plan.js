@@ -99,7 +99,10 @@ const CG = (() => {
     return best || { stripH: a, pieceW: b, per: 1, strips: n, length: n * a, widthUsed: b };
   }
 
-  /** design {cols, rows, blocks:[{pattern, rot, fabrics}]}; opts {quiltMm, seam, fabricWidth, selvage, bindingFabric, bindingWidth, partsOf, label} */
+  /**
+   * design {cols, rows, blocks:[{pattern, rot, fabrics}]}; opts {quiltMm, seam, fabricWidth, selvage, bindingFabric, bindingWidth, partsOf, label,
+   * extraBlocks?: [{block, count, size, label}]} (blocks that are not in the grid, such as pieced cornerstones: corner groups)
+   */
   function plan(design, opts) {
     const s = opts.seam,
       usable = opts.fabricWidth - opts.selvage;
@@ -114,6 +117,18 @@ const CG = (() => {
         groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
       groups.get(key).count++;
     });
+    // their own groups, even when the pattern and fabrics match a block: they are cut at another size
+    (opts.extraBlocks || []).forEach((x, k) =>
+      groups.set('extra|' + k, {
+        block: x.block,
+        count: x.count,
+        index: -1,
+        span: 1,
+        size: x.size,
+        corner: true,
+        label: x.label,
+      }),
+    );
     const letters = new Map();
     const letterOf = id => {
       if (!letters.has(id)) letters.set(id, String.fromCharCode(65 + letters.size));
@@ -171,7 +186,7 @@ const CG = (() => {
       const nForm = {};
       for (const r of list) r.form = nForm[r.letter] = (nForm[r.letter] || 0) + 1;
       for (const pc of pieces) pc.form = rows.get(pc.rowKey).form;
-      blocks.push({ ...g, label: opts.label(g.block.pattern), pieces, list });
+      blocks.push({ ...g, label: g.label || opts.label(g.block.pattern), pieces, list });
     }
     const fabrics = new Map();
     for (const b of blocks)

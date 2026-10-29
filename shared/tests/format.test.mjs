@@ -53,9 +53,25 @@ test('sashing without cornerstones is kept; with them, nothing extra is stored',
   const raw = JSON.parse(text('v2-sashing-without-cornerstones.json')),
     r = readDesign(raw);
   assert.deepEqual(r.problems, []);
-  assert.deepEqual(r.design, raw);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION }); // upgraded, nothing else changed
   const on = readDesign({ ...raw, sashing: { ...raw.sashing, cornerstones: true } });
   assert.equal('cornerstones' in on.design.sashing, false); // on is the default
+});
+
+test('a cornerstone block is kept; an unreadable one is taken off and reported', () => {
+  const raw = JSON.parse(text('v3-cornerstone-block.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, raw);
+  const bad = readDesign({ ...raw, sashing: { ...raw.sashing, cornerBlock: { pattern: 'no-such-pattern' } } });
+  assert.equal('cornerBlock' in bad.design.sashing, false);
+  assert.deepEqual(bad.problems, ['The cornerstone block could not be read and was taken off.']);
+  const short = readDesign({
+    ...raw,
+    sashing: { ...raw.sashing, cornerBlock: { pattern: 'four', rot: 0, fabrics: [] } },
+  });
+  assert.equal(short.design.sashing.cornerBlock.fabrics.length, 4); // missing fabrics filled in
+  assert.deepEqual(short.problems, ['The cornerstone block was repaired.']);
 });
 
 test('the oldest saves get a block size and a backing fabric', () => {

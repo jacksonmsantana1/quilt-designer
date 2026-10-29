@@ -350,8 +350,8 @@ function pdfBlockPage(P, b, i, page, pages) {
   pdfHeader(
     g,
     P,
-    `Block ${i + 1}`,
-    `${b.label}${b.span > 1 ? ` · large block, ${b.size} × ${b.size} mm` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ''}`,
+    b.corner ? 'Cornerstone block' : `Block ${i + 1}`,
+    `${b.label}${b.span > 1 ? ` · large block, ${b.size} × ${b.size} mm` : ''}${b.corner ? ` · ${b.size} mm` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ''}`,
     page,
     pages,
   );
