@@ -11,3 +11,6 @@ dist/
 test-results/
 playwright-report/
 coverage/
+
+# the server's local settings
+server/.env

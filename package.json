@@ -1,30 +1,28 @@
 {
-  "name": "quilt-designer",
+  "name": "quilt",
   "private": true,
+  "workspaces": [
+    "shared",
+    "app",
+    "server"
+  ],
   "scripts": {
-    "build": "python3 build.py",
-    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.mjs\"",
-    "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.mjs\"",
-    "lint": "eslint src tests",
+    "build": "npm run build -w @quilt/app",
+    "format": "prettier --write \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
+    "format:check": "prettier --check \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
+    "lint": "eslint app/src app/tests shared server",
     "typecheck": "tsc -p jsconfig.json",
-    "test": "node --test \"tests/unit/*.test.mjs\"",
-    "test:e2e": "playwright test",
+    "test": "npm test -w @quilt/shared && npm test -w @quilt/app && npm test -w @quilt/server",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
-    "coverage": "node --test --experimental-test-coverage --test-coverage-include='src/**' \"tests/unit/*.test.mjs\"",
-    "coverage:e2e": "rm -rf coverage/e2e && COVERAGE=1 python3 build.py && COVERAGE=1 playwright test; python3 build.py"
+    "test:e2e": "npm run test:e2e -w @quilt/app"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "@playwright/test": "^1.63.0",
-    "acorn": "^8.19.0",
-    "esbuild": "^0.28.2",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
     "eslint": "^9.39.5",
     "globals": "^15.15.0",
-    "monocart-coverage-reports": "^2.13.2",
     "prettier": "^3.9.10",
-    "three": "^0.183.2",
-    "three-gpu-pathtracer": "^0.0.24",
-    "three-mesh-bvh": "^0.9.14",
     "typescript": "^5.9.3"
   }
 }

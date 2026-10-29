@@ -1,0 +1,13 @@
+{
+  "name": "@quilt/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Code shared by the app and the server: block patterns, quilt geometry and the saved design format.",
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\""
+  }
+}

@@ -11,5 +11,14 @@
     "noImplicitAny": false,
     "skipLibCheck": true
   },
-  "include": ["src/core/*.js", "src/cutting/plan.js", "src/storage/idb.js", "src/storage/repo.js", "src/storage/migrate.js"]
+  "include": [
+    "shared/src/*.js",
+    "app/src/core/*.js",
+    "app/src/cutting/plan.js",
+    "app/src/storage/idb.js",
+    "app/src/storage/repo.js",
+    "app/src/storage/migrate.js",
+    "server/src/**/*.js",
+    "server/src/*.d.ts"
+  ]
 }

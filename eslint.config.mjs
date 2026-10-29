@@ -2,10 +2,22 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  { ignores: ['dist/**', 'node_modules/**', 'tests/legacy/**', 'test-results/**', '*.js', '!src/**'] },
+  {
+    ignores: [
+      '**/node_modules/**',
+      'app/dist/**',
+      'app/coverage/**',
+      'app/tests/legacy/**',
+      'app/test-results/**',
+      'app/*.js',
+      'app/blender/**',
+      'app/quilt_render_pkg/**',
+      '*.js',
+    ],
+  },
   js.configs.recommended,
   {
-    files: ['src/**/*.js'],
+    files: ['app/src/**/*.js', 'shared/src/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -40,8 +52,17 @@ export default [
     },
   },
   {
-    files: ['tests/**/*.mjs', '*.config.mjs', 'tools/**/*.mjs'],
+    files: ['app/tests/**/*.mjs', 'shared/tests/**/*.mjs', '**/*.config.mjs', 'app/tools/**/*.mjs'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
     rules: { 'no-empty': ['error', { allowEmptyCatch: true }], 'no-unused-vars': ['error', { caughtErrors: 'none' }] },
+  },
+  // the server: Node only
+  {
+    files: ['server/**/*.js'],
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node } },
+    rules: {
+      'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }],
+      'no-param-reassign': ['error', { props: false }],
+    },
   },
 ];

@@ -1,0 +1,22 @@
+{
+  "name": "@quilt/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "API for syncing quilts and fabric photos between devices (Node, Fastify, PostgreSQL, S3/R2).",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --env-file=.env --watch src/server.js",
+    "migrate": "node --env-file-if-exists=.env src/migrate.js",
+    "test": "node --test --test-concurrency=1 \"test/*.test.js\"",
+    "smoke": "node scripts/smoke.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1159.0",
+    "@aws-sdk/s3-request-presigner": "^3.1159.0",
+    "@fastify/cors": "^11.3.1",
+    "@quilt/shared": "*",
+    "fastify": "^5.12.7",
+    "pg": "^8.23.1"
+  }
+}
