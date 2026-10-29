@@ -1,4 +1,6 @@
 *.png
+# ...except the images the app itself loads (only screenshots are kept out)
+!app/assets/**/*.png
 *.pdf
 *.log
 quilt_dbg.html
