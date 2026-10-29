@@ -10,6 +10,9 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 /**
  * @typedef {object} ObjectStore
@@ -75,5 +78,87 @@ export function memoryStore() {
     copy: async (from, to) => void m.set(to, /** @type {Uint8Array} */ (m.get(from))),
     put: (key, bytes) => void m.set(key, bytes),
     keys: () => [...m.keys()],
+  };
+}
+
+/**
+ * Development only: photos kept in a folder on this computer and served by the API itself under /dev-files/,
+ * so the app can sync photos without MinIO. Links carry a signature and an expiry like S3's. Refused in
+ * production (config.js).
+ * @param {string} dir @param {string | (() => string)} publicUrl the API's address as the browser sees it
+ *   (a function when it is known only once the server listens)
+ * @returns {ObjectStore & { routes(app: import('fastify').FastifyInstance, maxBytes: number): void }}
+ */
+export function localStore(dir, publicUrl) {
+  const secret = randomBytes(32);
+  const file = key => {
+    const p = path.resolve(dir, key);
+    if (!p.startsWith(path.resolve(dir) + path.sep)) throw new Error('bad key');
+    return p;
+  };
+  const sign = (key, method, exp, type = '', bytes = '') =>
+    createHmac('sha256', secret).update([method, key, exp, type, bytes].join('\n')).digest('hex');
+  const link = (key, method, seconds, type, bytes) => {
+    const exp = Math.floor(Date.now() / 1000) + seconds;
+    const q = new URLSearchParams({ exp: String(exp), sig: sign(key, method, exp, type, bytes) });
+    const base = typeof publicUrl === 'function' ? publicUrl() : publicUrl;
+    return `${base.replace(/\/+$/, '')}/dev-files/${key}?${q}`;
+  };
+  const ok = (key, method, q, type = '', bytes = '') => {
+    if (!q.exp || !q.sig || +q.exp < Date.now() / 1000) return false;
+    const want = Buffer.from(sign(key, method, q.exp, type, bytes)),
+      got = Buffer.from(String(q.sig));
+    return want.length === got.length && timingSafeEqual(want, got);
+  };
+  return {
+    uploadUrl: async (key, { type, bytes }) => ({
+      url: link(key, 'PUT', UPLOAD_SECONDS, type, String(bytes)),
+      headers: { 'content-type': type },
+    }),
+    downloadUrl: async key => link(key, 'GET', DOWNLOAD_SECONDS),
+    async get(key) {
+      try {
+        return new Uint8Array(await fs.readFile(file(key)));
+      } catch (e) {
+        if (e.code === 'ENOENT') return null;
+        throw e;
+      }
+    },
+    async remove(key) {
+      await fs.rm(file(key), { force: true });
+    },
+    async copy(from, to) {
+      await fs.mkdir(path.dirname(file(to)), { recursive: true });
+      await fs.copyFile(file(from), file(to));
+    },
+    routes(app, maxBytes) {
+      app.register(async inst => {
+        inst.addContentTypeParser(
+          ['image/jpeg', 'image/png', 'image/webp'],
+          { parseAs: 'buffer', bodyLimit: maxBytes },
+          (req, body, done) => done(null, body),
+        );
+        inst.put('/dev-files/*', async (req, reply) => {
+          const key = /** @type {any} */ (req.params)['*'],
+            body = /** @type {Buffer} */ (req.body);
+          const type = String(req.headers['content-type'] || '');
+          if (!ok(key, 'PUT', req.query, type, String(body?.length ?? '')))
+            return reply
+              .code(403)
+              .send({ error: 'forbidden', message: 'This upload link is not valid (or has expired).' });
+          await fs.mkdir(path.dirname(file(key)), { recursive: true });
+          await fs.writeFile(file(key), body);
+          return reply.code(200).send();
+        });
+        inst.get('/dev-files/*', async (req, reply) => {
+          const key = /** @type {any} */ (req.params)['*'];
+          if (!ok(key, 'GET', req.query))
+            return reply.code(403).send({ error: 'forbidden', message: 'This link is not valid (or has expired).' });
+          const data = await fs.readFile(file(key)).catch(() => null);
+          if (!data) return reply.code(404).send({ error: 'not_found', message: 'No such file.' });
+          return reply.type('application/octet-stream').send(Buffer.from(data));
+        });
+      });
+    },
   };
 }

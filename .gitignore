@@ -14,3 +14,6 @@ coverage/
 
 # the server's local settings
 server/.env
+
+# development photo storage (STORAGE=local)
+server/.data/

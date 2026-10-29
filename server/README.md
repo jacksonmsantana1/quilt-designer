@@ -13,6 +13,14 @@ npm run dev -w @quilt/server               # http://localhost:8787, restarts on 
 API_URL=http://localhost:8787 npm run smoke -w @quilt/server   # end-to-end check of a running server
 ```
 
+Without MinIO, `STORAGE=local` keeps photos in `server/.data/photos` and the API serves them itself (signed
+links like S3's). It is for development only: production refuses it.
+
+To try sync with the app: serve the app from `http://localhost:8000` (for example `python3 -m http.server 8000`
+in `app/`, then open `quilt.html`), open **My designs → Set up sync**, enter `http://localhost:8787` and a
+name. A second browser profile with the same name is a second device. The page must be served from localhost:
+the published page on claude.ai can't reach a server on your computer, and needs the server on the internet.
+
 `npm run migrate -w @quilt/server` applies new migrations (`migrations/*.sql`, in name order, each once).
 
 ## Tests
@@ -37,7 +45,7 @@ Everything under `/v1` needs the login. Errors are `{ "error": code, "message": 
 |---|---|
 | `GET /health` | `{ ok: true }` when the database answers |
 | `GET /v1/changes?since=N&limit=200` | the caller's quilts and photos changed after change number N, oldest first, deletions included: `{ changes, since, more }`. Keep `since`, ask again from there while `more`. |
-| `GET /v1/designs/:id` | one quilt |
+| `GET /v1/designs/:id` | one quilt (ids are per person: a UUID, or the shorter ids of older saves and samples) |
 | `PUT /v1/designs/:id` `{ name, design, baseRev }` | save: `baseRev` is the save counter the app's copy is based on (0 = new). 201 created / 200 changed, with `{ record, problems }` (`problems`: repairs made by the format checks). **409** `{ server }` when it was changed elsewhere: keep both. 400 not a quilt, 422 made by a newer app. |
 | `DELETE /v1/designs/:id?baseRev=N` | delete: kept as a marker (`deleted: true`) so other devices learn of it |
 | `POST /v1/fabrics/:id/upload` `{ name, cm, type, bytes }` | `:id` is `f` + sha-256 of the image (the app's id). `{ status: 'have' }`, or `{ status: 'upload', url, headers }`: PUT the image to `url` (10 minutes; that type and size only) |

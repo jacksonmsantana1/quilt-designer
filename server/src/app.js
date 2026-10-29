@@ -39,6 +39,8 @@ export async function buildApp({ config, pool, store, logger = false }) {
     await pool.query('select 1');
     return { ok: true };
   });
+  // development storage (objects.js localStore) serves its own upload and download links
+  if ('routes' in store && typeof store.routes === 'function') store.routes(app, config.maxFabricBytes);
   registerAuth(app, config, pool);
   designRoutes(app, pool);
   fabricRoutes(app, pool, store, config);

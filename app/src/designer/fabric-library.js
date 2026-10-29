@@ -38,6 +38,11 @@ async function blobCanvas(blob) {
   bm.close?.();
   return c;
 }
+/** A photo that arrived from another device (sync): into the fabric list, once. @param {{ id: string, name: string, cm: number, blob: Blob }} r */
+async function addStoredFabric(r) {
+  if (fabricLib.some(f => f.id === r.id)) return;
+  fabricLib.push({ id: r.id, name: r.name, canvas: await blobCanvas(r.blob), cm: r.cm });
+}
 /**
  * Adds a fabric from a photo and keeps it in storage. The same photo twice gives the same fabric.
  * @param {HTMLCanvasElement} canvas @param {{ name: string, cm: number }} meta @returns {Promise<string>} its id
@@ -52,4 +57,4 @@ async function addFabric(canvas, meta) {
 }
 const ROLE_DEFAULT = ['b0', 'b1', 'b3']; // cream, indigo, mustard
 
-export { ROLE_DEFAULT, addFabric, fabricById, fabricLib, initFabricLib };
+export { ROLE_DEFAULT, addFabric, addStoredFabric, fabricById, fabricLib, initFabricLib };

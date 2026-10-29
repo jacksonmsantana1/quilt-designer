@@ -288,6 +288,19 @@
   .pin .meta small { color: var(--muted); font-size: .76rem; }
   .pin.current { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(20,25,40,.08); }
   .mine-empty { text-align: center; font-size: .95rem; margin-top: 40px; }
+  .sync-card { max-width: 560px; margin: 14px auto 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .sync-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  #sync-state { flex: 1; min-width: 180px; font-size: .9rem; }
+  .sync-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+  .sync-dot[data-state="ok"] { background: #3f9a5f; }
+  .sync-dot[data-state="syncing"] { background: var(--accent); animation: syncpulse 1s ease-in-out infinite alternate; }
+  .sync-dot[data-state="offline"], .sync-dot[data-state="login"] { background: #d79a2b; }
+  .sync-dot[data-state="error"] { background: #c8462b; }
+  @keyframes syncpulse { to { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .sync-dot[data-state="syncing"] { animation: none; } }
+  .sync-form { margin-top: 10px; display: grid; gap: 8px; }
+  .sync-form label { display: grid; gap: 3px; font-size: .9rem; }
+  .sync-form input { width: 100%; }
   .save-prev { display: flex; justify-content: center; margin-top: 8px; }
   .save-prev canvas { max-width: 100%; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
   /* design timeline */
@@ -967,6 +980,24 @@
   <div class="mine-grid" id="mine-grid"></div>
   <p class="fine mine-empty" id="mine-empty" hidden>No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.</p>
   <p class="fine" style="text-align:center;margin-top:18px">Designs, their undo history and the fabrics you added from your own photos are kept in this browser.</p>
+  <div class="sync-card" id="sync-card">
+    <div class="sync-row">
+      <span class="sync-dot" id="sync-dot" data-state="off" aria-hidden="true"></span>
+      <span id="sync-state" role="status">Sync is off.</span>
+      <button class="btn sm" type="button" id="sync-now" hidden>Sync now</button>
+      <button class="btn sm" type="button" id="sync-setup">Set up sync</button>
+    </div>
+    <form class="sync-form" id="sync-form" hidden>
+      <p class="fine" style="margin:0 0 8px">Your saved designs and fabric photos follow you to your other devices through a quilt server.</p>
+      <label><span>Server address</span> <input type="url" id="sync-url" placeholder="http://localhost:8787" required></label>
+      <label><span>Your name <span class="fine">(development sign-in)</span></span> <input type="text" id="sync-user" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{0,39}" maxlength="40" required></label>
+      <div class="sync-row">
+        <button class="btn primary sm" type="submit" id="sync-connect">Connect</button>
+        <button class="btn sm" type="button" id="sync-off" hidden>Turn sync off</button>
+        <button class="btn sm" type="button" id="sync-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
 </section>
 <dialog class="dz-dialog" id="save-dlg" aria-labelledby="save-title">
   <div class="dlg-head"><h2 id="save-title">Save design</h2><button class="btn sm dlg-x" type="button" id="save-x" aria-label="Close">×</button></div>
@@ -1804,13 +1835,17 @@ var __export = (target2, all) => {
 // src/storage/repo.js
 var repo_exports = {};
 __export(repo_exports, {
+  blobHash: () => blobHash,
+  createRepo: () => createRepo,
   designs: () => designs,
   fabrics: () => fabrics,
   flush: () => flush,
   getSession: () => getSession,
   isPersistent: () => isPersistent,
+  onChange: () => onChange,
   onStorageError: () => onStorageError,
   openStorage: () => openStorage,
+  repo: () => repo,
   setSession: () => setSession,
   timelines: () => timelines
 });
@@ -1827,16 +1862,16 @@ async function openIdb(factory = globalThis.indexedDB, name = DB_NAME) {
   if (!factory) throw new Error("IndexedDB is not available");
   const open = factory.open(name, DB_VERSION);
   open.onupgradeneeded = () => {
-    const db3 = open.result;
+    const db2 = open.result;
     for (const [s, keyPath] of Object.entries(STORES))
-      if (!db3.objectStoreNames.contains(s)) db3.createObjectStore(s, { keyPath });
+      if (!db2.objectStoreNames.contains(s)) db2.createObjectStore(s, { keyPath });
   };
-  const db2 = await req(open);
+  const db = await req(open);
   return {
-    getAll: (s) => req(db2.transaction(s, "readonly").objectStore(s).getAll()),
+    getAll: (s) => req(db.transaction(s, "readonly").objectStore(s).getAll()),
     // ops: [store, key, value] — value undefined deletes; all in one transaction, so they are kept together or not at all
     write: (ops) => new Promise((resolve, reject) => {
-      const tx = db2.transaction([...new Set(ops.map((o) => o[0]))], "readwrite");
+      const tx = db.transaction([...new Set(ops.map((o) => o[0]))], "readwrite");
       for (const [s, key, value] of ops) {
         const os = tx.objectStore(s);
         if (value === void 0) os.delete(key);
@@ -1846,7 +1881,7 @@ async function openIdb(factory = globalThis.indexedDB, name = DB_NAME) {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error || new Error("aborted"));
     }),
-    close: () => db2.close()
+    close: () => db.close()
   };
 }
 function memoryDb() {
@@ -3181,121 +3216,11 @@ function migrateLocalStorage(ls) {
 }
 
 // src/storage/repo.js
-var db = null;
-var persistent = false;
-var cache = { designs: /* @__PURE__ */ new Map(), fabrics: /* @__PURE__ */ new Map(), timelines: /* @__PURE__ */ new Map(), session: /* @__PURE__ */ new Map() };
-var pending = /* @__PURE__ */ new Map();
-var scheduled = false;
-var writing = Promise.resolve();
-var onError = () => {
-};
-function queue(store, key, value) {
-  pending.set(store + "\0" + key, [store, key, value]);
-  if (!scheduled) {
-    scheduled = true;
-    queueMicrotask(writeNow);
-  }
-}
-function writeNow() {
-  scheduled = false;
-  if (!pending.size || !db) return writing;
-  const ops = [...pending.values()], d = db;
-  pending = /* @__PURE__ */ new Map();
-  writing = writing.then(() => d.write(ops)).catch((e) => onError(e));
-  return writing;
-}
-async function flush() {
-  await writeNow();
-}
-var now = () => Date.now();
 function newId() {
   if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
   const h = () => Math.floor(Math.random() * 65536).toString(16).padStart(4, "0");
   return `${h()}${h()}-${h()}-4${h().slice(1)}-${h()}-${h()}${h()}${h()}`;
 }
-async function openStorage(opts = {}) {
-  const legacy = "legacy" in opts ? opts.legacy : globalThis.localStorage;
-  if (opts.db) {
-    db = opts.db;
-    persistent = true;
-  } else {
-    try {
-      db = await Promise.race([
-        openIdb(opts.factory),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("IndexedDB timed out")), opts.timeoutMs || 6e3))
-      ]);
-      persistent = true;
-    } catch (e) {
-      db = memoryDb();
-      persistent = false;
-    }
-  }
-  for (const m of Object.values(cache)) m.clear();
-  for (const s of Object.keys(cache)) for (const r of await db.getAll(s)) cache[s].set(r.id ?? r.key, r);
-  let migrated = false;
-  if (!cache.session.has("migrated")) {
-    const out = legacy ? migrateLocalStorage(legacy) : { designs: [], timelines: [], session: [] };
-    for (const r of out.designs) put("designs", r.id, r);
-    for (const r of out.timelines) put("timelines", r.key, r);
-    for (const [k, v] of out.session) setSession(k, v);
-    setSession("migrated", now());
-    migrated = out.designs.length + out.timelines.length + out.session.length > 0;
-    await flush();
-  }
-  return { persistent, migrated };
-}
-function onStorageError(f) {
-  onError = f;
-}
-function put(store, key, value) {
-  cache[store].set(key, value);
-  queue(store, key, value);
-}
-function del(store, key) {
-  cache[store].delete(key);
-  queue(store, key, void 0);
-}
-var getSession = (key) => cache.session.get(key)?.value;
-function setSession(key, value) {
-  if (value === void 0) del("session", key);
-  else put("session", key, { key, value });
-}
-var designs = {
-  /** @returns {DesignRecord[]} the saved designs, not counting deleted ones */
-  list: () => [...cache.designs.values()].filter((r) => !r.deleted),
-  /** @param {string} id @returns {DesignRecord | null} */
-  get: (id) => {
-    const r = cache.designs.get(id);
-    return r && !r.deleted ? r : null;
-  },
-  /**
-   * Saves a new design or changes one: `rec` is merged into the record; the save counter goes up and the
-   * record is marked for upload. @param {Partial<DesignRecord> & { id: string }} rec @returns {DesignRecord}
-   */
-  save(rec) {
-    const old = cache.designs.get(rec.id), t = now();
-    const next = {
-      name: "",
-      design: null,
-      createdAt: t,
-      ...old && !old.deleted ? old : {},
-      ...rec,
-      updatedAt: t,
-      rev: (old?.rev || 0) + 1,
-      deleted: false,
-      dirty: true
-    };
-    put("designs", next.id, next);
-    return next;
-  },
-  /** Deletes a design (kept as a marker, so a server can pass the deletion on). @param {string} id */
-  remove(id) {
-    const old = cache.designs.get(id);
-    if (!old || old.deleted) return;
-    put("designs", id, { ...old, design: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
-  },
-  newId
-};
 async function blobHash(blob) {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   if (globalThis.crypto?.subtle) {
@@ -3309,50 +3234,240 @@ async function blobHash(blob) {
   }
   return "h" + (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0");
 }
-var fabrics = {
-  /** @returns {FabricRecord[]} */
-  list: () => [...cache.fabrics.values()].filter((r) => !r.deleted).sort((a, b) => a.createdAt - b.createdAt),
-  /** @param {string} id @returns {FabricRecord | null} */
-  get: (id) => {
-    const r = cache.fabrics.get(id);
-    return r && !r.deleted ? r : null;
-  },
-  /**
-   * Keeps a fabric photo. The same image always gets the same id, so adding it twice keeps one copy.
-   * @param {Blob} blob @param {{ name: string, cm: number }} meta @returns {Promise<{ id: string, isNew: boolean }>}
-   */
-  async add(blob, meta) {
-    const id = await blobHash(blob), old = cache.fabrics.get(id);
-    if (old && !old.deleted) return { id, isNew: false };
-    const t = now();
-    put("fabrics", id, {
-      id,
-      name: meta.name,
-      cm: meta.cm,
-      blob,
-      createdAt: t,
-      updatedAt: t,
-      rev: (old?.rev || 0) + 1,
-      deleted: false,
-      dirty: true
-    });
-    return { id, isNew: true };
+function createRepo() {
+  let db = null;
+  let persistent = false;
+  const cache = { designs: /* @__PURE__ */ new Map(), fabrics: /* @__PURE__ */ new Map(), timelines: /* @__PURE__ */ new Map(), session: /* @__PURE__ */ new Map() };
+  let pending = /* @__PURE__ */ new Map();
+  let scheduled = false;
+  let writing = Promise.resolve();
+  let onError = () => {
+  };
+  const listeners = /* @__PURE__ */ new Set();
+  const changed = (store, id) => listeners.forEach((f) => f(store, id));
+  function queue(store, key, value) {
+    pending.set(store + "\0" + key, [store, key, value]);
+    if (!scheduled) {
+      scheduled = true;
+      queueMicrotask(writeNow);
+    }
   }
-};
-var timelines = {
-  /** @param {string} key */
-  get: (key) => cache.timelines.get(key) || null,
-  /** @param {string} key @param {{ steps: any[], i: number, seq: number }} t */
-  set: (key, t) => put("timelines", key, { key, steps: t.steps, i: t.i, seq: t.seq }),
-  /** @param {string} key */
-  remove: (key) => cache.timelines.has(key) && del("timelines", key),
-  /** @param {string} from @param {string} to */
-  copy(from, to) {
-    const t = cache.timelines.get(from);
-    if (t) timelines.set(to, t);
+  function writeNow() {
+    scheduled = false;
+    if (!pending.size || !db) return writing;
+    const ops = [...pending.values()], d = db;
+    pending = /* @__PURE__ */ new Map();
+    writing = writing.then(() => d.write(ops)).catch((e) => onError(e));
+    return writing;
   }
-};
-var isPersistent = () => persistent;
+  async function flush2() {
+    await writeNow();
+  }
+  const now = () => Date.now();
+  async function openStorage2(opts = {}) {
+    const legacy = "legacy" in opts ? opts.legacy : globalThis.localStorage;
+    if (opts.db) {
+      db = opts.db;
+      persistent = true;
+    } else {
+      try {
+        db = await Promise.race([
+          openIdb(opts.factory),
+          new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("IndexedDB timed out")), opts.timeoutMs || 6e3)
+          )
+        ]);
+        persistent = true;
+      } catch (e) {
+        db = memoryDb();
+        persistent = false;
+      }
+    }
+    for (const m of Object.values(cache)) m.clear();
+    for (const s of Object.keys(cache)) for (const r of await db.getAll(s)) cache[s].set(r.id ?? r.key, r);
+    let migrated = false;
+    if (!cache.session.has("migrated")) {
+      const out = legacy ? migrateLocalStorage(legacy) : { designs: [], timelines: [], session: [] };
+      for (const r of out.designs) put("designs", r.id, r);
+      for (const r of out.timelines) put("timelines", r.key, r);
+      for (const [k, v] of out.session) setSession2(k, v);
+      setSession2("migrated", now());
+      migrated = out.designs.length + out.timelines.length + out.session.length > 0;
+      await flush2();
+    }
+    return { persistent, migrated };
+  }
+  function put(store, key, value) {
+    cache[store].set(key, value);
+    queue(store, key, value);
+  }
+  function del(store, key) {
+    cache[store].delete(key);
+    queue(store, key, void 0);
+  }
+  const getSession2 = (key) => cache.session.get(key)?.value;
+  function setSession2(key, value) {
+    if (value === void 0) del("session", key);
+    else put("session", key, { key, value });
+  }
+  const syncSide = (store) => ({
+    /** records changed here since the last upload, deletion markers included */
+    dirty: () => [...cache[store].values()].filter((r) => r.dirty),
+    /** the record, deleted or not */
+    raw: (id) => cache[store].get(id) || null,
+    /**
+     * After an upload: the server has this copy at server rev `syncRev`. Still dirty if the record was changed
+     * again while it was being uploaded (its local rev moved on), so the next sync sends that too.
+     * @param {string} id @param {number} localRev @param {number} syncRev @param {object} [patch]
+     */
+    markSynced(id, localRev, syncRev, patch = {}) {
+      const r = cache[store].get(id);
+      if (!r) return;
+      if (r.deleted && r.rev === localRev) return del(store, id);
+      put(store, id, { ...r, ...r.rev === localRev ? patch : {}, syncRev, dirty: r.rev !== localRev });
+    },
+    /** Puts the server's copy here (from another device): not dirty. @param {any} rec */
+    applyRemote(rec) {
+      const old = cache[store].get(rec.id);
+      if (rec.deleted) {
+        if (old) del(store, rec.id);
+        return;
+      }
+      put(store, rec.id, {
+        createdAt: rec.createdAt || now(),
+        ...old,
+        ...rec,
+        rev: (old?.rev || 0) + 1,
+        syncRev: rec.rev,
+        deleted: false,
+        dirty: false
+      });
+    },
+    /** Removes a record outright (a deletion marker the server never needed to know about). @param {string} id */
+    purge: (id) => cache[store].has(id) && del(store, id),
+    /** Connecting to another server or account: everything here is new to it (deletion markers are dropped). */
+    resetSync() {
+      for (const r of [...cache[store].values()]) {
+        if (r.deleted) del(store, r.id);
+        else put(store, r.id, { ...r, syncRev: 0, dirty: true });
+      }
+    }
+  });
+  const designs2 = {
+    /** @returns {DesignRecord[]} the saved designs, not counting deleted ones */
+    list: () => [...cache.designs.values()].filter((r) => !r.deleted),
+    /** @param {string} id @returns {DesignRecord | null} */
+    get: (id) => {
+      const r = cache.designs.get(id);
+      return r && !r.deleted ? r : null;
+    },
+    /**
+     * Saves a new design or changes one: `rec` is merged into the record; the save counter goes up and the
+     * record is marked for upload. @param {Partial<DesignRecord> & { id: string }} rec @returns {DesignRecord}
+     */
+    save(rec) {
+      const old = cache.designs.get(rec.id), t = now();
+      const next = {
+        name: "",
+        design: null,
+        createdAt: t,
+        ...old && !old.deleted ? old : {},
+        syncRev: old?.syncRev || 0,
+        ...rec,
+        updatedAt: t,
+        rev: (old?.rev || 0) + 1,
+        deleted: false,
+        dirty: true
+      };
+      put("designs", next.id, next);
+      changed("designs", next.id);
+      return next;
+    },
+    /** Deletes a design (kept as a marker until the server has the deletion). @param {string} id */
+    remove(id) {
+      const old = cache.designs.get(id);
+      if (!old || old.deleted) return;
+      put("designs", id, { ...old, design: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+      changed("designs", id);
+    },
+    newId,
+    ...syncSide("designs")
+  };
+  const fabrics2 = {
+    /** @returns {FabricRecord[]} */
+    list: () => [...cache.fabrics.values()].filter((r) => !r.deleted).sort((a, b) => a.createdAt - b.createdAt),
+    /** @param {string} id @returns {FabricRecord | null} */
+    get: (id) => {
+      const r = cache.fabrics.get(id);
+      return r && !r.deleted ? r : null;
+    },
+    /**
+     * Keeps a fabric photo. The same image always gets the same id, so adding it twice keeps one copy.
+     * @param {Blob} blob @param {{ name: string, cm: number }} meta @returns {Promise<{ id: string, isNew: boolean }>}
+     */
+    async add(blob, meta) {
+      const id = await blobHash(blob), old = cache.fabrics.get(id);
+      if (old && !old.deleted) return { id, isNew: false };
+      const t = now();
+      put("fabrics", id, {
+        id,
+        name: meta.name,
+        cm: meta.cm,
+        blob,
+        createdAt: t,
+        updatedAt: t,
+        rev: (old?.rev || 0) + 1,
+        syncRev: old?.syncRev || 0,
+        deleted: false,
+        dirty: true
+      });
+      changed("fabrics", id);
+      return { id, isNew: true };
+    },
+    ...syncSide("fabrics")
+  };
+  const timelines2 = {
+    /** @param {string} key */
+    get: (key) => cache.timelines.get(key) || null,
+    /** @param {string} key @param {{ steps: any[], i: number, seq: number }} t */
+    set: (key, t) => put("timelines", key, { key, steps: t.steps, i: t.i, seq: t.seq }),
+    /** @param {string} key */
+    remove: (key) => cache.timelines.has(key) && del("timelines", key),
+    /** @param {string} from @param {string} to */
+    copy(from, to) {
+      const t = cache.timelines.get(from);
+      if (t) timelines2.set(to, t);
+    }
+  };
+  return {
+    openStorage: openStorage2,
+    flush: flush2,
+    /** @param {(e: unknown) => void} f called when a write fails (storage full, …) */
+    onStorageError: (f) => void (onError = f),
+    /** Whether changes are kept after a reload (false when IndexedDB couldn't be opened). */
+    isPersistent: () => persistent,
+    /** Calls f(store, id) after every change made on this device to a design or fabric (not ones from sync). */
+    onChange: (f) => void listeners.add(f),
+    getSession: getSession2,
+    setSession: setSession2,
+    designs: designs2,
+    fabrics: fabrics2,
+    timelines: timelines2
+  };
+}
+var repo = createRepo();
+var {
+  designs,
+  fabrics,
+  flush,
+  getSession,
+  isPersistent,
+  onChange,
+  onStorageError,
+  openStorage,
+  setSession,
+  timelines
+} = repo;
 
 // src/ui/notice.js
 var box = null;
@@ -5633,6 +5748,10 @@ async function blobCanvas(blob) {
   bm.close?.();
   return c;
 }
+async function addStoredFabric(r) {
+  if (fabricLib.some((f) => f.id === r.id)) return;
+  fabricLib.push({ id: r.id, name: r.name, canvas: await blobCanvas(r.blob), cm: r.cm });
+}
 async function addFabric(canvas2, meta) {
   const blob = await new Promise(
     (resolve, reject) => canvas2.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
@@ -6680,9 +6799,9 @@ function initDesignerUI() {
     const polys = blockPolys(design.blocks[focusBlock], 0, 0, BLOCK_PX, BLOCK_PX);
     const hit = polys.findIndex((p) => pointInPoly(x, y, p));
     if (hit < 0) return;
-    const now2 = performance.now(), last = partTap;
-    setPartTap({ t: now2, hit });
-    if (last && last.hit === hit && now2 - last.t < 380) {
+    const now = performance.now(), last = partTap;
+    setPartTap({ t: now, hit });
+    if (last && last.hit === hit && now - last.t < 380) {
       selectSameFabric(hit);
       setPartTap(null);
       return;
@@ -9215,6 +9334,12 @@ function initMine() {
   $("mine-sort").addEventListener("change", renderMine);
 }
 initMine();
+function adoptDesignId(id) {
+  tlCopy(void 0, id);
+  tl.key = tlKeyFor(id);
+  setMineCur(id);
+  mineSave();
+}
 
 // src/mine/samples.js
 function medallionDesign() {
@@ -9232,35 +9357,35 @@ function medallionDesign() {
     ]
   };
   for (let i = 0; i < N2 * N2; i++) d.blocks.push(newBlock("plain", [WH, WH, WH]));
-  const put2 = (c, r, pattern, roles, rot = 0, extra = {}) => {
+  const put = (c, r, pattern, roles, rot = 0, extra = {}) => {
     d.blocks[r * N2 + c] = { ...newBlock(pattern, roles), rot, ...extra };
   };
-  put2(0, 0, "nine", [CR, CH, CH]);
-  put2(1, 0, "nine", [CR, CH, CH]);
-  put2(2, 0, "hst", [WH, MI, MI], 1);
-  put2(3, 0, "geese", [WH, CH, CH], 2);
-  put2(4, 0, "sawstar", [WH, MU, FL]);
-  put2(5, 0, "hst", [WH, CH, CH], 0);
-  put2(6, 0, "economy", [WH, CH, FL]);
-  put2(1, 1, "nine", [WH, MI, MI]);
-  put2(2, 1, "nine", [CR, CH, CH]);
-  put2(3, 1, "hst", [WH, CH, CH], 0);
-  put2(4, 1, "hst", [WH, MI, MI], 1);
-  put2(5, 1, "sawstar", [WH, CH, MI]);
-  put2(6, 1, "economy", [MI, CH, FL]);
-  put2(2, 2, "hst", [WH, MI, MI], 1);
-  put2(3, 2, "nine", [CR, CH, CH]);
-  put2(4, 2, "nine", [WH, MU, MU]);
-  put2(5, 2, "hst", [MI, WH, WH], 1);
-  put2(6, 2, "economy", [WH, CH, FL]);
-  put2(3, 3, "sawstar", [WH, CH, MI]);
-  put2(4, 3, "nine", [WH, MU, MU]);
-  put2(5, 3, "geese", [WH, CH, CH], 1);
-  put2(6, 3, "hst", [WH, MI, MI], 0);
-  put2(4, 4, "sawstar", [WH, CH, CH]);
-  put2(5, 4, "hst", [WH, CH, CH], 3);
-  put2(6, 4, "geese", [WH, CH, MI], 2);
-  put2(5, 5, "eightstar", [WH, CH, MU], 0, { span: 4 });
+  put(0, 0, "nine", [CR, CH, CH]);
+  put(1, 0, "nine", [CR, CH, CH]);
+  put(2, 0, "hst", [WH, MI, MI], 1);
+  put(3, 0, "geese", [WH, CH, CH], 2);
+  put(4, 0, "sawstar", [WH, MU, FL]);
+  put(5, 0, "hst", [WH, CH, CH], 0);
+  put(6, 0, "economy", [WH, CH, FL]);
+  put(1, 1, "nine", [WH, MI, MI]);
+  put(2, 1, "nine", [CR, CH, CH]);
+  put(3, 1, "hst", [WH, CH, CH], 0);
+  put(4, 1, "hst", [WH, MI, MI], 1);
+  put(5, 1, "sawstar", [WH, CH, MI]);
+  put(6, 1, "economy", [MI, CH, FL]);
+  put(2, 2, "hst", [WH, MI, MI], 1);
+  put(3, 2, "nine", [CR, CH, CH]);
+  put(4, 2, "nine", [WH, MU, MU]);
+  put(5, 2, "hst", [MI, WH, WH], 1);
+  put(6, 2, "economy", [WH, CH, FL]);
+  put(3, 3, "sawstar", [WH, CH, MI]);
+  put(4, 3, "nine", [WH, MU, MU]);
+  put(5, 3, "geese", [WH, CH, CH], 1);
+  put(6, 3, "hst", [WH, MI, MI], 0);
+  put(4, 4, "sawstar", [WH, CH, CH]);
+  put(5, 4, "hst", [WH, CH, CH], 3);
+  put(6, 4, "geese", [WH, CH, MI], 2);
+  put(5, 5, "eightstar", [WH, CH, MU], 0, { span: 4 });
   const src = [];
   for (let r = 0; r < 7; r++) for (let c = r; c < 7; c++) src.push(r * N2 + c);
   const out = withSymmetry(normalizeSpans(d), src);
@@ -9282,45 +9407,45 @@ function photoMedallion() {
     ]
   };
   for (let i = 0; i < N2 * N2; i++) d.blocks.push(newBlock("plain", [WH, WH, WH]));
-  const put2 = (c, r, pattern, roles, rot = 0, extra = {}) => {
+  const put = (c, r, pattern, roles, rot = 0, extra = {}) => {
     d.blocks[r * N2 + c] = { ...newBlock(pattern, roles), rot, ...extra };
   };
   const chain = [WH, MO, MO], dark9 = [WH, CH, CH], gold9 = [WH, MU, MU];
   const mintH = [WH, MI, MI], darkH = [WH, CH, CH];
-  put2(0, 0, "dnine", chain);
-  put2(1, 0, "nine", chain);
-  put2(2, 0, "hst", mintH, 0);
-  put2(3, 0, "hst", darkH, 0);
-  put2(4, 0, "sawstar", [WH, MU, FL]);
-  put2(5, 0, "hst", mintH, 1);
-  put2(6, 0, "hst", darkH, 1);
-  put2(7, 0, "economy", [MI, TE, CH]);
-  put2(1, 1, "nine", chain);
-  put2(2, 1, "nine", chain);
-  put2(3, 1, "hst", mintH, 0);
-  put2(4, 1, "hst", darkH, 0);
-  put2(5, 1, "hst", darkH, 1);
-  put2(6, 1, "hst", mintH, 1);
-  put2(7, 1, "economy", [MI, TE, CH]);
-  put2(2, 2, "nine", chain);
-  put2(3, 2, "nine", dark9);
-  put2(4, 2, "nine", dark9);
-  put2(5, 2, "sawstar", [WH, CH, TE]);
-  put2(6, 2, "hst", mintH, 0);
-  put2(7, 2, "economy", [MI, TE, CH]);
-  put2(3, 3, "nine", chain);
-  put2(4, 3, "hst", mintH, 0);
-  put2(5, 3, "nine", gold9);
-  put2(6, 3, "sawstar", [WH, CH, MO]);
-  put2(7, 3, "sawstar", [WH, CH, MO]);
-  put2(4, 4, "sawstar", [WH, CH, CH]);
-  put2(5, 4, "hst", mintH, 0);
-  put2(6, 4, "geese", [WH, MO, MO], 2);
-  put2(7, 4, "geese", [WH, MO, MO], 2);
-  put2(5, 5, "sqsq", [WH, MI, MI]);
-  put2(6, 5, "hst", [WH, MI, MI], 1);
-  put2(7, 5, "plain", [WH, WH, WH]);
-  put2(6, 6, "eightstar", [WH, CH, FL], 0, { span: 3 });
+  put(0, 0, "dnine", chain);
+  put(1, 0, "nine", chain);
+  put(2, 0, "hst", mintH, 0);
+  put(3, 0, "hst", darkH, 0);
+  put(4, 0, "sawstar", [WH, MU, FL]);
+  put(5, 0, "hst", mintH, 1);
+  put(6, 0, "hst", darkH, 1);
+  put(7, 0, "economy", [MI, TE, CH]);
+  put(1, 1, "nine", chain);
+  put(2, 1, "nine", chain);
+  put(3, 1, "hst", mintH, 0);
+  put(4, 1, "hst", darkH, 0);
+  put(5, 1, "hst", darkH, 1);
+  put(6, 1, "hst", mintH, 1);
+  put(7, 1, "economy", [MI, TE, CH]);
+  put(2, 2, "nine", chain);
+  put(3, 2, "nine", dark9);
+  put(4, 2, "nine", dark9);
+  put(5, 2, "sawstar", [WH, CH, TE]);
+  put(6, 2, "hst", mintH, 0);
+  put(7, 2, "economy", [MI, TE, CH]);
+  put(3, 3, "nine", chain);
+  put(4, 3, "hst", mintH, 0);
+  put(5, 3, "nine", gold9);
+  put(6, 3, "sawstar", [WH, CH, MO]);
+  put(7, 3, "sawstar", [WH, CH, MO]);
+  put(4, 4, "sawstar", [WH, CH, CH]);
+  put(5, 4, "hst", mintH, 0);
+  put(6, 4, "geese", [WH, MO, MO], 2);
+  put(7, 4, "geese", [WH, MO, MO], 2);
+  put(5, 5, "sqsq", [WH, MI, MI]);
+  put(6, 5, "hst", [WH, MI, MI], 1);
+  put(7, 5, "plain", [WH, WH, WH]);
+  put(6, 6, "eightstar", [WH, CH, FL], 0, { span: 3 });
   const src = [];
   for (let r = 0; r < 8; r++) for (let c = r; c < 8; c++) src.push(r * N2 + c);
   const out = withSymmetry(normalizeSpans(d), src);
@@ -9382,12 +9507,12 @@ function tlPush(d, label, merge) {
 function tlRecord(merge = null) {
   if (tl.restoring || !design) return;
   tlEnsure();
-  const cur = JSON.stringify(design), top = tl.steps[tl.i], now2 = Date.now();
+  const cur = JSON.stringify(design), top = tl.steps[tl.i], now = Date.now();
   if (top && top.d === cur) return;
   const below = tl.steps[tl.i - 1];
-  if (merge && top && below && top.merge === merge && tl.i === tl.steps.length - 1 && now2 - top.t < 1e3) {
+  if (merge && top && below && top.merge === merge && tl.i === tl.steps.length - 1 && now - top.t < 1e3) {
     top.d = cur;
-    top.t = now2;
+    top.t = now;
     top.label = tlDescribe(JSON.parse(below.d), design);
     tl.thumbs.delete(top.id);
     tlSave();
@@ -9483,8 +9608,8 @@ function tlUI() {
   $("tl-pos").textContent = `${tl.i + 1} / ${n} \xB7 ${tl.steps[tl.i] ? tl.steps[tl.i].label : ""}`;
   const list = $("tl-list");
   list.innerHTML = "";
-  const now2 = Date.now(), ago = (t) => {
-    const s = Math.round((now2 - t) / 1e3);
+  const now = Date.now(), ago = (t) => {
+    const s = Math.round((now - t) / 1e3);
     return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
   tl.steps.forEach((st, k) => {
@@ -9611,6 +9736,341 @@ initTimeline();
 new ResizeObserver(() => {
   if (state.page === "design" && design) drawDesignerCanvas();
 }).observe($("dz-size"));
+
+// src/storage/sync.js
+var SESSION_KEY = "sync";
+var FABRIC_ID = /^f[0-9a-f]{24}$/;
+var StopSync = class extends Error {
+  /** @param {SyncStatus['state']} state @param {string} message */
+  constructor(state2, message) {
+    super(message);
+    this.state = state2;
+  }
+};
+function createSync({
+  repo: repo2,
+  fetch: fetchFn = (...a) => globalThis.fetch(...a),
+  onRemote = () => {
+  },
+  onStatus = () => {
+  }
+}) {
+  let status = { state: "off", pending: 0 };
+  let running = null, again = false;
+  const config = () => repo2.getSession(SESSION_KEY) || null;
+  const pendingCount = () => repo2.designs.dirty().length + repo2.fabrics.dirty().length;
+  const setStatus = (s) => {
+    status = { ...status, ...s, pending: pendingCount() };
+    onStatus(status);
+  };
+  function configure(c) {
+    const old = config();
+    if (!c) {
+      repo2.setSession(SESSION_KEY, void 0);
+      setStatus({ state: "off", message: "" });
+      return;
+    }
+    const url = c.url.trim().replace(/\/+$/, ""), user = c.user.trim();
+    if (!old || old.url !== url || old.user !== user) {
+      repo2.designs.resetSync();
+      repo2.fabrics.resetSync();
+      repo2.setSession(SESSION_KEY, { url, user, since: 0 });
+    }
+    setStatus({ state: "ok", message: "" });
+  }
+  async function api(method, path, body) {
+    const c = (
+      /** @type {NonNullable<ReturnType<typeof config>>} */
+      config()
+    );
+    let r;
+    try {
+      r = await fetchFn(c.url + path, {
+        method,
+        headers: { "x-dev-user": c.user, ...body ? { "content-type": "application/json" } : {} },
+        body: body ? JSON.stringify(body) : void 0
+      });
+    } catch (e) {
+      throw new StopSync("offline", "The server could not be reached.");
+    }
+    const json = await r.json().catch(() => null);
+    if (r.status === 401) throw new StopSync("login", json?.message || "Not signed in.");
+    if (r.status >= 500) throw new StopSync("error", json?.message || `The server answered ${r.status}.`);
+    return { status: r.status, body: json };
+  }
+  const sameDesign = (a, b) => a.name === b.name && JSON.stringify(a.design) === JSON.stringify(b.design);
+  function conflict(local, server) {
+    if (server && !server.deleted && sameDesign(local, server)) {
+      repo2.designs.markSynced(local.id, local.rev, server.rev);
+      return;
+    }
+    const copy = repo2.designs.save({
+      id: repo2.designs.newId(),
+      name: `${local.name} (this device)`,
+      design: local.design
+    });
+    if (server) repo2.designs.applyRemote(server);
+    else repo2.designs.purge(local.id);
+    onRemote({ kind: "conflict", id: local.id, copyId: copy.id, name: local.name, deleted: !server || server.deleted });
+  }
+  async function pushFabrics(errors) {
+    for (const r of repo2.fabrics.dirty()) {
+      const base = r.syncRev || 0;
+      if (r.deleted) {
+        if (!base) repo2.fabrics.purge(r.id);
+        else {
+          const res = await api("DELETE", `/v1/fabrics/${r.id}?baseRev=${base}`);
+          repo2.fabrics.markSynced(r.id, r.rev, res.body?.record?.rev ?? base);
+        }
+        continue;
+      }
+      if (!FABRIC_ID.test(r.id) || !r.blob) {
+        errors.push(`\u201C${r.name}\u201D was added on a page that can't fingerprint photos, so it stays on this device.`);
+        continue;
+      }
+      const type = ["image/jpeg", "image/png", "image/webp"].includes(r.blob.type) ? r.blob.type : "image/jpeg";
+      const up = await api("POST", `/v1/fabrics/${r.id}/upload`, {
+        name: r.name.slice(0, 80),
+        cm: Math.max(1, Math.min(300, r.cm || 15)),
+        type,
+        bytes: r.blob.size
+      });
+      if (up.status !== 200) {
+        errors.push(`The photo \u201C${r.name}\u201D was refused: ${up.body?.message || up.status}`);
+        continue;
+      }
+      if (up.body.status === "upload") {
+        let put;
+        try {
+          put = await fetchFn(up.body.url, { method: "PUT", headers: up.body.headers, body: r.blob });
+        } catch (e) {
+          throw new StopSync("offline", "The photo storage could not be reached.");
+        }
+        if (!put.ok) {
+          errors.push(`The photo \u201C${r.name}\u201D could not be uploaded (${put.status}).`);
+          continue;
+        }
+        const done = await api("POST", `/v1/fabrics/${r.id}/done`);
+        if (done.status !== 200) {
+          errors.push(`The photo \u201C${r.name}\u201D was refused: ${done.body?.message || done.status}`);
+          continue;
+        }
+        repo2.fabrics.markSynced(r.id, r.rev, done.body.record.rev);
+      } else repo2.fabrics.markSynced(r.id, r.rev, up.body.record.rev);
+    }
+  }
+  async function pushDesigns(errors) {
+    for (let round = 0; round < 3; round++) {
+      const dirty = repo2.designs.dirty().filter((r) => !errors.skip.has(r.id + ":" + r.rev));
+      if (!dirty.length) return;
+      for (const r of dirty) {
+        const base = r.syncRev || 0;
+        if (r.deleted) {
+          if (!base) {
+            repo2.designs.purge(r.id);
+            continue;
+          }
+          const res2 = await api("DELETE", `/v1/designs/${r.id}?baseRev=${base}`);
+          if (res2.status === 409 && res2.body?.server && !res2.body.server.deleted) {
+            repo2.designs.applyRemote(res2.body.server);
+            onRemote({ kind: "restored", id: r.id, name: res2.body.server.name });
+          } else repo2.designs.markSynced(r.id, r.rev, res2.body?.record?.rev ?? base);
+          continue;
+        }
+        const res = await api("PUT", `/v1/designs/${r.id}`, {
+          name: r.name.slice(0, 80) || "Quilt",
+          design: r.design,
+          baseRev: base
+        });
+        if (res.status === 200 || res.status === 201) {
+          const rec = res.body.record;
+          repo2.designs.markSynced(r.id, r.rev, rec.rev, { design: rec.design });
+        } else if (res.status === 409) conflict(r, res.body?.server ?? null);
+        else {
+          errors.push(`\u201C${r.name}\u201D was not sent: ${res.body?.message || res.status}`);
+          errors.skip.add(r.id + ":" + r.rev);
+        }
+      }
+    }
+  }
+  async function pull() {
+    for (let page = 0; page < 1e3; page++) {
+      const c = config();
+      if (!c) return;
+      const res = await api("GET", `/v1/changes?since=${c.since}&limit=200`);
+      if (res.status !== 200) throw new StopSync("error", res.body?.message || "Changes could not be read.");
+      for (const ch of res.body.changes) await applyChange(ch);
+      repo2.setSession(SESSION_KEY, { ...config(), since: res.body.since });
+      if (!res.body.more) return;
+    }
+  }
+  async function applyChange(ch) {
+    const side = ch.kind === "design" ? repo2.designs : repo2.fabrics, local = side.raw(ch.id);
+    if (local && (local.syncRev || 0) >= ch.rev) return;
+    if (ch.kind === "design") {
+      if (local && local.dirty && !local.deleted) return conflict(local, ch);
+      side.applyRemote(ch);
+      onRemote({ kind: "design", id: ch.id, deleted: ch.deleted, name: ch.name });
+      return;
+    }
+    if (ch.deleted) {
+      side.applyRemote(ch);
+      onRemote({ kind: "fabric", id: ch.id, deleted: true });
+      return;
+    }
+    let blob = local?.blob || null;
+    if (!blob) {
+      const meta = await api("GET", `/v1/fabrics/${ch.id}`);
+      if (meta.status !== 200 || !meta.body.url) return;
+      try {
+        const r = await fetchFn(meta.body.url);
+        if (!r.ok) return;
+        blob = new Blob([await r.arrayBuffer()], { type: ch.type });
+      } catch (e) {
+        throw new StopSync("offline", "The photo storage could not be reached.");
+      }
+    }
+    side.applyRemote({ ...ch, blob });
+    onRemote({ kind: "fabric", id: ch.id, deleted: false });
+  }
+  async function syncNow() {
+    if (!config()) return status;
+    if (running) {
+      again = true;
+      return running;
+    }
+    running = (async () => {
+      do {
+        again = false;
+        setStatus({ state: "syncing" });
+        const errors = Object.assign([], { skip: /* @__PURE__ */ new Set() });
+        try {
+          await pushFabrics(errors);
+          await pushDesigns(errors);
+          await pull();
+          await repo2.flush();
+          const c = config();
+          if (c) repo2.setSession(SESSION_KEY, { ...c, at: Date.now() });
+          setStatus({ state: errors.length ? "error" : "ok", at: Date.now(), message: errors.join(" ") });
+        } catch (e) {
+          if (e instanceof StopSync) setStatus({ state: e.state, message: e.message });
+          else setStatus({ state: "error", message: e?.message || String(e) });
+          again = false;
+        }
+      } while (again);
+      running = null;
+      return status;
+    })();
+    return running;
+  }
+  return { configure, config, syncNow, status: () => status };
+}
+
+// src/mine/sync-ui.js
+var AFTER_CHANGE_MS = 2500;
+var EVERY_MS = 6e4;
+var before = null;
+var arrived = [];
+var sync = createSync({ repo, onRemote: (e) => arrived.push(e), onStatus: showStatus });
+var time = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function showStatus(s) {
+  const c = sync?.config?.();
+  $("sync-dot").dataset.state = s.state;
+  const waiting = s.pending ? ` \xB7 ${s.pending} change${s.pending === 1 ? "" : "s"} waiting` : "";
+  const text = {
+    off: "Sync is off: your designs are kept in this browser only.",
+    syncing: "Syncing\u2026",
+    ok: s.at ? `Synced at ${time(s.at)}${waiting}` : `Connected${waiting}`,
+    offline: `Can't reach the server: changes wait here and go when it's back${waiting}.`,
+    login: `Signed out: ${s.message || "connect again"}`,
+    error: s.message || "Something went wrong."
+  }[s.state];
+  $("sync-state").textContent = c && s.state !== "off" ? `${text} (${c.user} at ${new URL(c.url).host})` : text;
+  $("sync-now").hidden = !c;
+  $("sync-setup").textContent = c ? "Change" : "Set up sync";
+}
+async function run() {
+  if (!sync.config()) return;
+  const rec = mineCur ? repo.designs.get(mineCur) : null;
+  before = { id: mineCur, saved: rec ? JSON.stringify(rec.design) : null, open: JSON.stringify(design) };
+  arrived = [];
+  await sync.syncNow();
+  await fitIn(arrived);
+}
+async function fitIn(events) {
+  let fabricsChanged = false, designsChanged = false;
+  for (const e of events) {
+    if (e.kind === "fabric") {
+      const f = repo.fabrics.get(e.id);
+      if (f?.blob) {
+        await addStoredFabric(f).catch(() => {
+        });
+        fabricsChanged = true;
+      }
+      continue;
+    }
+    designsChanged = true;
+    if (e.kind === "conflict") {
+      notify(`\u201C${e.name}\u201D was also changed on another device. Both are kept: yours is now \u201C${e.name} (this device)\u201D.`);
+      if (before?.id === e.id) adoptDesignId(e.copyId);
+    } else if (e.kind === "restored") notify(`\u201C${e.name}\u201D was changed on another device, so it is back in My designs.`);
+    else if (e.kind === "design" && before?.id === e.id) openOrKeep(e);
+  }
+  if (fabricsChanged) drawFabricPalette();
+  if (designsChanged && state.page === "mine") renderMine();
+}
+function openOrKeep(e) {
+  const unsaved = before.open !== before.saved;
+  if (e.deleted) {
+    setMineCur(null);
+    mineSave();
+    notify(`\u201C${e.name}\u201D was deleted on another device. It stays open here as an unsaved quilt.`);
+  } else if (unsaved)
+    notify(`\u201C${e.name}\u201D was changed on another device. Your unsaved changes here are kept; save to keep yours.`);
+  else {
+    const r = repo.designs.get(e.id);
+    if (r) openDesign(r.design, { keepFocus: true, quiet: true });
+    notify(`\u201C${e.name}\u201D was updated from another device.`);
+  }
+}
+var timer2 = 0;
+var soon = (ms = AFTER_CHANGE_MS) => {
+  clearTimeout(timer2);
+  if (sync.config()) timer2 = setTimeout(run, ms);
+};
+function initSyncUI() {
+  const form = $("sync-form");
+  const openForm = () => {
+    const c = sync.config();
+    $("sync-url").value = c?.url || "http://localhost:8787";
+    $("sync-user").value = c?.user || "";
+    $("sync-off").hidden = !c;
+    form.hidden = false;
+    $("sync-user").focus();
+  };
+  $("sync-setup").addEventListener("click", () => form.hidden ? openForm() : form.hidden = true);
+  $("sync-cancel").addEventListener("click", () => form.hidden = true);
+  $("sync-off").addEventListener("click", () => {
+    sync.configure(null);
+    form.hidden = true;
+  });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    sync.configure({ url: $("sync-url").value, user: $("sync-user").value });
+    form.hidden = true;
+    run();
+  });
+  $("sync-now").addEventListener("click", run);
+  onChange(() => soon());
+  addEventListener("online", () => soon(500));
+  setInterval(() => document.visibilityState === "visible" && soon(0), EVERY_MS);
+  showStatus(sync.status());
+  if (sync.config()) {
+    showStatus({ state: "ok", pending: repo.designs.dirty().length + repo.fabrics.dirty().length });
+    soon(1500);
+  }
+}
+initSyncUI();
 
 // src/sim/panels.js
 (function initStageControls() {
@@ -10670,43 +11130,43 @@ var canvasJpeg = (c) => new Promise(
 function buildPdf(pages) {
   const enc = new TextEncoder(), parts = [], offsets = [];
   let len = 0;
-  const put2 = (x2) => {
+  const put = (x2) => {
     const u = typeof x2 === "string" ? enc.encode(x2) : x2;
     parts.push(u);
     len += u.length;
   };
   const obj = (n2, body) => {
     offsets[n2] = len;
-    put2(`${n2} 0 obj
+    put(`${n2} 0 obj
 `);
     body();
-    put2("\nendobj\n");
+    put("\nendobj\n");
   };
   const W = (A4.w / 25.4 * 72).toFixed(2), H = (A4.h / 25.4 * 72).toFixed(2), n = pages.length;
-  put2("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
-  obj(1, () => put2("<< /Type /Catalog /Pages 2 0 R >>"));
-  obj(2, () => put2(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>`));
+  put("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+  obj(1, () => put("<< /Type /Catalog /Pages 2 0 R >>"));
+  obj(2, () => put(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>`));
   pages.forEach((p, i) => {
     const po = 3 + i * 3, co = po + 1, io = po + 2;
     obj(
       po,
-      () => put2(
+      () => put(
         `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${io} 0 R >> >> /Contents ${co} 0 R >>`
       )
     );
     const cs = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
-    obj(co, () => put2(`<< /Length ${cs.length} >>
+    obj(co, () => put(`<< /Length ${cs.length} >>
 stream
 ${cs}
 endstream`));
     obj(io, () => {
-      put2(
+      put(
         `<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpg.length} >>
 stream
 `
       );
-      put2(p.jpg);
-      put2("\nendstream");
+      put(p.jpg);
+      put("\nendstream");
     });
   });
   const xref = len, count = 3 + n * 3;
@@ -10715,7 +11175,7 @@ stream
 0000000000 65535 f 
 `;
   for (let i = 1; i < count; i++) x += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
-  put2(x + `trailer
+  put(x + `trailer
 << /Size ${count} /Root 1 0 R >>
 startxref
 ${xref}
@@ -11233,14 +11693,14 @@ $("cg-pdf").addEventListener("click", downloadCutPdf);
 // src/app/loop.js
 var lastT = performance.now();
 function frame(t) {
-  const now2 = t || performance.now();
+  const now = t || performance.now();
   if (state.page !== "sim") {
-    lastT = now2;
+    lastT = now;
     requestAnimationFrame(frame);
     return;
   }
-  const dt = Math.min(0.1, (now2 - lastT) / 1e3);
-  lastT = now2;
+  const dt = Math.min(0.1, (now - lastT) / 1e3);
+  lastT = now;
   if (grabMsg) {
     send(grabMsg);
     setGrabMsg(null);

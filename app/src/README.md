@@ -56,6 +56,11 @@ main.js     entry point
   `rev` (save counter), `deleted` markers instead of erasing, `dirty` until uploaded. The first start moves the
   old localStorage data over (`storage/migrate.js`) and leaves the old keys alone. Small per-device preferences
   (panels open, bed, tour seen) stay in localStorage.
+- **Sync** (`storage/sync.js`, shown by `mine/sync-ui.js`): when set up on My designs, saved designs and fabric
+  photos are sent to the server (`server/`) and fetched from it: a few seconds after a change, when the
+  connection returns, every minute, and on "Sync now". The same quilt changed on two devices keeps both
+  versions ("… (this device)"). The open quilt is updated from another device only when it has no unsaved
+  edits here. The development sign-in is a name (`X-Dev-User`).
 - **Tools.** `node tools/move.mjs from to name…` moves declarations between modules and fixes every import;
   `node tools/chain.mjs list | unchain | insert` manages the load-order chain.
 

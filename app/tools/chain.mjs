@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const SRC = path.resolve('src');
+const SRC = path.resolve(import.meta.dirname, '../src'); // works from any folder
 const file = m => path.join(SRC, m + '.js');
 const LINE = /^import '([^']+)';\s*\/\/ load order: runs after (\S+)\n/m;
 const rel = (from, to) => { let r = path.relative(path.dirname(file(from)), file(to)); if (!r.startsWith('.')) r = './' + r; return r; };

@@ -10,8 +10,11 @@ import { buildApp } from '../src/app.js';
 
 const ADMIN_URL = process.env.TEST_DATABASE_URL || 'postgres://postgres@localhost:5433/postgres?host=/tmp';
 
-/** @param {Record<string, string>} [env] extra settings */
-export async function setup(env = {}) {
+/**
+ * @param {Record<string, string>} [env] extra settings
+ * @param {(config: any) => any} [makeStore] photo storage (in memory by default)
+ */
+export async function setup(env = {}, makeStore = () => memoryStore()) {
   const name = `quilt_test_${process.pid}_${Math.random().toString(36).slice(2, 8)}`;
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   await admin.connect();
@@ -21,7 +24,7 @@ export async function setup(env = {}) {
   const config = loadConfig({ NODE_ENV: 'test', DATABASE_URL: url.toString(), ...env });
   const pool = createPool(config.databaseUrl);
   await migrate(pool);
-  const store = memoryStore();
+  const store = makeStore(config);
   const app = await buildApp({ config, pool, store });
   after(async () => {
     await app.close();

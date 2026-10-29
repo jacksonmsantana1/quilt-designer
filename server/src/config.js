@@ -8,6 +8,9 @@
  * @property {string} databaseUrl
  * @property {'dev' | 'none'} auth  'dev': the stand-in login (X-Dev-User header), never allowed in production
  * @property {string[]} corsOrigins  sites allowed to call the API from a browser
+ * @property {'s3' | 'local'} storage  where photos are kept: S3/R2/MinIO, or (development only) a folder served by the API
+ * @property {string} localDir  the folder for STORAGE=local
+ * @property {string} publicUrl  the API's address as browsers see it (for STORAGE=local links)
  * @property {{ endpoint?: string, region: string, bucket: string, accessKeyId: string, secretAccessKey: string, forcePathStyle: boolean }} s3
  * @property {number} maxDesignBytes
  * @property {number} maxFabricBytes
@@ -26,9 +29,19 @@ export function loadConfig(env = process.env) {
     if (!env[k]) throw new Error(`${k} is not set (see server/.env.example)`);
     return /** @type {string} */ (env[k]);
   };
+  const storage = /** @type {Config['storage']} */ (
+    env.STORAGE || (env.S3_ENDPOINT || nodeEnv === 'production' ? 's3' : 'local')
+  );
+  if (!['s3', 'local'].includes(storage)) throw new Error(`STORAGE must be s3 or local, not "${storage}"`);
+  if (storage === 'local' && nodeEnv === 'production')
+    throw new Error('STORAGE=local (photos in a folder served by the API) cannot be used with NODE_ENV=production');
+  const port = Number(env.PORT || 8787);
   return {
     env: nodeEnv,
-    port: Number(env.PORT || 8787),
+    storage,
+    localDir: env.LOCAL_STORAGE_DIR || '.data/photos',
+    publicUrl: env.PUBLIC_URL || `http://localhost:${port}`,
+    port,
     databaseUrl: need('DATABASE_URL'),
     auth,
     corsOrigins: (env.CORS_ORIGINS || 'http://localhost:8000')

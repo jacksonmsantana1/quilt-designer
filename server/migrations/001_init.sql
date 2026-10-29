@@ -14,8 +14,8 @@ create table users (
 );
 
 create table designs (
-  id              uuid primary key,          -- made by the app (crypto.randomUUID), so it never changes on upload
   owner_id        uuid not null references users (id) on delete cascade,
+  id              text not null,             -- made by the app (a UUID; older saves have shorter ids), never changes
   name            text not null,
   doc             jsonb,                     -- the quilt (shared/src/format.js); null once deleted
   format_version  int,
@@ -23,7 +23,8 @@ create table designs (
   seq             bigint not null,
   deleted         boolean not null default false,
   created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now()
+  updated_at      timestamptz not null default now(),
+  primary key (owner_id, id)                 -- ids are per person: the same quilt can be in two accounts
 );
 create index designs_owner_seq on designs (owner_id, seq);
 

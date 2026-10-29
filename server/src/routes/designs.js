@@ -8,7 +8,8 @@ import { ApiError, designRecord } from '../records.js';
 const idParam = {
   type: 'object',
   required: ['id'],
-  properties: { id: { type: 'string', format: 'uuid' } },
+  // the app makes UUIDs; designs saved before that, and the sample designs, have shorter ids
+  properties: { id: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,64}$' } },
 };
 const baseRevQuery = {
   type: 'object',
@@ -60,9 +61,11 @@ export function designRoutes(app, pool) {
         );
       const out = await tx(pool, async c => {
         await lockOwner(c, req.user.id);
-        const { rows } = await c.query('select * from designs where id = $1 for update', [req.params.id]);
+        const { rows } = await c.query('select * from designs where id = $1 and owner_id = $2 for update', [
+          req.params.id,
+          req.user.id,
+        ]);
         const cur = rows[0];
-        if (cur && cur.owner_id !== req.user.id) throw new ApiError(404, 'not_found', 'No such design.');
         if ((cur ? cur.rev : 0) !== baseRev)
           throw new ApiError(409, 'conflict', 'The design was changed somewhere else.', {
             server: cur ? designRecord(cur) : null,
@@ -99,8 +102,8 @@ export function designRoutes(app, pool) {
         if (cur.deleted) return cur;
         const res = await c.query(
           `update designs set doc = null, deleted = true, rev = rev + 1, seq = nextval('change_seq'), updated_at = now()
-         where id = $1 returning *`,
-          [cur.id],
+         where id = $1 and owner_id = $2 returning *`,
+          [cur.id, req.user.id],
         );
         return res.rows[0];
       });

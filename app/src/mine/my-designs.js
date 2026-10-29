@@ -234,4 +234,15 @@ function initMine() {
 }
 initMine();
 
-export { mineSave, renderMine };
+/**
+ * The quilt being edited becomes the saved design `id` (sync kept this device's version of a quilt as a copy):
+ * it takes its timeline with it. @param {string} id
+ */
+function adoptDesignId(id) {
+  tlCopy(undefined, id);
+  tl.key = tlKeyFor(id);
+  setMineCur(id);
+  mineSave();
+}
+
+export { adoptDesignId, mineSave, renderMine };

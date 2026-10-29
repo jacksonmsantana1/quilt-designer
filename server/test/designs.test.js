@@ -93,7 +93,8 @@ test('the format checks are the app’s: old saves upgraded, damaged ones repair
 test('bad requests are refused before any database work', async () => {
   const id = randomUUID();
   const cases = [
-    ['PUT', '/v1/designs/not-a-uuid', { name: 'x', design: defaultDesign(), baseRev: 0 }],
+    ['PUT', '/v1/designs/not%20an%20id', { name: 'x', design: defaultDesign(), baseRev: 0 }],
+    ['PUT', `/v1/designs/${'x'.repeat(65)}`, { name: 'x', design: defaultDesign(), baseRev: 0 }],
     ['PUT', `/v1/designs/${id}`, { name: '', design: defaultDesign(), baseRev: 0 }],
     ['PUT', `/v1/designs/${id}`, { name: 'x'.repeat(81), design: defaultDesign(), baseRev: 0 }],
     ['PUT', `/v1/designs/${id}`, { name: 'x', design: defaultDesign(), baseRev: -1 }],
@@ -113,12 +114,13 @@ test('one user cannot read, change or delete another’s design', async () => {
   const id = randomUUID();
   await ana('PUT', `/v1/designs/${id}`, { name: 'Ana’s', design: defaultDesign(), baseRev: 0 });
   assert.equal((await ben('GET', `/v1/designs/${id}`)).status, 404);
-  assert.equal(
-    (await ben('PUT', `/v1/designs/${id}`, { name: 'mine now', design: defaultDesign(), baseRev: 1 })).status,
-    404,
-  );
-  assert.equal((await ben('DELETE', `/v1/designs/${id}?baseRev=1`)).status, 404);
+  // Ben saving a quilt with the same id makes his own (ids are per person): Ana's is untouched
+  assert.equal((await ben('PUT', `/v1/designs/${id}`, { name: 'x', design: defaultDesign(), baseRev: 1 })).status, 409);
+  const own = await ben('PUT', `/v1/designs/${id}`, { name: 'Ben’s', design: defaultDesign(), baseRev: 0 });
+  assert.equal(own.status, 201);
+  assert.equal((await ben('DELETE', `/v1/designs/${id}?baseRev=1`)).status, 200); // his own
   assert.equal((await ana('GET', `/v1/designs/${id}`)).body.name, 'Ana’s');
+  assert.equal((await ana('GET', `/v1/designs/${id}`)).body.deleted, false);
 });
 
 test('unknown addresses and the health check', async () => {

@@ -55,6 +55,7 @@ export const test = base.extend({
       if (u.startsWith(origin + '/assets/'))
         return r.fulfill({ path: path.join(ROOT, u.slice(origin.length + 1).split('#')[0]) });
       if (u.startsWith(origin + '/')) return r.fulfill({ body: pageHtml(), contentType: 'text/html' });
+      if (u.startsWith('http://127.0.0.1:')) return r.continue(); // a real API server started by a test (sync.spec)
       return r.abort();
     });
     const app = {

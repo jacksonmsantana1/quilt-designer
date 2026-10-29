@@ -6,6 +6,8 @@ import { memoryDb } from '../../src/storage/idb.js';
 import { migrateLocalStorage } from '../../src/storage/migrate.js';
 import * as repo from '../../src/storage/repo.js';
 
+const createRepoFresh = repo.createRepo;
+
 const fixture = f => fs.readFileSync(new URL(`../../../shared/tests/fixtures/designs/${f}`, import.meta.url), 'utf8');
 /** a localStorage stand-in */
 function fakeStorage(o) {
@@ -121,4 +123,28 @@ test('writes in one moment go to the database together, the last value of each r
   await repo.flush();
   assert.deepEqual(batches, [2]);
   assert.deepEqual((await db.getAll('session')).find(r => r.key === 'current').value, { n: 4 });
+});
+
+test('sync bookkeeping: a record changed while it was being uploaded stays waiting for the next sync', async () => {
+  const r = createRepoFresh();
+  await r.openStorage({ db: memoryDb(), legacy: null });
+  const a = r.designs.save({ id: 'a', name: 'A', design: { cols: 1 } });
+  const sentRev = a.rev; // what an upload sent
+  r.designs.save({ id: 'a', name: 'A2' }); // changed meanwhile
+  r.designs.markSynced('a', sentRev, 7, { design: { cols: 2 } });
+  const now = r.designs.get('a');
+  assert.deepEqual([now.syncRev, now.dirty, now.name, now.design], [7, true, 'A2', { cols: 1 }]);
+  // unchanged meanwhile: clean, and the server's version (patch) is kept
+  r.designs.markSynced('a', now.rev, 8, { design: { cols: 3 } });
+  assert.deepEqual([r.designs.get('a').dirty, r.designs.get('a').design], [false, { cols: 3 }]);
+  // a deletion the server has: the marker goes
+  r.designs.remove('a');
+  r.designs.markSynced('a', r.designs.raw('a').rev, 9);
+  assert.equal(r.designs.raw('a'), null);
+  // changes made here are announced (sync starts a little later); ones from the server are not
+  const seen = [];
+  r.onChange((store, id) => seen.push(`${store}:${id}`));
+  r.designs.save({ id: 'b', name: 'B', design: {} });
+  r.designs.applyRemote({ id: 'c', name: 'C', design: {}, rev: 1 });
+  assert.deepEqual(seen, ['designs:b']);
 });
