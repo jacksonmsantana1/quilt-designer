@@ -35,7 +35,7 @@ create table fabrics (
   cm          real not null,                 -- real size of the photo's width, in cm
   type        text not null,                 -- image/jpeg, image/png, image/webp
   bytes       int not null,
-  object_key  text not null,                 -- where the checked image is kept in object storage (R2 / MinIO)
+  object_key  text not null,                 -- where the checked image is kept in object storage (R2 / SeaweedFS)
   upload_key  text,                          -- where the browser uploads it first (a new place for every upload)
   uploaded    boolean not null default false,-- the image arrived and its hash was checked
   rev         int not null,

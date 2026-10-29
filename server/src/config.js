@@ -8,7 +8,7 @@
  * @property {string} databaseUrl
  * @property {'dev' | 'none'} auth  'dev': the stand-in login (X-Dev-User header), never allowed in production
  * @property {string[]} corsOrigins  sites allowed to call the API from a browser
- * @property {'s3' | 'local'} storage  where photos are kept: S3/R2/MinIO, or (development only) a folder served by the API
+ * @property {'s3' | 'local'} storage  where photos are kept: S3/R2/SeaweedFS, or (development only) a folder served by the API
  * @property {string} localDir  the folder for STORAGE=local
  * @property {string} publicUrl  the API's address as browsers see it (for STORAGE=local links)
  * @property {{ endpoint?: string, region: string, bucket: string, accessKeyId: string, secretAccessKey: string, forcePathStyle: boolean }} s3

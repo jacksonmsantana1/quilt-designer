@@ -1,4 +1,4 @@
-# Development services: PostgreSQL with pgvector, and MinIO (S3-compatible storage standing in for R2).
+# Development services: PostgreSQL with pgvector, and SeaweedFS (S3-compatible storage standing in for R2).
 #   docker compose up -d
 # then: cp server/.env.example server/.env && npm run dev -w @quilt/server
 services:
@@ -15,24 +15,42 @@ services:
       interval: 2s
       retries: 20
 
-  minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
-    command: server /data --console-address :9001
-    environment:
-      MINIO_ROOT_USER: quilt
-      MINIO_ROOT_PASSWORD: quilt-dev-secret
-    ports: ['9000:9000', '9001:9001'] # 9001: MinIO's web console
-    volumes: ['minio:/data']
+  # SeaweedFS rather than MinIO: MinIO no longer publishes its Docker images.
+  # Small volumes (100 MB) because it only holds test photos; any origin may upload, so the app's port doesn't matter.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.48
+    command:
+      [
+        'server',
+        '-dir=/data',
+        '-master.volumeSizeLimitMB=100',
+        '-s3',
+        '-s3.config=/etc/seaweedfs/s3.json',
+        '-s3.allowedOrigins=*',
+      ]
+    configs: [{ source: s3-login, target: /etc/seaweedfs/s3.json }]
+    ports: ['8333:8333'] # the S3 API
+    volumes: ['seaweedfs:/data']
 
-  # makes the bucket and lets the app (localhost:8000) upload to it from the browser
-  minio-setup:
-    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
-    depends_on: [minio]
-    entrypoint: >
-      sh -c "until mc alias set local http://minio:9000 quilt quilt-dev-secret; do sleep 1; done &&
-             mc mb --ignore-existing local/quilt-fabrics &&
-             mc anonymous set none local/quilt-fabrics"
+  # makes the bucket (a signed S3 "create bucket"; 409 means it is already there), retrying until SeaweedFS is up
+  seaweedfs-setup:
+    image: chrislusf/seaweedfs:4.48
+    depends_on: [seaweedfs]
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        until code=$$(curl -s -o /dev/null -w "%{http_code}" --aws-sigv4 aws:amz:auto:s3 --user quilt:quilt-dev-secret
+        -X PUT http://seaweedfs:8333/quilt-fabrics) && [ "$$code" = 200 -o "$$code" = 409 ]; do sleep 1; done;
+        echo "bucket quilt-fabrics ready"
+
+configs:
+  # the S3 login the server uses (server/.env.example): development only
+  s3-login:
+    content: |
+      { "identities": [ { "name": "quilt", "credentials": [ { "accessKey": "quilt", "secretKey": "quilt-dev-secret" } ],
+                          "actions": ["Admin", "Read", "Write", "List", "Tagging"] } ] }
 
 volumes:
   pgdata:
-  minio:
+  seaweedfs:

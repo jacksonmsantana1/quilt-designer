@@ -73,7 +73,8 @@ Everything must stay green: `npm run check` with zero lint warnings, and all bro
   `rev` per record (409 on a stale baseRev), `seq` from one sequence per write, each user's writes serialized by
   `lockOwner` so sync by `seq` never misses a change. Deleted rows stay as markers.
 - Photos: signed upload link to a fresh `uploads/...` key, then `done` re-hashes and copies to `fabrics/...`.
-  Storage: S3/R2/MinIO (`objects.js s3Store`), or `STORAGE=local` (folder served by the API, dev only).
+  Storage: S3/R2/SeaweedFS (`objects.js s3Store`), or `STORAGE=local` (folder served by the API, dev only).
+  Docker compose runs SeaweedFS (port 8333) because MinIO stopped publishing its images.
 - Login: **development stand-in only** (`X-Dev-User` header). Production refuses `AUTH_MODE=dev` and
   `STORAGE=local`. Migration 001 has not been deployed anywhere yet, so it can still be edited; after the first
   deployment, add new migration files instead.
