@@ -1,8 +1,10 @@
 // Choosing a block pattern: the list under "Block pattern" (the app's first 27 blocks, plus the ones this quilt uses
-// and recent picks), and the block library behind its "More blocks" tile, with search and families.
+// and recent picks), one row that scrolls sideways like the fabric lists, and the block library behind its round
+// "+" button, with search and families.
 import './fabric-picker.js'; // load order: runs after designer/fabric-picker
 import { design, focusBlock } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, sideRoller } from '../core/dom.js';
+import { placeMoreButton } from './fabric-picker.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { GRID_BLOCKS } from '@quilt/shared/blocks.js';
 import { ROLE_COLOURS } from '@quilt/shared/design.js';
@@ -74,19 +76,21 @@ function drawPatternList() {
     box.dataset.keys = keys.join();
     box.innerHTML = '';
     for (const k of keys) box.appendChild(patternTile(k));
-    const more = document.createElement('button');
+    // the round "+" button beside the row, like the fabric lists': it opens the block library
+    const rest = Object.keys(PATTERNS).length - keys.length,
+      more = document.createElement('button');
     more.type = 'button';
-    more.className = 'pat pat-more';
-    more.title = 'All blocks: search by name or family';
-    more.innerHTML = `<b aria-hidden="true">⋯</b><span>More blocks (${Object.keys(PATTERNS).length - keys.length})</span>`;
-    // its own click: the list's handler (one pattern per button) must not see it
-    more.addEventListener('click', e => {
-      e.stopPropagation();
-      openBlockLibrary();
-    });
-    box.appendChild(more);
+    more.className = 'fab-more-btn';
+    more.id = 'dz-patterns-more';
+    more.title = `More blocks (${rest}): search all blocks by name or family`;
+    more.setAttribute('aria-label', `More blocks (${rest})`);
+    more.innerHTML = `<b aria-hidden="true">+</b><span aria-hidden="true">${rest}</span>`;
+    more.addEventListener('click', openBlockLibrary);
+    placeMoreButton(box, more);
   }
   for (const b of box.querySelectorAll('.pat[data-p]')) b.setAttribute('aria-pressed', String(b.dataset.p === cur));
+  // one row that scrolls sideways, the chosen block in view
+  sideRoller(box, '.pat[aria-pressed="true"]');
 }
 
 // ---- the block library window

@@ -101,9 +101,10 @@ function floatButton() {
   b.addEventListener('mouseenter', () => clearTimeout(float.timer)); // moving onto it keeps it
   b.addEventListener('mouseleave', hideFloatSoon);
   b.addEventListener('click', () => {
-    const box = float.box;
+    // does what the row's own round button does (fabrics or blocks)
+    const inline = /** @type {HTMLElement | null} */ (float.box?.parentElement.querySelector(':scope > .fab-more-btn'));
     hideFloat();
-    if (box) openLibrary(box);
+    inline?.click();
   });
   // a scroll (the row itself, its panel or the page): while the mouse is still on the row or the button, the
   // button follows the row; otherwise it goes
@@ -147,11 +148,13 @@ function hideFloatSoon() {
   float.timer = setTimeout(hideFloat, 300); // time to move the mouse from the row onto it
 }
 
-function drawShortList(box, selected) {
-  box.innerHTML = '';
-  const fabs = shortListFabrics(selected);
-  for (const f of fabs) box.appendChild(fabricTile(f, f.id === selected));
-  // the round "More fabrics" button sits just left of the row: the row is wrapped once to hold the two side by side
+/**
+ * Puts a row's round "More" button beside it (fabrics and blocks alike): just left of the row on touch screens;
+ * with a mouse, a floating copy just outside the row's card while the mouse is over the row.
+ * @param {HTMLElement} box the row @param {HTMLButtonElement} button
+ */
+function placeMoreButton(box, button) {
+  // the row is wrapped once to hold the two side by side
   let wrap = box.parentElement;
   if (!wrap.classList.contains('fabs-row')) {
     wrap = document.createElement('div');
@@ -160,14 +163,20 @@ function drawShortList(box, selected) {
     wrap.append(box);
   }
   wrap.querySelector(':scope > .fab-more-btn')?.remove();
-  wrap.prepend(moreButton(box, fabs.length)); // on the left: shown there only on touch screens (no hover)
-  // with a mouse, one floating copy appears just outside the list's card while the mouse is over the row
+  wrap.prepend(button);
   if (!wrap.dataset.float) {
     wrap.dataset.float = '1';
     wrap.addEventListener('mouseenter', () => showFloat(box));
     wrap.addEventListener('focusin', () => showFloat(box));
     wrap.addEventListener('mouseleave', hideFloatSoon);
   }
+}
+
+function drawShortList(box, selected) {
+  box.innerHTML = '';
+  const fabs = shortListFabrics(selected);
+  for (const f of fabs) box.appendChild(fabricTile(f, f.id === selected));
+  placeMoreButton(box, moreButton(box, fabs.length));
   // one row that scrolls sideways, the chosen fabric in view
   sideRoller(box, '.fab[aria-pressed="true"]');
 }
@@ -295,4 +304,4 @@ function refreshLibrary() {
   if ($('fablib').open) drawLibrary();
 }
 
-export { drawShortList, openLibrary, refreshLibrary };
+export { drawShortList, openLibrary, placeMoreButton, refreshLibrary };

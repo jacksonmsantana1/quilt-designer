@@ -414,6 +414,11 @@
   .fabs .fab-more { border-style: dashed; color: var(--muted); }
   .fabs-row { display: flex; align-items: center; gap: 8px; }
   .fabs-row > .fabs { flex: 1 1 auto; min-width: 0; }
+  /* Block pattern: one row that scrolls sideways, like the fabric lists (with the same round button beside it) */
+  #dz-patterns { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
+  #dz-patterns .pat { flex: 0 0 84px; scroll-snap-align: start; }
+  #dz-patterns .pat span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fabs-row > #dz-patterns { flex: 1 1 auto; min-width: 0; }
   .fab-more-btn { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent); background: var(--panel); color: var(--accent); display: grid; place-items: center; align-content: center; gap: 0; padding: 0; cursor: pointer; box-shadow: 0 2px 8px rgba(20,25,40,.18); }
   .fab-more-btn:hover { background: var(--accent); color: var(--accent-ink); }
   .fab-more-btn[hidden] { display: none; }
@@ -432,9 +437,7 @@
   .fablib-groups button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .fabs.fablib-grid { display: grid; overflow: visible; grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .fabs.fablib-grid .fab { flex: none; }
-  /* the block library: the fabric library's window, with block tiles; "More blocks" is a dashed tile ending the list */
-  .pats .pat-more { border-style: dashed; color: var(--muted); }
-  .pats .pat-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
+  /* the block library: the fabric library's window, with block tiles */
   .pats.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .fablib-more { display: block; margin: 10px auto 0; }
   .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
@@ -6891,9 +6894,12 @@ function floatButton() {
   b.addEventListener("mouseenter", () => clearTimeout(float.timer));
   b.addEventListener("mouseleave", hideFloatSoon);
   b.addEventListener("click", () => {
-    const box2 = float.box;
+    const inline = (
+      /** @type {HTMLElement | null} */
+      float.box?.parentElement.querySelector(":scope > .fab-more-btn")
+    );
     hideFloat();
-    if (box2) openLibrary(box2);
+    inline?.click();
   });
   addEventListener(
     "scroll",
@@ -6937,10 +6943,7 @@ function hideFloatSoon() {
   clearTimeout(float.timer);
   float.timer = setTimeout(hideFloat, 300);
 }
-function drawShortList(box2, selected) {
-  box2.innerHTML = "";
-  const fabs = shortListFabrics(selected);
-  for (const f of fabs) box2.appendChild(fabricTile(f, f.id === selected));
+function placeMoreButton(box2, button) {
   let wrap = box2.parentElement;
   if (!wrap.classList.contains("fabs-row")) {
     wrap = document.createElement("div");
@@ -6949,13 +6952,19 @@ function drawShortList(box2, selected) {
     wrap.append(box2);
   }
   wrap.querySelector(":scope > .fab-more-btn")?.remove();
-  wrap.prepend(moreButton(box2, fabs.length));
+  wrap.prepend(button);
   if (!wrap.dataset.float) {
     wrap.dataset.float = "1";
     wrap.addEventListener("mouseenter", () => showFloat(box2));
     wrap.addEventListener("focusin", () => showFloat(box2));
     wrap.addEventListener("mouseleave", hideFloatSoon);
   }
+}
+function drawShortList(box2, selected) {
+  box2.innerHTML = "";
+  const fabs = shortListFabrics(selected);
+  for (const f of fabs) box2.appendChild(fabricTile(f, f.id === selected));
+  placeMoreButton(box2, moreButton(box2, fabs.length));
   sideRoller(box2, '.fab[aria-pressed="true"]');
 }
 var lib = { source: (
@@ -7151,18 +7160,18 @@ function drawPatternList() {
     box2.dataset.keys = keys.join();
     box2.innerHTML = "";
     for (const k of keys) box2.appendChild(patternTile(k));
-    const more = document.createElement("button");
+    const rest = Object.keys(PATTERNS).length - keys.length, more = document.createElement("button");
     more.type = "button";
-    more.className = "pat pat-more";
-    more.title = "All blocks: search by name or family";
-    more.innerHTML = `<b aria-hidden="true">\u22EF</b><span>More blocks (${Object.keys(PATTERNS).length - keys.length})</span>`;
-    more.addEventListener("click", (e) => {
-      e.stopPropagation();
-      openBlockLibrary();
-    });
-    box2.appendChild(more);
+    more.className = "fab-more-btn";
+    more.id = "dz-patterns-more";
+    more.title = `More blocks (${rest}): search all blocks by name or family`;
+    more.setAttribute("aria-label", `More blocks (${rest})`);
+    more.innerHTML = `<b aria-hidden="true">+</b><span aria-hidden="true">${rest}</span>`;
+    more.addEventListener("click", openBlockLibrary);
+    placeMoreButton(box2, more);
   }
   for (const b of box2.querySelectorAll(".pat[data-p]")) b.setAttribute("aria-pressed", String(b.dataset.p === cur));
+  sideRoller(box2, '.pat[aria-pressed="true"]');
 }
 var lib2 = { group: "all", shown: PAGE2 };
 var FAMILIES = ["Basics", "Four patch", "Nine patch", "Stars", "Strips and logs", "Larger grids", "Your drawings"];
