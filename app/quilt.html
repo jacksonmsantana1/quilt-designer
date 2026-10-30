@@ -1138,6 +1138,20 @@ const ClothSim = (function () {
     return ol + Math.min(mq, 0) - b.r;
   }
 
+  // Which flat face of a rounded box a point lies over (0–5: −x, +x, −y, +y, −z, +z), or −1 when it is near an
+  // edge or corner (or inside): over one face, along exactly one axis the point is beyond the flat part.
+  function faceOf(x, k, b) {
+    let face = -1;
+    for (let ax = 0; ax < 3; ax++) {
+      const d = x[k + ax] - b.c[ax];
+      if (Math.abs(d) > b.h[ax] - b.r) {
+        if (face >= 0) return -1;
+        face = 2 * ax + (d > 0 ? 1 : 0);
+      }
+    }
+    return face;
+  }
+
   class Cloth {
     constructor(opt) {
       const nx = (this.nx = opt.nx), ny = (this.ny = opt.ny);
@@ -1519,10 +1533,56 @@ const ClothSim = (function () {
             const d = r - sd;
             x[k] += n[0] * d; x[k + 1] += n[1] * d; x[k + 2] += n[2] * d;
             this._friction(k, n[0], n[1], n[2], d, b.muScale * muS, b.muScale * muK);
-            inContact[i] = 1;
+            inContact[i] = 2; // touching the bed or table (1: only the floor)
           }
         }
       }
+    }
+
+    // The cloth as drawn. A sharp edge (a table top is only 4 cm thick) pokes through a stretch of cloth whose two
+    // ends both keep clear of it: with nodes ~6 cm apart, the wood showed through the quilt all round the table.
+    // So for drawing (not for the physics: pushing the cloth there made it bounce and never settle), the points a
+    // quarter, half and three quarters along each edge of the cloth that touches the bed or table keep clear of
+    // its sharp parts: the deepest pushes both ends out, each in proportion to how near it is. Only sharp parts:
+    // one rounded over more than half the cloth's spacing (mattress, pillows) can't be cut by a straight stretch.
+    drawnPositions() {
+      const { pos, invMass: w, colliders, inContact, cA, cB, params: P } = this;
+      const x = new Float32Array(pos),
+        r = P.thickness / 2,
+        n = this._n,
+        p = [0, 0, 0],
+        spacing = Math.min(this.hx, this.hy),
+        sharp = colliders.filter(b => b.enabled && b.r <= 0.5 * spacing);
+      if (!sharp.length) return x;
+      for (let pass = 0; pass < 2; pass++)
+        for (let e = 0; e < cA.length; e++) {
+          const ia = cA[e], ib = cB[e];
+          if (inContact[ia] !== 2 && inContact[ib] !== 2) continue; // near the bed or table, not just on the floor
+          const wa = w[ia] ? 1 : 0, wb = w[ib] ? 1 : 0; // a held point stays where it is held
+          if (!wa && !wb) continue;
+          const a = 3 * ia, b = 3 * ib;
+          for (const box of sharp) {
+            // both ends over the same flat face (not near an edge or corner): the cloth between them can't cut in
+            const fa = faceOf(x, a, box), fb = faceOf(x, b, box);
+            if (fa >= 0 && fa === fb) continue;
+            let deepest = r, dt = 0, nx = 0, ny = 0, nz = 0;
+            for (let s = 1; s <= 3; s++) {
+              const t = s / 4;
+              for (let k = 0; k < 3; k++) p[k] = x[a + k] + (x[b + k] - x[a + k]) * t;
+              if (Math.abs(p[0] - box.c[0]) > box.h[0] + r || Math.abs(p[1] - box.c[1]) > box.h[1] + r ||
+                  Math.abs(p[2] - box.c[2]) > box.h[2] + r) continue;
+              const sd = roundedBoxSDF(p[0], p[1], p[2], box, n);
+              if (sd < deepest) { deepest = sd; dt = t; nx = n[0]; ny = n[1]; nz = n[2]; }
+            }
+            if (deepest >= r) continue;
+            // move the point at dt out by (r − sd), sharing the move between the two ends
+            const ua = 1 - dt, ub = dt, lam = (r - deepest) / (wa * ua * ua + wb * ub * ub);
+            const ka = lam * wa * ua, kb = lam * wb * ub;
+            x[a] += nx * ka; x[a + 1] += ny * ka; x[a + 2] += nz * ka;
+            x[b] += nx * kb; x[b + 1] += ny * kb; x[b + 2] += nz * kb;
+          }
+        }
+      return x;
     }
 
     // Position-level Coulomb friction. The normal correction d is the normal
@@ -1570,7 +1630,7 @@ const ClothSim = (function () {
         }
       }
       let contact = 0;
-      for (let i = 0; i < N; i++) contact += this.inContact[i];
+      for (let i = 0; i < N; i++) if (this.inContact[i]) contact++;
       return { ke, pe, stretch: es, bend: eb, maxStrain, contactFrac: contact / N };
     }
   }
@@ -1817,7 +1877,7 @@ const ClothSim = (function () {
       dirty = true;
     };
     function post() {
-      const c = sim.cloth, pos = new Float32Array(c.pos), hands = [];
+      const c = sim.cloth, pos = c.drawnPositions(), hands = [];
       for (const hd of sim.hands) { const k = 3 * hd.ids[0]; hands.push(c.pinTarget[k], c.pinTarget[k + 1], c.pinTarget[k + 2]); }
       if (sim.grab) { const k = 3 * sim.grab.i; hands.push(c.pinTarget[k], c.pinTarget[k + 1], c.pinTarget[k + 2]); }
       const msg = { type: 'frame', pos, hands };
