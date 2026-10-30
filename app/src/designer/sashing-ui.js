@@ -14,7 +14,7 @@ import {
   sashOf,
 } from '@quilt/shared/geometry.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
-import { newBlock } from '@quilt/shared/design.js';
+import { ROLE_COLOURS, newBlock } from '@quilt/shared/design.js';
 import { fabricById, onFabricsLoaded } from './fabric-library.js';
 import { pieceFill } from '../render/fabric-fill.js';
 import { drawPaletteInto } from './parts-editor.js';
@@ -37,9 +37,8 @@ function drawCornerPatterns(current, allowed) {
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const g = c.getContext('2d');
-      const cols = ['#efe5cf', '#2f466f', '#c79a45'];
       for (const part of partsOf(key || 'plain')) {
-        g.fillStyle = cols[part.role];
+        g.fillStyle = ROLE_COLOURS[part.role];
         pathPoly(
           g,
           part.poly.map(([u, v]) => [u * 64, v * 64]),

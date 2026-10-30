@@ -7,7 +7,7 @@
  * One part of a block pattern.
  * @typedef {object} Part
  * @property {string} name
- * @property {0 | 1 | 2} role   colour role: 0 background, 1 main, 2 accent (picks the default fabric)
+ * @property {number} role   colour role 0 to 5: 0 background, 1 main, 2 accent, 3–5 more (picks the default fabric)
  * @property {Poly} poly        polygon in the block's unit square
  */
 

@@ -150,6 +150,18 @@ const GRID_BLOCKS = {
       0\1 - 1 - 1/0 -
       |   + 0 - |   +`,
   },
+  southernpine: {
+    label: 'Southern pine',
+    family: 'Other',
+    n: 5,
+    // white 0, the branches (medium) 1, the trunk (dark) 2, the light squares round the trunk 3
+    rows: String.raw`
+      0/1 0/1 0/1 0   0
+      1   |   |   0   0
+      1/2 3   0   1/0 -
+      2   3   3   1/0 -
+      2   2   2/1 1   1/0`,
+  },
   emptyspool: {
     label: 'Empty spool',
     family: 'Other',
@@ -295,6 +307,39 @@ const GRID_BLOCKS = {
       2 0 1 0 2
       0 1 0 1 0
       1 0 2 0 1`,
+  },
+  fourqueens: {
+    label: '4 Queens',
+    family: 'Larger grids',
+    n: 7,
+    // read from a picture by the block reader as it is; its piece count matches the picture's cutting list
+    rows: String.raw`
+      0     1\0   0/1   0     1\0   0/1   0
+      0\1   2     2/1   10\0  1\2   2     1/0
+      0/1   2/1   1/2   q1202 2\1   1\2   1\0
+      0     0/10  q2021 0     q2120 01/0  0
+      0\1   2\1   1\2   q0212 2/1   1/2   1/0
+      0/1   2     2\1   0\10  1/2   2     1\0
+      0     1/0   0\1   0     1/0   0\1   0`,
+  },
+  wingedsquare: {
+    label: 'Winged square set',
+    family: 'Larger grids',
+    n: 12,
+    // read from a picture by the block reader (shared/tools/read-block.mjs); the plain 2 × 2 squares joined by hand
+    rows: String.raw`
+      0   -   1\0 1\0 1\0 1\0 0/1 0/1 0/1 0/1 0   -
+      |   +   1\0 1\0 1\0 1\0 0/1 0/1 0/1 0/1 |   +
+      0\1 0\1 2   -   1\0 1\0 0/1 0/1 2   -   1/0 1/0
+      0\1 0\1 |   +   1\0 1\0 0/1 0/1 |   +   1/0 1/0
+      0\1 0\1 0\1 0\1 0   -   0   -   1/0 1/0 1/0 1/0
+      0\1 0\1 0\1 0\1 |   +   |   +   1/0 1/0 1/0 1/0
+      0/1 0/1 0/1 0/1 0   -   0   -   1\0 1\0 1\0 1\0
+      0/1 0/1 0/1 0/1 |   +   |   +   1\0 1\0 1\0 1\0
+      0/1 0/1 2   -   1/0 1/0 0\1 0\1 2   -   1\0 1\0
+      0/1 0/1 |   +   1/0 1/0 0\1 0\1 |   +   1\0 1\0
+      0   -   1/0 1/0 1/0 1/0 0\1 0\1 0\1 0\1 0   -
+      |   +   1/0 1/0 1/0 1/0 0\1 0\1 0\1 0\1 |   +`,
   },
   bearspaw: {
     label: "Bear's paw",

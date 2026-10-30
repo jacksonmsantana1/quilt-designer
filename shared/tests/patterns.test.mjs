@@ -21,11 +21,11 @@ test('every block pattern covers its unit square exactly once', () => {
   }
 });
 
-test('every part has a name and a colour role 0, 1 or 2', () => {
+test('every part has a name and a colour role 0 to 5', () => {
   for (const key of Object.keys(PATTERNS))
     for (const p of partsOf(key)) {
       assert.equal(typeof p.name, 'string');
-      assert.ok([0, 1, 2].includes(p.role), `${key} / ${p.name}: role ${p.role}`);
+      assert.ok([0, 1, 2, 3, 4, 5].includes(p.role), `${key} / ${p.name}: role ${p.role}`);
     }
 });
 
@@ -99,8 +99,27 @@ test('grid notation: shapes, pieces spanning cells, and clear mistakes', () => {
   ]);
   assert.throws(() => parseGrid('1 |'), /belongs to no piece/);
   assert.throws(() => parseGrid('1 -\n| 0'), /expected "\+"/);
-  assert.throws(() => parseGrid('3'), /not a piece|colour role/);
+  assert.throws(() => parseGrid('6'), /not a piece|colour role/);
   assert.throws(() => parseGrid('1/7'), /not a piece|colour role/);
+});
+
+test('a three-triangle unit: a half-square triangle with one half cut in two quarters', () => {
+  const tris = parseGrid(String.raw`10\0`);
+  assert.deepEqual(
+    tris.map(([kind, role, poly]) => [kind, role, poly.length]),
+    [
+      ['tri', 1, 3], // the bottom quarter
+      ['tri', 0, 3], // the left quarter
+      ['tri', 0, 3], // the upper-right half
+    ],
+  );
+  assert.deepEqual(tris[0][2], [
+    [1, 1],
+    [0, 1],
+    [0.5, 0.5],
+  ]);
+  assert.equal(parseGrid('0/10').length, 3);
+  assert.equal(parseGrid('01/23').length, 4, 'both halves cut: four quarters, like an hourglass');
 });
 
 test('a fourfold block turns its corner about the centre', () => {

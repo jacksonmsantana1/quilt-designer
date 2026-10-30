@@ -6,8 +6,15 @@ import { partsOf } from './patterns.js';
 /** Version of the saved design format (see core/format.js). */
 const FORMAT_VERSION = 6;
 
-/** Default fabric for each colour role: cream, indigo, mustard. */
-const ROLE_DEFAULT = ['b0', 'b1', 'b3'];
+// A block's parts have colour roles 0 to 5: 0 background, 1 main, 2 accent, then 3, 4 and 5 for blocks with more
+// fabrics (most use only the first three). Designs keep a fabric per part, not roles: roles only pick the fabrics a
+// new block starts in, and the colours of the pattern pictures.
+/** How many colour roles there are. */
+const ROLE_COUNT = 6;
+/** Default fabric for each colour role: cream, indigo, mustard, sage, rose, chocolate. */
+const ROLE_DEFAULT = ['b0', 'b1', 'b3', 'b5', 'b8', 'b10'];
+/** The colour each role is drawn in on pattern pictures (the default fabrics' colours). */
+const ROLE_COLOURS = ['#efe5cf', '#2f466f', '#c79a45', '#7d8f70', '#b26a5f', '#4a2c22'];
 
 /** A new block of a pattern, each part in the fabric of its colour role. @param {string} [pattern] @param {string[]} [roles] @returns {Block} */
 function newBlock(pattern = 'ohio', roles = ROLE_DEFAULT) {
@@ -26,7 +33,7 @@ function defaultDesign() {
 /** The fabric of each colour role in a block (the first part of each role), for carrying colours to a new pattern. @param {Block} b @returns {string[]} */
 function rolesOf(b) {
   const roles = [...ROLE_DEFAULT],
-    seen = [false, false, false];
+    seen = new Array(ROLE_COUNT).fill(false);
   partsOf(b.pattern).forEach((p, i) => {
     if (!seen[p.role]) {
       roles[p.role] = b.fabrics[i];
@@ -36,4 +43,4 @@ function rolesOf(b) {
   return roles;
 }
 
-export { FORMAT_VERSION, ROLE_DEFAULT, defaultDesign, newBlock, rolesOf };
+export { FORMAT_VERSION, ROLE_COLOURS, ROLE_COUNT, ROLE_DEFAULT, defaultDesign, newBlock, rolesOf };

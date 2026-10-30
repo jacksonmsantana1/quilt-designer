@@ -2,9 +2,12 @@
 // @ts-check
 //
 // A block is an n × n grid, written one row per line, one token per cell, separated by spaces:
-//   0 1 2       a square of colour role 0 (background), 1 (main) or 2 (accent)
+//   0 1 2 3 4 5 a square of colour role 0 (background), 1 (main), 2 (accent), or 3 to 5 for more fabrics
 //   a/b         half-square triangle cut along "/": a is the upper-left half, b the lower-right half
 //   a\b         half-square triangle cut along "\": a is the lower-left half, b the upper-right half
+//   ab/c  a\bc  a half-square triangle with one half cut in two quarter triangles (a "three-triangle unit"): the cut
+//               half has two digits, its quarters clockwise from the top ("10\0": the upper-right half 0, the
+//               lower-left half cut into a bottom quarter 1 and a left quarter 0)
 //   qTRBL       quarter-square triangles (an hourglass): the roles of the top, right, bottom and left triangles
 //   ^ab vab <ab >ab   a flying goose pointing up, down, left or right: a is the goose, b the sky
 //   -  |  +     this cell belongs to the piece that starts to its left (-), above it (|), or up and to the left (+).
@@ -37,7 +40,7 @@ function parseGrid(text) {
     taken = cells.map(r => r.map(t => t === 'x'));
   const at = (x, y) => (y < h && x < cells[y].length ? cells[y][x] : null);
   const role = c => {
-    if (!/^[012]$/.test(c)) throw new Error(`colour role must be 0, 1 or 2, not "${c}"`);
+    if (!/^[0-5]$/.test(c)) throw new Error(`colour role must be 0 to 5, not "${c}"`);
     return +c;
   };
   /** @type {[string, number, number[][]][]} */
@@ -71,19 +74,51 @@ function parseGrid(text) {
         [x, y1],
       ];
       let m;
-      if ((m = /^([012])$/.exec(t))) out.push([w === hh ? 'sq' : 'rect', role(m[1]), [p00, p10, p11, p01]]);
-      else if ((m = /^([012])\/([012])$/.exec(t)))
-        out.push(['tri', role(m[1]), [p00, p10, p01]], ['tri', role(m[2]), [p10, p11, p01]]);
-      else if ((m = /^([012])\\([012])$/.exec(t)))
-        out.push(['tri', role(m[1]), [p00, p11, p01]], ['tri', role(m[2]), [p00, p10, p11]]);
-      else if ((m = /^q([012])([012])([012])([012])$/.exec(t)))
+      if ((m = /^([0-5])$/.exec(t))) out.push([w === hh ? 'sq' : 'rect', role(m[1]), [p00, p10, p11, p01]]);
+      else if ((m = /^([0-5]{1,2})([/\\])([0-5]{1,2})$/.exec(t))) {
+        // a half-square triangle; a half written with two digits is cut into two quarter triangles (clockwise
+        // from the top: upper left = top, left; lower right = right, bottom; lower left = bottom, left;
+        // upper right = top, right)
+        const top = [p00, p10, c],
+          right = [p10, p11, c],
+          bottom = [p11, p01, c],
+          left = [p01, p00, c];
+        const [a, b] =
+          m[2] === '/'
+            ? [
+                [p00, p10, p01],
+                [p10, p11, p01],
+              ]
+            : [
+                [p00, p11, p01],
+                [p00, p10, p11],
+              ];
+        const [qa, qb] =
+          m[2] === '/'
+            ? [
+                [top, left],
+                [right, bottom],
+              ]
+            : [
+                [bottom, left],
+                [top, right],
+              ];
+        /** @type {[string, number[][], number[][][]][]} */
+        const halves = [
+          [m[1], a, qa],
+          [m[3], b, qb],
+        ];
+        for (const [digits, half, quarters] of halves)
+          if (digits.length === 1) out.push(['tri', role(digits), half]);
+          else out.push(['tri', role(digits[0]), quarters[0]], ['tri', role(digits[1]), quarters[1]]);
+      } else if ((m = /^q([0-5])([0-5])([0-5])([0-5])$/.exec(t)))
         out.push(
           ['tri', role(m[1]), [p00, p10, c]],
           ['tri', role(m[2]), [p10, p11, c]],
           ['tri', role(m[3]), [p11, p01, c]],
           ['tri', role(m[4]), [p01, p00, c]],
         );
-      else if ((m = /^([\^v<>])([012])([012])$/.exec(t))) {
+      else if ((m = /^([\^v<>])([0-5])([0-5])$/.exec(t))) {
         const goose = role(m[2]),
           sky = role(m[3]);
         const mx = x + w / 2,
@@ -168,7 +203,7 @@ function gridParts(def) {
     });
   return pieces.map(p => ({
     name: p.name,
-    role: /** @type {0 | 1 | 2} */ (p.role),
+    role: p.role,
     poly: p.poly.map(([x, y]) => [x / n, y / n]),
   }));
 }

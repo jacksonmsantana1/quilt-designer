@@ -1,11 +1,12 @@
 // Draws every block pattern on one page, to check the shapes by eye:
 //   node shared/tools/block-sheet.mjs        -> block-sheet.html in the top folder (not kept in git)
-// Background, main and accent parts get the designer's three default colours; thin lines are the seams.
+// Each colour role gets its default fabric's colour (cream background, indigo main, gold accent, then sage, rose,
+// chocolate); thin lines are the seams.
 import fs from 'node:fs';
 import { PATTERNS, partsOf } from '../src/patterns.js';
 import { GRID_BLOCKS } from '../src/blocks.js';
+import { ROLE_COLOURS as COLOURS } from '../src/design.js';
 
-const COLOURS = ['#efe5cf', '#2f466f', '#c79a45'];
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const svg = key =>
   `<svg viewBox="-0.01 -0.01 1.02 1.02" role="img" aria-label="${esc(PATTERNS[key].label)}">` +
@@ -41,7 +42,7 @@ const html = `<!doctype html>
   figcaption { margin-top: 6px; font-size: .85rem; } figcaption span { display: block; color: var(--muted); font-size: .75rem; }
 </style></head><body><main>
 <h1>Block sheet</h1>
-<p>Every block pattern in the designer, in its default colours: cream background, indigo main, gold accent. The ${Object.keys(GRID_BLOCKS).length} new blocks have a blue frame. Rest the mouse on a piece to see its name.</p>
+<p>Every block pattern in the designer, in its default colours: cream background, indigo main, gold accent (and sage, rose and chocolate for blocks with more fabrics). The ${Object.keys(GRID_BLOCKS).length} new blocks have a blue frame. Rest the mouse on a piece to see its name.</p>
 ${Object.entries(families)
   .map(([f, keys]) => `<h2>${esc(f)}</h2><div class="grid">${keys.map(card).join('')}</div>`)
   .join('\n')}

@@ -2079,6 +2079,18 @@ var GRID_BLOCKS = {
       0\1 - 1 - 1/0 -
       |   + 0 - |   +`
   },
+  southernpine: {
+    label: "Southern pine",
+    family: "Other",
+    n: 5,
+    // white 0, the branches (medium) 1, the trunk (dark) 2, the light squares round the trunk 3
+    rows: String.raw`
+      0/1 0/1 0/1 0   0
+      1   |   |   0   0
+      1/2 3   0   1/0 -
+      2   3   3   1/0 -
+      2   2   2/1 1   1/0`
+  },
   emptyspool: {
     label: "Empty spool",
     family: "Other",
@@ -2225,6 +2237,39 @@ var GRID_BLOCKS = {
       0 1 0 1 0
       1 0 2 0 1`
   },
+  fourqueens: {
+    label: "4 Queens",
+    family: "Larger grids",
+    n: 7,
+    // read from a picture by the block reader as it is; its piece count matches the picture's cutting list
+    rows: String.raw`
+      0     1\0   0/1   0     1\0   0/1   0
+      0\1   2     2/1   10\0  1\2   2     1/0
+      0/1   2/1   1/2   q1202 2\1   1\2   1\0
+      0     0/10  q2021 0     q2120 01/0  0
+      0\1   2\1   1\2   q0212 2/1   1/2   1/0
+      0/1   2     2\1   0\10  1/2   2     1\0
+      0     1/0   0\1   0     1/0   0\1   0`
+  },
+  wingedsquare: {
+    label: "Winged square set",
+    family: "Larger grids",
+    n: 12,
+    // read from a picture by the block reader (shared/tools/read-block.mjs); the plain 2 × 2 squares joined by hand
+    rows: String.raw`
+      0   -   1\0 1\0 1\0 1\0 0/1 0/1 0/1 0/1 0   -
+      |   +   1\0 1\0 1\0 1\0 0/1 0/1 0/1 0/1 |   +
+      0\1 0\1 2   -   1\0 1\0 0/1 0/1 2   -   1/0 1/0
+      0\1 0\1 |   +   1\0 1\0 0/1 0/1 |   +   1/0 1/0
+      0\1 0\1 0\1 0\1 0   -   0   -   1/0 1/0 1/0 1/0
+      0\1 0\1 0\1 0\1 |   +   |   +   1/0 1/0 1/0 1/0
+      0/1 0/1 0/1 0/1 0   -   0   -   1\0 1\0 1\0 1\0
+      0/1 0/1 0/1 0/1 |   +   |   +   1\0 1\0 1\0 1\0
+      0/1 0/1 2   -   1/0 1/0 0\1 0\1 2   -   1\0 1\0
+      0/1 0/1 |   +   1/0 1/0 0\1 0\1 |   +   1\0 1\0
+      0   -   1/0 1/0 1/0 1/0 0\1 0\1 0\1 0\1 0   -
+      |   +   1/0 1/0 1/0 1/0 0\1 0\1 0\1 0\1 |   +`
+  },
   bearspaw: {
     label: "Bear's paw",
     family: "Larger grids",
@@ -2264,7 +2309,7 @@ function parseGrid(text) {
   const h = cells.length, taken = cells.map((r) => r.map((t) => t === "x"));
   const at = (x, y) => y < h && x < cells[y].length ? cells[y][x] : null;
   const role = (c) => {
-    if (!/^[012]$/.test(c)) throw new Error(`colour role must be 0, 1 or 2, not "${c}"`);
+    if (!/^[0-5]$/.test(c)) throw new Error(`colour role must be 0 to 5, not "${c}"`);
     return +c;
   };
   const out = [];
@@ -2293,19 +2338,38 @@ function parseGrid(text) {
         [x, y1]
       ];
       let m;
-      if (m = /^([012])$/.exec(t)) out.push([w === hh ? "sq" : "rect", role(m[1]), [p00, p10, p11, p01]]);
-      else if (m = /^([012])\/([012])$/.exec(t))
-        out.push(["tri", role(m[1]), [p00, p10, p01]], ["tri", role(m[2]), [p10, p11, p01]]);
-      else if (m = /^([012])\\([012])$/.exec(t))
-        out.push(["tri", role(m[1]), [p00, p11, p01]], ["tri", role(m[2]), [p00, p10, p11]]);
-      else if (m = /^q([012])([012])([012])([012])$/.exec(t))
+      if (m = /^([0-5])$/.exec(t)) out.push([w === hh ? "sq" : "rect", role(m[1]), [p00, p10, p11, p01]]);
+      else if (m = /^([0-5]{1,2})([/\\])([0-5]{1,2})$/.exec(t)) {
+        const top = [p00, p10, c], right = [p10, p11, c], bottom = [p11, p01, c], left = [p01, p00, c];
+        const [a, b] = m[2] === "/" ? [
+          [p00, p10, p01],
+          [p10, p11, p01]
+        ] : [
+          [p00, p11, p01],
+          [p00, p10, p11]
+        ];
+        const [qa, qb] = m[2] === "/" ? [
+          [top, left],
+          [right, bottom]
+        ] : [
+          [bottom, left],
+          [top, right]
+        ];
+        const halves = [
+          [m[1], a, qa],
+          [m[3], b, qb]
+        ];
+        for (const [digits, half, quarters] of halves)
+          if (digits.length === 1) out.push(["tri", role(digits), half]);
+          else out.push(["tri", role(digits[0]), quarters[0]], ["tri", role(digits[1]), quarters[1]]);
+      } else if (m = /^q([0-5])([0-5])([0-5])([0-5])$/.exec(t))
         out.push(
           ["tri", role(m[1]), [p00, p10, c]],
           ["tri", role(m[2]), [p10, p11, c]],
           ["tri", role(m[3]), [p11, p01, c]],
           ["tri", role(m[4]), [p01, p00, c]]
         );
-      else if (m = /^([\^v<>])([012])([012])$/.exec(t)) {
+      else if (m = /^([\^v<>])([0-5])([0-5])$/.exec(t)) {
         const goose = role(m[2]), sky = role(m[3]);
         const mx = x + w / 2, my = y + hh / 2;
         const shapes = {
@@ -2372,10 +2436,7 @@ function gridParts(def) {
     });
   return pieces.map((p) => ({
     name: p.name,
-    role: (
-      /** @type {0 | 1 | 2} */
-      p.role
-    ),
+    role: p.role,
     poly: p.poly.map(([x, y]) => [x / n, y / n])
   }));
 }
@@ -3698,7 +3759,9 @@ function pathPolyInto(g, poly) {
 
 // ../shared/src/design.js
 var FORMAT_VERSION = 6;
-var ROLE_DEFAULT = ["b0", "b1", "b3"];
+var ROLE_COUNT = 6;
+var ROLE_DEFAULT = ["b0", "b1", "b3", "b5", "b8", "b10"];
+var ROLE_COLOURS = ["#efe5cf", "#2f466f", "#c79a45", "#7d8f70", "#b26a5f", "#4a2c22"];
 function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
   return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
 }
@@ -3710,7 +3773,7 @@ function defaultDesign() {
   return d;
 }
 function rolesOf(b) {
-  const roles = [...ROLE_DEFAULT], seen = [false, false, false];
+  const roles = [...ROLE_DEFAULT], seen = new Array(ROLE_COUNT).fill(false);
   partsOf(b.pattern).forEach((p, i) => {
     if (!seen[p.role]) {
       roles[p.role] = b.fabrics[i];
@@ -6976,9 +7039,8 @@ function patternTile(key) {
   const c = document.createElement("canvas");
   c.width = c.height = 96;
   const g = c.getContext("2d");
-  const cols = ["#efe5cf", "#2f466f", "#c79a45"];
   for (const part of partsOf(key)) {
-    g.fillStyle = cols[part.role];
+    g.fillStyle = ROLE_COLOURS[part.role];
     pathPoly(
       g,
       part.poly.map(([u, v]) => [u * 96, v * 96])
@@ -10161,9 +10223,8 @@ function drawCornerPatterns(current, allowed) {
       const c = document.createElement("canvas");
       c.width = c.height = 64;
       const g = c.getContext("2d");
-      const cols = ["#efe5cf", "#2f466f", "#c79a45"];
       for (const part of partsOf(key || "plain")) {
-        g.fillStyle = cols[part.role];
+        g.fillStyle = ROLE_COLOURS[part.role];
         pathPoly(
           g,
           part.poly.map(([u, v]) => [u * 64, v * 64])

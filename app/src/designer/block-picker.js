@@ -5,6 +5,7 @@ import { design, focusBlock } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { GRID_BLOCKS } from '@quilt/shared/blocks.js';
+import { ROLE_COLOURS } from '@quilt/shared/design.js';
 import { pathPoly } from '@quilt/shared/geometry.js';
 import { shortList, withRecent } from '../core/fabric-picks.js';
 import { findBlocks, patternsIn } from '../core/block-picks.js';
@@ -41,9 +42,8 @@ function patternTile(key) {
   const c = document.createElement('canvas');
   c.width = c.height = 96;
   const g = c.getContext('2d');
-  const cols = ['#efe5cf', '#2f466f', '#c79a45'];
   for (const part of partsOf(key)) {
-    g.fillStyle = cols[part.role];
+    g.fillStyle = ROLE_COLOURS[part.role];
     pathPoly(
       g,
       part.poly.map(([u, v]) => [u * 96, v * 96]),

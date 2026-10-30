@@ -10,7 +10,7 @@
 // design's own seams, then drops it on the bed.
 
 // Each pattern is a list of parts: a polygon in the unit square (y down) and
-// a colour role (0 background, 1 main, 2 accent) used for default fabrics.
+// a colour role (0 background, 1 main, 2 accent, 3 to 5 for more fabrics) used for default fabrics.
 import { GRID_BLOCKS } from './blocks.js';
 import { gridParts } from './grid-blocks.js';
 
