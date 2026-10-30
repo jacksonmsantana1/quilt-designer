@@ -6483,24 +6483,27 @@ function ensureDesign() {
 }
 
 // src/render/fabric-fill.js
-function fabricFillAt(g, fab, pxPerCm, cx, cy, u, v) {
+var DEG = 180 / Math.PI;
+function fabricFillAt(g, fab, pxPerCm, cx, cy, u, v, turn = 0) {
   const pat = g.createPattern(fab.canvas, "repeat"), k = pxPerCm / (fab.canvas.width / fab.cm);
   pat.setTransform(
-    new DOMMatrix().translate(cx, cy).scale(k).translate(-u * fab.canvas.width, -v * fab.canvas.height)
+    new DOMMatrix().translate(cx, cy).rotate(turn * DEG).scale(k).translate(-u * fab.canvas.width, -v * fab.canvas.height)
   );
   return pat;
 }
-function pieceFill(g, b, pi, poly, pxPerCm, seed) {
+function pieceFill(g, b, pi, poly, pxPerCm, seed, turn = 0) {
   const fab = fabricById(b.fabrics[pi]), f = b.fussy && b.fussy[pi];
-  if (!f) return fabricFill(g, fab, pxPerCm, seed);
+  if (!f) return fabricFill(g, fab, pxPerCm, seed, turn);
   const [cx, cy] = polyCentre(poly);
-  return fabricFillAt(g, fab, pxPerCm, cx, cy, f[0], f[1]);
+  return fabricFillAt(g, fab, pxPerCm, cx, cy, f[0], f[1], turn);
 }
-function fabricFill(g, fab, pxPerCm, seed) {
+function fabricFill(g, fab, pxPerCm, seed, turn = 0) {
   const pat = g.createPattern(fab.canvas, "repeat");
   const k = pxPerCm / (fab.canvas.width / fab.cm);
   const ox = seed * 7919 % fab.canvas.width, oy = seed * 104729 % fab.canvas.height;
-  pat.setTransform(new DOMMatrix().scale(k).translate(-ox, -oy));
+  pat.setTransform(
+    new DOMMatrix().rotate(turn * DEG).scale(k).translate(-ox, -oy)
+  );
   return pat;
 }
 
@@ -6681,9 +6684,9 @@ function drawQuilt(g, W, H, opts = {}) {
   for (let bi = 0, n = cellCount(d); bi < n; bi++) {
     const b = d.blocks[bi];
     if (!b || b.under != null) continue;
-    const polys = placedPolys(b, blockPlace(d, bi, W, H));
+    const Pl = blockPlace(d, bi, W, H), polys = placedPolys(b, Pl);
     polys.forEach((poly, pi) => {
-      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi);
+      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi, Pl.turn);
       pathPoly(g, poly);
       g.fill();
       dimUnlessHi(g, { t: "qpiece", fabric: b.fabrics[pi] });
@@ -8040,11 +8043,15 @@ function drawCutBlock(cv, b, P, num2) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawBlockArt(g, b, P, num2, W, H);
 }
-function drawBlockArt(g, b, P, num2, W, H) {
-  const k = W / 300, pxPerCm = W / ((b.size || P.blockW) / 10);
-  const polys = b.pieces.map((pc) => pc.part.poly.map(([u, v]) => [u * W, v * H]));
+function drawBlockArt(g, b, P, num2, W, H, turn = 0) {
+  const k = W / 300, pxPerCm = W / ((b.size || P.blockW) / 10), co = Math.cos(turn), si = Math.sin(turn);
+  const at = ([u, v]) => {
+    const x = (u - 0.5) * W, y = (v - 0.5) * H;
+    return [W / 2 + x * co - y * si, H / 2 + x * si + y * co];
+  };
+  const polys = b.pieces.map((pc) => pc.part.poly.map(at));
   b.pieces.forEach((pc, i) => {
-    g.fillStyle = pieceFill(g, b.block, i, polys[i], pxPerCm, b.index * 31 + i);
+    g.fillStyle = pieceFill(g, b.block, i, polys[i], pxPerCm, b.index * 31 + i, turn);
     pathPoly(g, polys[i]);
     g.fill();
     dimUnlessHi(g, { t: "piece", num: num2, letter: pc.letter, form: pc.form, fabric: pc.fabric });
@@ -8068,15 +8075,18 @@ function drawBlockArt(g, b, P, num2, W, H) {
   }
   b.pieces.forEach((pc, i) => {
     const p = polys[i], xs = p.map((v) => v[0]), ys = p.map((v) => v[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
-    const [cx, cy] = roomiestPoint(p, x0, y0, x1 - x0, y1 - y0, 0, 0);
-    let d = Infinity;
-    for (let j = 0; j < p.length; j++) {
-      const a = p[j], c = p[(j + 1) % p.length], vx = c[0] - a[0], vy = c[1] - a[1], t = Math.max(0, Math.min(1, ((cx - a[0]) * vx + (cy - a[1]) * vy) / (vx * vx + vy * vy)));
-      d = Math.min(d, Math.hypot(cx - a[0] - t * vx, cy - a[1] - t * vy));
-    }
+    const [cx, cy] = roomiestPoint(p, x0, y0, x1 - x0, y1 - y0, 0, 0), d = edgeRoom(p, cx, cy);
     const r = Math.max(5 * k, Math.min(14 * k, d * 0.8));
     letterBadge(g, cx, cy, r, `${pc.letter}${num2}.${pc.form}`);
   });
+}
+function edgeRoom(p, x, y) {
+  let d = Infinity;
+  for (let j = 0; j < p.length; j++) {
+    const a = p[j], c = p[(j + 1) % p.length], vx = c[0] - a[0], vy = c[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * vx + (y - a[1]) * vy) / (vx * vx + vy * vy)));
+    d = Math.min(d, Math.hypot(x - a[0] - t * vx, y - a[1] - t * vy));
+  }
+  return d;
 }
 function swatchCanvas(fab, w = 72, h = 48) {
   const c = document.createElement("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -8149,6 +8159,36 @@ function drawSashPic(g, S, sashCuts, u) {
     g.fillStyle = "#1f1d1a";
     g.fillText(t, 0, u);
     g.restore();
+  }
+}
+function settingMini() {
+  const c = Math.min(2, design.cols), r = Math.min(2, design.rows), big = design.cols * design.rows;
+  return {
+    ...design,
+    cols: c,
+    rows: r,
+    blocks: [0, 1, design.cols, design.cols + 1].filter((i) => i < big).slice(0, c * r).concat(c > 1 && r > 1 ? [big] : []).map((i) => design.blocks[i]),
+    borders: []
+  };
+}
+function settingPicH(S) {
+  const q = quiltMm(settingMini());
+  return Math.round(S * q.H / q.W);
+}
+function drawSettingPic(g, S, cuts, u) {
+  const mini = settingMini(), H = settingPicH(S);
+  drawQuilt(g, S, H, { seams: true, design: mini });
+  g.font = `600 ${11 * u}px Georgia, serif`;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  for (const sp of settingPieces(mini, S, H)) {
+    const x = cuts.find((t) => t.setting === sp.kind);
+    if (!x) continue;
+    const [cx, cy] = polyCentre(sp.poly), tw = g.measureText(x.id).width + 8 * u, hh = 16 * u;
+    g.fillStyle = "rgba(255,255,255,.92)";
+    g.fillRect(cx - tw / 2, cy - hh / 2, tw, hh);
+    g.fillStyle = "#1f1d1a";
+    g.fillText(x.id, cx, cy + u);
   }
 }
 function borderRing(kind, k) {
@@ -8234,6 +8274,24 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
       g.strokeStyle = "#e0592a";
       g.strokeRect(r.x, r.y, r.w, r.h);
     }
+  } else if (kind === "setting") {
+    const ps = settingPieces(design, W, H);
+    g.beginPath();
+    g.rect(0, 0, W, H);
+    for (const sp of ps) pathPolyInto(g, sp.poly);
+    g.fillStyle = "rgba(236,239,244,.72)";
+    g.fill("evenodd");
+    g.lineJoin = "round";
+    for (const sp of ps)
+      for (const [lw, c] of [
+        [3, "#fff"],
+        [1.6, "#e0592a"]
+      ]) {
+        g.lineWidth = lw;
+        g.strokeStyle = c;
+        pathPoly(g, sp.poly);
+        g.stroke();
+      }
   } else {
     const r = borderRing(kind, k);
     dimOutsideRing(g, W, H, r);
@@ -8282,7 +8340,8 @@ function drawCutQuilt(P, into) {
     g.lineWidth = u;
     g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
   });
-  for (const [j, sp] of settingPieces(d2, W, H).entries()) {
+  const setting = settingPieces(d2, W, H);
+  for (const [j, sp] of setting.entries()) {
     g.fillStyle = fabricFill(g, fabricById(design.settingFabric || "b0"), pxPerCm, 700 + j);
     pathPoly(g, sp.poly);
     g.fill();
@@ -8305,14 +8364,15 @@ function drawCutQuilt(P, into) {
       pieces: pb.pieces.map((pc) => ({ ...pc, part: { ...pc.part, poly: orientPoly(pc.part.poly, blk2) } }))
     };
     g.save();
-    g.translate(Pl.x + Pl.w / 2, Pl.y + Pl.h / 2);
-    g.rotate(Pl.turn);
-    g.translate(-Pl.w / 2, -Pl.h / 2);
-    drawBlockArt(g, turned, P, i + 1, Pl.w, Pl.h);
+    g.translate(Pl.x, Pl.y);
+    drawBlockArt(g, turned, P, i + 1, Pl.w, Pl.h, Pl.turn);
+    g.restore();
     g.strokeStyle = "rgba(30,28,25,.55)";
     g.lineWidth = u;
-    g.strokeRect(0.5, 0.5, Pl.w - 1, Pl.h - 1);
-    g.restore();
+    if (Pl.turn) {
+      pathPoly(g, blockOutline(Pl));
+      g.stroke();
+    } else g.strokeRect(Pl.x + 0.5, Pl.y + 0.5, Pl.w - 1, Pl.h - 1);
   });
   const extra = P.sashing || [], tag = (t, x, y, fs, rot) => {
     g.save();
@@ -8358,9 +8418,13 @@ function drawCutQuilt(P, into) {
     tag(ids, W / 2, o + t / 2, Math.min(11 * u, t * 0.7), false);
     tag(ids, W / 2, H - o - t / 2, Math.min(11 * u, t * 0.7), false);
   });
+  for (const sp of setting) {
+    const t = (extra.find((x) => x.group === "setting" && x.setting === sp.kind) || {}).id, [cx, cy] = polyCentre(sp.poly), room = edgeRoom(sp.poly, cx, cy);
+    if (t && room > 9 * u) tag(t, cx, cy, Math.min(11 * u, room * 0.75), false);
+  }
   if (cgHi !== -1) {
-    const ring = typeof cgHi === "string" && cgHi !== "sash";
-    const tgt = cgHi === "sash" ? sr : ring ? [] : rects.filter((R2) => R2.i === cgHi);
+    const ring = typeof cgHi === "string" && cgHi !== "sash" && cgHi !== "setting";
+    const tgt = cgHi === "sash" ? sr : cgHi === "setting" ? setting : ring ? [] : rects.filter((R2) => R2.i === cgHi);
     const outline = (x, y, w, h, wide) => {
       g.lineWidth = wide ? 6 : 3;
       g.strokeStyle = "#fff";
@@ -8418,7 +8482,7 @@ function drawCutQuilt(P, into) {
   }
   if (into) return;
   const nHi = typeof cgHi === "number" && cgHi >= 0 ? P.blocks[cgHi].count : 0;
-  $("cg-quilt-meta").textContent = typeof cgHi === "string" ? `Showing the ${cgHi === "sash" ? "sashing" : cgHi === "brd" ? "borders" : "border " + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : cgHi >= 0 ? `Showing ${P.blocks[cgHi].corner ? "the cornerstone blocks" : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${design.cols} \xD7 ${design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
+  $("cg-quilt-meta").textContent = typeof cgHi === "string" ? `Showing the ${cgHi === "sash" ? "sashing" : cgHi === "setting" ? "setting triangles" : cgHi === "brd" ? "borders" : "border " + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : cgHi >= 0 ? `Showing ${P.blocks[cgHi].corner ? "the cornerstone blocks" : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${design.cols} \xD7 ${design.rows} blocks${isOnPoint(design) ? " on point" : ""}${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1${isOnPoint(design) ? ", T = setting triangles" : ""}). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
   $("cg-quilt-meta").classList.toggle("cg-hi-on", cgHi !== -1);
   document.querySelectorAll(".cgblock").forEach((el) => el.classList.toggle("picked", el.dataset.key === String(cgHi)));
 }
@@ -8659,7 +8723,33 @@ var CG = /* @__PURE__ */ (() => {
       backing: { w: backW, h: backH, widths, buy: metres(widths * Math.max(backW, backH)) }
     };
   }
-  return { plan, mm, metres, classify };
+  function settingExtra(d, s) {
+    const q = quiltMm(d), S = Math.max(q.W, q.H), out = /* @__PURE__ */ new Map();
+    for (const sp of settingPieces(d, q.W, q.H)) {
+      if (!out.has(sp.kind)) {
+        const c = classify(
+          sp.poly.map(([x, y]) => [x / S, y / S]),
+          S,
+          S,
+          s
+        );
+        out.set(sp.kind, {
+          group: "setting",
+          setting: sp.kind,
+          what: sp.kind === "side" ? "Side triangles" : "Corner triangles",
+          fabric: d.settingFabric || "b0",
+          kind: c.kind,
+          cut: c.cut,
+          yield: c.yield,
+          how: c.how,
+          n: 0
+        });
+      }
+      out.get(sp.kind).n++;
+    }
+    return [...out.values()];
+  }
+  return { plan, mm, metres, classify, settingExtra };
 })();
 
 // src/cutting/page.js
@@ -8740,8 +8830,8 @@ function cgCardBehaviour(div, key, pick, hint) {
 function openPartPop(kind) {
   const d = $("cg-pop"), q = quiltMm(design), nb = bordersOf(design).length, s = sashOf(design);
   const bi = kind[0] === "b" && kind !== "brd" ? +kind.slice(1) : -1, b = bi >= 0 ? bordersOf(design)[bi] : null;
-  $("cg-pop-title").textContent = kind === "sash" ? "Sashing" : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : "Border";
-  $("cg-pop-sub").textContent = kind === "sash" ? `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : b ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : `${borderTotal(design)} mm all round, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm`;
+  $("cg-pop-title").textContent = kind === "sash" ? "Sashing" : kind === "setting" ? "Setting triangles" : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : "Border";
+  $("cg-pop-sub").textContent = kind === "setting" ? `The triangles that fill the edges of the quilt on point, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : kind === "sash" ? `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : b ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : `${borderTotal(design)} mm all round, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -8824,6 +8914,7 @@ function renderCut() {
     innerW += 2 * T;
     innerH += 2 * T;
   });
+  if (isOnPoint(design)) extra.push(...CG.settingExtra(design, cutOpts.seam));
   const P = CG.plan(design, {
     blockMm: design.blockMm,
     sizeOf: (k) => blockSizeMm(design, k),
@@ -8843,7 +8934,10 @@ function renderCut() {
   setLastPlan(P);
   $("cg-facts").innerHTML = [
     ["Finished quilt", `${P.quiltW} \xD7 ${P.quiltH} mm`],
-    ["Blocks", `${design.cols} \xD7 ${design.rows}`],
+    [
+      "Blocks",
+      isOnPoint(design) ? `${design.cols} \xD7 ${design.rows} on point (${cellCount(design)} in all)` : `${design.cols} \xD7 ${design.rows}`
+    ],
     [
       "Block",
       `${P.blockW} \xD7 ${P.blockH} mm finished \xB7 ${P.blockW + 2 * P.seam} \xD7 ${P.blockH + 2 * P.seam} mm with seam allowance`
@@ -8944,6 +9038,47 @@ function renderCut() {
       "Click to show or hide the cutting list \xB7 double-click to see the sashing in the whole quilt"
     );
   }
+  const setCuts = (P.sashing || []).filter((x) => x.group === "setting");
+  if (setCuts.length) {
+    setCuts.forEach((x, k) => {
+      x.id = `${x.letter}T.${k + 1}`;
+    });
+    const div = document.createElement("div");
+    div.className = "cgblock cg-sash cg-setting";
+    const rows = setCuts.map(
+      (x) => `<tr data-k="${x.setting}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${Math.ceil(x.n / x.yield)}</td><td class="n">${x.n}</td></tr>`
+    ).join("");
+    div.innerHTML = `<h3>Setting triangles</h3><p class="meta">Fill the edges of the quilt on point \xB7 straight grain along the quilt's edge</p><div class="cg-art"><canvas aria-label="A corner of the quilt on point, the setting triangles labelled with their IDs"></canvas>${hint}</div>` + listOf("<th>ID</th><th>Cut</th><th>Squares</th><th>Triangles</th>", rows);
+    box2.appendChild(div);
+    const cv = div.querySelector("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 300;
+    const drawSet = () => {
+      const H = settingPicH(S);
+      cv.width = S * dpr;
+      cv.height = H * dpr;
+      cv.style.width = S + "px";
+      cv.style.maxWidth = "100%";
+      cv.style.aspectRatio = `${S} / ${H}`;
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawSettingPic(g, S, setCuts, 1);
+    };
+    drawSet();
+    cgRedraws.push(drawSet);
+    cgRowHover(div, (tr) => {
+      const K = tr.dataset.k;
+      return (x) => x.t === "setting" && x.kind === K;
+    });
+    cgCardBehaviour(
+      div,
+      "setting",
+      () => {
+        setCgHi("setting");
+        drawCutQuilt(P);
+        openPartPop("setting");
+      },
+      "Click to show or hide the cutting list \xB7 double-click to see the setting triangles in the whole quilt"
+    );
+  }
   const brdCuts = (P.sashing || []).filter((x) => x.group && x.group[0] === "b");
   {
     const perBorder = /* @__PURE__ */ new Map();
@@ -8996,7 +9131,7 @@ function renderCut() {
     );
   });
   if (typeof cgHi === "number" && cgHi >= P.blocks.length) setCgHi(-1);
-  if (cgHi === "sash" && !sashCuts.length || typeof cgHi === "string" && cgHi[0] === "b" && !brdCuts.some((x) => x.group === cgHi))
+  if (cgHi === "sash" && !sashCuts.length || cgHi === "setting" && !setCuts.length || typeof cgHi === "string" && cgHi[0] === "b" && !brdCuts.some((x) => x.group === cgHi))
     setCgHi(-1);
   drawCutQuilt(P);
   $("cg-note").textContent = `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, of which ${P.usable / 10} cm is usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre. Requirements add 50 mm to straighten the edge; "buy" rounds up to 5 cm.`;
@@ -11373,7 +11508,7 @@ function pdfFabricPage(P, pages) {
     g,
     P,
     "Cutting guide",
-    `${design.cols} \xD7 ${design.rows} blocks \xB7 ${P.blocks.length} distinct block${P.blocks.length > 1 ? "s" : ""}`,
+    `${design.cols} \xD7 ${design.rows} blocks${isOnPoint(design) ? " on point" : ""} \xB7 ${P.blocks.length} distinct block${P.blocks.length > 1 ? "s" : ""}`,
     1,
     pages
   );
@@ -11460,7 +11595,7 @@ function pdfQuiltPage(P, page, pages) {
     g,
     P,
     "Whole quilt",
-    `${design.cols} \xD7 ${design.rows} blocks${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""}` : ""} \xB7 every piece with its ID`,
+    `${design.cols} \xD7 ${design.rows} blocks${isOnPoint(design) ? " on point" : ""}${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""}` : ""} \xB7 every piece with its ID`,
     page,
     pages
   );
@@ -11478,7 +11613,7 @@ function pdfQuiltPage(P, page, pages) {
   const k = Math.min(availW / (tmp.width / PX), availH / (tmp.height / PX), 1), QW = tmp.width / PX * k, QH = tmp.height / PX * k;
   g.drawImage(tmp, (A4.w - QW) / 2, top, QW, QH);
   let y = top + QH + 6;
-  const txt = `Columns are numbered across the top and rows down the side. Each block piece is labelled with its fabric letter, the number of its block in this guide and its form (D2.3 = fabric D, block 2, form 3).` + (s.mm ? " Sashing pieces carry S (AS.1 = fabric A, sashing form 1)." : "") + (nb ? " Border pieces carry B and the border number, counted from the inside (CB2.1 = fabric C, border 2, form 1)." : "") + " The pages that follow show each block, the sashing and the borders with their cutting lists.";
+  const txt = `Columns are numbered across the top and rows down the side. Each block piece is labelled with its fabric letter, the number of its block in this guide and its form (D2.3 = fabric D, block 2, form 3).` + (s.mm ? " Sashing pieces carry S (AS.1 = fabric A, sashing form 1)." : "") + (isOnPoint(design) ? " Setting triangles carry T (AT.1 = fabric A, setting triangle form 1)." : "") + (nb ? " Border pieces carry B and the border number, counted from the inside (CB2.1 = fabric C, border 2, form 1)." : "") + ` The pages that follow show each block${s.mm ? ", the sashing" : ""}${isOnPoint(design) ? ", the setting triangles" : ""}${nb ? " and the borders" : ""} with their cutting lists.`;
   for (const ln of pdfWrap(g, txt, A4.w - 2 * M2, 3.6)) {
     pdfText(g, ln, M2, y, 3.6, { color: "#3a3732" });
     y += 5;
@@ -11515,6 +11650,53 @@ function pdfSashPage(P, page, pages) {
     { align: "center", color: "#5a5650" }
   );
   pdfTable(g, M2, top + H + 10, widths, ["ID", "Cut", "", "Total"], rows);
+  return c;
+}
+function pdfSettingPage(P, page, pages) {
+  const [c, g] = pdfPageCanvas(), M2 = 12, cuts = (P.sashing || []).filter((x) => x.group === "setting");
+  pdfHeader(
+    g,
+    P,
+    "Setting triangles",
+    "The triangles that fill the edges of the quilt on point \xB7 straight grain along the quilt\u2019s edge",
+    page,
+    pages
+  );
+  const widths = [24, 110, 26, 26], rows = cuts.map((x) => [x.id, `${x.what}: ${plainHow(x.how)}`, Math.ceil(x.n / x.yield), x.n]);
+  const tH = pdfTableHeight(g, widths, rows), top = M2 + 24;
+  const side = Math.min(A4.w - 2 * M2 - 30, A4.h - top - tH - 40), H = side * settingPicH(1e3) / 1e3, x0 = (A4.w - side) / 2;
+  const keepFab = fabHi;
+  setFabHi(null);
+  g.save();
+  g.translate(x0, top);
+  g.scale(1 / PX, 1 / PX);
+  try {
+    drawSettingPic(g, side * PX, cuts, 2.6);
+  } finally {
+    setFabHi(keepFab);
+  }
+  g.restore();
+  g.strokeStyle = "#bdb6a8";
+  g.lineWidth = 0.3;
+  g.strokeRect(x0, top, side, H);
+  pdfText(
+    g,
+    "A corner of the quilt (2 \xD7 2 blocks and the one between them) showing where the triangles go.",
+    A4.w / 2,
+    top + H + 5,
+    3.4,
+    { align: "center", color: "#5a5650" }
+  );
+  let y = pdfTable(g, M2, top + H + 10, widths, ["ID", "Cut", "Squares", "Triangles"], rows) + 6;
+  for (const ln of pdfWrap(
+    g,
+    "Side triangles: each square cut twice on the diagonal gives 4, with the long side on the straight grain, so the quilt\u2019s edge does not stretch. Corner triangles: each square cut once gives 2, with both short sides on the straight grain. The sizes are exact (rounded up to the whole millimetre): cut them a little larger if you like to trim the edges straight after sewing.",
+    A4.w - 2 * M2,
+    3.6
+  )) {
+    pdfText(g, ln, M2, y, 3.6, { color: "#3a3732" });
+    y += 5;
+  }
   return c;
 }
 function pdfBorderPage(P, bi, page, pages) {
@@ -12101,6 +12283,7 @@ async function makeCutPdf() {
     jobs.push(...templateJobs(P, b, i));
   });
   if ((P.sashing || []).some((x) => x.group === "sash")) jobs.push((n, p) => pdfSashPage(P, p, n));
+  if ((P.sashing || []).some((x) => x.group === "setting")) jobs.push((n, p) => pdfSettingPage(P, p, n));
   bordersOf(design).forEach((_, bi) => {
     if ((P.sashing || []).some((x) => x.group === "b" + bi)) jobs.push((n, p) => pdfBorderPage(P, bi, p, n));
   });

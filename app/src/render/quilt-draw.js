@@ -234,9 +234,10 @@ function drawQuilt(g, W, H, opts = {}) {
   for (let bi = 0, n = cellCount(d); bi < n; bi++) {
     const b = d.blocks[bi];
     if (!b || b.under != null) continue;
-    const polys = placedPolys(b, blockPlace(d, bi, W, H));
+    const Pl = blockPlace(d, bi, W, H),
+      polys = placedPolys(b, Pl);
     polys.forEach((poly, pi) => {
-      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi);
+      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi, Pl.turn); // the print turns with the block
       pathPoly(g, poly);
       g.fill();
       dimUnlessHi(g, { t: 'qpiece', fabric: b.fabrics[pi] });

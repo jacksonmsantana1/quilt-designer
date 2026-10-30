@@ -155,3 +155,43 @@ test('the PDF has the fabrics, the whole quilt, the blocks, the sashing and each
   expect(info.head).toBe('%PDF-1.4');
   expect(info.pages).toBeGreaterThanOrEqual(2 + 2 + 1 + 2);
 });
+
+test('on point: a card for the setting triangles, cut from squares like quarter- and half-square triangles', async ({
+  page,
+}) => {
+  await page.locator('#tabs [data-page="design"]').click();
+  await page.locator('#dz-setting').selectOption('onpoint');
+  await page.locator('#tabs [data-page="cut"]').click();
+  // no sashing on point (yet); the borders stay
+  await expect(page.locator('#cg-blocks .cgblock h3')).toHaveText([
+    /Block 1/,
+    /Block 2/,
+    /Block 3/,
+    /Setting triangles/,
+    /Border 1/,
+    /Border 2/,
+  ]);
+  const card = page.locator('#cg-blocks .cgblock', { has: page.locator('h3', { hasText: 'Setting triangles' }) });
+  await expect(card.locator('td.l')).toHaveText([/^[A-Z]T\.1$/, /^[A-Z]T\.2$/]);
+  // 5 × 5 blocks of 458 mm: 16 side triangles from 4 squares (the block diagonal 648 mm + seams), 4 corners from 2
+  await expect(card.locator('tbody tr').nth(0).locator('td')).toHaveText([
+    /T\.1/,
+    'Side triangles: square 684 mm, cut twice on the diagonals ⊠',
+    '4',
+    '16',
+  ]);
+  await expect(card.locator('tbody tr').nth(1).locator('td')).toHaveText([
+    /T\.2/,
+    'Corner triangles: square 350 mm, cut once on the diagonal ◩',
+    '2',
+    '4',
+  ]);
+  await card.locator('canvas').click();
+  await expect(card.locator('.cg-list')).toHaveCSS('max-height', 'none');
+  const row = card.locator('tbody tr').first();
+  await row.hover();
+  await expect(row).toHaveClass(/cut-on/);
+  await page.mouse.move(5, 5);
+  await card.locator('canvas').dblclick();
+  await expect(page.locator('#cg-pop-title')).toHaveText('Setting triangles');
+});

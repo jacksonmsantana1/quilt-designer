@@ -1,5 +1,6 @@
 // Cutting plan (pure): cut sizes, piece IDs, fabric requirements.
 // @ts-check
+import { quiltMm, settingPieces } from '@quilt/shared/geometry.js';
 
 // ------------------------------------------------------------- cutting guide core (millimetres)
 // Turns the designed quilt into cutting instructions, using standard quilting
@@ -312,7 +313,43 @@ const CG = (() => {
       backing: { w: backW, h: backH, widths, buy: metres(widths * Math.max(backW, backH)) },
     };
   }
-  return { plan, mm, metres, classify };
+  /**
+   * On point: the setting triangles as extra cuts (like the sashing), sized by classify from their real shape.
+   * The side triangles have their long side on the quilt's edge, so they come out as quarter-square triangles
+   * (4 from a square cut twice on the diagonal); the corners have both short sides on the edges: half-square
+   * triangles (2 from a square cut once). Either way the straight grain runs along the quilt's edge.
+   * @param {import('@quilt/shared/types.js').Design} d @param {number} s seam allowance
+   */
+  function settingExtra(d, s) {
+    const q = quiltMm(d),
+      S = Math.max(q.W, q.H),
+      out = new Map();
+    for (const sp of settingPieces(d, q.W, q.H)) {
+      if (!out.has(sp.kind)) {
+        // classify takes the shape in fractions of a box: the quilt's longer side, here
+        const c = classify(
+          sp.poly.map(([x, y]) => [x / S, y / S]),
+          S,
+          S,
+          s,
+        );
+        out.set(sp.kind, {
+          group: 'setting',
+          setting: sp.kind,
+          what: sp.kind === 'side' ? 'Side triangles' : 'Corner triangles',
+          fabric: d.settingFabric || 'b0',
+          kind: c.kind,
+          cut: c.cut,
+          yield: c.yield,
+          how: c.how,
+          n: 0,
+        });
+      }
+      out.get(sp.kind).n++;
+    }
+    return [...out.values()];
+  }
+  return { plan, mm, metres, classify, settingExtra };
 })();
 
 export { CG };

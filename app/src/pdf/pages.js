@@ -3,16 +3,25 @@ import '../sim/save-image.js'; // load order: runs after sim/save-image
 import { cgHi, fabHi, setCgHi, setFabHi } from '../render/hi-state.js';
 import { design } from '../core/store.js';
 import { fabricById } from '../designer/fabric-library.js';
-import { BORDER_TYPES, bordersOf, quiltMm, sashOf } from '@quilt/shared/geometry.js';
+import { BORDER_TYPES, bordersOf, isOnPoint, quiltMm, sashOf } from '@quilt/shared/geometry.js';
 import { drawBordersExploded } from '../render/quilt-draw.js';
-import { cutOpts, drawBlockArt, drawCutQuilt, drawSashPic, mirroredCount, sashPicH } from '../cutting/draw.js';
+import {
+  cutOpts,
+  drawBlockArt,
+  drawCutQuilt,
+  drawSashPic,
+  drawSettingPic,
+  mirroredCount,
+  sashPicH,
+  settingPicH,
+} from '../cutting/draw.js';
 import { fabricFill } from '../render/fabric-fill.js';
 
 // ------------------------------------------------------------- cutting guide PDF (A4)
 // One A4 page per distinct block: the block drawn as large as the sheet allows, every piece
 // labelled (A1, B1, ...) and its cutting list underneath. Page 1 lists the fabrics, page 2 shows
-// the whole quilt (sashing and borders included) with every piece's ID; the sashing and each border
-// get a page of their own at the end.
+// the whole quilt (sashing and borders included) with every piece's ID; the sashing, the setting triangles (on
+// point) and each border get a page of their own at the end.
 // Each page is drawn on a canvas at 200 dpi and placed full-bleed on the sheet as a JPEG.
 const A4 = { w: 210, h: 297 },
   PDF_DPI = 200,
@@ -132,7 +141,7 @@ function pdfFabricPage(P, pages) {
     g,
     P,
     'Cutting guide',
-    `${design.cols} × ${design.rows} blocks · ${P.blocks.length} distinct block${P.blocks.length > 1 ? 's' : ''}`,
+    `${design.cols} × ${design.rows} blocks${isOnPoint(design) ? ' on point' : ''} · ${P.blocks.length} distinct block${P.blocks.length > 1 ? 's' : ''}`,
     1,
     pages,
   );
@@ -224,7 +233,7 @@ function pdfQuiltPage(P, page, pages) {
     g,
     P,
     'Whole quilt',
-    `${design.cols} × ${design.rows} blocks${s.mm ? ` · ${s.mm} mm sashing` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''}` : ''} · every piece with its ID`,
+    `${design.cols} × ${design.rows} blocks${isOnPoint(design) ? ' on point' : ''}${s.mm ? ` · ${s.mm} mm sashing` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''}` : ''} · every piece with its ID`,
     page,
     pages,
   );
@@ -251,10 +260,11 @@ function pdfQuiltPage(P, page, pages) {
   const txt =
     `Columns are numbered across the top and rows down the side. Each block piece is labelled with its fabric letter, the number of its block in this guide and its form (D2.3 = fabric D, block 2, form 3).` +
     (s.mm ? ' Sashing pieces carry S (AS.1 = fabric A, sashing form 1).' : '') +
+    (isOnPoint(design) ? ' Setting triangles carry T (AT.1 = fabric A, setting triangle form 1).' : '') +
     (nb
       ? ' Border pieces carry B and the border number, counted from the inside (CB2.1 = fabric C, border 2, form 1).'
       : '') +
-    ' The pages that follow show each block, the sashing and the borders with their cutting lists.';
+    ` The pages that follow show each block${s.mm ? ', the sashing' : ''}${isOnPoint(design) ? ', the setting triangles' : ''}${nb ? ' and the borders' : ''} with their cutting lists.`;
   for (const ln of pdfWrap(g, txt, A4.w - 2 * M, 3.6)) {
     pdfText(g, ln, M, y, 3.6, { color: '#3a3732' });
     y += 5;
@@ -299,6 +309,60 @@ function pdfSashPage(P, page, pages) {
     { align: 'center', color: '#5a5650' },
   );
   pdfTable(g, M, top + H + 10, widths, ['ID', 'Cut', '', 'Total'], rows);
+  return c;
+}
+// on point: one page for the setting triangles (a corner of the quilt with each kind labelled) and their cutting list
+function pdfSettingPage(P, page, pages) {
+  const [c, g] = pdfPageCanvas(),
+    M = 12,
+    cuts = (P.sashing || []).filter(x => x.group === 'setting');
+  pdfHeader(
+    g,
+    P,
+    'Setting triangles',
+    'The triangles that fill the edges of the quilt on point · straight grain along the quilt’s edge',
+    page,
+    pages,
+  );
+  const widths = [24, 110, 26, 26],
+    rows = cuts.map(x => [x.id, `${x.what}: ${plainHow(x.how)}`, Math.ceil(x.n / x.yield), x.n]);
+  const tH = pdfTableHeight(g, widths, rows),
+    top = M + 24;
+  const side = Math.min(A4.w - 2 * M - 30, A4.h - top - tH - 40),
+    H = (side * settingPicH(1000)) / 1000,
+    x0 = (A4.w - side) / 2;
+  const keepFab = fabHi;
+  setFabHi(null);
+  g.save();
+  g.translate(x0, top);
+  g.scale(1 / PX, 1 / PX);
+  try {
+    drawSettingPic(g, side * PX, cuts, 2.6);
+  } finally {
+    setFabHi(keepFab);
+  }
+  g.restore();
+  g.strokeStyle = '#bdb6a8';
+  g.lineWidth = 0.3;
+  g.strokeRect(x0, top, side, H);
+  pdfText(
+    g,
+    'A corner of the quilt (2 × 2 blocks and the one between them) showing where the triangles go.',
+    A4.w / 2,
+    top + H + 5,
+    3.4,
+    { align: 'center', color: '#5a5650' },
+  );
+  let y = pdfTable(g, M, top + H + 10, widths, ['ID', 'Cut', 'Squares', 'Triangles'], rows) + 6;
+  for (const ln of pdfWrap(
+    g,
+    'Side triangles: each square cut twice on the diagonal gives 4, with the long side on the straight grain, so the quilt’s edge does not stretch. Corner triangles: each square cut once gives 2, with both short sides on the straight grain. The sizes are exact (rounded up to the whole millimetre): cut them a little larger if you like to trim the edges straight after sewing.',
+    A4.w - 2 * M,
+    3.6,
+  )) {
+    pdfText(g, ln, M, y, 3.6, { color: '#3a3732' });
+    y += 5;
+  }
   return c;
 }
 // one page per border (border 1 is the innermost): the borders pulled apart with this one lit, and its cutting list
@@ -449,5 +513,6 @@ export {
   pdfPageCanvas,
   pdfQuiltPage,
   pdfSashPage,
+  pdfSettingPage,
   pdfText,
 };

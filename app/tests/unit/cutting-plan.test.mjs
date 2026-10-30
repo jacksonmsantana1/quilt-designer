@@ -112,3 +112,52 @@ test('binding: enough width-of-fabric strips to go round the quilt', () => {
   assert.equal(b.id, 'b1');
   assert.equal(b.binding.strips, Math.ceil((2 * (2290 + 2290) + 300) / 1450));
 });
+
+// on point: blocks of 300 mm stand on a corner, so each column is one block diagonal (300√2 mm) wide
+const onPoint = (cols, rows, extra = {}) => {
+  const d = grid(cols, rows, { blockMm: 300, setting: 'onpoint', ...extra });
+  d.blocks.push(...Array.from({ length: (cols - 1) * (rows - 1) }, () => newBlockData()));
+  return d;
+};
+const SIDE = Math.ceil(300 * Math.SQRT2 + 7.5 * (2 + 2 * Math.SQRT2)), // 461: long side + seams, cut twice
+  CORNER = Math.ceil(300 / Math.SQRT2 + 7.5 * (2 + Math.SQRT2)); // 238: short side + seams, cut once
+
+test('setting triangles: sides from squares cut twice, corners from squares cut once', () => {
+  assert.equal(SIDE, 461);
+  assert.equal(CORNER, 238);
+  for (const [cols, rows] of [
+    [3, 3],
+    [4, 2],
+  ]) {
+    const [side, corner] = CG.settingExtra(onPoint(cols, rows), 7.5);
+    assert.equal(side.setting, 'side');
+    assert.equal(side.kind, 'qst');
+    assert.deepEqual(side.cut, [SIDE, SIDE]);
+    assert.equal(side.yield, 4);
+    assert.equal(side.n, 2 * (cols - 1) + 2 * (rows - 1)); // between each two blocks along every edge: 8 for both
+    assert.equal(corner.setting, 'corner');
+    assert.equal(corner.kind, 'hst');
+    assert.deepEqual(corner.cut, [CORNER, CORNER]);
+    assert.equal(corner.yield, 2);
+    assert.equal(corner.n, 4);
+  }
+});
+
+test('setting triangles are counted in their fabric', () => {
+  const d = onPoint(4, 3, { settingFabric: 'b2' }); // 10 side triangles: 3 squares (2 spare triangles)
+  const P = plan(d, { extra: CG.settingExtra(d, 7.5) });
+  const f = P.fabrics.find(x => x.id === 'b2');
+  assert.deepEqual(
+    f.cuts.map(c => [c.kind, c.cut[0], c.pieces, c.toCut]),
+    [
+      ['qst', SIDE, 10, 3],
+      ['hst', CORNER, 4, 2],
+    ],
+  );
+  assert.deepEqual(
+    P.sashing.map(x => x.what),
+    ['Side triangles', 'Corner triangles'],
+  );
+  // a straight quilt has none
+  assert.deepEqual(CG.settingExtra(grid(3, 3), 7.5), []);
+});

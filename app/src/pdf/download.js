@@ -14,6 +14,7 @@ import {
   pdfFabricPage,
   pdfQuiltPage,
   pdfSashPage,
+  pdfSettingPage,
 } from './pages.js';
 import { templateJobs } from './templates.js';
 import { isFabric, loadFabrics } from '../designer/fabric-library.js';
@@ -34,6 +35,7 @@ async function makeCutPdf() {
     jobs.push(...templateJobs(P, b, i));
   });
   if ((P.sashing || []).some(x => x.group === 'sash')) jobs.push((n, p) => pdfSashPage(P, p, n));
+  if ((P.sashing || []).some(x => x.group === 'setting')) jobs.push((n, p) => pdfSettingPage(P, p, n));
   bordersOf(design).forEach((_, bi) => {
     if ((P.sashing || []).some(x => x.group === 'b' + bi)) jobs.push((n, p) => pdfBorderPage(P, bi, p, n));
   });

@@ -13,7 +13,9 @@ import {
   borderTotal,
   borderUnits,
   bordersOf,
+  cellCount,
   centreMm,
+  isOnPoint,
   plainButted,
   quiltMm,
   sashOf,
@@ -30,8 +32,10 @@ import {
   drawCutQuilt,
   drawQuiltHi,
   drawSashPic,
+  drawSettingPic,
   mirroredCount,
   sashPicH,
+  settingPicH,
   swatchCanvas,
 } from './draw.js';
 
@@ -124,13 +128,23 @@ function openPartPop(kind) {
   const bi = kind[0] === 'b' && kind !== 'brd' ? +kind.slice(1) : -1,
     b = bi >= 0 ? bordersOf(design)[bi] : null;
   $('cg-pop-title').textContent =
-    kind === 'sash' ? 'Sashing' : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : 'Border';
-  $('cg-pop-sub').textContent =
     kind === 'sash'
-      ? `${s.mm} mm strips between the blocks${s.border ? ' and around the outside' : ''}, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`
-      : b
-        ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? (bi === 0 ? ' · the innermost border' : bi === nb - 1 ? ' · the outermost border' : '') : ''}, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`
-        : `${borderTotal(design)} mm all round, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`;
+      ? 'Sashing'
+      : kind === 'setting'
+        ? 'Setting triangles'
+        : b
+          ? `Border ${bi + 1}`
+          : nb > 1
+            ? `Borders (${nb})`
+            : 'Border';
+  $('cg-pop-sub').textContent =
+    kind === 'setting'
+      ? `The triangles that fill the edges of the quilt on point, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`
+      : kind === 'sash'
+        ? `${s.mm} mm strips between the blocks${s.border ? ' and around the outside' : ''}, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`
+        : b
+          ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? (bi === 0 ? ' · the innermost border' : bi === nb - 1 ? ' · the outermost border' : '') : ''}, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`
+          : `${borderTotal(design)} mm all round, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -234,6 +248,8 @@ function renderCut() {
     innerW += 2 * T;
     innerH += 2 * T;
   });
+  // on point: the triangles along the edges, cut from squares like half- and quarter-square triangles
+  if (isOnPoint(design)) extra.push(...CG.settingExtra(design, cutOpts.seam));
   const P = CG.plan(design, {
     blockMm: design.blockMm,
     sizeOf: k => blockSizeMm(design, k),
@@ -252,7 +268,12 @@ function renderCut() {
   setLastPlan(P);
   $('cg-facts').innerHTML = [
     ['Finished quilt', `${P.quiltW} × ${P.quiltH} mm`],
-    ['Blocks', `${design.cols} × ${design.rows}`],
+    [
+      'Blocks',
+      isOnPoint(design)
+        ? `${design.cols} × ${design.rows} on point (${cellCount(design)} in all)`
+        : `${design.cols} × ${design.rows}`,
+    ],
     [
       'Block',
       `${P.blockW} × ${P.blockH} mm finished · ${P.blockW + 2 * P.seam} × ${P.blockH + 2 * P.seam} mm with seam allowance`,
@@ -377,6 +398,56 @@ function renderCut() {
       'Click to show or hide the cutting list · double-click to see the sashing in the whole quilt',
     );
   }
+  // on point: the setting triangles, IDs like the sashing's: fabric letter + T (triangles) . form
+  const setCuts = (P.sashing || []).filter(x => x.group === 'setting');
+  if (setCuts.length) {
+    setCuts.forEach((x, k) => {
+      // eslint-disable-next-line no-param-reassign -- the ids go on the plan's pieces, for the PDF too
+      x.id = `${x.letter}T.${k + 1}`;
+    });
+    const div = document.createElement('div');
+    div.className = 'cgblock cg-sash cg-setting';
+    const rows = setCuts
+      .map(
+        x =>
+          `<tr data-k="${x.setting}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${Math.ceil(x.n / x.yield)}</td><td class="n">${x.n}</td></tr>`,
+      )
+      .join('');
+    div.innerHTML =
+      `<h3>Setting triangles</h3><p class="meta">Fill the edges of the quilt on point · straight grain along the quilt's edge</p><div class="cg-art"><canvas aria-label="A corner of the quilt on point, the setting triangles labelled with their IDs"></canvas>${hint}</div>` +
+      listOf('<th>ID</th><th>Cut</th><th>Squares</th><th>Triangles</th>', rows);
+    box.appendChild(div);
+    const cv = div.querySelector('canvas'),
+      dpr = Math.min(window.devicePixelRatio || 1, 2),
+      S = 300;
+    const drawSet = () => {
+      const H = settingPicH(S);
+      cv.width = S * dpr;
+      cv.height = H * dpr;
+      cv.style.width = S + 'px';
+      cv.style.maxWidth = '100%';
+      cv.style.aspectRatio = `${S} / ${H}`;
+      const g = cv.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawSettingPic(g, S, setCuts, 1);
+    };
+    drawSet();
+    cgRedraws.push(drawSet);
+    cgRowHover(div, tr => {
+      const K = tr.dataset.k;
+      return x => x.t === 'setting' && x.kind === K;
+    });
+    cgCardBehaviour(
+      div,
+      'setting',
+      () => {
+        setCgHi('setting');
+        drawCutQuilt(P);
+        openPartPop('setting');
+      },
+      'Click to show or hide the cutting list · double-click to see the setting triangles in the whole quilt',
+    );
+  }
   const brdCuts = (P.sashing || []).filter(x => x.group && x.group[0] === 'b');
   // piece IDs: fabric letter + B<border number> . form, e.g. CB2.1
   {
@@ -445,6 +516,7 @@ function renderCut() {
   if (typeof cgHi === 'number' && cgHi >= P.blocks.length) setCgHi(-1);
   if (
     (cgHi === 'sash' && !sashCuts.length) ||
+    (cgHi === 'setting' && !setCuts.length) ||
     (typeof cgHi === 'string' && cgHi[0] === 'b' && !brdCuts.some(x => x.group === cgHi))
   )
     setCgHi(-1);
