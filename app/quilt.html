@@ -2378,7 +2378,7 @@ var GRID_BLOCKS = {
       1 0 1 0 1`
   },
   irishchain: {
-    label: "Double Irish chain",
+    label: "Double Irish chain I",
     family: "Larger grids",
     n: 5,
     rows: String.raw`
@@ -2387,6 +2387,35 @@ var GRID_BLOCKS = {
       2 0 1 0 2
       0 1 0 1 0
       1 0 2 0 1`
+  },
+  irishchain2: {
+    label: "Double Irish chain II",
+    family: "Larger grids",
+    n: 5,
+    // read from a picture by the block reader as it is: four corner squares, four strips and a large centre square
+    rows: String.raw`
+      1 0 - - 1
+      0 0 - - 0
+      | | + + |
+      | | + + |
+      1 0 - - 1`
+  },
+  carpenterssquare: {
+    label: "Carpenter's square",
+    family: "Larger grids",
+    n: 10,
+    // from a picture: each square's colour sampled between the printed seams (the block reader joined some of them)
+    rows: String.raw`
+      1 1 1 1 1 1 1 1 1 1
+      1 0 0 0 0 1 0 1 0 1
+      1 0 1 1 1 1 1 1 1 1
+      1 0 1 0 0 1 0 1 0 1
+      1 0 1 0 1 1 1 1 1 1
+      1 1 1 1 1 1 0 1 0 1
+      1 0 1 0 1 0 0 1 0 1
+      1 1 1 1 1 1 1 1 0 1
+      1 0 1 0 1 0 0 0 0 1
+      1 1 1 1 1 1 1 1 1 1`
   },
   fourqueens: {
     label: "4 Queens",
@@ -2467,6 +2496,124 @@ var GRID_BLOCKS = {
       1/0 0\1 2   1\0 0/1
       0   0/1 1/0 0\1 1/0
       0   0\1 1\0 0   0`
+  },
+  simplefivepatch: {
+    label: "Simple five-patch",
+    family: "Other",
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0 0 0 1 0
+      1 0 1 0 0
+      0 1 0 1 0
+      0 0 1 0 1
+      0 1 0 0 0`
+  },
+  flyingsquare: {
+    label: "Flying square",
+    family: "Other",
+    n: 5,
+    // from a picture: two greys, a dark, a check (4) and a dot print (5). The reader joined the dotted squares to the
+    // white ones above them (white dots on white), so those are written by hand
+    rows: String.raw`
+      0 0 0 2 0
+      4 1 4 1 0
+      0 3 0 2 0
+      0 1 5 1 5
+      0 3 0 0 0`
+  },
+  blocksinabox: {
+    label: "Blocks in a box",
+    family: "Other",
+    n: 5,
+    // from a picture: 25 separate squares (the reader joined two side squares into strips the picture doesn't show);
+    // the dark box outside, the light one inside it, the centre square its own fabric
+    rows: String.raw`
+      1 1 1 1 1
+      1 0 0 0 1
+      1 0 2 0 1
+      1 0 0 0 1
+      1 1 1 1 1`
+  },
+  childrensdelight: {
+    label: "Children's delight",
+    family: "Other",
+    n: 5,
+    // read from a picture by the block reader (the grey squares the main colour, the white ones the background)
+    rows: String.raw`
+      0 1 1 1 1
+      0 1 0 0 1
+      1 0 1 1 0
+      1 0 1 1 0
+      1 1 0 0 1`
+  },
+  plaid: {
+    label: "Plaid",
+    family: "Other",
+    n: 5,
+    // read from a picture by the block reader (the white squares the background, the dark ones the main colour)
+    rows: String.raw`
+      3 1 0 1 3
+      2 - 1 2 -
+      0 1 0 1 0
+      2 - 1 2 -
+      3 1 0 1 3`
+  },
+  starcross: {
+    label: "Star and cross",
+    family: "Other",
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0 0 1 0 0
+      0 2 1 2 0
+      1 1 3 1 1
+      0 2 1 2 0
+      0 0 1 0 0`
+  },
+  starcrossset1: {
+    label: "Star and cross set 1",
+    family: "Larger grids",
+    n: 10,
+    // Star and cross, 2 × 2 (the picture's small squares were too small for the block reader)
+    rows: String.raw`
+      0 0 1 0 0 0 0 1 0 0
+      0 2 1 2 0 0 2 1 2 0
+      1 1 3 1 1 1 1 3 1 1
+      0 2 1 2 0 0 2 1 2 0
+      0 0 1 0 0 0 0 1 0 0
+      0 0 1 0 0 0 0 1 0 0
+      0 2 1 2 0 0 2 1 2 0
+      1 1 3 1 1 1 1 3 1 1
+      0 2 1 2 0 0 2 1 2 0
+      0 0 1 0 0 0 0 1 0 0`
+  },
+  starcrossset2: {
+    label: "Star and cross set 2",
+    family: "Larger grids",
+    n: 20,
+    // Star and cross, 4 × 4 (larger than the block reader's grids)
+    rows: String.raw`
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      1 1 3 1 1 1 1 3 1 1 1 1 3 1 1 1 1 3 1 1
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      1 1 3 1 1 1 1 3 1 1 1 1 3 1 1 1 1 3 1 1
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      1 1 3 1 1 1 1 3 1 1 1 1 3 1 1 1 1 3 1 1
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      1 1 3 1 1 1 1 3 1 1 1 1 3 1 1 1 1 3 1 1
+      0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
+      0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0`
   },
   roadcalifornia: {
     label: "Road to California",
