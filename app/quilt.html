@@ -443,7 +443,34 @@
   /* with a mouse: one floating button, just outside the card of the row the mouse is over (fabric-picker.js);
      the button by each row is for touch screens, which have no hover */
   .fab-more-float { position: fixed; z-index: 50; }
-  @media (hover: hover) { .fabs-row > .fab-more-btn { display: none; } }
+  .fab-more-stack { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+  @media (hover: hover) { .fabs-row > .fab-more-stack { display: none; } }
+  /* the colour finder's round button: a small colour wheel */
+  .fab-more-btn i.colwheel-ico { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, rgba(255,255,255,0) 70%), conic-gradient(#e33, #eb3, #4c4, #3cc, #36e, #c3c, #e33); box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+  /* the colour finder window (colour-finder.js) */
+  .colfind { width: min(680px, calc(100vw - 32px)); }
+  .colfind-top { display: flex; gap: 18px; align-items: flex-start; }
+  .colfind-wheel { position: relative; width: 220px; height: 220px; flex: 0 0 auto; touch-action: none; cursor: crosshair; }
+  .colfind-wheel canvas { width: 100%; height: 100%; display: block; }
+  .colfind-dot { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3); cursor: grab; }
+  .colfind-dot.on { width: 24px; height: 24px; margin: -12px 0 0 -12px; border-width: 3px; }
+  .colfind-side { flex: 1 1 auto; min-width: 0; }
+  .colfind-side .param { margin-top: 0; }
+  #colfind-light { appearance: none; -webkit-appearance: none; height: 10px; border-radius: 5px; border: 1px solid var(--line); margin: 6px 0; }
+  .colfind-picks { display: grid; gap: 6px; margin-top: 10px; }
+  .colfind-pick { display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 6px; align-items: center; }
+  .colfind-pick small { color: var(--muted); font-size: .74rem; }
+  .colfind-pick input { width: 100%; accent-color: var(--accent); }
+  .colfind-sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line); padding: 0; cursor: pointer; }
+  .colfind-sw[aria-pressed=true] { box-shadow: 0 0 0 2px var(--accent); }
+  .colfind-x { padding: 2px 8px; }
+  .colfind-quilt { margin-top: 12px; }
+  .colfind-quilt > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  #colfind-results { margin-top: 4px; min-height: 140px; }
+  #colfind-results .fab.weak { opacity: .4; }
+  .colfind-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin: 3px 0 1px; }
+  .colfind-bar i { display: block; min-width: 2px; }
+  @media (max-width: 560px) { .colfind-top { flex-direction: column; align-items: center; } .colfind-side { width: 100%; } }
   .fabs .fab-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
   /* a steady height, from near the top: the window doesn't jump about as the search narrows the list */
   .fablib { width: min(760px, calc(100vw - 32px)); height: min(860px, calc(100dvh - 48px)); margin-top: 24px; }
@@ -1068,6 +1095,20 @@
     <p class="fine" id="dz-fabnote"></p>
     <p class="fine" style="margin:6px 0 0"><button class="btn sm" type="button" id="fablib-reset" hidden title="Bring back the fabric lists as they were at first: the basics and your newest photos">Reset palette</button></p>
   </div>
+</dialog>
+<dialog class="dz-dialog colfind" id="colfind" aria-labelledby="colfind-title">
+  <div class="dlg-head"><h2 id="colfind-title">Find fabrics by colour</h2><button class="btn sm dlg-x" type="button" id="colfind-x" aria-label="Close">×</button></div>
+  <div class="colfind-top">
+    <div class="colfind-wheel" id="colfind-wheel"><canvas id="colfind-canvas" width="220" height="220" role="img" aria-label="Colour wheel: click to add a colour, drag a dot to change it"></canvas></div>
+    <div class="colfind-side">
+      <div class="param"><label for="colfind-light">Lightness</label><input id="colfind-light" type="range" min="8" max="92" step="1" value="50"></div>
+      <div class="colfind-picks" id="colfind-picks"></div>
+      <p class="fine" id="colfind-hint"></p>
+      <div class="colfind-quilt" id="colfind-quilt-box" hidden><span class="fine">Your quilt</span><div id="colfind-quilt"></div></div>
+    </div>
+  </div>
+  <p class="fine" id="colfind-status"></p>
+  <div class="fabs" id="colfind-results" aria-label="Fabrics, best match first: click one to use it"></div>
 </dialog>
 <section id="page-cut" hidden>
   <dialog class="dz-dialog cg-pop" id="cg-pop" aria-labelledby="cg-pop-title">
@@ -7088,6 +7129,11 @@ var float = {
     /** @type {HTMLButtonElement | null} */
     null
   ),
+  el2: (
+    /** @type {HTMLButtonElement | null} */
+    null
+  ),
+  // the second round button under it (colours), when the row has one
   box: (
     /** @type {HTMLElement | null} */
     null
@@ -7099,25 +7145,31 @@ var float = {
   // the part of the page that shows it while the mouse is over it
   timer: 0
 };
-function floatButton() {
-  if (float.el) return float.el;
-  const b = document.createElement("button");
-  b.type = "button";
-  b.className = "fab-more-btn fab-more-float";
-  b.id = "fab-more-float";
-  b.hidden = true;
-  b.addEventListener("mouseenter", () => clearTimeout(float.timer));
-  b.addEventListener("mouseleave", hideFloatSoon);
-  b.addEventListener("click", () => {
-    const inline = (
-      /** @type {HTMLElement | null} */
-      float.box?.parentElement.querySelector(":scope > .fab-more-btn")
-    );
-    hideFloat();
-    inline?.click();
-  });
-  document.body.append(b);
-  return float.el = b;
+var inlineButtons = (box2) => (
+  /** @type {HTMLElement[]} */
+  [...box2.parentElement.querySelector(":scope > .fab-more-stack")?.children || []]
+);
+function floatButtons() {
+  if (float.el) return [float.el, float.el2];
+  const make = (id, n) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "fab-more-btn fab-more-float";
+    b.id = id;
+    b.hidden = true;
+    b.addEventListener("mouseenter", () => clearTimeout(float.timer));
+    b.addEventListener("mouseleave", hideFloatSoon);
+    b.addEventListener("click", () => {
+      const inline = float.box ? inlineButtons(float.box)[n] : null;
+      hideFloat();
+      inline?.click();
+    });
+    document.body.append(b);
+    return b;
+  };
+  float.el = make("fab-more-float", 0);
+  float.el2 = make("fab-colour-float", 1);
+  return [float.el, float.el2];
 }
 var pointer = { x: -1, y: -1 };
 addEventListener(
@@ -7134,7 +7186,7 @@ addEventListener(
   () => {
     if (pointer.x < 0 || matchMedia("(hover: none)").matches) return;
     const el = document.elementFromPoint(pointer.x, pointer.y);
-    if (float.el && !float.el.hidden && el && float.el.contains(el)) {
+    if (float.el && !float.el.hidden && el && (float.el.contains(el) || float.el2.contains(el))) {
       if (float.box) showFloat(float.box, float.region);
       return;
     }
@@ -7145,37 +7197,38 @@ addEventListener(
   true
 );
 function showFloat(box2, region) {
-  const inline = (
-    /** @type {HTMLElement | null} */
-    box2.parentElement.querySelector(":scope > .fab-more-btn")
-  );
-  if (!inline || matchMedia("(hover: none)").matches) return;
-  const b = floatButton();
+  const inline = inlineButtons(box2);
+  if (!inline.length || matchMedia("(hover: none)").matches) return;
+  const buttons = floatButtons();
   clearTimeout(float.timer);
   float.box = box2;
   float.region = region;
-  b.replaceChildren(...[...inline.childNodes].map((n) => n.cloneNode(true)));
-  b.title = inline.title;
-  b.setAttribute("aria-label", inline.getAttribute("aria-label") || "");
   const size = 52, edge = (
     /** @type {HTMLElement} */
     (box2.closest(".card") || box2.parentElement).getBoundingClientRect()
   ), row = box2.getBoundingClientRect();
   let left = edge.left - size - 10;
   if (left < 4) left = edge.right + 10;
-  b.style.left = left + "px";
-  b.style.top = row.top + row.height / 2 - size / 2 + "px";
-  b.hidden = false;
+  for (const [n, b] of buttons.entries()) {
+    const src = inline[n];
+    b.hidden = !src;
+    if (!src) continue;
+    b.replaceChildren(...[...src.childNodes].map((c) => c.cloneNode(true)));
+    b.title = src.title;
+    b.setAttribute("aria-label", src.getAttribute("aria-label") || "");
+    b.style.left = left + "px";
+    b.style.top = row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 8) / 2 + n * (size + 8) + "px";
+  }
 }
 function hideFloat() {
   clearTimeout(float.timer);
-  if (float.el) float.el.hidden = true;
+  if (float.el) float.el.hidden = float.el2.hidden = true;
 }
 function hideFloatSoon() {
   clearTimeout(float.timer);
   float.timer = setTimeout(hideFloat, 300);
 }
-function placeMoreButton(box2, button) {
+function placeMoreButton(box2, button, second = null) {
   let wrap = box2.parentElement;
   if (!wrap.classList.contains("fabs-row")) {
     wrap = document.createElement("div");
@@ -7183,8 +7236,12 @@ function placeMoreButton(box2, button) {
     box2.replaceWith(wrap);
     wrap.append(box2);
   }
-  wrap.querySelector(":scope > .fab-more-btn")?.remove();
-  wrap.prepend(button);
+  wrap.querySelector(":scope > .fab-more-stack")?.remove();
+  const stack = document.createElement("div");
+  stack.className = "fab-more-stack";
+  stack.append(button);
+  if (second) stack.append(second);
+  wrap.prepend(stack);
   const parent = wrap.parentElement, lists2 = parent ? parent.querySelectorAll(".fabs:not(.fablib-grid), #dz-patterns").length : 0, region = parent && parent !== document.body && lists2 === 1 ? parent : wrap;
   if (!region.dataset.float) {
     region.dataset.float = "1";
@@ -7199,7 +7256,7 @@ function drawShortList(box2, selected) {
   box2.innerHTML = "";
   const fabs = shortListFabrics(selected);
   for (const { f, fixed } of fabs) box2.appendChild(fabricTile(f, f.id === selected, fixed ? "fixed" : "remove"));
-  placeMoreButton(box2, moreButton(box2, fabs.length));
+  placeMoreButton(box2, moreButton(box2, fabs.length), colourButton ? colourButton(box2) : null);
   sideRoller(box2, '.fab[aria-pressed="true"]');
 }
 var lib = { source: (
@@ -7276,7 +7333,9 @@ function drawLibrary() {
 function pickFromLibrary(id) {
   const box2 = lib.source;
   $("fablib").close();
-  if (!box2) return;
+  if (box2) useFabricIn(box2, id);
+}
+function useFabricIn(box2, id) {
   loadFabrics([id]);
   noteRecent(id);
   const palette = fabricPalette();
@@ -7336,6 +7395,481 @@ initLibrary();
 function refreshLibrary() {
   if ($("fablib").open) drawLibrary();
 }
+var colourButton = (
+  /** @type {((box: HTMLElement) => HTMLButtonElement) | null} */
+  null
+);
+var setColourButton = (make) => colourButton = make;
+
+// src/core/colour-match.js
+var lin = (c) => {
+  const v = c / 255;
+  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+};
+function lab([r, g, b]) {
+  const R2 = lin(r), G = lin(g), B = lin(b);
+  const f = (t) => t > 8856e-6 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  const x = f((0.4124 * R2 + 0.3576 * G + 0.1805 * B) / 0.95047), y = f(0.2126 * R2 + 0.7152 * G + 0.0722 * B), z = f((0.0193 * R2 + 0.1192 * G + 0.9505 * B) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+var dist2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+function hslToRgb(h, s, l) {
+  const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [f(0), f(8), f(4)].map((v) => Math.round(v * 255));
+}
+function rgbToHsl([r, g, b]) {
+  const R2 = r / 255, G = g / 255, B = b / 255, max = Math.max(R2, G, B), min = Math.min(R2, G, B), l = (max + min) / 2, d = max - min;
+  if (!d) return { h: 0, s: 0, l };
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === R2 ? (G - B) / d % 6 : max === G ? (B - R2) / d + 2 : (R2 - G) / d + 4;
+  return { h: (h * 60 + 360) % 360, s: Math.min(1, s), l };
+}
+function fabricColours(rgba) {
+  const pts = [], cols = [];
+  for (let i = 0; i < rgba.length; i += 4) {
+    if (rgba[i + 3] < 128) continue;
+    const c = [rgba[i], rgba[i + 1], rgba[i + 2]];
+    cols.push(c);
+    pts.push(lab(c));
+  }
+  if (!pts.length) return [];
+  const k = Math.min(5, pts.length), centres = [pts[0]];
+  while (centres.length < k) {
+    let far = pts[0], fd = -1;
+    for (const p of pts) {
+      const d = Math.min(...centres.map((c) => dist2(p, c)));
+      if (d > fd) {
+        fd = d;
+        far = p;
+      }
+    }
+    centres.push(far);
+  }
+  let which = new Array(pts.length).fill(0);
+  for (let it = 0; it < 8; it++) {
+    const sum = centres.map(() => [0, 0, 0, 0]);
+    which = pts.map((p) => {
+      let bi = 0, bd = Infinity;
+      centres.forEach((c, i) => {
+        const d = dist2(p, c);
+        if (d < bd) {
+          bd = d;
+          bi = i;
+        }
+      });
+      const s = sum[bi];
+      s[0] += p[0];
+      s[1] += p[1];
+      s[2] += p[2];
+      s[3]++;
+      return bi;
+    });
+    sum.forEach((s, i) => {
+      if (s[3]) centres[i] = [s[0] / s[3], s[1] / s[3], s[2] / s[3]];
+    });
+  }
+  let groups = centres.map((c, i) => {
+    const mine = cols.filter((_, j) => which[j] === i);
+    const avg = [0, 1, 2].map((ch) => mine.length ? mine.reduce((s, m) => s + m[ch], 0) / mine.length : 0);
+    return { lab: c, rgb: avg.map(Math.round), share: mine.length / pts.length };
+  });
+  for (let joined = true; joined; ) {
+    joined = false;
+    groups = groups.filter((g) => g.share > 0).sort((a, b) => b.share - a.share);
+    for (let i = 0; i < groups.length && !joined; i++)
+      for (let j = i + 1; j < groups.length && !joined; j++)
+        if (dist2(groups[i].lab, groups[j].lab) < 64) {
+          groups[i].share += groups[j].share;
+          groups[j].share = 0;
+          joined = true;
+        }
+  }
+  return groups.filter((g) => g.share >= 0.02).map((g) => ({ rgb: g.rgb, share: +g.share.toFixed(3) }));
+}
+function colourMatch(wanted, colours2) {
+  const total = wanted.reduce((s, w) => s + w.amount, 0);
+  if (!total || !colours2.length) return 0;
+  const sigma2 = 2 * 16 * 16;
+  const fab = colours2.map((c) => ({ lab: lab(c.rgb), share: c.share }));
+  let score = 0;
+  for (const w of wanted) {
+    const L = lab(w.rgb);
+    let near = 0;
+    for (const c of fab) near += c.share * Math.exp(-dist2(L, c.lab) / sigma2);
+    score += Math.min(w.amount / total, near);
+  }
+  return score;
+}
+function shareAmounts(amounts, changed) {
+  if (!amounts.length) return [];
+  if (amounts.length === 1) return [100];
+  const fixed = changed >= 0 ? Math.max(0, Math.min(100, amounts[changed])) : 0, rest = 100 - fixed, others = amounts.map((a, i) => i === changed ? 0 : a), ot = others.reduce((s, a) => s + a, 0);
+  const n = amounts.length - (changed >= 0 ? 1 : 0);
+  const out = amounts.map((a, i) => i === changed ? fixed : n ? ot ? a * rest / ot : rest / n : 0);
+  const rounded = out.map(Math.round), diff = 100 - rounded.reduce((s, a) => s + a, 0), fix = rounded.findIndex((_, i) => i !== changed);
+  if (diff && fix >= 0) rounded[fix] += diff;
+  return rounded;
+}
+
+// src/designer/colour-finder.js
+var MAX = 3;
+var SHOWN = 60;
+var WEAK = 0.35;
+var SIZE2 = 220;
+var finder = {
+  source: (
+    /** @type {HTMLElement | null} */
+    null
+  ),
+  picks: (
+    /** @type {Pick[]} */
+    []
+  ),
+  sel: 0,
+  // the pick the lightness slider changes
+  light: 0.5
+  // the wheel's lightness when nothing is picked
+};
+var CACHE_KEY = "quilt-fabric-colours.v1";
+var colours = /* @__PURE__ */ new Map();
+try {
+  const kept = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}");
+  for (const [id, c] of Object.entries(kept)) if (Array.isArray(c)) colours.set(id, c);
+} catch (e) {
+}
+function keepColours() {
+  const out = {};
+  for (const f of listedFabrics()) if (f.blob && colours.has(f.id)) out[f.id] = colours.get(f.id);
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(out));
+  } catch (e) {
+  }
+}
+async function measure(f) {
+  const N2 = 48, c = document.createElement("canvas");
+  c.width = c.height = N2;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  try {
+    if (f.blob) {
+      const bm = await createImageBitmap(f.blob, { resizeWidth: N2, resizeHeight: N2, resizeQuality: "medium" });
+      g.drawImage(bm, 0, 0);
+      bm.close?.();
+    } else {
+      const k = Math.min(f.canvas.width, f.canvas.height, 360);
+      g.drawImage(f.canvas, 0, 0, k, k, 0, 0, N2, N2);
+    }
+    return fabricColours(g.getImageData(0, 0, N2, N2).data);
+  } catch (e) {
+    return [];
+  }
+}
+var measuring = null;
+function measureAll() {
+  return measuring ??= (async () => {
+    const inQuilt = design ? fabricIdsIn(design, isFabric2) : /* @__PURE__ */ new Set();
+    const todo = listedFabrics().filter((f) => !colours.has(f.id)).sort((a, b) => Number(inQuilt.has(b.id)) - Number(inQuilt.has(a.id)));
+    for (let i = 0; i < todo.length; i += 12) {
+      for (const f of todo.slice(i, i + 12)) colours.set(f.id, await measure(f));
+      if ($("colfind").open) {
+        drawQuilt();
+        drawResults(true);
+      }
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    if (todo.some((f) => f.blob)) keepColours();
+    measuring = null;
+  })();
+}
+var pickRgb = (p) => hslToRgb(p.h, p.s, p.l);
+var css = (rgb) => `rgb(${rgb.join(",")})`;
+var lightness = () => finder.picks[finder.sel]?.l ?? finder.light;
+function openFinder(box2) {
+  finder.source = box2;
+  const dlg = $("colfind");
+  if (!dlg.open) {
+    try {
+      dlg.showModal();
+    } catch (e) {
+      dlg.setAttribute("open", "");
+    }
+  }
+  drawAll();
+  measureAll();
+}
+var wheelAt = -1;
+function drawWheel() {
+  const l = lightness();
+  if (l === wheelAt) return;
+  wheelAt = l;
+  const cv = (
+    /** @type {HTMLCanvasElement} */
+    $("colfind-canvas")
+  ), g = cv.getContext("2d"), img = g.createImageData(SIZE2, SIZE2), R2 = SIZE2 / 2;
+  for (let y = 0; y < SIZE2; y++)
+    for (let x = 0; x < SIZE2; x++) {
+      const dx = x + 0.5 - R2, dy = y + 0.5 - R2, r = Math.hypot(dx, dy) / R2;
+      if (r > 1) continue;
+      const [cr, cg, cb] = hslToRgb(Math.atan2(dy, dx) * 180 / Math.PI + 360, r, l), i = (y * SIZE2 + x) * 4;
+      img.data[i] = cr;
+      img.data[i + 1] = cg;
+      img.data[i + 2] = cb;
+      img.data[i + 3] = r > 0.985 ? Math.round((1 - r) * 255 * 66) : 255;
+    }
+  g.putImageData(img, 0, 0);
+}
+function drawDots() {
+  const wheel = $("colfind-wheel");
+  wheel.querySelectorAll(".colfind-dot").forEach((d) => d.remove());
+  finder.picks.forEach((p, i) => {
+    const d = document.createElement("span"), a = p.h * Math.PI / 180;
+    d.className = "colfind-dot";
+    d.dataset.i = String(i);
+    d.style.left = `${50 + Math.cos(a) * p.s * 50}%`;
+    d.style.top = `${50 + Math.sin(a) * p.s * 50}%`;
+    d.style.background = css(pickRgb(p));
+    if (i === finder.sel) d.classList.add("on");
+    wheel.append(d);
+  });
+}
+function drawPicks() {
+  const box2 = $("colfind-picks");
+  box2.innerHTML = "";
+  finder.picks.forEach((p2, i) => {
+    const row = document.createElement("div");
+    row.className = "colfind-pick";
+    const sw = document.createElement("button");
+    sw.type = "button";
+    sw.className = "colfind-sw";
+    sw.dataset.i = String(i);
+    sw.style.background = css(pickRgb(p2));
+    sw.setAttribute("aria-pressed", String(i === finder.sel));
+    sw.setAttribute("aria-label", `Colour ${i + 1}: change its lightness`);
+    const amount = document.createElement("input");
+    amount.type = "range";
+    amount.min = "5";
+    amount.max = "95";
+    amount.value = String(p2.amount);
+    amount.dataset.i = String(i);
+    amount.disabled = finder.picks.length === 1;
+    amount.setAttribute("aria-label", `How much of colour ${i + 1}`);
+    const less = document.createElement("small"), more = document.createElement("small");
+    less.textContent = "less";
+    more.textContent = "more";
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "btn sm colfind-x";
+    x.dataset.i = String(i);
+    x.textContent = "\xD7";
+    x.setAttribute("aria-label", `Take colour ${i + 1} away`);
+    row.append(sw, less, amount, more, x);
+    box2.append(row);
+  });
+  $("colfind-hint").textContent = finder.picks.length ? finder.picks.length < MAX ? "Click the wheel to add another colour; drag a dot to change it." : "Drag a dot to change its colour." : `Click the wheel to pick a colour (up to ${MAX}).`;
+  const slider = (
+    /** @type {HTMLInputElement} */
+    $("colfind-light")
+  );
+  slider.value = String(Math.round(lightness() * 100));
+  const p = finder.picks[finder.sel], mid = p ? css(hslToRgb(p.h, p.s, 0.5)) : "#888";
+  slider.style.background = `linear-gradient(to right, #000, ${mid}, #fff)`;
+}
+function drawQuilt() {
+  const box2 = $("colfind-quilt"), seen = [];
+  box2.innerHTML = "";
+  const ids = design ? [...fabricIdsIn(design, isFabric2)] : [];
+  for (const id of ids) {
+    const main = colours.get(id)?.[0];
+    if (!main) continue;
+    const L = lab(main.rgb);
+    if (seen.some((s) => (s[0] - L[0]) ** 2 + (s[1] - L[1]) ** 2 + (s[2] - L[2]) ** 2 < 100)) continue;
+    seen.push(L);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "colfind-sw";
+    b.dataset.rgb = main.rgb.join(",");
+    b.style.background = css(main.rgb);
+    b.setAttribute("aria-label", "Use this colour from your quilt");
+    box2.append(b);
+    if (seen.length >= 8) break;
+  }
+  $("colfind-quilt-box").hidden = !seen.length;
+}
+function drawResults(keepScroll = false) {
+  const box2 = $("colfind-results"), status = $("colfind-status");
+  const left = box2.scrollLeft;
+  box2.innerHTML = "";
+  const all = listedFabrics(), known = all.filter((f) => colours.has(f.id));
+  const reading = known.length < all.length ? `Reading the fabrics' colours\u2026 ${known.length} of ${all.length}` : "";
+  if (!finder.picks.length) {
+    status.textContent = reading;
+    return;
+  }
+  const wanted = finder.picks.map((p) => ({ rgb: pickRgb(p), amount: p.amount }));
+  const ranked = known.map((f) => ({ f, score: colourMatch(wanted, colours.get(f.id)) })).sort((a, b) => b.score - a.score).slice(0, SHOWN);
+  status.textContent = reading || "Best match first: click one to use it.";
+  for (const { f, score } of ranked) {
+    const t = fabricTile(f, false), bar = document.createElement("i");
+    bar.className = "colfind-bar";
+    for (const c of colours.get(f.id)) {
+      const s = document.createElement("i");
+      s.style.background = css(c.rgb);
+      s.style.flexGrow = String(c.share);
+      bar.append(s);
+    }
+    t.insertBefore(bar, t.querySelector("span"));
+    if (score < WEAK) t.classList.add("weak");
+    box2.append(t);
+  }
+  box2.scrollLeft = keepScroll ? left : 0;
+  sideRoller(box2, '.fab[aria-pressed="true"]');
+}
+function drawAll() {
+  drawWheel();
+  drawDots();
+  drawPicks();
+  drawQuilt();
+  drawResults();
+}
+var soon = 0;
+var resultsSoon = () => {
+  clearTimeout(soon);
+  soon = setTimeout(() => drawResults(), 120);
+};
+function addPick(c) {
+  if (finder.picks.length >= MAX) {
+    Object.assign(finder.picks[finder.sel], c);
+  } else {
+    const n = finder.picks.length + 1, amounts = [...finder.picks.map((p) => p.amount), Math.round(100 / n)];
+    finder.picks.push({ ...c, amount: 0 });
+    shareAmounts(amounts, n - 1).forEach((a, i) => finder.picks[i].amount = a);
+    finder.sel = n - 1;
+  }
+  drawAll();
+}
+function wheelColour(e) {
+  const r = $("colfind-canvas").getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  return {
+    h: (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360,
+    s: Math.min(1, Math.hypot(dx, dy) / (r.width / 2))
+  };
+}
+function initFinder() {
+  const dlg = $("colfind");
+  $("colfind-x").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("close", () => finder.source = null);
+  dlg.addEventListener("click", (e) => {
+    if (e.target !== dlg) return;
+    const r = dlg.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+  });
+  const wheel = $("colfind-wheel");
+  let dragging = -1;
+  wheel.addEventListener("pointerdown", (e) => {
+    const dot = (
+      /** @type {HTMLElement} */
+      e.target.closest(".colfind-dot")
+    );
+    if (dot) {
+      dragging = finder.sel = Number(dot.dataset.i);
+    } else {
+      const { h, s } = wheelColour(e);
+      if (s >= 1.04) return;
+      addPick({ h, s, l: lightness() });
+      dragging = finder.sel;
+    }
+    wheel.setPointerCapture(e.pointerId);
+    drawAll();
+    e.preventDefault();
+  });
+  wheel.addEventListener("pointermove", (e) => {
+    if (dragging < 0 || !finder.picks[dragging]) return;
+    Object.assign(finder.picks[dragging], wheelColour(e));
+    drawDots();
+    drawPicks();
+    resultsSoon();
+  });
+  const stop = () => {
+    if (dragging < 0) return;
+    dragging = -1;
+    drawResults();
+  };
+  wheel.addEventListener("pointerup", stop);
+  wheel.addEventListener("pointercancel", stop);
+  $("colfind-light").addEventListener("input", (e) => {
+    const l = Number(
+      /** @type {HTMLInputElement} */
+      e.target.value
+    ) / 100, p = finder.picks[finder.sel];
+    if (p) p.l = l;
+    else finder.light = l;
+    drawWheel();
+    drawDots();
+    drawPicks();
+    resultsSoon();
+  });
+  const picks = $("colfind-picks");
+  picks.addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (!b) return;
+    const i = Number(b.dataset.i);
+    if (b.classList.contains("colfind-x")) {
+      finder.picks.splice(i, 1);
+      shareAmounts(
+        finder.picks.map((p) => p.amount),
+        -1
+      ).forEach((a, j) => finder.picks[j].amount = a);
+      finder.sel = Math.max(0, Math.min(finder.sel, finder.picks.length - 1));
+    } else finder.sel = i;
+    drawAll();
+  });
+  picks.addEventListener("input", (e) => {
+    const t = (
+      /** @type {HTMLInputElement} */
+      e.target
+    ), i = Number(t.dataset.i);
+    const amounts = finder.picks.map((p, j) => j === i ? Number(t.value) : p.amount);
+    shareAmounts(amounts, i).forEach((a, j) => finder.picks[j].amount = a);
+    for (const [j, s] of picks.querySelectorAll("input").entries())
+      if (j !== i) s.value = String(finder.picks[j].amount);
+    resultsSoon();
+  });
+  $("colfind-quilt").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (b?.dataset.rgb) addPick(rgbToHsl(b.dataset.rgb.split(",").map(Number)));
+  });
+  $("colfind-results").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button.fab")
+    );
+    const box2 = finder.source;
+    if (!b?.dataset.f || !box2) return;
+    dlg.close();
+    useFabricIn(box2, b.dataset.f);
+  });
+  setColourButton((box2) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "fab-more-btn";
+    if (box2.id) b.id = box2.id + "-colour";
+    b.title = "Find fabrics by colour";
+    b.setAttribute("aria-label", "Find fabrics by colour");
+    const ico = document.createElement("i");
+    ico.className = "colwheel-ico";
+    ico.setAttribute("aria-hidden", "true");
+    b.append(ico);
+    b.addEventListener("click", () => openFinder(box2));
+    return b;
+  });
+}
+initFinder();
 
 // src/core/block-picks.js
 function patternsIn(design2) {
@@ -7973,7 +8507,7 @@ function drawBordersExploded(g, W, gap, focus = -1) {
   }
   g.save();
   g.translate(off, off);
-  drawQuilt(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...design, borders: [] } });
+  drawQuilt2(g, W - 2 * off, H - 2 * off, { seams: true, design: { ...design, borders: [] } });
   if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
   g.restore();
   return H;
@@ -7994,7 +8528,7 @@ function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
     g.stroke();
   }
 }
-function drawQuilt(g, W, H, opts = {}) {
+function drawQuilt2(g, W, H, opts = {}) {
   const d = opts.design || design;
   if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
   const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
@@ -8073,7 +8607,7 @@ function drawDesignerCanvas() {
   cv.height = Math.floor(ch * dpr);
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawQuilt(g, cw, ch, { seams: true });
+  drawQuilt2(g, cw, ch, { seams: true });
   const qk = quiltingOf(design);
   if (qk !== "ditch") {
     g.save();
@@ -8292,15 +8826,15 @@ function setFussy2(u, v) {
 function drawPartsEditor() {
   if (!design) return;
   drawBlockLibrary2();
-  const cv = $("dz-block"), css = BLOCK_PX, dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = cv.height = css * dpr;
-  cv.style.width = css + "px";
+  const cv = $("dz-block"), css2 = BLOCK_PX, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = cv.height = css2 * dpr;
+  cv.style.width = css2 + "px";
   cv.style.height = "auto";
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, css, css);
-  const b = design.blocks[focusBlock], polys = blockPolys(b, 0, 0, css, css);
-  const realCm = design.blockMm / 10, pxPerCm = css / realCm;
+  g.clearRect(0, 0, css2, css2);
+  const b = design.blocks[focusBlock], polys = blockPolys(b, 0, 0, css2, css2);
+  const realCm = design.blockMm / 10, pxPerCm = css2 / realCm;
   polys.forEach((poly, pi) => {
     g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, focusBlock * 31 + pi);
     pathPoly(g, poly);
@@ -8885,7 +9419,7 @@ function buildDesignMaps() {
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.globalCompositeOperation = "source-over";
   g.filter = "none";
-  drawQuilt(g, W, H);
+  drawQuilt2(g, W, H);
   const cav = softSeams(W, H, 3, "#fff", "rgba(0,0,0,.55)", 5);
   g.globalCompositeOperation = "multiply";
   g.imageSmoothingEnabled = true;
@@ -9433,8 +9967,8 @@ function letterBadge(g, x, y, r, letter) {
   g.fillText(letter, x, y + 0.5);
 }
 function drawCutBlock(cv, b, P, num2) {
-  const css = 300, dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const ar = P.blockH / P.blockW, W = css, H = Math.round(css * ar);
+  const css2 = 300, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const ar = P.blockH / P.blockW, W = css2, H = Math.round(css2 * ar);
   cv.width = W * dpr;
   cv.height = H * dpr;
   cv.style.width = "100%";
@@ -9525,7 +10059,7 @@ function sashPicH(S) {
 }
 function drawSashPic(g, S, sashCuts, u) {
   const mini = sashMini(), H = sashPicH(S);
-  drawQuilt(g, S, H, { seams: true, design: mini });
+  drawQuilt2(g, S, H, { seams: true, design: mini });
   g.font = `600 ${11 * u}px Georgia, serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
@@ -9579,7 +10113,7 @@ function settingPicH(S) {
 }
 function drawSettingPic(g, S, cuts, u) {
   const mini = settingMini(), H = settingPicH(S);
-  drawQuilt(g, S, H, { seams: true, design: mini });
+  drawQuilt2(g, S, H, { seams: true, design: mini });
   g.font = `600 ${11 * u}px Georgia, serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
@@ -9659,7 +10193,7 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
   cv.style.aspectRatio = `${W} / ${H}`;
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawQuilt(g, W, H, { seams: true });
+  drawQuilt2(g, W, H, { seams: true });
   g.save();
   if (kind === "sash") {
     const rs = sashRects(design, W, H);
@@ -9705,15 +10239,15 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
 }
 function drawCutQuilt(P, into) {
   const cv = into ? into.cv : $("cg-quilt"), box2 = cv.parentElement;
-  const u = into && into.u || 1, dpr = into && into.dpr || Math.min(window.devicePixelRatio || 1, 2), lab = 22 * u;
+  const u = into && into.u || 1, dpr = into && into.dpr || Math.min(window.devicePixelRatio || 1, 2), lab2 = 22 * u;
   const s = sashOf(design), gapMm = Math.round(design.blockMm * 0.05);
   const d2 = s.mm ? design : { ...design, sashing: { mm: gapMm, fabric: "b0", corner: "b0", border: false } };
   const q = quiltMm(d2);
-  const availW = (into ? into.w : Math.min(1100, box2.clientWidth || 900)) - lab;
+  const availW = (into ? into.w : Math.min(1100, box2.clientWidth || 900)) - lab2;
   let k = availW / q.W;
-  if (into) k = Math.min(k, (into.h - lab) / q.H);
+  if (into) k = Math.min(k, (into.h - lab2) / q.H);
   k = Math.max(k, 60 * u / design.blockMm);
-  const W = Math.round(q.W * k), H = Math.round(q.H * k), TW = W + lab, TH = H + lab;
+  const W = Math.round(q.W * k), H = Math.round(q.H * k), TW = W + lab2, TH = H + lab2;
   cv.width = Math.round(TW * dpr);
   cv.height = Math.round(TH * dpr);
   cv.style.width = TW + "px";
@@ -9722,7 +10256,7 @@ function drawCutQuilt(P, into) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, TW, TH);
   g.save();
-  g.translate(lab, lab);
+  g.translate(lab2, lab2);
   const pxPerCm = k * 10;
   if (bordersOf(design).length) drawBorders(g, d2, W, H, pxPerCm, true);
   const sr = (s.mm ? sashRects(d2, W, H) : []).map((rc) => rc.turn ? { ...rc, poly: blockOutline(rc) } : rc), ci = P.blocks.findIndex((b) => b.corner), rects = [];
@@ -9882,11 +10416,11 @@ function drawCutQuilt(P, into) {
   const at = (c, r) => isOnPoint(d2) ? placeBox(blockPlace(d2, r * design.cols + c, W, H)) : cellRect(d2, c, r, W, H);
   for (let c = 0; c < design.cols; c++) {
     const R2 = at(c, 0);
-    g.fillText(String(c + 1), lab + R2.x + R2.w / 2, lab / 2);
+    g.fillText(String(c + 1), lab2 + R2.x + R2.w / 2, lab2 / 2);
   }
   for (let r = 0; r < design.rows; r++) {
     const R2 = at(0, r);
-    g.fillText(String(r + 1), lab / 2, lab + R2.y + R2.h / 2);
+    g.fillText(String(r + 1), lab2 / 2, lab2 + R2.y + R2.h / 2);
   }
   if (into) return;
   const nHi = typeof cgHi === "number" && cgHi >= 0 ? P.blocks[cgHi].count : 0;
@@ -11406,7 +11940,7 @@ function quiltPicture(d, width) {
   c.height = h * dpr;
   const g = c.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawQuilt(g, w, h, { seams: true, design: d });
+  drawQuilt2(g, w, h, { seams: true, design: d });
   g.strokeStyle = "#2f466f";
   g.lineWidth = Math.max(2, w * 0.012);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
@@ -11854,7 +12388,7 @@ function tlThumb(step) {
   c.style.height = h + "px";
   const g = c.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawQuilt(g, w, h, { design: d });
+  drawQuilt2(g, w, h, { design: d });
   tl.thumbs.set(step.id, c);
   if (tl.thumbs.size > 140) tl.thumbs.delete(tl.thumbs.keys().next().value);
   return c;
@@ -11885,10 +12419,10 @@ function tlUI() {
     const num2 = document.createElement("span");
     num2.className = "n";
     num2.textContent = `${k + 1}`;
-    const lab = document.createElement("span");
-    lab.className = "l";
-    lab.textContent = st.label;
-    b.append(tlThumb(st), num2, lab);
+    const lab2 = document.createElement("span");
+    lab2.className = "l";
+    lab2.textContent = st.label;
+    b.append(tlThumb(st), num2, lab2);
     b.addEventListener("click", () => tlGo(k));
     list.appendChild(b);
   });
@@ -12298,7 +12832,7 @@ function openOrKeep(e) {
   }
 }
 var timer2 = 0;
-var soon = (ms = AFTER_CHANGE_MS) => {
+var soon2 = (ms = AFTER_CHANGE_MS) => {
   clearTimeout(timer2);
   if (sync.config()) timer2 = setTimeout(run, ms);
 };
@@ -12325,13 +12859,13 @@ function initSyncUI() {
     run();
   });
   $("sync-now").addEventListener("click", run);
-  onChange(() => soon());
-  addEventListener("online", () => soon(500));
-  setInterval(() => document.visibilityState === "visible" && soon(0), EVERY_MS);
+  onChange(() => soon2());
+  addEventListener("online", () => soon2(500));
+  setInterval(() => document.visibilityState === "visible" && soon2(0), EVERY_MS);
   showStatus(sync.status());
   if (sync.config()) {
     showStatus({ state: "ok", pending: repo.designs.dirty().length + repo.fabrics.dirty().length });
-    soon(1500);
+    soon2(1500);
   }
 }
 initSyncUI();

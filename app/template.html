@@ -442,7 +442,34 @@
   /* with a mouse: one floating button, just outside the card of the row the mouse is over (fabric-picker.js);
      the button by each row is for touch screens, which have no hover */
   .fab-more-float { position: fixed; z-index: 50; }
-  @media (hover: hover) { .fabs-row > .fab-more-btn { display: none; } }
+  .fab-more-stack { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+  @media (hover: hover) { .fabs-row > .fab-more-stack { display: none; } }
+  /* the colour finder's round button: a small colour wheel */
+  .fab-more-btn i.colwheel-ico { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, rgba(255,255,255,0) 70%), conic-gradient(#e33, #eb3, #4c4, #3cc, #36e, #c3c, #e33); box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+  /* the colour finder window (colour-finder.js) */
+  .colfind { width: min(680px, calc(100vw - 32px)); }
+  .colfind-top { display: flex; gap: 18px; align-items: flex-start; }
+  .colfind-wheel { position: relative; width: 220px; height: 220px; flex: 0 0 auto; touch-action: none; cursor: crosshair; }
+  .colfind-wheel canvas { width: 100%; height: 100%; display: block; }
+  .colfind-dot { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3); cursor: grab; }
+  .colfind-dot.on { width: 24px; height: 24px; margin: -12px 0 0 -12px; border-width: 3px; }
+  .colfind-side { flex: 1 1 auto; min-width: 0; }
+  .colfind-side .param { margin-top: 0; }
+  #colfind-light { appearance: none; -webkit-appearance: none; height: 10px; border-radius: 5px; border: 1px solid var(--line); margin: 6px 0; }
+  .colfind-picks { display: grid; gap: 6px; margin-top: 10px; }
+  .colfind-pick { display: grid; grid-template-columns: auto auto 1fr auto auto; gap: 6px; align-items: center; }
+  .colfind-pick small { color: var(--muted); font-size: .74rem; }
+  .colfind-pick input { width: 100%; accent-color: var(--accent); }
+  .colfind-sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line); padding: 0; cursor: pointer; }
+  .colfind-sw[aria-pressed=true] { box-shadow: 0 0 0 2px var(--accent); }
+  .colfind-x { padding: 2px 8px; }
+  .colfind-quilt { margin-top: 12px; }
+  .colfind-quilt > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  #colfind-results { margin-top: 4px; min-height: 140px; }
+  #colfind-results .fab.weak { opacity: .4; }
+  .colfind-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin: 3px 0 1px; }
+  .colfind-bar i { display: block; min-width: 2px; }
+  @media (max-width: 560px) { .colfind-top { flex-direction: column; align-items: center; } .colfind-side { width: 100%; } }
   .fabs .fab-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
   /* a steady height, from near the top: the window doesn't jump about as the search narrows the list */
   .fablib { width: min(760px, calc(100vw - 32px)); height: min(860px, calc(100dvh - 48px)); margin-top: 24px; }
@@ -1067,6 +1094,20 @@
     <p class="fine" id="dz-fabnote"></p>
     <p class="fine" style="margin:6px 0 0"><button class="btn sm" type="button" id="fablib-reset" hidden title="Bring back the fabric lists as they were at first: the basics and your newest photos">Reset palette</button></p>
   </div>
+</dialog>
+<dialog class="dz-dialog colfind" id="colfind" aria-labelledby="colfind-title">
+  <div class="dlg-head"><h2 id="colfind-title">Find fabrics by colour</h2><button class="btn sm dlg-x" type="button" id="colfind-x" aria-label="Close">×</button></div>
+  <div class="colfind-top">
+    <div class="colfind-wheel" id="colfind-wheel"><canvas id="colfind-canvas" width="220" height="220" role="img" aria-label="Colour wheel: click to add a colour, drag a dot to change it"></canvas></div>
+    <div class="colfind-side">
+      <div class="param"><label for="colfind-light">Lightness</label><input id="colfind-light" type="range" min="8" max="92" step="1" value="50"></div>
+      <div class="colfind-picks" id="colfind-picks"></div>
+      <p class="fine" id="colfind-hint"></p>
+      <div class="colfind-quilt" id="colfind-quilt-box" hidden><span class="fine">Your quilt</span><div id="colfind-quilt"></div></div>
+    </div>
+  </div>
+  <p class="fine" id="colfind-status"></p>
+  <div class="fabs" id="colfind-results" aria-label="Fabrics, best match first: click one to use it"></div>
 </dialog>
 <section id="page-cut" hidden>
   <dialog class="dz-dialog cg-pop" id="cg-pop" aria-labelledby="cg-pop-title">

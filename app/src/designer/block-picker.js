@@ -1,7 +1,7 @@
 // Choosing a block pattern: the list under "Block pattern" (the app's first 27 blocks, plus the ones this quilt uses
 // and recent picks), one row that scrolls sideways like the fabric lists, and the block library behind its round
 // "+" button, with search and families.
-import './fabric-picker.js'; // load order: runs after designer/fabric-picker
+import './colour-finder.js'; // load order: runs after designer/colour-finder
 import { design, focusBlock } from '../core/store.js';
 import { $, sideRoller } from '../core/dom.js';
 import { placeMoreButton } from './fabric-picker.js';

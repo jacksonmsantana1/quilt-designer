@@ -91,7 +91,8 @@ test('the round button stays while the mouse is over a section and the row or th
   });
   await page.waitForTimeout(500);
   await expect(float).toBeVisible();
-  const top = (await float.boundingBox()).y + 26,
+  // beside the row where it now is: the two buttons (⋯ and colours) centred on it together
+  const middle = ((await float.boundingBox()).y + (await page.locator('#fab-colour-float').boundingBox()).y + 52) / 2,
     r = await row.boundingBox();
-  expect(Math.abs(top - (r.y + r.height / 2))).toBeLessThan(3); // beside the row where it now is
+  expect(Math.abs(middle - (r.y + r.height / 2))).toBeLessThan(3);
 });

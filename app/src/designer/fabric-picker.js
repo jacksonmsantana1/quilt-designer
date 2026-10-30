@@ -162,27 +162,36 @@ function moreButton(box, shown) {
 // ---- the floating "More fabrics" button: one for the page, on the body so a scrolling panel can't clip it
 const float = {
   el: /** @type {HTMLButtonElement | null} */ (null),
+  el2: /** @type {HTMLButtonElement | null} */ (null), // the second round button under it (colours), when the row has one
   box: /** @type {HTMLElement | null} */ (null),
   region: /** @type {HTMLElement | null} */ (null), // the part of the page that shows it while the mouse is over it
   timer: 0,
 };
-function floatButton() {
-  if (float.el) return float.el;
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'fab-more-btn fab-more-float';
-  b.id = 'fab-more-float';
-  b.hidden = true;
-  b.addEventListener('mouseenter', () => clearTimeout(float.timer)); // moving onto it keeps it
-  b.addEventListener('mouseleave', hideFloatSoon);
-  b.addEventListener('click', () => {
-    // does what the row's own round button does (fabrics or blocks)
-    const inline = /** @type {HTMLElement | null} */ (float.box?.parentElement.querySelector(':scope > .fab-more-btn'));
-    hideFloat();
-    inline?.click();
-  });
-  document.body.append(b);
-  return (float.el = b);
+/** The row's own round buttons (shown beside it on touch screens): the first opens the library. @param {HTMLElement} box */
+const inlineButtons = box =>
+  /** @type {HTMLElement[]} */ ([...(box.parentElement.querySelector(':scope > .fab-more-stack')?.children || [])]);
+/** The floating round buttons, made once: each does what the row's own button in its place does. */
+function floatButtons() {
+  if (float.el) return [float.el, float.el2];
+  const make = (id, n) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'fab-more-btn fab-more-float';
+    b.id = id;
+    b.hidden = true;
+    b.addEventListener('mouseenter', () => clearTimeout(float.timer)); // moving onto it keeps it
+    b.addEventListener('mouseleave', hideFloatSoon);
+    b.addEventListener('click', () => {
+      const inline = float.box ? inlineButtons(float.box)[n] : null;
+      hideFloat();
+      inline?.click();
+    });
+    document.body.append(b);
+    return b;
+  };
+  float.el = make('fab-more-float', 0);
+  float.el2 = make('fab-colour-float', 1);
+  return [float.el, float.el2];
 }
 // Where the mouse is, kept here: after a scroll the browser doesn't update which element is "hovered" until the
 // mouse moves again, so asking it then said "not over the list", hid the button, and it stayed hidden.
@@ -204,7 +213,7 @@ addEventListener(
   () => {
     if (pointer.x < 0 || matchMedia('(hover: none)').matches) return;
     const el = document.elementFromPoint(pointer.x, pointer.y);
-    if (float.el && !float.el.hidden && el && float.el.contains(el)) {
+    if (float.el && !float.el.hidden && el && (float.el.contains(el) || float.el2.contains(el))) {
       if (float.box) showFloat(float.box, float.region);
       return;
     }
@@ -220,27 +229,33 @@ addEventListener(
  * @param {HTMLElement} box the row @param {HTMLElement} region the part of the page it belongs to
  */
 function showFloat(box, region) {
-  const inline = /** @type {HTMLElement | null} */ (box.parentElement.querySelector(':scope > .fab-more-btn'));
-  if (!inline || matchMedia('(hover: none)').matches) return;
-  const b = floatButton();
+  const inline = inlineButtons(box);
+  if (!inline.length || matchMedia('(hover: none)').matches) return;
+  const buttons = floatButtons();
   clearTimeout(float.timer);
   float.box = box;
   float.region = region;
-  b.replaceChildren(...[...inline.childNodes].map(n => n.cloneNode(true)));
-  b.title = inline.title;
-  b.setAttribute('aria-label', inline.getAttribute('aria-label') || '');
   const size = 52,
     edge = /** @type {HTMLElement} */ (box.closest('.card') || box.parentElement).getBoundingClientRect(),
     row = box.getBoundingClientRect();
   let left = edge.left - size - 10;
   if (left < 4) left = edge.right + 10; // no room on the left: the other side
-  b.style.left = left + 'px';
-  b.style.top = row.top + row.height / 2 - size / 2 + 'px';
-  b.hidden = false;
+  for (const [n, b] of buttons.entries()) {
+    const src = inline[n];
+    b.hidden = !src;
+    if (!src) continue;
+    b.replaceChildren(...[...src.childNodes].map(c => c.cloneNode(true)));
+    b.title = src.title;
+    b.setAttribute('aria-label', src.getAttribute('aria-label') || '');
+    b.style.left = left + 'px';
+    // the buttons together are centred on the row, the second just under the first
+    b.style.top =
+      row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 8) / 2 + n * (size + 8) + 'px';
+  }
 }
 function hideFloat() {
   clearTimeout(float.timer);
-  if (float.el) float.el.hidden = true;
+  if (float.el) float.el.hidden = float.el2.hidden = true;
 }
 function hideFloatSoon() {
   clearTimeout(float.timer);
@@ -252,9 +267,10 @@ function hideFloatSoon() {
  * with a mouse, a floating copy just outside the row's card while the mouse is anywhere over the list's section:
  * the block holding its title and row ("Fabric for the selected parts", "Block pattern"), when that block holds just
  * this one list; where a card has two lists (sashing and cornerstones), each its own row.
- * @param {HTMLElement} box the row @param {HTMLButtonElement} button
+ * A second button (the colour finder, for fabrics) goes under the first.
+ * @param {HTMLElement} box the row @param {HTMLButtonElement} button @param {HTMLButtonElement | null} [second]
  */
-function placeMoreButton(box, button) {
+function placeMoreButton(box, button, second = null) {
   // the row is wrapped once to hold the two side by side
   let wrap = box.parentElement;
   if (!wrap.classList.contains('fabs-row')) {
@@ -263,8 +279,12 @@ function placeMoreButton(box, button) {
     box.replaceWith(wrap);
     wrap.append(box);
   }
-  wrap.querySelector(':scope > .fab-more-btn')?.remove();
-  wrap.prepend(button);
+  wrap.querySelector(':scope > .fab-more-stack')?.remove();
+  const stack = document.createElement('div');
+  stack.className = 'fab-more-stack';
+  stack.append(button);
+  if (second) stack.append(second);
+  wrap.prepend(stack);
   const parent = wrap.parentElement,
     lists = parent ? parent.querySelectorAll('.fabs:not(.fablib-grid), #dz-patterns').length : 0,
     region = parent && parent !== document.body && lists === 1 ? parent : wrap;
@@ -282,7 +302,7 @@ function drawShortList(box, selected) {
   box.innerHTML = '';
   const fabs = shortListFabrics(selected);
   for (const { f, fixed } of fabs) box.appendChild(fabricTile(f, f.id === selected, fixed ? 'fixed' : 'remove'));
-  placeMoreButton(box, moreButton(box, fabs.length));
+  placeMoreButton(box, moreButton(box, fabs.length), colourButton ? colourButton(box) : null);
   // one row that scrolls sideways, the chosen fabric in view
   sideRoller(box, '.fab[aria-pressed="true"]');
 }
@@ -368,7 +388,15 @@ function drawLibrary() {
 function pickFromLibrary(id) {
   const box = lib.source;
   $('fablib').close();
-  if (!box) return;
+  if (box) useFabricIn(box, id);
+}
+
+/**
+ * A fabric chosen outside a list (library, colour finder): its picture is made, it joins the recent ones and the
+ * palette, and it goes to the list through the list's own click handler, as if it had been clicked there.
+ * @param {HTMLElement} box the list @param {string} id
+ */
+function useFabricIn(box, id) {
   loadFabrics([id]);
   noteRecent(id);
   // a fabric picked in the library joins the palette, at its end
@@ -429,4 +457,10 @@ function refreshLibrary() {
   if ($('fablib').open) drawLibrary();
 }
 
-export { drawShortList, openLibrary, placeMoreButton, refreshLibrary };
+// the second round button beside every fabric list, made by the colour finder (designer/colour-finder.js), which
+// loads later and hands it in here
+let colourButton = /** @type {((box: HTMLElement) => HTMLButtonElement) | null} */ (null);
+/** @param {(box: HTMLElement) => HTMLButtonElement} make */
+const setColourButton = make => (colourButton = make);
+
+export { drawShortList, fabricTile, openLibrary, placeMoreButton, refreshLibrary, setColourButton, useFabricIn };
