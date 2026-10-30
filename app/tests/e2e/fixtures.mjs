@@ -3,7 +3,7 @@
 import { test as base, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { blockRect, quiltMm } from '@quilt/shared/geometry.js';
+import { blockPlace, quiltMm } from '@quilt/shared/geometry.js';
 import { defaultDesign } from '@quilt/shared/design.js';
 import MCR from 'monocart-coverage-reports';
 import { coverageOptions } from './coverage.mjs';
@@ -85,11 +85,11 @@ export const test = base.extend({
           [fn.toString(), arg],
         );
       },
-      /** page coordinates of the centre of block i of design d, on the designer's quilt canvas */
+      /** page coordinates of the centre of block i of design d, on the designer's quilt canvas (on point too) */
       async blockCentre(d, i) {
         const box = await page.locator('#dz-quilt').boundingBox();
-        const R = blockRect(d, i % d.cols, Math.floor(i / d.cols), box.width, box.height);
-        return { x: box.x + R.x + R.w / 2, y: box.y + R.y + R.h / 2, w: R.w };
+        const P = blockPlace(d, i, box.width, box.height);
+        return { x: box.x + P.x + P.w / 2, y: box.y + P.y + P.h / 2, w: P.w };
       },
       quiltMm,
     };

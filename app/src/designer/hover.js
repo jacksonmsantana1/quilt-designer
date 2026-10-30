@@ -20,12 +20,13 @@ import {
   sashOf,
   sashRects,
   settingPieces,
+  spanOf,
 } from '@quilt/shared/geometry.js';
 import { flipped } from './canvas.js';
 import { drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { openBlockEditor } from './side-panel.js';
 import { dispatch } from './dispatch.js';
-import { flipBlocks, rotateBlocks } from '../core/edits.js';
+import { flipBlocks, rotateBlocks, setBlockSpan } from '../core/edits.js';
 
 // ---- hover: highlight the block under the mouse; rest on one part and only that part lights up.
 // A click while a part is lit opens a small pop-up with just the fabrics, for that part.
@@ -90,6 +91,7 @@ function drawHover() {
     // sashing or a border: light it up like a block, with its name
     if (rb) rb.hidden = true;
     if ($('dz-hflip')) $('dz-hflip').hidden = true;
+    if ($('dz-hsplit')) $('dz-hsplit').hidden = true;
     const { w: W, h: H } = hoverGeom(),
       z = hover.zr;
     g.save();
@@ -140,6 +142,7 @@ function drawHover() {
   if (hover.bi < 0 || hover.bi >= design.blocks.length) {
     if (rb) rb.hidden = true;
     if ($('dz-hflip')) $('dz-hflip').hidden = true;
+    if ($('dz-hsplit')) $('dz-hsplit').hidden = true;
     return;
   }
   const { w: HW, h: HH } = hoverGeom(),
@@ -162,6 +165,14 @@ function drawHover() {
       fb.style.left = cv.offsetLeft + x + bw - 2 * sz - 9 + 'px';
       fb.style.top = rb.style.top;
       fb.hidden = rb.hidden || bw < 70;
+    }
+    // a large block: Split, back to separate blocks
+    const sb = $('dz-hsplit');
+    if (sb) {
+      sb.style.width = sb.style.height = sz + 'px';
+      sb.style.left = cv.offsetLeft + x + bw - 3 * sz - 13 + 'px';
+      sb.style.top = rb.style.top;
+      sb.hidden = rb.hidden || spanOf(design.blocks[hover.bi]) < 2;
     }
   }
   if (hover.part < 0) {
@@ -292,7 +303,8 @@ function initHover() {
   });
   const hrot = $('dz-hrot');
   const hflip = $('dz-hflip'),
-    onBtn = el => el && (hrot.contains(el) || hflip.contains(el));
+    hsplit = $('dz-hsplit'),
+    onBtn = el => el && (hrot.contains(el) || hflip.contains(el) || hsplit.contains(el));
   qcv.addEventListener('pointerleave', e => {
     if (onBtn(e.relatedTarget)) return;
     clearHover();
@@ -308,6 +320,13 @@ function initHover() {
     if (hover.part >= 0) hover.part = -1;
     clearTimeout(hover.timer);
     hover.timer = 0;
+    drawHover();
+  });
+  hsplit.addEventListener('click', e => {
+    e.stopPropagation();
+    const bi = hover.bi;
+    if (bi < 0 || !design) return;
+    dispatch(setBlockSpan, bi, 1); // its cells show their own blocks again
     drawHover();
   });
   hflip.addEventListener('click', e => {

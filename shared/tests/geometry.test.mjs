@@ -9,6 +9,7 @@ import {
   normalizeSpans,
   setSpan,
   spanOf,
+  uniteOf,
   anchorOf,
   blockSizeMm,
   borderSidePieces,
@@ -260,16 +261,32 @@ test('on point: blockAt finds each diamond, and nothing in the triangles', () =>
   }
 });
 
-test('on point: no large blocks (yet)', () => {
-  const d = onPoint(3, 3);
-  assert.equal(setSpan(d, 0, 2), d);
-  const withSpan = {
-    ...d,
-    blocks: d.blocks.map((b, i) => (i === 0 ? { ...b, span: 2 } : i === 1 ? { ...b, under: 0 } : b)),
-  };
-  assert.ok(normalizeSpans(withSpan).blocks.every(b => !('span' in b) && !('under' in b)));
+test('on point: a large block is a bigger diamond of k × k diamonds, as many as fit on the quilt', () => {
+  const d = onPoint(3, 3, { sashing: { mm: 20, fabric: 'b0', corner: 'b1' } }),
+    q = quiltMm(d);
+  // block 4 (row 2, column 2) and the 3 around it to the lower right make a 2 × 2 diamond of diamonds
+  const two = setSpan(d, 4, 2);
+  assert.equal(two.blocks[4].span, 2);
+  assert.equal(two.blocks.filter(b => b.under === 4).length, 3);
+  // its place: 2 blocks and the strip between them on each side, turned
+  const P = blockPlace(two, 4, q.W, q.H);
+  assert.ok(close(P.w, 2 * 100 + 20) && P.turn > 0);
+  // a covered diamond answers with the large one, and a click in it finds the large one
+  for (let i = 0; i < cellCount(two); i++)
+    if (two.blocks[i].under === 4) {
+      assert.deepEqual(blockPlace(two, i, q.W, q.H), P);
+      assert.equal(blockAt(two, P.x + P.w / 2, P.y + P.h / 2, q.W, q.H), 4);
+    }
+  // blocks, sashing (none inside the large diamond) and triangles still fill the quilt exactly
+  let A = settingPieces(two, q.W, q.H).reduce((a, p) => a + area(p.poly), 0);
+  A += sashRects(two, q.W, q.H).reduce((a, r) => a + area(blockOutline(r)), 0);
+  for (let i = 0; i < cellCount(two); i++)
+    if (two.blocks[i].under == null) A += area(blockOutline(blockPlace(two, i, q.W, q.H)));
+  assert.ok(close(A, centreMm(two).W * centreMm(two).H));
+  // at the zig-zag edge there are fewer diamonds: a 3 × 3 asked for there shrinks to what fits
+  const edge = setSpan(d, 0, 3);
+  assert.ok(spanOf(edge.blocks[0]) < 3);
 });
-
 test('convexOverlap: a rectangle and a diamond', () => {
   const diamond = [
     [1, 0],
@@ -340,4 +357,23 @@ test('on point with sashing: strips all round each block; without cornerstones, 
     'long 400': 2,
     'sash 300': 18,
   });
+});
+
+test('uniting: a selection must cover a square of 2 × 2 to 4 × 4 cells exactly', () => {
+  const d = grid(5, 5);
+  assert.deepEqual(uniteOf(d, [0, 1, 5, 6]), { i: 0, k: 2 }); // the top-left block and the size
+  assert.deepEqual(uniteOf(d, [6, 7, 8, 11, 12, 13, 16, 17, 18]), { i: 6, k: 3 });
+  assert.deepEqual(uniteOf(d, [0, 1, 2, 5, 6, 7]), { why: 'square' }); // 3 × 2
+  assert.deepEqual(uniteOf(d, [0, 1, 5]), { why: 'square' }); // an L
+  assert.deepEqual(uniteOf(d, [7]), { why: 'one' });
+  assert.deepEqual(uniteOf(d, [...Array(25).keys()]), { why: 'size' }); // 5 × 5
+  // a large block in the selection counts with all its cells: 2 × 2 at block 6, plus 0, 1, 2, 5, 10 → 3 × 3
+  assert.deepEqual(uniteOf(setSpan(d, 6, 2), [0, 1, 2, 5, 6, 10]), { i: 0, k: 3 });
+});
+
+test('uniting on point: the diamonds must make a bigger diamond', () => {
+  const d = onPoint(3, 3);
+  // block 4 (row 2, column 2), the ones between it and its lower neighbours (11, 12), and block 7 below it
+  assert.deepEqual(uniteOf(d, [4, 11, 12, 7]), { i: 4, k: 2 });
+  assert.deepEqual(uniteOf(d, [4, 5]), { why: 'square' }); // two diamonds side by side only touch at a corner
 });

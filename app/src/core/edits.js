@@ -3,7 +3,7 @@
 // or the same design when nothing changes. They never touch the page, storage or the selection:
 // designer/dispatch.js applies them, then mirrors the change (symmetry), saves it and redraws.
 import { newBlock } from '@quilt/shared/design.js';
-import { isOnPoint, normalizeSpans, setSpan } from '@quilt/shared/geometry.js';
+import { isOnPoint, setSpan } from '@quilt/shared/geometry.js';
 /** @typedef {import('@quilt/shared/types.js').Design} Design @typedef {import('@quilt/shared/types.js').Block} Block */
 
 const clone = x => JSON.parse(JSON.stringify(x));
@@ -146,20 +146,26 @@ resize.mirror = false;
 const plainBetween = d => ({ pattern: 'plain', rot: 0, fabrics: [d.settingFabric || 'b0'] });
 /**
  * The quilt set straight or on point. Going on point adds a plain block between each 2 × 2 (the classic alternate
- * block; any block can go there) and leaves out what on point does not have yet: large blocks become single ones
- * and symmetry goes off. Going back to straight drops the blocks in between.
+ * block; any block can go there) and leaves out what on point does not have yet: symmetry goes off. Large blocks
+ * become single ones both ways (their cells are other cells in the other layout). Going back to straight drops the
+ * blocks in between.
  * @param {Design} d @param {boolean} on
  */
 function setSetting(d, on) {
   if (on === isOnPoint(d)) return d;
   const big = d.cols * d.rows;
+  /** a large block's cells are other cells in the other layout: single again @param {Block} blk @returns {Block} */
+  const single = blk => {
+    const { span: _s, under: _u, ...b } = blk;
+    return b;
+  };
   if (!on) {
     const { setting: _s, ...rest } = d;
-    return { ...rest, blocks: d.blocks.slice(0, big) };
+    return { ...rest, blocks: d.blocks.slice(0, big).map(single) };
   }
   const { sym: _sym, ...rest } = d,
     between = Array.from({ length: (d.cols - 1) * (d.rows - 1) }, () => plainBetween(d));
-  return normalizeSpans({ ...rest, setting: 'onpoint', blocks: [...d.blocks.slice(0, big), ...between] });
+  return { ...rest, setting: 'onpoint', blocks: [...d.blocks.slice(0, big).map(single), ...between] };
 }
 /** The fabric of the triangles along the edges of an on-point quilt. @param {Design} d @param {string} f */
 const setSettingFabric = (d, f) => (d.settingFabric === f ? d : { ...d, settingFabric: f });

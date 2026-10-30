@@ -365,6 +365,14 @@
   .flipper.flipped .hover-layer, .flipper.flipped .hover-rot { display: none; }
   .hover-rot { position: absolute; z-index: 2; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); background: rgba(255,255,255,.95); color: #2f466f; display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: 0 2px 6px rgba(20,25,40,.3); transition: transform .12s ease; }
   .hover-rot[hidden] { display: none; }
+  /* Unite: at the top-right corner of a selection of several blocks; greyed when they are not a square */
+  .unite-btn { position: absolute; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 0; height: 30px; border-radius: 999px; border: 2px solid #fff; background: var(--accent); color: var(--accent-ink); font: 600 .78rem var(--font-body); cursor: pointer; box-shadow: 0 2px 8px rgba(20,25,40,.3); transform: translate(-15px, -15px); white-space: nowrap; }
+  .unite-btn[hidden] { display: none; }
+  .unite-btn .unite-ic { display: grid; place-items: center; width: 26px; height: 26px; }
+  .unite-btn .unite-ic svg { width: 16px; height: 16px; }
+  .unite-btn.off { background: #b4b2a9; color: #fff; cursor: help; }
+  .unite-btn.lefty { flex-direction: row-reverse; padding: 0 0 0 10px; transform: translate(calc(-100% + 15px), -15px); } /* near the right edge */
+  .flipper.flipped .unite-btn { display: none; }
   .hover-rot svg { width: 16px; height: 16px; }
   .hover-rot:hover { transform: scale(1.12) rotate(30deg); background: #2f466f; color: #fff; }
   .fitopt { display: flex; gap: 10px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
@@ -798,6 +806,8 @@
             <canvas id="dz-hover" class="hover-layer" aria-hidden="true"></canvas>
             <button type="button" class="hover-rot" id="dz-hflip" hidden aria-label="Mirror this block" title="Mirror this block (flip it left to right)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2"/><path d="M10 6L3 18h7z" fill="currentColor"/><path d="M14 6l7 12h-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
             <button type="button" class="hover-rot" id="dz-hrot" hidden aria-label="Rotate this block 90°" title="Rotate this block 90°"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M17.5 3.5v4.2h-4.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button type="button" class="hover-rot" id="dz-hsplit" hidden aria-label="Split this large block" title="Split: back to separate blocks"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4.5v15M4.5 12h15" stroke="currentColor" stroke-width="1.8"/></svg></button>
+            <button type="button" class="unite-btn" id="dz-unite" hidden><span class="unite-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></span><span class="unite-label"></span></button>
             <div class="marquee" id="dz-marquee" hidden></div>
             <canvas id="dz-back" class="face back" aria-label="The back of your quilt" aria-hidden="true"></canvas>
           </div>
@@ -920,8 +930,6 @@
     </div>
     <div class="symrow" title="Mirror the design: every change to a block is copied to its mirror partners"><label for="dz-sym">Symmetry</label>
       <select id="dz-sym"><option value="off">Off</option><option value="lr">Mirror left–right</option><option value="tb">Mirror top–bottom</option><option value="both">Mirror both ways (4-way)</option><option value="kal">Kaleidoscope (8-way, square layouts)</option></select></div>
-    <div class="symrow" title="Make this block bigger: it covers several grid cells (and the sashing between them)"><label for="dz-span">Block size</label>
-      <select id="dz-span"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
     <div class="dz-blockwrap"><canvas id="dz-block" width="300" height="300" aria-label="Parts of the selected block. Click a part to select it; double-click to select every part in the same fabric."></canvas></div>
     <p class="fine" id="dz-parts-info"></p>
     <div class="row" style="margin-top:8px">

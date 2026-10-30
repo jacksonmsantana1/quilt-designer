@@ -3,7 +3,17 @@ import '../render/quilt-draw.js'; // load order: runs after render/quilt-draw
 import { design, focusBlock, selBlocks } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { fabricById } from './fabric-library.js';
-import { blockOutline, blockPlace, borderTotal, bordersOf, pathPoly, quiltMm, sashOf } from '@quilt/shared/geometry.js';
+import {
+  blockOutline,
+  blockPlace,
+  borderTotal,
+  bordersOf,
+  pathPoly,
+  placeBox,
+  quiltMm,
+  sashOf,
+  uniteOf,
+} from '@quilt/shared/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
 import { drawPaletteInto } from './parts-editor.js';
 import { editorInSide } from './side-panel.js';
@@ -131,6 +141,41 @@ function drawDesignerCanvas() {
   hv.width = Math.floor(cw * dpr);
   hv.height = Math.floor(ch * dpr);
   drawHover();
+  placeUnite(cw, ch);
+}
+// Unite: a button at the top-right corner of a selection of several blocks; greyed, with the reason, when they
+// are not a square of 2 × 2 to 4 × 4 (shared/geometry.js uniteOf). Redrawn with the selection frames.
+const UNITE_WHY = {
+  square: ['Select a square', 'Select a square of blocks to unite them: 2 × 2, 3 × 3 or 4 × 4'],
+  size: ['Up to 4 × 4', 'Up to 4 × 4 blocks can be united into one'],
+  one: ['', ''],
+};
+function placeUnite(cw, ch) {
+  const b = $('dz-unite'),
+    cv = $('dz-quilt');
+  if (!b) return;
+  if (selBlocks.size < 2 || flipped || document.body.classList.contains('tour-active')) {
+    b.hidden = true;
+    return;
+  }
+  let right = 0,
+    top = Infinity;
+  for (const bi of selBlocks) {
+    const R = placeBox(blockPlace(design, bi, cw, ch));
+    right = Math.max(right, R.x + R.w);
+    top = Math.min(top, R.y);
+  }
+  const u = uniteOf(design, selBlocks),
+    [label, why] =
+      'why' in u ? UNITE_WHY[u.why] : [`Unite ${u.k} × ${u.k}`, `Unite these ${u.k * u.k} cells into one large block`];
+  b.querySelector('.unite-label').textContent = label;
+  b.title = why;
+  b.setAttribute('aria-label', why);
+  b.classList.toggle('off', 'why' in u);
+  b.classList.toggle('lefty', right + 130 > cw); // no room for the label on the right
+  b.style.left = cv.offsetLeft + right + 'px';
+  b.style.top = cv.offsetTop + top + 'px';
+  b.hidden = false;
 }
 // The back: one backing fabric at real scale, the quilting stitches showing
 // through (mirrored left to right, as on a real quilt turned over) and the

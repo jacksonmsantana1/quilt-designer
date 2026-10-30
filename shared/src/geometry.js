@@ -92,42 +92,56 @@ const anchorOf = (d, i) => {
   return b && b.under != null ? b.under : i;
 };
 /**
+ * The grid of cells the blocks stand on: each block's cell (column, row), and the block at a cell (-1: none, off
+ * the quilt). Straight, the rows and columns; on point, the turned frame, where the diamonds stand on a straight
+ * grid too (the quilt's zig-zag edge leaves cells out). @param {Design} d
+ */
+function cellGrid(d) {
+  if (!isOnPoint(d))
+    return {
+      /** @param {number} i @returns {[number, number]} */
+      cell: i => [i % d.cols, Math.floor(i / d.cols)],
+      /** @param {number} x @param {number} y */
+      at: (x, y) => (x >= 0 && y >= 0 && x < d.cols && y < d.rows ? y * d.cols + x : -1),
+    };
+  const f = turnedFrame(d, 1, 1),
+    map = new Map();
+  for (let i = 0, n = cellCount(d); i < n; i++) map.set(f.cell(i).join(','), i);
+  return { cell: f.cell, at: (x, y) => map.get(x + ',' + y) ?? -1 };
+}
+/**
  * Large blocks made consistent (pure: returns a new design, or the same one if nothing changes): each large block
- * is clipped to the grid and shrunk until it overlaps no earlier one; the cells it covers get `under`.
+ * is shrunk until it fits on the quilt and overlaps no earlier one; the cells it covers get `under`.
  * @param {Design} d @returns {Design}
  */
 function normalizeSpans(d) {
   if (!d || !Array.isArray(d.blocks)) return d;
-  if (isOnPoint(d)) {
-    // no large blocks on point (yet): every block is a single one
-    if (!d.blocks.some(b => 'span' in b || 'under' in b)) return d;
-    return { ...d, blocks: d.blocks.map(({ span: _s, under: _u, ...b }) => b) };
-  }
-  const C = d.cols,
-    R = d.rows,
+  const g = cellGrid(d),
     n = d.blocks.length,
     taken = new Array(n).fill(false),
     span = new Array(n).fill(0),
     under = new Array(n).fill(-1);
   for (let i = 0; i < n; i++) {
     const b = d.blocks[i],
-      c = i % C,
-      r = Math.floor(i / C);
+      [c, r] = g.cell(i);
     if (taken[i]) continue;
     taken[i] = true;
     if (!(b.span > 1)) continue;
-    let k = Math.min(b.span, C - c, R - r);
-    const free = k => {
+    const fits = k => {
       for (let y = r; y < r + k; y++)
-        for (let x = c; x < c + k; x++) if ((x !== c || y !== r) && taken[y * C + x]) return false;
+        for (let x = c; x < c + k; x++) {
+          const j = g.at(x, y);
+          if (j < 0 || (j !== i && taken[j])) return false;
+        }
       return true;
     };
-    while (k > 1 && !free(k)) k--;
+    let k = b.span;
+    while (k > 1 && !fits(k)) k--;
     if (k <= 1) continue;
     span[i] = k;
     for (let y = r; y < r + k; y++)
       for (let x = c; x < c + k; x++) {
-        const j = y * C + x;
+        const j = g.at(x, y);
         if (j !== i) {
           taken[j] = true;
           under[j] = i;
@@ -146,23 +160,25 @@ function normalizeSpans(d) {
   return changed ? { ...d, blocks } : d;
 }
 /**
- * Block i made to cover k × k cells (pure); large blocks in the way go back to 1 × 1.
+ * Block i made to cover k × k cells (pure), as many as fit on the quilt; large blocks in the way go back to 1 × 1.
  * @param {Design} d @param {number} i @param {number} k0 @returns {Design}
  */
 function setSpan(d, i, k0) {
-  if (isOnPoint(d)) return d; // no large blocks on point (yet)
-  const C = d.cols,
-    c = i % C,
-    r = Math.floor(i / C),
-    k = Math.max(1, Math.min(k0, C - c, d.rows - r));
+  const g = cellGrid(d),
+    [c, r] = g.cell(i),
+    inside = k => {
+      for (let y = r; y < r + k; y++) for (let x = c; x < c + k; x++) if (g.at(x, y) < 0) return false;
+      return true;
+    };
+  let k = Math.max(1, k0);
+  while (k > 1 && !inside(k)) k--;
   const blocks = d.blocks.map((b, j) => {
     if (j === i) {
       const { span: _s, ...rest } = b;
       return k > 1 ? { ...rest, span: k } : rest;
     }
     if (!(b.span > 1)) return b;
-    const cj = j % C,
-      rj = Math.floor(j / C),
+    const [cj, rj] = g.cell(j),
       kj = b.span;
     if (cj < c + k && cj + kj > c && rj < r + k && rj + kj > r) {
       const { span: _s, ...rest } = b;
@@ -210,7 +226,8 @@ const blockSizeMm = (d, k) => k * d.blockMm + (k - 1) * sashOf(d).mm;
 /** Index of the block at (x, y) on a W × H drawing, or -1. @param {Design} d @param {number} x @param {number} y @param {number} W @param {number} H @returns {number} */
 function blockAt(d, x, y, W, H) {
   if (isOnPoint(d)) {
-    for (let i = 0, n = cellCount(d); i < n; i++) if (pointInPoly(x, y, blockOutline(blockPlace(d, i, W, H)))) return i;
+    for (let i = 0, n = cellCount(d); i < n; i++)
+      if (d.blocks[i].under == null && pointInPoly(x, y, blockOutline(blockPlace(d, i, W, H)))) return i;
     return -1;
   }
   const s = sashOf(d),
@@ -234,9 +251,13 @@ function blockAt(d, x, y, W, H) {
  */
 function blockPlace(d, i, W, H) {
   if (!isOnPoint(d)) return { ...blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H), turn: 0 };
+  // (a covered cell answers with its large block, which covers k blocks and the k - 1 strips between them)
   const f = turnedFrame(d, W, H),
-    [u, v] = f.cell(i);
-  return f.place(u * f.p + f.s, v * f.p + f.s, d.blockMm, d.blockMm);
+    a = d.blocks ? anchorOf(d, i) : i,
+    k = d.blocks ? spanOf(d.blocks[a]) : 1,
+    size = k * d.blockMm + (k - 1) * f.s,
+    [u, v] = f.cell(a);
+  return f.place(u * f.p + f.s, v * f.p + f.s, size, size);
 }
 /**
  * On point, worked out in the turned frame: there the blocks stand on a straight grid, (u, v) along a block's top
@@ -351,6 +372,38 @@ function settingPieces(d, W, H) {
   return out;
 }
 /** How a block's position is named: "2, 3" (row, column); on point, a block between rows and columns "1½, 2½". @param {Design} d @param {number} i */
+/**
+ * Where block i is on the grid of cells: (column, row) straight; on point, its square in the turned frame, where
+ * the diamonds stand on a straight grid too (see turnedFrame). @param {Design} d @param {number} i @returns {[number, number]}
+ */
+const gridCell = (d, i) => (isOnPoint(d) ? turnedFrame(d, 1, 1).cell(i) : [i % d.cols, Math.floor(i / d.cols)]);
+/**
+ * Can these selected blocks be united into one large block? They must cover a square of 2 × 2 to 4 × 4 cells,
+ * exactly (a large block in the selection counts with all its cells). Returns the top-left block and the size,
+ * or why not: 'one' (a single block), 'square' (not a square, or holes in it), 'size' (bigger than 4 × 4).
+ * @param {Design} d @param {Iterable<number>} sel @returns {{ i: number, k: number } | { why: 'one' | 'square' | 'size' }}
+ */
+function uniteOf(d, sel) {
+  const at = new Map(), // "x,y" → the block whose own cell it is
+    cells = new Set();
+  for (let i = 0, n = cellCount(d); i < n; i++) at.set(gridCell(d, i).join(','), i);
+  for (const i0 of sel) {
+    const a = anchorOf(d, i0),
+      k = spanOf(d.blocks[a]),
+      [x0, y0] = gridCell(d, a);
+    for (let y = y0; y < y0 + k; y++) for (let x = x0; x < x0 + k; x++) cells.add(x + ',' + y);
+  }
+  const xy = [...cells].map(c => c.split(',').map(Number)),
+    xs = xy.map(p => p[0]),
+    ys = xy.map(p => p[1]),
+    w = Math.max(...xs) - Math.min(...xs) + 1,
+    h = Math.max(...ys) - Math.min(...ys) + 1;
+  if (cells.size <= 1) return { why: 'one' };
+  if (w !== h || cells.size !== w * h) return { why: 'square' };
+  if (w > 4) return { why: 'size' };
+  const i = at.get(Math.min(...xs) + ',' + Math.min(...ys));
+  return i == null ? { why: 'square' } : { i, k: w };
+}
 function cellName(d, i) {
   const big = d.cols * d.rows;
   if (!isOnPoint(d) || i < big) return `${Math.floor(i / d.cols) + 1}, ${(i % d.cols) + 1}`;
@@ -415,7 +468,19 @@ function sashOnPoint(d, W, H) {
     ])
       put(`c${a},${c}`, 'corner', a * p, c * p, s, s, true);
   }
-  let rects = [...pieces.values()];
+  // strips and cornerstones inside a large block are not there: the block covers them
+  const big = [];
+  for (let i = 0, n = cellCount(d); i < n; i++) {
+    const k = spanOf(d.blocks[i]);
+    if (k < 2 || d.blocks[i].under != null) continue;
+    const [I, J] = f.cell(i);
+    big.push([I * p + s, J * p + s, k * b + (k - 1) * s]);
+  }
+  let rects = [...pieces.values()].filter(rc => {
+    const cx = rc.x + rc.w / 2,
+      cy = rc.y + rc.h / 2;
+    return !big.some(([u, v, z]) => cx > u && cx < u + z && cy > v && cy < v + z);
+  });
   if (!sz.cornerstones) {
     // as straight: the strips and crossings along each row of the turned frame join into long strips
     const rows = joinRuns(
@@ -676,4 +741,5 @@ export {
   setSpan,
   settingPieces,
   spanOf,
+  uniteOf,
 };

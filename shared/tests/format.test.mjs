@@ -75,6 +75,13 @@ test('on point: kept with its blocks between; a wrong count or setting is repair
   assert.ok(odd.problems.includes('The layout went back to straight.'));
 });
 
+test('on point with a large block (version 5): kept as it is', () => {
+  const raw = JSON.parse(text('v5-on-point-large-block.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, raw);
+});
+
 test('a cornerstone block is kept; an unreadable one is taken off and reported', () => {
   const raw = JSON.parse(text('v3-cornerstone-block.json')),
     r = readDesign(raw);

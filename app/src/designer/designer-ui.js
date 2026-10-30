@@ -39,6 +39,7 @@ import {
   pointInPoly,
   quiltMm,
   sashRects,
+  uniteOf,
 } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt } from './canvas.js';
 import { drawFabricPalette, drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
@@ -51,7 +52,16 @@ import { tl, tlCommit, tlEnsure, tlKeyFor } from '../timeline/timeline.js';
 import { setSession, timelines } from '../storage/repo.js';
 import { setFold } from '../ui/folds.js';
 import { dispatch, replaceDesign, resizeTo } from './dispatch.js';
-import { copyBlock, rotateBlocks, setBackFabric, setBlockMm, setSetting, setSettingFabric } from '../core/edits.js';
+import {
+  copyBlock,
+  rotateBlocks,
+  setBackFabric,
+  setBlockMm,
+  setBlockSpan,
+  setSetting,
+  setSettingFabric,
+} from '../core/edits.js';
+import { notify } from '../ui/notice.js';
 import { defaultDesign } from '@quilt/shared/design.js';
 
 function initDesignerUI() {
@@ -74,9 +84,15 @@ function initDesignerUI() {
       [R2, B2],
       [L, B2],
     ];
+    const onPoint = isOnPoint(design);
     for (let i = 0, n = cellCount(design); i < n; i++) {
-      // every block the rectangle touches (on point, the diamond itself, not the box around it)
-      if (convexOverlap(box, blockOutline(blockPlace(design, i, r.width, r.height)))) out.add(anchorOf(design, i));
+      const P = blockPlace(design, i, r.width, r.height),
+        cx = P.x + P.w / 2,
+        cy = P.y + P.h / 2;
+      // straight: every block the rectangle touches. On point, every diamond whose middle it holds: any upright
+      // rectangle round a diamond of diamonds also touches the ones beside it, so touching would never fit
+      if (onPoint ? cx > L && cx < R2 && cy > T && cy < B2 : convexOverlap(box, blockOutline(P)))
+        out.add(anchorOf(design, i));
     }
     return out;
   };
@@ -325,6 +341,21 @@ function initDesignerUI() {
   };
   for (const [n] of Object.entries(PANEL_CARDS))
     $('rail-' + n)?.addEventListener('click', () => (toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n)));
+  // Unite: the selected square of blocks becomes one large block (the top-left one's pattern and fabrics); when
+  // the selection is not a square, the button says why instead
+  $('dz-unite').addEventListener('click', e => {
+    e.stopPropagation();
+    const u = uniteOf(design, selBlocks);
+    if ('why' in u) {
+      notify($('dz-unite').title);
+      return;
+    }
+    setSelBlocks(new Set([u.i]));
+    setFocusBlock(u.i);
+    selParts.clear();
+    dispatch(setBlockSpan, u.i, u.k);
+    openBlockEditor();
+  });
   // layout: straight, or on point (blocks turned 45°); the setting triangles' fabric has its own card
   $('dz-setting').addEventListener('change', e => {
     dispatch(setSetting, e.target.value === 'onpoint');

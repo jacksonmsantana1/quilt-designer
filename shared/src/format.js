@@ -30,6 +30,8 @@ const MIGRATIONS = [
   d => ({ ...d, v: 3 }),
   // 3 → 4: quilts can be set on point (setting 'onpoint', settingFabric); older saves are straight
   d => ({ ...d, v: 4 }),
+  // 4 → 5: on point can have large blocks too (a bigger diamond of k × k diamonds); version 4 dropped them there
+  d => ({ ...d, v: 5 }),
 ];
 
 /** @type {Record<string, [number, number]>} */

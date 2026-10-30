@@ -94,6 +94,25 @@ w('v4-on-point.json', {
     ...Array.from({ length: 4 }, () => blk('plain', 'b0')),
   ],
 });
+// version 5: on point with a large block, a diamond of 2 × 2 diamonds (block 4 and the three below it: 7, 11, 12)
+w('v5-on-point-large-block.json', {
+  v: 5,
+  cols: 3,
+  rows: 3,
+  blockMm: 300,
+  backFabric: 'b0',
+  setting: 'onpoint',
+  settingFabric: 'b2',
+  blocks: [
+    ...Array.from({ length: 9 }, (_, i) =>
+      i === 4 ? blk('ohio', 'b1', { span: 2 }) : i === 7 ? blk('nine', 'b4', { under: 4 }) : blk('nine', 'b4'),
+    ),
+    blk('plain', 'b0'),
+    blk('plain', 'b0'),
+    blk('plain', 'b0', { under: 4 }),
+    blk('plain', 'b0', { under: 4 }),
+  ],
+});
 // saved by a later version of the app
 w('newer.json', {
   ...JSON.parse(fs.readFileSync(new URL('v0-before-block-sizes.json', D))),
