@@ -2,7 +2,7 @@
 // window behind their "More fabrics" tile, with search, groups, and adding your own photos.
 import './fabric-library.js'; // load order: runs after designer/fabric-library
 import { design } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, sideRoller } from '../core/dom.js';
 import { isFabric, listedFabrics, loadFabrics, noteRecent, recentFabrics, thumbUrl } from './fabric-library.js';
 import { fabricIdsIn, findFabrics, shortList } from '../core/fabric-picks.js';
 
@@ -168,25 +168,8 @@ function drawShortList(box, selected) {
     wrap.addEventListener('focusin', () => showFloat(box));
     wrap.addEventListener('mouseleave', hideFloatSoon);
   }
-  // the list is one row that scrolls sideways: the mouse wheel scrolls it too (once per list), but only while
-  // there is more to see that way, so the page still scrolls at either end
-  if (!box.dataset.roller) {
-    box.dataset.roller = '1';
-    box.addEventListener(
-      'wheel',
-      e => {
-        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || box.scrollWidth <= box.clientWidth) return;
-        const max = box.scrollWidth - box.clientWidth;
-        if ((e.deltaY < 0 && box.scrollLeft <= 0) || (e.deltaY > 0 && box.scrollLeft >= max - 1)) return;
-        e.preventDefault();
-        box.scrollLeft += e.deltaY;
-      },
-      { passive: false },
-    );
-  }
-  // and the chosen fabric is in view (drawn again after every change, which brings the row back to its start)
-  const on = /** @type {HTMLElement | null} */ (box.querySelector('.fab[aria-pressed="true"]'));
-  if (on && box.clientWidth) box.scrollLeft = Math.max(0, on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2);
+  // one row that scrolls sideways, the chosen fabric in view
+  sideRoller(box, '.fab[aria-pressed="true"]');
 }
 
 // ---- the fabric library window

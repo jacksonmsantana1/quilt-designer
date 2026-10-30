@@ -36,6 +36,32 @@ test('copying a block from the library', async ({ app, page }) => {
   expect((await app.current()).blocks[0].pattern).toBe('nine');
 });
 
+test('the blocks in the quilt are one row that scrolls sideways, like the fabrics', async ({ app, page }) => {
+  // ten different blocks: more than the side panel has room for
+  for (let i = 0; i < 10; i++) {
+    await openBlock(app, page, i);
+    await page.locator('#dz-patterns .pat').nth(i).click();
+  }
+  const row = page.locator('#dz-library'),
+    items = row.locator('.blib-item');
+  expect(await items.count()).toBeGreaterThan(5);
+  const tops = await items.evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1); // all on one line
+  expect(await row.evaluate(e => e.scrollWidth > e.clientWidth)).toBe(true);
+  // the block being edited (the last one picked) is brought into view
+  const seen = await row.evaluate(e => {
+    const on = e.querySelector('[aria-pressed="true"]').getBoundingClientRect(),
+      box = e.getBoundingClientRect();
+    return on.left >= box.left - 1 && on.right <= box.right + 1;
+  });
+  expect(seen).toBe(true);
+  // the mouse wheel scrolls it sideways
+  await row.evaluate(e => (e.scrollLeft = 0));
+  await row.hover();
+  await page.mouse.wheel(0, 200);
+  await expect.poll(() => row.evaluate(e => e.scrollLeft)).toBeGreaterThan(0);
+});
+
 test('mirror button on hover', async ({ app, page }) => {
   const c = await app.blockCentre(await app.current(), 0);
   await page.mouse.move(c.x, c.y);

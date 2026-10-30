@@ -2,7 +2,7 @@
 import './parts-editor.js'; // load order: runs after designer/parts-editor
 
 import { design, focusBlock, selBlocks, selParts, setSelParts } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, sideRoller } from '../core/dom.js';
 import { PATTERNS } from '@quilt/shared/patterns.js';
 import { blockPolys, pathPoly } from '@quilt/shared/geometry.js';
 import { drawPartsEditor } from './parts-editor.js';
@@ -84,6 +84,8 @@ function drawBlockLibrary() {
     btn.append(c, s);
     box.appendChild(btn);
   }
+  // one row that scrolls sideways, like the fabrics, with the block being edited in view
+  sideRoller(box, '.blib-item[aria-pressed="true"]');
 }
 function copyBlockFrom(srcIndex) {
   selParts.clear();

@@ -460,7 +460,8 @@
   .backfabs { max-width: 860px; margin: 0 auto; }
   .backfabs .fab { flex-basis: 74px; }
   .dz-backbar { text-align: center; max-width: 860px; margin-left: auto; margin-right: auto; }
-  .blib { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+  .blib { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
+  .blib .blib-item { flex: 0 0 84px; scroll-snap-align: start; }
   .blib-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
   .blib-item canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
   .blib-item[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
@@ -3961,6 +3962,27 @@ var setRenderT0 = (v) => renderT0 = v;
 // src/core/dom.js
 var $ = (id) => document.getElementById(id);
 var esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+function sideRoller(box2, chosen) {
+  if (!box2.dataset.roller) {
+    box2.dataset.roller = "1";
+    box2.addEventListener(
+      "wheel",
+      (e) => {
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || box2.scrollWidth <= box2.clientWidth) return;
+        const max = box2.scrollWidth - box2.clientWidth;
+        if (e.deltaY < 0 && box2.scrollLeft <= 0 || e.deltaY > 0 && box2.scrollLeft >= max - 1) return;
+        e.preventDefault();
+        box2.scrollLeft += e.deltaY;
+      },
+      { passive: false }
+    );
+  }
+  const on = (
+    /** @type {HTMLElement | null} */
+    box2.querySelector(chosen)
+  );
+  if (on && box2.clientWidth) box2.scrollLeft = Math.max(0, on.offsetLeft - (box2.clientWidth - on.offsetWidth) / 2);
+}
 
 // src/sim/worker-link.js
 var physSrc = $("physics-src").textContent;
@@ -6318,25 +6340,7 @@ function drawShortList(box2, selected) {
     wrap.addEventListener("focusin", () => showFloat(box2));
     wrap.addEventListener("mouseleave", hideFloatSoon);
   }
-  if (!box2.dataset.roller) {
-    box2.dataset.roller = "1";
-    box2.addEventListener(
-      "wheel",
-      (e) => {
-        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || box2.scrollWidth <= box2.clientWidth) return;
-        const max = box2.scrollWidth - box2.clientWidth;
-        if (e.deltaY < 0 && box2.scrollLeft <= 0 || e.deltaY > 0 && box2.scrollLeft >= max - 1) return;
-        e.preventDefault();
-        box2.scrollLeft += e.deltaY;
-      },
-      { passive: false }
-    );
-  }
-  const on = (
-    /** @type {HTMLElement | null} */
-    box2.querySelector('.fab[aria-pressed="true"]')
-  );
-  if (on && box2.clientWidth) box2.scrollLeft = Math.max(0, on.offsetLeft - (box2.clientWidth - on.offsetWidth) / 2);
+  sideRoller(box2, '.fab[aria-pressed="true"]');
 }
 var lib = { source: (
   /** @type {HTMLElement | null} */
@@ -7382,6 +7386,7 @@ function drawBlockLibrary() {
     btn.append(c, s);
     box2.appendChild(btn);
   }
+  sideRoller(box2, '.blib-item[aria-pressed="true"]');
 }
 function copyBlockFrom(srcIndex) {
   selParts.clear();
