@@ -44,6 +44,16 @@
  * @property {string[]} fabrics   fabric slots (see BORDER_TYPES[type].slots)
  */
 
+/**
+ * A shape mosaic (shared/src/mosaic.js): the quilt top is one shape repeated all over instead of blocks.
+ * @typedef {object} Mosaic
+ * @property {'hex' | 'diamond' | 'triangle'} shape  hexagons, diamonds (tumbling blocks) or triangles
+ * @property {number} mm          finished length of one side of the shape
+ * @property {number} cols        shapes across
+ * @property {number} rows        rows of shapes
+ * @property {string[]} fabrics   fabric of each shape, row by row (see mosaicTiles)
+ */
+
 /** @typedef {'off' | 'lr' | 'tb' | 'both' | 'kal'} SymmetryMode */
 /** @typedef {'ditch' | 'cross' | 'fans' | 'meander'} QuiltingKind */
 
@@ -58,6 +68,7 @@
  * @property {Block[]} blocks      row by row: blocks[r * cols + c]; on point, then the (cols-1) × (rows-1) between
  * @property {'onpoint'} [setting] blocks turned 45° in diagonal rows (missing: straight)
  * @property {string} [settingFabric] on point: the fabric of the triangles along the edges
+ * @property {Mosaic} [mosaic]    a shape mosaic instead of the blocks (the blocks are kept for going back)
  * @property {Sashing} [sashing]
  * @property {Border[]} [borders]
  * @property {SymmetryMode} [sym]

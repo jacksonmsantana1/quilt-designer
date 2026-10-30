@@ -10,6 +10,7 @@ import {
   quiltMm,
   sashRects,
   settingPieces,
+  tilePolys,
 } from '@quilt/shared/geometry.js';
 
 // ---- quilting: the stitching that holds the layers together, drawn over the whole top.
@@ -78,6 +79,11 @@ function drawQuiltingLines(g, W, H, kind) {
 }
 function strokeSeams(g, W, H) {
   const d = design;
+  for (const poly of tilePolys(d, W, H)) {
+    pathPoly(g, poly); // a mosaic's shapes (none when it isn't one)
+    g.stroke();
+  }
+  if (d.mosaic) return; // its blocks are not showing
   for (const rc of sashRects(d, W, H)) {
     pathPoly(g, blockOutline(rc)); // (turned on point)
     g.stroke();

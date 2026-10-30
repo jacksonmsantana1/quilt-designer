@@ -136,6 +136,23 @@ w('v6-on-point-symmetry.json', {
     ...Array.from({ length: 4 }, () => blk('plain', 'b0')),
   ],
 });
+// version 7: a hexagon mosaic (Grandmother's flower garden), the blocks kept underneath
+w('v7-hexagon-mosaic.json', {
+  v: 7,
+  cols: 2,
+  rows: 2,
+  blockMm: 300,
+  backFabric: 'b0',
+  blocks: Array.from({ length: 4 }, () => blk('nine', 'b4')),
+  mosaic: {
+    shape: 'hex',
+    mm: 50,
+    cols: 5,
+    rows: 5,
+    // a rosette (mustard centre, rose petals) on cream; 28 shapes in all
+    fabrics: Array.from({ length: 28 }, (_, i) => (i === 13 ? 'b3' : [7, 8, 12, 14, 18, 19].includes(i) ? 'b8' : 'b0')),
+  },
+});
 // saved by a later version of the app
 w('newer.json', {
   ...JSON.parse(fs.readFileSync(new URL('v0-before-block-sizes.json', D))),

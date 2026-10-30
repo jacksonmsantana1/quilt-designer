@@ -22,3 +22,11 @@ export const setHideTools = f => (hideTools = f);
 export let partTap = null;
 /** @param {{ t: number, hit: number } | null} v */
 export const setPartTap = v => (partTap = v);
+/** @type {string} the fabric that clicking or dragging over a mosaic paints with */
+export let mosaicBrush = 'b1';
+/** @param {string} v */
+export const setMosaicBrush = v => (mosaicBrush = v);
+/** @type {'one' | 'rosette' | 'row' | 'way' | 'random'} what a click on a mosaic paints */
+export let mosaicTool = 'one';
+/** @param {'one' | 'rosette' | 'row' | 'way' | 'random'} v */
+export const setMosaicTool = v => (mosaicTool = v);

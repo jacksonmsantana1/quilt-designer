@@ -424,7 +424,7 @@ function pdfTemplateHeader(g, P, title, lines, page, pages) {
   pdfText(g, `Page ${page} of ${pages}`, A4.w - M, A4.h - 6, 3.2, { align: 'right', color: '#8a857c' });
 }
 const realSizeNote = P =>
-  `Real size: print at 100 % / "actual size". Solid line = cutting line (${P.seam} mm seam allowance included); dashed = sewing line.`;
+  `Real size: print at 100 % / "actual size". Solid line = cutting line (${P.seam} mm seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
 const mirrorNote = t =>
   t.mirrored && t.plain
     ? `${[...t.ids.keys()].join('/')}: ${t.mirrored} of ${t.mirrored + t.plain} are mirror images, turn the template over to cut them.`
@@ -436,7 +436,7 @@ function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
   pdfTemplateHeader(
     g,
     P,
-    `Templates · Block ${i + 1}`,
+    b.mosaic ? 'Templates · Mosaic' : `Templates · Block ${i + 1}`,
     [
       {
         text: `${b.label} · ${sheet.items.map(it => [...it.t.ids.entries()].map(([id, n]) => `${id} × ${n}`).join(', ')).join(' · ')}${nsk > 1 ? ` · sheet ${sk + 1} of ${nsk}` : ''}`,
@@ -463,7 +463,7 @@ function pdfTiledPage(P, b, i, sp, tile, page, pages) {
   pdfTemplateHeader(
     g,
     P,
-    `Template · Block ${i + 1}`,
+    b.mosaic ? 'Template · Mosaic' : `Template · Block ${i + 1}`,
     [
       {
         text: `${b.label} · cut ${[...t.ids.entries()].map(([id, k]) => `${id} × ${k}`).join(' · ')} · sheet ${tile.k + 1} of ${n} (row ${tile.r + 1}, column ${tile.c + 1})`,

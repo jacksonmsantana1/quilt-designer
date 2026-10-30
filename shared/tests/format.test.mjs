@@ -86,7 +86,15 @@ test('on point with a symmetry (version 6): kept as it is', () => {
   const raw = JSON.parse(text('v6-on-point-symmetry.json')),
     r = readDesign(raw);
   assert.deepEqual(r.problems, []);
-  assert.deepEqual(r.design, raw);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+});
+
+test('a hexagon mosaic (version 7): kept as it is, its blocks too', () => {
+  const raw = JSON.parse(text('v7-hexagon-mosaic.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+  assert.equal(r.design.mosaic.fabrics.length, 28);
 });
 
 test('a cornerstone block is kept; an unreadable one is taken off and reported', () => {

@@ -7,6 +7,7 @@
 import { PATTERNS, partsOf } from './patterns.js';
 import { BORDER_TYPES, normalizeSpans } from './geometry.js';
 import { FORMAT_VERSION, ROLE_DEFAULT, defaultDesign } from './design.js';
+import { MOSAIC_SHAPES, tileCount } from './mosaic.js';
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Block} Block */
 
 /**
@@ -34,10 +35,20 @@ const MIGRATIONS = [
   d => ({ ...d, v: 5 }),
   // 5 → 6: square quilts on point can have a symmetry (sym); older saves on point have none
   d => ({ ...d, v: 6 }),
+  // 6 → 7: a quilt can be a shape mosaic (mosaic) instead of blocks; older saves are blocks
+  d => ({ ...d, v: 7 }),
 ];
 
 /** @type {Record<string, [number, number]>} */
-const LIMITS = { grid: [1, 20], blockMm: [50, 1000], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
+const LIMITS = {
+  grid: [1, 20],
+  blockMm: [50, 1000],
+  borderMm: [10, 400],
+  sashMm: [0, 400],
+  span: [2, 4],
+  mosaicGrid: [1, 60],
+  mosaicMm: [10, 200],
+};
 const SYMS = ['off', 'lr', 'tb', 'both', 'kal'];
 const QUILTING = ['ditch', 'cross', 'fans', 'meander'];
 
@@ -155,6 +166,14 @@ function check(d) {
       problems.push(`${plural(lost, 'border')} that could not be read ${lost === 1 ? 'was' : 'were'} taken off.`);
   }
 
+  if (d.mosaic !== undefined) {
+    const m = checkMosaic(d.mosaic);
+    if (m) out.mosaic = m.mosaic;
+    else delete out.mosaic;
+    if (!m) problems.push('The mosaic could not be read; the quilt shows its blocks.');
+    else if (m.repaired) problems.push('The mosaic was repaired.');
+  }
+
   if (d.sym !== undefined && !SYMS.includes(d.sym)) {
     delete out.sym;
     problems.push('The symmetry setting was turned off.');
@@ -164,6 +183,32 @@ function check(d) {
     problems.push('The quilting went back to stitch in the ditch.');
   }
   return { design: normalizeSpans(out), problems };
+}
+
+/**
+ * A mosaic made safe: a known shape, a size and counts in range, one fabric per shape (missing ones are the
+ * background fabric, extra ones dropped). Null when it isn't a mosaic at all.
+ * @param {any} m @returns {{ mosaic: import('./types.js').Mosaic, repaired: boolean } | null}
+ */
+function checkMosaic(m) {
+  if (!isObj(m) || !MOSAIC_SHAPES.includes(m.shape) || !num(m.mm) || !num(m.cols) || !num(m.rows)) return null;
+  const mosaic = {
+    shape: m.shape,
+    mm: clamp(Math.round(m.mm), LIMITS.mosaicMm),
+    cols: clamp(Math.round(m.cols), LIMITS.mosaicGrid),
+    rows: clamp(Math.round(m.rows), LIMITS.mosaicGrid),
+    fabrics: [],
+  };
+  const given = Array.isArray(m.fabrics) ? m.fabrics : [],
+    n = tileCount(mosaic);
+  for (let i = 0; i < n; i++) mosaic.fabrics.push(isFabric(given[i]) ? given[i] : 'b0');
+  const repaired =
+    mosaic.mm !== m.mm ||
+    mosaic.cols !== m.cols ||
+    mosaic.rows !== m.rows ||
+    given.length !== n ||
+    !given.every(isFabric);
+  return { mosaic, repaired };
 }
 
 /** @param {any} b @param {(key: string) => void} note @returns {Block} */

@@ -16,7 +16,7 @@ import { readDesign } from '@quilt/shared/format.js';
 import { notify } from '../ui/notice.js';
 import { normalizeSpans } from '@quilt/shared/geometry.js';
 import { withSymmetry } from '../core/symmetry.js';
-import { resize } from '../core/edits.js';
+import { resize, resizeMosaic } from '../core/edits.js';
 import { loadDesign, saveDesign } from './design-state.js';
 import { tlRecord, tlSwitch } from '../timeline/timeline.js';
 import { drawFabricPalette, renderDesigner } from './parts-editor.js';
@@ -87,6 +87,7 @@ function dispatch(edit, ...args) {
 function resizeTo(cols, rows) {
   const d = design;
   if (!d) return false;
+  if (d.mosaic) return dispatch(resizeMosaic, cols, rows); // shapes across and down
   const n = Math.max(1, Math.min(20, cols | 0)) * Math.max(1, Math.min(20, rows | 0));
   setSelBlocks(new Set([Math.min(focusBlock, n - 1)]));
   setFocusBlock([...selBlocks][0]);

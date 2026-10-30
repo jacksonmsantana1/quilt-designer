@@ -204,6 +204,8 @@
   /* Symmetry: a round button on the tool rail; its five choices slide out beside it (to the left when there is
      no room on the right) */
   .sym-wrap { position: relative; }
+  .rail-btn[hidden], .sym-wrap[hidden] { display: none; }
+  #mos-card .param select, #mos-card .param input { grid-column: 1 / -1; }
   .sym-row { position: absolute; left: calc(100% + 8px); top: 50%; display: flex; gap: 6px; padding: 5px 8px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(20,25,40,.18); visibility: hidden; opacity: 0; transform: translate(-10px, -50%) scale(.92); transform-origin: left center; transition: opacity .16s ease, transform .16s ease, visibility 0s .16s; z-index: 5; }
   .sym-wrap.open .sym-row { visibility: visible; opacity: 1; transform: translate(0, -50%); transition-delay: 0s; }
   .sym-row.lefty { left: auto; right: calc(100% + 8px); transform-origin: right center; }
@@ -526,6 +528,7 @@
   .cg-settings label { display: inline-flex; flex-direction: column; gap: 3px; font-size: .8rem; color: var(--muted); }
   .cg-settings { align-items: flex-end; justify-content: center; gap: 10px 16px; }
   .cg-sheet { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .cg-sheet[hidden], .cg-quilt[hidden] { display: none; }
   @media (max-width: 900px) { .cg-sheet { grid-template-columns: minmax(0, 1fr); } }
   /* wide screens: the fabric list stays in view while the blocks scroll past */
   @media (min-width: 901px) {
@@ -860,7 +863,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
-      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, or on point: every block turned 45°, in diagonal rows"><option value="straight">Straight</option><option value="onpoint">On point</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
+      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
         <div class="fabs backfabs" id="dz-backfabs"></div>
@@ -891,7 +894,7 @@
           </div>
         </div>
       </div>
-      <p class="fine dz-size dz-size2" id="dz-size2">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size in millimetres" title="Type a new block size and press Enter"> mm<span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
+      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size in millimetres" title="Type a new block size and press Enter"> mm</span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
       <div class="tl-row" id="tl-row" hidden>
           <span class="tl-btns" role="group" aria-label="Timeline">
             <button class="btn" type="button" id="tl-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
@@ -943,6 +946,16 @@
         <h2>Setting triangles</h2>
         <p class="fine" style="margin:0 0 8px">The triangles that fill the edges of an on-point quilt. Click them on the quilt to come back here.</p>
         <div class="fabs" id="set-fabs"></div>
+      </div>
+      <div class="card" id="mos-card" hidden>
+        <h2>Mosaic</h2>
+        <p class="fine" style="margin:0 0 8px">One shape all over the quilt. Pick a fabric, then click a shape or drag over several to paint them. The arrows by Columns and Rows add more.</p>
+        <div class="param"><label for="mos-shape">Shape</label><output></output><select id="mos-shape" title="The shape the whole quilt is made of"><option value="hex">Hexagons (flower garden)</option><option value="diamond">Diamonds (tumbling blocks)</option><option value="triangle">Triangles</option></select></div>
+        <div class="fablib-groups mos-tools" id="mos-tools" role="group" aria-label="What a click paints"><button type="button" data-tool="one" aria-pressed="true" title="Paint one hexagon">One</button><button type="button" data-tool="rosette" aria-pressed="false" title="Paint a flower: the shape and the ones around it (with diamonds: the three of a cube)">Rosette</button><button type="button" data-tool="row" aria-pressed="false" title="Paint the whole row">Row</button><button type="button" data-tool="way" aria-pressed="false" title="Paint every shape lying the same way: every top, left or right of the cubes, or every triangle pointing up or down" hidden>Same way</button><button type="button" data-tool="random" aria-pressed="false" title="Each hexagon gets a fabric picked at random from the list below">Random</button></div>
+        <div class="param"><label for="mos-mm">Side of a shape</label><output>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape in millimetres"></div>
+        <p class="fine" style="margin:10px 0 4px">Paint with</p>
+        <div class="fabs" id="mos-fabs" aria-label="The fabric to paint with"></div>
+        <p style="margin:10px 0 0"><button class="btn sm" type="button" id="mos-fill" title="Paint every hexagon: in the chosen fabric, or with Random, each in a fabric from the list">Fill all</button></p>
       </div>
       <div class="card has-cancel" id="brd-card">
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
@@ -6057,6 +6070,179 @@ for (const p of Object.values(PATTERNS)) p.family ??= "Other";
 var PCACHE = {};
 var partsOf = (name) => PCACHE[name] = PCACHE[name] || PATTERNS[name].parts();
 
+// ../shared/src/mosaic.js
+var MOSAIC_SHAPES = ["hex", "diamond", "triangle"];
+var SHAPE_NAMES = {
+  hex: ["hexagon", "hexagons"],
+  diamond: ["diamond", "diamonds"],
+  triangle: ["triangle", "triangles"]
+};
+var R3 = Math.sqrt(3);
+function mosaicMm(m) {
+  const s = m.mm;
+  if (m.shape === "triangle") return { w: m.cols * s, h: m.rows * R3 * s / 2 };
+  return { w: m.cols * R3 * s, h: s + (m.rows - 1) * 1.5 * s };
+}
+function clipToRect(poly, w, h) {
+  const edges = [
+    [(p) => p[0], 0],
+    [(p) => -p[0], -w],
+    [(p) => p[1], 0],
+    [(p) => -p[1], -h]
+  ];
+  let out = poly;
+  for (const [f, lim] of edges) {
+    const next = [];
+    for (let i = 0; i < out.length; i++) {
+      const a = out[i], b = out[(i + 1) % out.length], fa = f(a) - lim, fb = f(b) - lim;
+      if (fa >= 0) next.push(a);
+      if (fa * fb < 0) {
+        const t = fa / (fa - fb);
+        next.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      }
+    }
+    out = next;
+    if (!out.length) break;
+  }
+  return out;
+}
+function area(p) {
+  let s = 0;
+  for (let i = 0; i < p.length; i++) {
+    const a = p[i], b = p[(i + 1) % p.length];
+    s += a[0] * b[1] - b[0] * a[1];
+  }
+  return Math.abs(s) / 2;
+}
+var cache = /* @__PURE__ */ new Map();
+function mosaicTiles(m) {
+  const key = `${m.shape} ${m.cols} ${m.rows} ${m.mm}`;
+  if (cache.has(key)) return cache.get(key);
+  const s = m.mm, { w: W, h: H } = mosaicMm(m);
+  const tiles = [];
+  const addRow = (row, shapes) => {
+    let col = 0;
+    for (const [shape, group, way = 0] of shapes) {
+      const whole = area(shape), poly = clipToRect(shape, W, H);
+      if (poly.length < 3 || area(poly) < whole * 0.01) continue;
+      tiles.push({
+        poly,
+        row,
+        col: col++,
+        whole: area(poly) > whole * 0.999,
+        group: group < 0 ? tiles.length : group,
+        way
+      });
+    }
+  };
+  if (m.shape === "triangle") {
+    const h = R3 * s / 2;
+    for (let row = 0; row < m.rows; row++) {
+      const y0 = row * h, y1 = y0 + h, shift = row % 2 ? s / 2 : 0, shapes = [];
+      for (let j = -1; j <= m.cols + 1; j++) {
+        const x = shift + j * s;
+        shapes.push([
+          [x - s / 2, y0],
+          [x + s / 2, y0],
+          [x, y1]
+        ]);
+        shapes.push([
+          [x, y1],
+          [x + s / 2, y0],
+          [x + s, y1]
+        ]);
+      }
+      const mid = (t) => t[0][0] + t[1][0] + t[2][0];
+      shapes.sort((a, b) => mid(a) - mid(b));
+      addRow(
+        row,
+        shapes.map((t) => [t, -1, t[2][1] > t[0][1] ? 0 : 1])
+      );
+    }
+  } else {
+    const w = R3 * s;
+    let n = 0;
+    for (let row = 0; row < m.rows; row++) {
+      const shift = row % 2 ? w / 2 : 0, cy = s / 2 + row * 1.5 * s, shapes = [];
+      for (let j = 0; j <= m.cols; j++) {
+        const c = [shift + j * w, cy], hx = hexagon(c[0], cy, s), g = n++;
+        if (m.shape === "diamond")
+          shapes.push(
+            [[c, hx[5], hx[0], hx[1]], g, 0],
+            [[c, hx[3], hx[4], hx[5]], g, 1],
+            [[c, hx[1], hx[2], hx[3]], g, 2]
+          );
+        else shapes.push([hx, -1]);
+      }
+      addRow(row, shapes);
+    }
+  }
+  if (cache.size > 50) cache.clear();
+  cache.set(key, tiles);
+  return tiles;
+}
+function hexagon(cx, cy, s) {
+  const out = [];
+  for (let k = 0; k < 6; k++) {
+    const a = Math.PI / 180 * (60 * k - 90);
+    out.push([cx + s * Math.cos(a), cy + s * Math.sin(a)]);
+  }
+  return out;
+}
+var isMosaic = (d) => !!(d && d.mosaic);
+function newMosaic(w, h, fabric, mm = 50, shape = "hex") {
+  const fit = (x) => Math.max(1, Math.min(60, Math.round(x)));
+  const [cols, rows] = shape === "triangle" ? [fit(w / mm), fit(h / (R3 * mm / 2))] : [fit(w / (R3 * mm)), fit((h - mm) / (1.5 * mm) + 1)];
+  const m = { shape, mm, cols, rows, fabrics: [] };
+  m.fabrics = Array(tileCount(m)).fill(fabric);
+  return m;
+}
+var tileCount = (m) => mosaicTiles(m).length;
+function tileAt(m, x, y) {
+  return mosaicTiles(m).findIndex((t) => inside(x, y, t.poly));
+}
+function inside(x, y, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+var nbCache = /* @__PURE__ */ new Map();
+function tileNeighbours(m, i) {
+  const key = `${m.shape} ${m.cols} ${m.rows} ${m.mm}`;
+  if (!nbCache.has(key)) {
+    const tiles = mosaicTiles(m), bySide = /* @__PURE__ */ new Map(), pt = (q) => `${q[0].toFixed(3)},${q[1].toFixed(3)}`;
+    tiles.forEach(
+      (t, k) => t.poly.forEach((a, j) => {
+        const side = [pt(a), pt(t.poly[(j + 1) % t.poly.length])].sort().join(" ");
+        if (!bySide.has(side)) bySide.set(side, []);
+        bySide.get(side).push(k);
+      })
+    );
+    const nb = tiles.map(() => /* @__PURE__ */ new Set());
+    for (const ks of bySide.values()) for (const a of ks) for (const b of ks) if (a !== b) nb[a].add(b);
+    if (nbCache.size > 50) nbCache.clear();
+    nbCache.set(
+      key,
+      nb.map((x) => [...x])
+    );
+  }
+  return nbCache.get(key)[i] || [];
+}
+function tilesForTool(m, i, tool) {
+  const tiles = mosaicTiles(m);
+  if (!tiles[i]) return [];
+  if (tool === "rosette" && m.shape === "diamond")
+    return tiles.map((t, k) => t.group === tiles[i].group ? k : -1).filter((k) => k >= 0);
+  if (tool === "rosette") return [i, ...tileNeighbours(m, i)];
+  if (tool === "way" && m.shape !== "hex")
+    return tiles.map((t, k) => t.way === tiles[i].way ? k : -1).filter((k) => k >= 0);
+  if (tool === "row") return tiles.map((t, k) => t.row === tiles[i].row ? k : -1).filter((k) => k >= 0);
+  return [i];
+}
+
 // ../shared/src/geometry.js
 var polyCentre = (p) => {
   let x = 0, y = 0;
@@ -6094,6 +6280,10 @@ var sashOf = (d) => {
 var isOnPoint = (d) => !!d && d.setting === "onpoint";
 var cellCount = (d) => d.cols * d.rows + (isOnPoint(d) ? (d.cols - 1) * (d.rows - 1) : 0);
 function centreMm(d) {
+  if (isMosaic(d)) {
+    const m = mosaicMm(d.mosaic);
+    return { W: m.w, H: m.h };
+  }
   if (isOnPoint(d)) {
     const s2 = sashOf(d).mm;
     return {
@@ -6167,12 +6357,12 @@ function normalizeSpans(d) {
   return changed ? { ...d, blocks } : d;
 }
 function setSpan(d, i, k0) {
-  const g = cellGrid(d), [c, r] = g.cell(i), inside = (k2) => {
+  const g = cellGrid(d), [c, r] = g.cell(i), inside2 = (k2) => {
     for (let y = r; y < r + k2; y++) for (let x = c; x < c + k2; x++) if (g.at(x, y) < 0) return false;
     return true;
   };
   let k = Math.max(1, k0);
-  while (k > 1 && !inside(k)) k--;
+  while (k > 1 && !inside2(k)) k--;
   const blocks = d.blocks.map((b, j) => {
     if (j === i) {
       const { span: _s, ...rest } = b;
@@ -6206,6 +6396,7 @@ function blockRect(d, c0, r0, W, H) {
 }
 var blockSizeMm = (d, k) => k * d.blockMm + (k - 1) * sashOf(d).mm;
 function blockAt(d, x, y, W, H) {
+  if (isMosaic(d)) return -1;
   if (isOnPoint(d)) {
     for (let i = 0, n = cellCount(d); i < n; i++)
       if (d.blocks[i].under == null && pointInPoly(x, y, blockOutline(blockPlace(d, i, W, H)))) return i;
@@ -6260,7 +6451,7 @@ function placeBox(P) {
   };
 }
 function settingPieces(d, W, H) {
-  if (!isOnPoint(d)) return [];
+  if (!isOnPoint(d) || isMosaic(d)) return [];
   const q = quiltMm(d), cm = centreMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, { p, m } = turnedFrame(d, W, H), D = p * Math.SQRT2, x0 = bt, y0 = bt, x1 = bt + cm.W, y1 = bt + cm.H, out = [];
   const add = (kind, ...pts) => out.push({ kind, poly: pts.map(([x, y]) => [x * kx, y * ky]) });
   for (let c = 0; c < d.cols - 1; c++) {
@@ -6327,6 +6518,7 @@ function cellName(d, i) {
   return `${Math.floor(j / (d.cols - 1)) + 1}\xBD, ${j % (d.cols - 1) + 1}\xBD`;
 }
 function sashRects(d, W, H) {
+  if (isMosaic(d)) return [];
   if (isOnPoint(d)) return sashOnPoint(d, W, H);
   const across = /* @__PURE__ */ new Set();
   const all = sashPieces(d, W, H, across);
@@ -6538,12 +6730,20 @@ function convexOverlap(a, b) {
   return true;
 }
 function pointInPoly(x, y, poly) {
-  let inside = false;
+  let inside2 = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const [xi, yi] = poly[i], [xj, yj] = poly[j];
-    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside2 = !inside2;
   }
-  return inside;
+  return inside2;
+}
+function tilePolys(d, W, H) {
+  if (!isMosaic(d)) return [];
+  const q = quiltMm(d), kx = W / q.W, ky = H / q.H, o = borderTotal(d);
+  return mosaicTiles(d.mosaic).map((t) => t.poly.map(([x, y]) => [(x + o) * kx, (y + o) * ky]));
+}
+function tileAtPx(d, x, y, W, H) {
+  return tilePolys(d, W, H).findIndex((p) => pointInPoly(x, y, p));
 }
 function pathPolyInto(g, poly) {
   poly.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
@@ -6551,7 +6751,7 @@ function pathPolyInto(g, poly) {
 }
 
 // ../shared/src/design.js
-var FORMAT_VERSION = 6;
+var FORMAT_VERSION = 7;
 var ROLE_COUNT = 6;
 var ROLE_DEFAULT = ["b0", "b1", "b3", "b5", "b8", "b10"];
 var ROLE_COLOURS = ["#efe5cf", "#2f466f", "#c79a45", "#7d8f70", "#b26a5f", "#4a2c22"];
@@ -6596,9 +6796,19 @@ var MIGRATIONS = [
   // 4 → 5: on point can have large blocks too (a bigger diamond of k × k diamonds); version 4 dropped them there
   (d) => ({ ...d, v: 5 }),
   // 5 → 6: square quilts on point can have a symmetry (sym); older saves on point have none
-  (d) => ({ ...d, v: 6 })
+  (d) => ({ ...d, v: 6 }),
+  // 6 → 7: a quilt can be a shape mosaic (mosaic) instead of blocks; older saves are blocks
+  (d) => ({ ...d, v: 7 })
 ];
-var LIMITS = { grid: [1, 20], blockMm: [50, 1e3], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
+var LIMITS = {
+  grid: [1, 20],
+  blockMm: [50, 1e3],
+  borderMm: [10, 400],
+  sashMm: [0, 400],
+  span: [2, 4],
+  mosaicGrid: [1, 60],
+  mosaicMm: [10, 200]
+};
 var SYMS = ["off", "lr", "tb", "both", "kal"];
 var QUILTING = ["ditch", "cross", "fans", "meander"];
 var isObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
@@ -6694,6 +6904,13 @@ function check(d) {
     if (lost)
       problems.push(`${plural(lost, "border")} that could not be read ${lost === 1 ? "was" : "were"} taken off.`);
   }
+  if (d.mosaic !== void 0) {
+    const m = checkMosaic(d.mosaic);
+    if (m) out.mosaic = m.mosaic;
+    else delete out.mosaic;
+    if (!m) problems.push("The mosaic could not be read; the quilt shows its blocks.");
+    else if (m.repaired) problems.push("The mosaic was repaired.");
+  }
   if (d.sym !== void 0 && !SYMS.includes(d.sym)) {
     delete out.sym;
     problems.push("The symmetry setting was turned off.");
@@ -6703,6 +6920,20 @@ function check(d) {
     problems.push("The quilting went back to stitch in the ditch.");
   }
   return { design: normalizeSpans(out), problems };
+}
+function checkMosaic(m) {
+  if (!isObj(m) || !MOSAIC_SHAPES.includes(m.shape) || !num(m.mm) || !num(m.cols) || !num(m.rows)) return null;
+  const mosaic = {
+    shape: m.shape,
+    mm: clamp(Math.round(m.mm), LIMITS.mosaicMm),
+    cols: clamp(Math.round(m.cols), LIMITS.mosaicGrid),
+    rows: clamp(Math.round(m.rows), LIMITS.mosaicGrid),
+    fabrics: []
+  };
+  const given = Array.isArray(m.fabrics) ? m.fabrics : [], n = tileCount(mosaic);
+  for (let i = 0; i < n; i++) mosaic.fabrics.push(isFabric(given[i]) ? given[i] : "b0");
+  const repaired = mosaic.mm !== m.mm || mosaic.cols !== m.cols || mosaic.rows !== m.rows || given.length !== n || !given.every(isFabric);
+  return { mosaic, repaired };
 }
 function checkBlock(b, note) {
   if (b === void 0) {
@@ -6872,7 +7103,7 @@ async function blobHash(blob) {
 function createRepo() {
   let db = null;
   let persistent = false;
-  const cache = { designs: /* @__PURE__ */ new Map(), fabrics: /* @__PURE__ */ new Map(), timelines: /* @__PURE__ */ new Map(), session: /* @__PURE__ */ new Map() };
+  const cache2 = { designs: /* @__PURE__ */ new Map(), fabrics: /* @__PURE__ */ new Map(), timelines: /* @__PURE__ */ new Map(), session: /* @__PURE__ */ new Map() };
   let pending = /* @__PURE__ */ new Map();
   let scheduled = false;
   let writing = Promise.resolve();
@@ -6918,10 +7149,10 @@ function createRepo() {
         persistent = false;
       }
     }
-    for (const m of Object.values(cache)) m.clear();
-    for (const s of Object.keys(cache)) for (const r of await db.getAll(s)) cache[s].set(r.id ?? r.key, r);
+    for (const m of Object.values(cache2)) m.clear();
+    for (const s of Object.keys(cache2)) for (const r of await db.getAll(s)) cache2[s].set(r.id ?? r.key, r);
     let migrated = false;
-    if (!cache.session.has("migrated")) {
+    if (!cache2.session.has("migrated")) {
       const out = legacy ? migrateLocalStorage(legacy) : { designs: [], timelines: [], session: [] };
       for (const r of out.designs) put2("designs", r.id, r);
       for (const r of out.timelines) put2("timelines", r.key, r);
@@ -6933,37 +7164,37 @@ function createRepo() {
     return { persistent, migrated };
   }
   function put2(store, key, value) {
-    cache[store].set(key, value);
+    cache2[store].set(key, value);
     queue(store, key, value);
   }
   function del(store, key) {
-    cache[store].delete(key);
+    cache2[store].delete(key);
     queue(store, key, void 0);
   }
-  const getSession2 = (key) => cache.session.get(key)?.value;
+  const getSession2 = (key) => cache2.session.get(key)?.value;
   function setSession2(key, value) {
     if (value === void 0) del("session", key);
     else put2("session", key, { key, value });
   }
   const syncSide = (store) => ({
     /** records changed here since the last upload, deletion markers included */
-    dirty: () => [...cache[store].values()].filter((r) => r.dirty),
+    dirty: () => [...cache2[store].values()].filter((r) => r.dirty),
     /** the record, deleted or not */
-    raw: (id) => cache[store].get(id) || null,
+    raw: (id) => cache2[store].get(id) || null,
     /**
      * After an upload: the server has this copy at server rev `syncRev`. Still dirty if the record was changed
      * again while it was being uploaded (its local rev moved on), so the next sync sends that too.
      * @param {string} id @param {number} localRev @param {number} syncRev @param {object} [patch]
      */
     markSynced(id, localRev, syncRev, patch = {}) {
-      const r = cache[store].get(id);
+      const r = cache2[store].get(id);
       if (!r) return;
       if (r.deleted && r.rev === localRev) return del(store, id);
       put2(store, id, { ...r, ...r.rev === localRev ? patch : {}, syncRev, dirty: r.rev !== localRev });
     },
     /** Puts the server's copy here (from another device): not dirty. @param {any} rec */
     applyRemote(rec) {
-      const old = cache[store].get(rec.id);
+      const old = cache2[store].get(rec.id);
       if (rec.deleted) {
         if (old) del(store, rec.id);
         return;
@@ -6979,10 +7210,10 @@ function createRepo() {
       });
     },
     /** Removes a record outright (a deletion marker the server never needed to know about). @param {string} id */
-    purge: (id) => cache[store].has(id) && del(store, id),
+    purge: (id) => cache2[store].has(id) && del(store, id),
     /** Connecting to another server or account: everything here is new to it (deletion markers are dropped). */
     resetSync() {
-      for (const r of [...cache[store].values()]) {
+      for (const r of [...cache2[store].values()]) {
         if (r.deleted) del(store, r.id);
         else put2(store, r.id, { ...r, syncRev: 0, dirty: true });
       }
@@ -6990,10 +7221,10 @@ function createRepo() {
   });
   const designs2 = {
     /** @returns {DesignRecord[]} the saved designs, not counting deleted ones */
-    list: () => [...cache.designs.values()].filter((r) => !r.deleted),
+    list: () => [...cache2.designs.values()].filter((r) => !r.deleted),
     /** @param {string} id @returns {DesignRecord | null} */
     get: (id) => {
-      const r = cache.designs.get(id);
+      const r = cache2.designs.get(id);
       return r && !r.deleted ? r : null;
     },
     /**
@@ -7001,7 +7232,7 @@ function createRepo() {
      * record is marked for upload. @param {Partial<DesignRecord> & { id: string }} rec @returns {DesignRecord}
      */
     save(rec) {
-      const old = cache.designs.get(rec.id), t = now();
+      const old = cache2.designs.get(rec.id), t = now();
       const next = {
         name: "",
         design: null,
@@ -7020,7 +7251,7 @@ function createRepo() {
     },
     /** Deletes a design (kept as a marker until the server has the deletion). @param {string} id */
     remove(id) {
-      const old = cache.designs.get(id);
+      const old = cache2.designs.get(id);
       if (!old || old.deleted) return;
       put2("designs", id, { ...old, design: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
       changed("designs", id);
@@ -7030,10 +7261,10 @@ function createRepo() {
   };
   const fabrics2 = {
     /** @returns {FabricRecord[]} */
-    list: () => [...cache.fabrics.values()].filter((r) => !r.deleted).sort((a, b) => a.createdAt - b.createdAt),
+    list: () => [...cache2.fabrics.values()].filter((r) => !r.deleted).sort((a, b) => a.createdAt - b.createdAt),
     /** @param {string} id @returns {FabricRecord | null} */
     get: (id) => {
-      const r = cache.fabrics.get(id);
+      const r = cache2.fabrics.get(id);
       return r && !r.deleted ? r : null;
     },
     /**
@@ -7041,7 +7272,7 @@ function createRepo() {
      * @param {Blob} blob @param {{ name: string, cm: number }} meta @returns {Promise<{ id: string, isNew: boolean }>}
      */
     async add(blob, meta) {
-      const id = await blobHash(blob), old = cache.fabrics.get(id);
+      const id = await blobHash(blob), old = cache2.fabrics.get(id);
       if (old && !old.deleted) return { id, isNew: false };
       const t = now();
       put2("fabrics", id, {
@@ -7063,14 +7294,14 @@ function createRepo() {
   };
   const timelines2 = {
     /** @param {string} key */
-    get: (key) => cache.timelines.get(key) || null,
+    get: (key) => cache2.timelines.get(key) || null,
     /** @param {string} key @param {{ steps: any[], i: number, seq: number }} t */
     set: (key, t) => put2("timelines", key, { key, steps: t.steps, i: t.i, seq: t.seq }),
     /** @param {string} key */
-    remove: (key) => cache.timelines.has(key) && del("timelines", key),
+    remove: (key) => cache2.timelines.has(key) && del("timelines", key),
     /** @param {string} from @param {string} to */
     copy(from, to) {
-      const t = cache.timelines.get(from);
+      const t = cache2.timelines.get(from);
       if (t) timelines2.set(to, t);
     }
   };
@@ -10822,7 +11053,59 @@ function setSetting(d, on) {
 }
 var setSettingFabric = (d, f) => d.settingFabric === f ? d : { ...d, settingFabric: f };
 setSetting.mirror = setSettingFabric.mirror = false;
+function setMosaic(d, on, fabric = "b0") {
+  if (on === !!d.mosaic) return d;
+  if (!on) {
+    const { mosaic: _m, ...rest2 } = d;
+    return rest2;
+  }
+  const straight = (
+    /** @type {Design} */
+    setSetting(d, false)
+  ), { sym: _sym, ...rest } = straight, c = centreMm(rest);
+  return { ...rest, mosaic: newMosaic(c.W, c.H, fabric) };
+}
+function resizeMosaic(d, cols0, rows0) {
+  const m = d.mosaic;
+  if (!m) return d;
+  const cols = Math.max(1, Math.min(60, cols0 | 0)), rows = Math.max(1, Math.min(60, rows0 | 0));
+  if (cols === m.cols && rows === m.rows) return d;
+  const old = mosaicTiles(m), at = new Map(old.map((t, i) => [`${t.row} ${t.col}`, m.fabrics[i]])), next = { ...m, cols, rows };
+  const fabrics2 = mosaicTiles(next).map((t) => {
+    const r = Math.min(t.row, m.rows - 1), last = old.filter((u) => u.row === r).length - 1;
+    return at.get(`${r} ${Math.min(t.col, last)}`) || "b0";
+  });
+  return { ...d, mosaic: { ...next, fabrics: fabrics2 } };
+}
+function setMosaicShape(d, shape) {
+  const m = d.mosaic;
+  if (!m || m.shape === shape) return d;
+  const { w, h } = mosaicMm(m), next = newMosaic(w, h, "b0", m.mm, shape), nw = mosaicMm(next);
+  next.fabrics = mosaicTiles(next).map((t) => {
+    const cx = t.poly.reduce((s, p) => s + p[0], 0) / t.poly.length, cy = t.poly.reduce((s, p) => s + p[1], 0) / t.poly.length, k = tileAt(m, Math.min(w - 0.01, cx * w / nw.w), Math.min(h - 0.01, cy * h / nw.h));
+    return k >= 0 ? m.fabrics[k] : m.fabrics[0];
+  });
+  return { ...d, mosaic: next };
+}
+function setMosaicMm(d, mm) {
+  const m = d.mosaic, v = Math.max(10, Math.min(200, Math.round(mm)));
+  return !m || m.mm === v ? d : { ...d, mosaic: { ...m, mm: v } };
+}
+function paintTiles(d, ids, fid) {
+  const m = d.mosaic;
+  if (!m) return d;
+  const set = new Set([...ids].filter((i) => i >= 0 && i < tileCount(m) && m.fabrics[i] !== fid));
+  return set.size ? { ...d, mosaic: { ...m, fabrics: m.fabrics.map((f, i) => set.has(i) ? fid : f) } } : d;
+}
+function paintEach(d, list) {
+  const m = d.mosaic;
+  if (!m) return d;
+  const set = new Map(list.filter(([i, f]) => i >= 0 && i < m.fabrics.length && m.fabrics[i] !== f));
+  return set.size ? { ...d, mosaic: { ...m, fabrics: m.fabrics.map((f, i) => set.get(i) ?? f) } } : d;
+}
+setMosaic.mirror = setMosaicShape.mirror = resizeMosaic.mirror = setMosaicMm.mirror = paintTiles.mirror = paintEach.mirror = false;
 resize2.merge = setBlockMm.merge = setSashing.merge = updateBorder.merge = true;
+resizeMosaic.merge = setMosaicMm.merge = paintTiles.merge = paintEach.merge = true;
 
 // src/designer/dispatch.js
 var freezeOn = false;
@@ -10872,6 +11155,7 @@ function dispatch(edit, ...args) {
 function resizeTo(cols, rows) {
   const d = design;
   if (!d) return false;
+  if (d.mosaic) return dispatch(resizeMosaic, cols, rows);
   const n = Math.max(1, Math.min(20, cols | 0)) * Math.max(1, Math.min(20, rows | 0));
   setSelBlocks(/* @__PURE__ */ new Set([Math.min(focusBlock, n - 1)]));
   setFocusBlock([...selBlocks][0]);
@@ -11091,6 +11375,24 @@ function drawQuilt2(g, W, H, opts = {}) {
   const d = opts.design || design;
   if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
   const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
+  if (d.mosaic) {
+    const polys = tilePolys(d, W, H);
+    polys.forEach((poly, i) => {
+      g.fillStyle = fabricFill(g, fabricById(d.mosaic.fabrics[i]), pxPerCm, 500 + i);
+      pathPoly(g, poly);
+      g.fill();
+      dimUnlessHi(g, { t: "qpiece", fabric: d.mosaic.fabrics[i] });
+    });
+    if (opts.seams) {
+      g.strokeStyle = "rgba(40,30,20,.35)";
+      g.lineWidth = Math.max(1, W / 1400);
+      for (const poly of polys) {
+        pathPoly(g, poly);
+        g.stroke();
+      }
+    }
+    return;
+  }
   for (const [k, rc] of sashRects(d, W, H).entries()) {
     if (rc.kind === "corner" && s.cornerBlock) {
       drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
@@ -11183,7 +11485,7 @@ function drawDesignerCanvas() {
   g.strokeStyle = "#2f466f";
   g.lineWidth = Math.max(3, cw * 6e-3);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
-  const editing = $("dz-dialog").open || editorInSide || selBlocks.size > 1;
+  const editing = !design.mosaic && ($("dz-dialog").open || editorInSide || selBlocks.size > 1);
   if (editing)
     for (const bi of selBlocks) {
       const P = blockPlace(design, bi, cw, ch), cx = P.x + P.w / 2, cy = P.y + P.h / 2, k = 1 - 3 / Math.max(P.w, 6);
@@ -11227,7 +11529,9 @@ function drawDesignerCanvas() {
   }
   const sz = sashOf(design);
   const nb = bordersOf(design).length;
-  $("dz-size-b").textContent = `${sz.mm ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(design)} mm)` : ""} \xB7 finished quilt ${Math.round(qmm.W)} \xD7 ${Math.round(qmm.H)} mm`;
+  $("dz-bsize").hidden = !!design.mosaic;
+  const mos = design.mosaic ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides` : "";
+  $("dz-size-b").textContent = `${mos}${sz.mm && !design.mosaic ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(design)} mm)` : ""} \xB7 finished quilt ${Math.round(qmm.W)} \xD7 ${Math.round(qmm.H)} mm`;
   drawBackCanvas(cw, ch, dpr);
   const hv = $("dz-hover");
   hv.style.width = cw + "px";
@@ -11245,7 +11549,7 @@ var UNITE_WHY = {
 function placeUnite(cw, ch) {
   const b = $("dz-unite"), cv = $("dz-quilt");
   if (!b) return;
-  if (selBlocks.size < 2 || flipped || document.body.classList.contains("tour-active")) {
+  if (selBlocks.size < 2 || flipped || design.mosaic || document.body.classList.contains("tour-active")) {
     b.hidden = true;
     return;
   }
@@ -11381,6 +11685,25 @@ function setFussy2(u, v) {
   $("dz-fussy-clear").addEventListener("click", () => setFussy2(null));
 }
 
+// src/designer/ui-state.js
+var toolsPanel = null;
+var setToolsPanel = (v) => toolsPanel = v;
+var showTools = () => {
+};
+var setShowTools = (f) => showTools = f;
+var showToolsPanel = () => {
+};
+var setShowToolsPanel = (f) => showToolsPanel = f;
+var hideTools = () => {
+};
+var setHideTools = (f) => hideTools = f;
+var partTap = null;
+var setPartTap = (v) => partTap = v;
+var mosaicBrush = "b1";
+var setMosaicBrush = (v) => mosaicBrush = v;
+var mosaicTool = "one";
+var setMosaicTool = (v) => mosaicTool = v;
+
 // src/designer/parts-editor.js
 function drawPartsEditor() {
   if (!design) return;
@@ -11438,9 +11761,18 @@ function renderDesigner() {
   if (!design) return;
   if (design.blocks[focusBlock] && design.blocks[focusBlock].under != null)
     setFocusBlock(design.blocks[focusBlock].under);
-  $("dz-cols").value = design.cols;
-  $("dz-rows").value = design.rows;
-  $("dz-setting").value = isOnPoint(design) ? "onpoint" : "straight";
+  const grid = design.mosaic || design;
+  $("dz-cols").value = grid.cols;
+  $("dz-rows").value = grid.rows;
+  $("dz-cols").max = $("dz-rows").max = design.mosaic ? "60" : "20";
+  $("dz-setting").value = design.mosaic ? "mosaic" : isOnPoint(design) ? "onpoint" : "straight";
+  for (const id of ["rail-parts", "rail-sash", "sym-wrap"]) if ($(id)) $(id).hidden = !!design.mosaic;
+  if (design.mosaic) {
+    if (document.activeElement !== $("mos-mm")) $("mos-mm").value = design.mosaic.mm;
+    $("mos-shape").value = design.mosaic.shape;
+    $("mos-tools").querySelector('[data-tool="way"]').hidden = design.mosaic.shape === "hex";
+    drawPaletteInto($("mos-fabs"), mosaicBrush);
+  }
   drawPaletteInto($("set-fabs"), design.settingFabric || "b0");
   syncSymUI();
   for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
@@ -11520,24 +11852,9 @@ function selectSameFabric(pi) {
   drawPartsEditor();
 }
 
-// src/designer/ui-state.js
-var toolsPanel = null;
-var setToolsPanel = (v) => toolsPanel = v;
-var showTools = () => {
-};
-var setShowTools = (f) => showTools = f;
-var showToolsPanel = () => {
-};
-var setShowToolsPanel = (f) => showToolsPanel = f;
-var hideTools = () => {
-};
-var setHideTools = (f) => hideTools = f;
-var partTap = null;
-var setPartTap = (v) => partTap = v;
-
 // src/designer/side-panel.js
 var editorInSide = false;
-var PANEL_CARDS = { parts: "dz-sideparts", sash: "sash-card", brd: "brd-card", set: "set-card" };
+var PANEL_CARDS = { parts: "dz-sideparts", sash: "sash-card", brd: "brd-card", set: "set-card", mosaic: "mos-card" };
 function syncRail() {
   for (const n of Object.keys(PANEL_CARDS)) {
     const b = $("rail-" + n);
@@ -11628,9 +11945,53 @@ function initDesignerUI() {
     }
     return out;
   };
+  let painting = null;
+  const paletteIds = () => [...$("mos-fabs").querySelectorAll("button.fab[data-f]")].filter((b) => !b.hidden).map((b) => b.dataset.f);
+  const paintWithTool = (ids) => {
+    if (mosaicTool === "random") {
+      const pal = paletteIds();
+      if (!pal.length) return;
+      dispatch(
+        paintEach,
+        ids.map((i) => [i, pal[Math.floor(Math.random() * pal.length)]])
+      );
+    } else
+      dispatch(
+        paintTiles,
+        ids.flatMap((i) => tilesForTool(design.mosaic, i, mosaicTool)),
+        mosaicBrush
+      );
+  };
+  const paintAt = (e) => {
+    const r = qcv.getBoundingClientRect(), i = tileAtPx(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (i >= 0 && i !== painting.last) {
+      painting.last = i;
+      paintWithTool([i]);
+    }
+    return i;
+  };
+  qcv.addEventListener("pointerdown", (e) => {
+    if (!design || !design.mosaic || flipped || e.button !== 0) return;
+    painting = { id: e.pointerId, last: -1 };
+    if (paintAt(e) < 0)
+      painting = null;
+    else if (e.pointerType !== "touch")
+      try {
+        qcv.setPointerCapture(e.pointerId);
+      } catch (err) {
+      }
+  });
+  qcv.addEventListener("pointermove", (e) => {
+    if (painting && e.pointerId === painting.id && e.pointerType !== "touch") paintAt(e);
+  });
+  const stopPainting = (e) => {
+    if (painting && e.pointerId === painting.id) painting = null;
+  };
+  qcv.addEventListener("pointerup", stopPainting);
+  qcv.addEventListener("pointercancel", stopPainting);
   qcv.addEventListener("pointerdown", (e) => {
     suppressClick = false;
-    if (flipped || e.button !== 0 || !design) return;
+    if (flipped || e.button !== 0 || !design || design.mosaic) return;
     if (e.pointerType === "touch") return;
     const r = qcv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     marquee = {
@@ -11684,8 +12045,8 @@ function initDesignerUI() {
         height: Math.abs(y1 - y0) + "px",
         transform: ""
       });
-      const inside = blocksIn(x0, y0, x1, y1);
-      mq.dataset.count = `${inside.size} block${inside.size === 1 ? "" : "s"}`;
+      const inside2 = blocksIn(x0, y0, x1, y1);
+      mq.dataset.count = `${inside2.size} block${inside2.size === 1 ? "" : "s"}`;
     }
     if (!mqFrame)
       mqFrame = requestAnimationFrame(() => {
@@ -11708,10 +12069,10 @@ function initDesignerUI() {
       drawDesignerCanvas();
       return;
     }
-    const inside = blocksIn(m0.x0, m0.y0, m0.x1, m0.y1);
-    setSelBlocks(/* @__PURE__ */ new Set([...m0.base, ...inside]));
+    const inside2 = blocksIn(m0.x0, m0.y0, m0.x1, m0.y1);
+    setSelBlocks(/* @__PURE__ */ new Set([...m0.base, ...inside2]));
     if (!selBlocks.size) setSelBlocks(/* @__PURE__ */ new Set([focusBlock]));
-    setFocusBlock(inside.size ? Math.min(...inside) : [...selBlocks][0]);
+    setFocusBlock(inside2.size ? Math.min(...inside2) : [...selBlocks][0]);
     selParts.clear();
     renderDesigner();
     updateMultiUI();
@@ -11735,6 +12096,7 @@ function initDesignerUI() {
     if (flipped || e.defaultPrevented) return;
     const r = e.currentTarget.getBoundingClientRect();
     const bi = blockAt(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (design.mosaic && tileAtPx(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height) >= 0) return;
     if (bi < 0) {
       const q = quiltMm(design), bt = borderTotal(design), mx = (e.clientX - r.left) / r.width * q.W, my = (e.clientY - r.top) / r.height * q.H;
       if (bt && (mx < bt || my < bt || mx > q.W - bt || my > q.H - bt)) openBorders();
@@ -11874,8 +12236,42 @@ function initDesignerUI() {
     openBlockEditor();
   });
   $("dz-setting").addEventListener("change", (e) => {
-    dispatch(setSetting, e.target.value === "onpoint");
+    const v = e.target.value;
+    if (v === "mosaic") {
+      dispatch(setMosaic, true);
+      showPanel("mosaic");
+      return;
+    }
+    if (design.mosaic) {
+      dispatch(setMosaic, false);
+      if (toolsOpen && toolsPanel === "mosaic") setTools(false);
+    }
+    dispatch(setSetting, v === "onpoint");
     if (toolsOpen && toolsPanel === "set" && !isOnPoint(design)) setTools(false);
+  });
+  $("mos-fabs").addEventListener("click", (e) => {
+    const b = e.target.closest("button.fab");
+    if (!b) return;
+    setMosaicBrush(b.dataset.f);
+    drawPaletteInto($("mos-fabs"), mosaicBrush);
+  });
+  $("mos-tools").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-tool]");
+    if (!b) return;
+    setMosaicTool(b.dataset.tool);
+    for (const t of $("mos-tools").querySelectorAll("button")) t.setAttribute("aria-pressed", String(t === b));
+  });
+  $("mos-fill").addEventListener("click", () => {
+    if (!design.mosaic) return;
+    const all = design.mosaic.fabrics.map((_, i) => i);
+    if (mosaicTool === "random") paintWithTool(all);
+    else dispatch(paintTiles, all, mosaicBrush);
+  });
+  $("mos-shape").addEventListener("change", (e) => dispatch(setMosaicShape, e.target.value));
+  $("mos-mm").addEventListener("change", (e) => {
+    const v = Math.round(+e.target.value);
+    if (v >= 10 && v <= 200) dispatch(setMosaicMm, v);
+    else e.target.value = design.mosaic ? design.mosaic.mm : 50;
   });
   $("set-fabs").addEventListener("click", (e) => {
     const b = e.target.closest("button.fab");
@@ -11918,8 +12314,8 @@ function initDesignerUI() {
   $("dz-rows").addEventListener("change", sizeChange);
   for (const b of document.querySelectorAll("[data-step]"))
     b.addEventListener("click", () => {
-      const [which, d] = b.dataset.step.split(":");
-      resizeTo(design.cols + (which === "c" ? +d : 0), design.rows + (which === "r" ? +d : 0));
+      const [which, d] = b.dataset.step.split(":"), g = design.mosaic || design;
+      resizeTo(g.cols + (which === "c" ? +d : 0), g.rows + (which === "r" ? +d : 0));
     });
   $("dz-reset").addEventListener("click", () => {
     if ($("dz-reset").dataset.armed !== "1") {
@@ -12396,6 +12792,11 @@ function drawQuiltingLines(g, W, H, kind) {
 }
 function strokeSeams(g, W, H) {
   const d = design;
+  for (const poly of tilePolys(d, W, H)) {
+    pathPoly(g, poly);
+    g.stroke();
+  }
+  if (d.mosaic) return;
   for (const rc of sashRects(d, W, H)) {
     pathPoly(g, blockOutline(rc));
     g.stroke();
@@ -12567,7 +12968,13 @@ function drawBlockArt(g, b, P, num2, W, H, turn = 0) {
       }
     });
   }
+  const labelled = /* @__PURE__ */ new Set();
   b.pieces.forEach((pc, i) => {
+    if (b.mosaic) {
+      const id = pc.letter + "." + pc.form;
+      if (labelled.has(id)) return;
+      labelled.add(id);
+    }
     const p = polys[i], xs = p.map((v) => v[0]), ys = p.map((v) => v[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
     const [cx, cy] = roomiestPoint(p, x0, y0, x1 - x0, y1 - y0, 0, 0), d = edgeRoom(p, cx, cy);
     const r = Math.max(5 * k, Math.min(14 * k, d * 0.8));
@@ -12737,7 +13144,7 @@ function hasChiralPiece(pattern) {
   return patternChiral[pattern];
 }
 function mirroredCount(pb) {
-  if (pb.corner || !hasChiralPiece(pb.block.pattern)) return 0;
+  if (pb.corner || pb.mosaic || !hasChiralPiece(pb.block.pattern)) return 0;
   const k = pb.block.pattern + "|" + pb.span + "|" + pb.block.fabrics.join(",");
   return design.blocks.filter(
     (b) => b.flip && b.under == null && b.pattern + "|" + spanOf(b) + "|" + b.fabrics.join(",") === k
@@ -13026,6 +13433,30 @@ var CG = /* @__PURE__ */ (() => {
         return { kind: "qst", cut: [c, c], yield: 4, how: `square ${mm(c)}, cut twice on the diagonals \u22A0` };
       }
     }
+    if (p.length === 4) {
+      const sides = p.map((a, i) => Math.hypot(p[(i + 1) % 4][0] - a[0], p[(i + 1) % 4][1] - a[1]));
+      if (sides.every((L) => Math.abs(L - sides[0]) < 1e-6 * W)) {
+        const side = sides[0], d1 = Math.hypot(p[2][0] - p[0][0], p[2][1] - p[0][1]), d2 = Math.hypot(p[3][0] - p[1][0], p[3][1] - p[1][1]), across = d1 * d2 / (2 * side), angle = Math.round(2 * Math.atan(Math.min(d1, d2) / Math.max(d1, d2)) * 180 / Math.PI), flats = upmm(across + 2 * s), long = upmm(Math.max(d1, d2) + 2 * s);
+        return {
+          kind: "diamond",
+          cut: [long, flats],
+          yield: 1,
+          how: `diamond template (${angle}\xB0), finished side ${mm(side)}; cut from a strip ${flats} mm wide`
+        };
+      }
+    }
+    if (p.length === 6) {
+      const sides = p.map((a, i) => Math.hypot(p[(i + 1) % 6][0] - a[0], p[(i + 1) % 6][1] - a[1]));
+      if (sides.every((L) => Math.abs(L - sides[0]) < 1e-6 * W)) {
+        const side = sides[0], flats = upmm(Math.sqrt(3) * side + 2 * s), points = upmm(2 * side + 4 * s / Math.sqrt(3));
+        return {
+          kind: "hex",
+          cut: [points, flats],
+          yield: 1,
+          how: `hexagon template, finished side ${mm(side)}; cut ${flats} mm across the flats (${points} mm point to point)`
+        };
+      }
+    }
     const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
     const w = upmm(Math.max(...xs) - Math.min(...xs) + 2 * s), h = upmm(Math.max(...ys) - Math.min(...ys) + 2 * s);
     if (p.length === 3) {
@@ -13061,14 +13492,25 @@ var CG = /* @__PURE__ */ (() => {
     const s = opts.seam, usable = opts.fabricWidth - opts.selvage;
     const blockW = opts.blockMm, blockH = opts.blockMm;
     const groups = /* @__PURE__ */ new Map();
-    design2.blocks.forEach((b, i) => {
-      if (b.under != null) return;
-      const sp = b.span > 1 ? b.span : 1;
-      const key = b.pattern + "|" + sp + "|" + b.fabrics.join(",");
-      if (!groups.has(key))
-        groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
-      groups.get(key).count++;
-    });
+    if (opts.mosaic)
+      groups.set("mosaic", {
+        block: { pattern: "mosaic", rot: 0, fabrics: opts.mosaic.fabrics },
+        count: 1,
+        index: 0,
+        span: 1,
+        size: opts.mosaic.size,
+        mosaic: true,
+        label: opts.mosaic.label
+      });
+    else
+      design2.blocks.forEach((b, i) => {
+        if (b.under != null) return;
+        const sp = b.span > 1 ? b.span : 1;
+        const key = b.pattern + "|" + sp + "|" + b.fabrics.join(",");
+        if (!groups.has(key))
+          groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
+        groups.get(key).count++;
+      });
     (opts.extraBlocks || []).forEach(
       (x, k) => groups.set("extra|" + k, {
         block: x.block,
@@ -13087,7 +13529,7 @@ var CG = /* @__PURE__ */ (() => {
     };
     const blocks = [];
     for (const g of groups.values()) {
-      const pieces = opts.partsOf(g.block.pattern).map((p, i) => ({
+      const pieces = (g.mosaic ? opts.mosaic.parts : opts.partsOf(g.block.pattern)).map((p, i) => ({
         part: p,
         fabric: g.block.fabrics[i],
         letter: letterOf(g.block.fabrics[i]),
@@ -13345,6 +13787,7 @@ function openPartPop(kind) {
 var cgOpen = /* @__PURE__ */ new Set();
 function renderCut() {
   if (!design) return;
+  document.querySelector("#page-cut .cg-quilt").hidden = !!design.mosaic;
   cgRedraws.length = 0;
   setFabHi(null);
   const sz = sashOf(design), qm = quiltMm(design), extra = [], extraBlocks = [];
@@ -13416,8 +13859,10 @@ function renderCut() {
     innerH += 2 * T;
   });
   if (isOnPoint(design)) extra.push(...CG.settingExtra(design, cutOpts.seam));
+  const mos = design.mosaic ? mosaicForPlan(design) : null;
   const P = CG.plan(design, {
-    blockMm: design.blockMm,
+    blockMm: mos ? mos.size : design.blockMm,
+    mosaic: mos,
     sizeOf: (k) => blockSizeMm(design, k),
     seam: cutOpts.seam,
     fabricWidth: cutOpts.fabricWidth,
@@ -13433,7 +13878,13 @@ function renderCut() {
     quiltH: Math.round(qm.H)
   });
   setLastPlan(P);
-  $("cg-facts").innerHTML = [
+  $("cg-facts").innerHTML = (mos ? [
+    ["Finished quilt", `${P.quiltW} \xD7 ${P.quiltH} mm`],
+    [
+      "Mosaic",
+      `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides`
+    ]
+  ] : [
     ["Finished quilt", `${P.quiltW} \xD7 ${P.quiltH} mm`],
     [
       "Blocks",
@@ -13444,7 +13895,7 @@ function renderCut() {
       `${P.blockW} \xD7 ${P.blockH} mm finished \xB7 ${P.blockW + 2 * P.seam} \xD7 ${P.blockH + 2 * P.seam} mm with seam allowance`
     ],
     ["Distinct blocks", P.blocks.filter((b) => !b.corner).length]
-  ].map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join("");
+  ]).map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join("");
   const tb = $("cg-fabrics").querySelector("tbody");
   tb.innerHTML = "";
   for (const r of P.fabrics) {
@@ -13471,7 +13922,7 @@ function renderCut() {
     const rows = b.list.map(
       (r) => `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil(r.pieces * b.count / r.yield)}</td></tr>`
     ).join("");
-    div.innerHTML = `<h3>${b.corner ? "Cornerstone block" : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` \xB7 large block, ${b.span} \xD7 ${b.span} cells (${b.size} mm)` : ""}${b.corner ? ` \xB7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ""}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list \xB7 double-click: see it in the quilt</span></div>
+    div.innerHTML = `<h3>${b.mosaic ? "Mosaic" : b.corner ? "Cornerstone block" : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` \xB7 large block, ${b.span} \xD7 ${b.span} cells (${b.size} mm)` : ""}${b.corner ? ` \xB7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ""}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list \xB7 double-click: see it in the quilt</span></div>
       <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>Fabric</th><th>Cut</th><th>Per block</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     box2.appendChild(div);
     {
@@ -13481,6 +13932,7 @@ function renderCut() {
       cgRedraws.push(draw);
     }
     const pick = () => {
+      if (b.mosaic) return;
       setCgHi(i);
       drawCutQuilt(P);
       openQuiltPop(P, i);
@@ -13634,8 +14086,21 @@ function renderCut() {
   if (typeof cgHi === "number" && cgHi >= P.blocks.length) setCgHi(-1);
   if (cgHi === "sash" && !sashCuts.length || cgHi === "setting" && !setCuts.length || typeof cgHi === "string" && cgHi[0] === "b" && !brdCuts.some((x) => x.group === cgHi))
     setCgHi(-1);
-  drawCutQuilt(P);
+  if (!mos) drawCutQuilt(P);
   $("cg-note").textContent = `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, of which ${P.usable / 10} cm is usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre. Requirements add 50 mm to straighten the edge; "buy" rounds up to 5 cm.`;
+}
+function mosaicForPlan(d) {
+  const m = d.mosaic, { w, h } = mosaicMm(m), S = Math.max(w, h), ox = (S - w) / 2, oy = (S - h) / 2;
+  return {
+    size: S,
+    fabrics: m.fabrics,
+    label: `${SHAPE_NAMES[m.shape][1][0].toUpperCase()}${SHAPE_NAMES[m.shape][1].slice(1)}, ${m.mm} mm sides`,
+    parts: mosaicTiles(m).map((t, i) => ({
+      name: `Shape ${i + 1}`,
+      role: 0,
+      poly: t.poly.map(([x, y]) => [(x + ox) / S, (y + oy) / S])
+    }))
+  };
 }
 function lightFabric(test, tr) {
   if (fabHi === test) return;
@@ -15566,7 +16031,7 @@ new ResizeObserver(() => {
 initBedUI();
 
 // src/designer/hover.js
-var hover = { bi: -1, part: -1, cand: -1, timer: 0, x: 0, y: 0, zone: null, zr: null, zi: -1 };
+var hover = { bi: -1, part: -1, cand: -1, timer: 0, x: 0, y: 0, zone: null, zr: null, zi: -1, tile: -1 };
 var PART_DWELL = 650;
 function hoverGeom() {
   const cv = $("dz-quilt"), w = parseFloat(cv.style.width) || cv.clientWidth, h = parseFloat(cv.style.height) || cv.clientHeight;
@@ -15612,6 +16077,23 @@ function drawHover() {
   g.clearRect(0, 0, cv.width, cv.height);
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const rb = $("dz-hrot");
+  if (design.mosaic && hover.tile >= 0) {
+    for (const id of ["dz-hrot", "dz-hflip", "dz-hsplit"]) if ($(id)) $(id).hidden = true;
+    const { w: W2, h: H } = hoverGeom(), polys2 = tilePolys(design, W2, H), ids = mosaicTool === "random" ? [hover.tile] : tilesForTool(design.mosaic, hover.tile, mosaicTool);
+    g.lineJoin = "round";
+    for (const [lw, c] of [
+      [3, "rgba(255,255,255,.95)"],
+      [1.5, "#e0592a"]
+    ]) {
+      g.lineWidth = lw;
+      g.strokeStyle = c;
+      for (const i of ids) {
+        pathPoly(g, polys2[i]);
+        g.stroke();
+      }
+    }
+    return;
+  }
   if (hover.zone) {
     if (rb) rb.hidden = true;
     if ($("dz-hflip")) $("dz-hflip").hidden = true;
@@ -15731,7 +16213,8 @@ function drawHover() {
 }
 function clearHover() {
   clearTimeout(hover.timer);
-  if (hover.bi !== -1 || hover.part !== -1 || hover.zone) {
+  if (hover.bi !== -1 || hover.part !== -1 || hover.zone || hover.tile !== -1) {
+    hover.tile = -1;
     hover.bi = -1;
     hover.part = -1;
     hover.cand = -1;
@@ -15748,6 +16231,18 @@ function initHover() {
     }
     const r = qcv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     const { w: HW, h: HH } = hoverGeom(), bi = blockAt(design, x, y, HW, HH);
+    const ti = design.mosaic ? tileAtPx(design, x, y, HW, HH) : -1;
+    if (ti >= 0) {
+      clearTimeout(hover.timer);
+      hover.timer = 0;
+      hover.zone = null;
+      if (ti !== hover.tile) {
+        hover.tile = ti;
+        drawHover();
+      }
+      return;
+    }
+    hover.tile = -1;
     if (bi < 0) {
       const z = zoneAt(x, y);
       if (!z) {
@@ -16288,7 +16783,7 @@ function pdfBlockPage(P, b, i, page, pages) {
   pdfHeader(
     g,
     P,
-    b.corner ? "Cornerstone block" : `Block ${i + 1}`,
+    b.mosaic ? "Mosaic" : b.corner ? "Cornerstone block" : `Block ${i + 1}`,
     `${b.label}${b.span > 1 ? ` \xB7 large block, ${b.size} \xD7 ${b.size} mm` : ""}${b.corner ? ` \xB7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ""}`,
     page,
     pages
@@ -16719,7 +17214,7 @@ function pdfTemplateHeader(g, P, title, lines, page, pages) {
   pdfText(g, "check: 50 mm", bx + 25, by + 5.5, 3, { align: "center", color: "#5a5650" });
   pdfText(g, `Page ${page} of ${pages}`, A4.w - M2, A4.h - 6, 3.2, { align: "right", color: "#8a857c" });
 }
-var realSizeNote = (P) => `Real size: print at 100 % / "actual size". Solid line = cutting line (${P.seam} mm seam allowance included); dashed = sewing line.`;
+var realSizeNote = (P) => `Real size: print at 100 % / "actual size". Solid line = cutting line (${P.seam} mm seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
 var mirrorNote = (t) => t.mirrored && t.plain ? `${[...t.ids.keys()].join("/")}: ${t.mirrored} of ${t.mirrored + t.plain} are mirror images, turn the template over to cut them.` : "";
 function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
   const [c, g] = pdfPageCanvas();
@@ -16727,7 +17222,7 @@ function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
   pdfTemplateHeader(
     g,
     P,
-    `Templates \xB7 Block ${i + 1}`,
+    b.mosaic ? "Templates \xB7 Mosaic" : `Templates \xB7 Block ${i + 1}`,
     [
       {
         text: `${b.label} \xB7 ${sheet.items.map((it) => [...it.t.ids.entries()].map(([id, n]) => `${id} \xD7 ${n}`).join(", ")).join(" \xB7 ")}${nsk > 1 ? ` \xB7 sheet ${sk + 1} of ${nsk}` : ""}`
@@ -16750,7 +17245,7 @@ function pdfTiledPage(P, b, i, sp, tile, page, pages) {
   pdfTemplateHeader(
     g,
     P,
-    `Template \xB7 Block ${i + 1}`,
+    b.mosaic ? "Template \xB7 Mosaic" : `Template \xB7 Block ${i + 1}`,
     [
       {
         text: `${b.label} \xB7 cut ${[...t.ids.entries()].map(([id, k]) => `${id} \xD7 ${k}`).join(" \xB7 ")} \xB7 sheet ${tile.k + 1} of ${n} (row ${tile.r + 1}, column ${tile.c + 1})`
@@ -16825,10 +17320,8 @@ async function makeCutPdf() {
   await loadFabrics(fabricIdsIn(design, isFabric2));
   if (!lastPlan) renderCut();
   const P = lastPlan, jobs = [];
-  jobs.push(
-    (n) => pdfFabricPage(P, n),
-    (n, p) => pdfQuiltPage(P, p, n)
-  );
+  jobs.push((n) => pdfFabricPage(P, n));
+  if (!design.mosaic) jobs.push((n, p) => pdfQuiltPage(P, p, n));
   P.blocks.forEach((b, i) => {
     jobs.push((n, p) => pdfBlockPage(P, b, i, p, n));
     jobs.push(...templateJobs(P, b, i));

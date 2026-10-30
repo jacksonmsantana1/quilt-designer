@@ -11,7 +11,7 @@ import { clearHover } from './hover.js';
 // The block editor lives in the pop-up while the design tools are hidden. When the tools are
 // shown it moves into the side panel instead, and clicking a block just edits it there.
 let editorInSide = false;
-const PANEL_CARDS = { parts: 'dz-sideparts', sash: 'sash-card', brd: 'brd-card', set: 'set-card' }; // set: no round button
+const PANEL_CARDS = { parts: 'dz-sideparts', sash: 'sash-card', brd: 'brd-card', set: 'set-card', mosaic: 'mos-card' }; // set, mosaic: no round button
 function syncRail() {
   for (const n of Object.keys(PANEL_CARDS)) {
     const b = $('rail-' + n);

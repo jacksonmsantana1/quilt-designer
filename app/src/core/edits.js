@@ -3,7 +3,8 @@
 // or the same design when nothing changes. They never touch the page, storage or the selection:
 // designer/dispatch.js applies them, then mirrors the change (symmetry), saves it and redraws.
 import { newBlock } from '@quilt/shared/design.js';
-import { isOnPoint, setSpan } from '@quilt/shared/geometry.js';
+import { centreMm, isOnPoint, setSpan } from '@quilt/shared/geometry.js';
+import { mosaicMm, mosaicTiles, newMosaic, tileAt, tileCount } from '@quilt/shared/mosaic.js';
 /** @typedef {import('@quilt/shared/types.js').Design} Design @typedef {import('@quilt/shared/types.js').Block} Block */
 
 const clone = x => JSON.parse(JSON.stringify(x));
@@ -171,8 +172,101 @@ function setSetting(d, on) {
 /** The fabric of the triangles along the edges of an on-point quilt. @param {Design} d @param {string} f */
 const setSettingFabric = (d, f) => (d.settingFabric === f ? d : { ...d, settingFabric: f });
 setSetting.mirror = setSettingFabric.mirror = false;
-// typing a number or holding a stepper makes one timeline step, not one per change
+// ---- shape mosaics (shared/src/mosaic.js): the quilt top is one shape repeated; the blocks are kept underneath
+/**
+ * The quilt as a mosaic, or back to blocks. A new mosaic is about the size of the blocks it replaces, all in the
+ * background fabric. On point and symmetry go off: the mosaic has neither, and the blocks under it come back
+ * straight.
+ * @param {Design} d @param {boolean} on @param {string} [fabric]
+ */
+function setMosaic(d, on, fabric = 'b0') {
+  if (on === !!d.mosaic) return d;
+  if (!on) {
+    const { mosaic: _m, ...rest } = d;
+    return rest;
+  }
+  const straight = /** @type {Design} */ (setSetting(d, false)),
+    { sym: _sym, ...rest } = straight,
+    c = centreMm(rest);
+  return { ...rest, mosaic: newMosaic(c.W, c.H, fabric) };
+}
+/**
+ * More or fewer shapes across and down; every shape keeps its fabric (by its row and place in the row), new ones
+ * take the fabric of the nearest one.
+ * @param {Design} d @param {number} cols0 @param {number} rows0
+ */
+function resizeMosaic(d, cols0, rows0) {
+  const m = d.mosaic;
+  if (!m) return d;
+  const cols = Math.max(1, Math.min(60, cols0 | 0)),
+    rows = Math.max(1, Math.min(60, rows0 | 0));
+  if (cols === m.cols && rows === m.rows) return d;
+  const old = mosaicTiles(m),
+    at = new Map(old.map((t, i) => [`${t.row} ${t.col}`, m.fabrics[i]])),
+    next = { ...m, cols, rows };
+  const fabrics = mosaicTiles(next).map(t => {
+    // past the old last row or the end of a row: the nearest old shape
+    const r = Math.min(t.row, m.rows - 1),
+      last = old.filter(u => u.row === r).length - 1;
+    return at.get(`${r} ${Math.min(t.col, last)}`) || 'b0';
+  });
+  return { ...d, mosaic: { ...next, fabrics } };
+}
+/**
+ * Another shape (hexagons, diamonds, triangles) over about the same quilt, the side kept; each new shape takes the
+ * fabric of the old one under its middle, so the picture stays.
+ * @param {Design} d @param {import('@quilt/shared/types.js').Mosaic['shape']} shape
+ */
+function setMosaicShape(d, shape) {
+  const m = d.mosaic;
+  if (!m || m.shape === shape) return d;
+  const { w, h } = mosaicMm(m),
+    next = newMosaic(w, h, 'b0', m.mm, shape),
+    nw = mosaicMm(next);
+  next.fabrics = mosaicTiles(next).map(t => {
+    const cx = t.poly.reduce((s, p) => s + p[0], 0) / t.poly.length,
+      cy = t.poly.reduce((s, p) => s + p[1], 0) / t.poly.length,
+      // where that point falls on the old mosaic, scaled when the size changed a little
+      k = tileAt(m, Math.min(w - 0.01, (cx * w) / nw.w), Math.min(h - 0.01, (cy * h) / nw.h));
+    return k >= 0 ? m.fabrics[k] : m.fabrics[0];
+  });
+  return { ...d, mosaic: next };
+}
+/** The size of the shapes (side, mm); the same shapes keep their fabrics. @param {Design} d @param {number} mm */
+function setMosaicMm(d, mm) {
+  const m = d.mosaic,
+    v = Math.max(10, Math.min(200, Math.round(mm)));
+  return !m || m.mm === v ? d : { ...d, mosaic: { ...m, mm: v } };
+}
+/** Gives a fabric to some shapes of the mosaic. @param {Design} d @param {Iterable<number>} ids @param {string} fid */
+function paintTiles(d, ids, fid) {
+  const m = d.mosaic;
+  if (!m) return d;
+  const set = new Set([...ids].filter(i => i >= 0 && i < tileCount(m) && m.fabrics[i] !== fid));
+  return set.size ? { ...d, mosaic: { ...m, fabrics: m.fabrics.map((f, i) => (set.has(i) ? fid : f)) } } : d;
+}
+/**
+ * Gives each listed shape its own fabric (random fabrics, a whole quilt at once).
+ * @param {Design} d @param {[number, string][]} list shape and fabric
+ */
+function paintEach(d, list) {
+  const m = d.mosaic;
+  if (!m) return d;
+  const set = new Map(list.filter(([i, f]) => i >= 0 && i < m.fabrics.length && m.fabrics[i] !== f));
+  return set.size ? { ...d, mosaic: { ...m, fabrics: m.fabrics.map((f, i) => set.get(i) ?? f) } } : d;
+}
+// mirroring is for blocks: a mosaic has no symmetry yet
+setMosaic.mirror =
+  setMosaicShape.mirror =
+  resizeMosaic.mirror =
+  setMosaicMm.mirror =
+  paintTiles.mirror =
+  paintEach.mirror =
+    false;
+
+// typing a number or holding a stepper makes one timeline step, not one per change; so does painting by dragging
 resize.merge = setBlockMm.merge = setSashing.merge = updateBorder.merge = true;
+resizeMosaic.merge = setMosaicMm.merge = paintTiles.merge = paintEach.merge = true;
 
 export {
   copyBlock,
@@ -195,4 +289,10 @@ export {
   setPattern,
   setQuilting,
   setSashing,
+  setMosaic,
+  resizeMosaic,
+  setMosaicMm,
+  setMosaicShape,
+  paintTiles,
+  paintEach,
 };

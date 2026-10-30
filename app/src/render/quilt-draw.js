@@ -18,6 +18,7 @@ import {
   sashOf,
   sashRects,
   settingPieces,
+  tilePolys,
 } from '@quilt/shared/geometry.js';
 import { fabricFill, pieceFill } from './fabric-fill.js';
 
@@ -204,6 +205,25 @@ function drawQuilt(g, W, H, opts = {}) {
   const q = quiltMm(d),
     pxPerCm = W / (q.W / 10),
     s = sashOf(d);
+  if (d.mosaic) {
+    // a shape mosaic instead of blocks: each shape in its fabric
+    const polys = tilePolys(d, W, H);
+    polys.forEach((poly, i) => {
+      g.fillStyle = fabricFill(g, fabricById(d.mosaic.fabrics[i]), pxPerCm, 500 + i);
+      pathPoly(g, poly);
+      g.fill();
+      dimUnlessHi(g, { t: 'qpiece', fabric: d.mosaic.fabrics[i] });
+    });
+    if (opts.seams) {
+      g.strokeStyle = 'rgba(40,30,20,.35)';
+      g.lineWidth = Math.max(1, W / 1400);
+      for (const poly of polys) {
+        pathPoly(g, poly);
+        g.stroke();
+      }
+    }
+    return;
+  }
   for (const [k, rc] of sashRects(d, W, H).entries()) {
     if (rc.kind === 'corner' && s.cornerBlock) {
       drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));

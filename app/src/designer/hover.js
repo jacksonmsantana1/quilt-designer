@@ -20,9 +20,13 @@ import {
   sashOf,
   sashRects,
   settingPieces,
+  tileAtPx,
+  tilePolys,
   spanOf,
 } from '@quilt/shared/geometry.js';
 import { flipped } from './canvas.js';
+import { mosaicTool } from './ui-state.js';
+import { tilesForTool } from '@quilt/shared/mosaic.js';
 import { drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { openBlockEditor } from './side-panel.js';
 import { dispatch } from './dispatch.js';
@@ -30,7 +34,7 @@ import { flipBlocks, rotateBlocks, setBlockSpan } from '../core/edits.js';
 
 // ---- hover: highlight the block under the mouse; rest on one part and only that part lights up.
 // A click while a part is lit opens a small pop-up with just the fabrics, for that part.
-const hover = { bi: -1, part: -1, cand: -1, timer: 0, x: 0, y: 0, zone: null, zr: null, zi: -1 };
+const hover = { bi: -1, part: -1, cand: -1, timer: 0, x: 0, y: 0, zone: null, zr: null, zi: -1, tile: -1 };
 const PART_DWELL = 650; // ms the mouse must rest on a part
 function hoverGeom() {
   const cv = $('dz-quilt'),
@@ -87,6 +91,27 @@ function drawHover() {
   g.clearRect(0, 0, cv.width, cv.height);
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const rb = $('dz-hrot');
+  if (design.mosaic && hover.tile >= 0) {
+    // a mosaic: the shape under the mouse, which a click paints
+    for (const id of ['dz-hrot', 'dz-hflip', 'dz-hsplit']) if ($(id)) $(id).hidden = true;
+    // with the rosette or row tool: every shape a click would paint
+    const { w: W, h: H } = hoverGeom(),
+      polys = tilePolys(design, W, H),
+      ids = mosaicTool === 'random' ? [hover.tile] : tilesForTool(design.mosaic, hover.tile, mosaicTool);
+    g.lineJoin = 'round';
+    for (const [lw, c] of [
+      [3, 'rgba(255,255,255,.95)'],
+      [1.5, '#e0592a'],
+    ]) {
+      g.lineWidth = lw;
+      g.strokeStyle = c;
+      for (const i of ids) {
+        pathPoly(g, polys[i]);
+        g.stroke();
+      }
+    }
+    return;
+  }
   if (hover.zone) {
     // sashing or a border: light it up like a block, with its name
     if (rb) rb.hidden = true;
@@ -234,7 +259,8 @@ function drawHover() {
 }
 function clearHover() {
   clearTimeout(hover.timer);
-  if (hover.bi !== -1 || hover.part !== -1 || hover.zone) {
+  if (hover.bi !== -1 || hover.part !== -1 || hover.zone || hover.tile !== -1) {
+    hover.tile = -1;
     hover.bi = -1;
     hover.part = -1;
     hover.cand = -1;
@@ -254,6 +280,18 @@ function initHover() {
       y = e.clientY - r.top;
     const { w: HW, h: HH } = hoverGeom(),
       bi = blockAt(design, x, y, HW, HH);
+    const ti = design.mosaic ? tileAtPx(design, x, y, HW, HH) : -1;
+    if (ti >= 0) {
+      clearTimeout(hover.timer);
+      hover.timer = 0;
+      hover.zone = null;
+      if (ti !== hover.tile) {
+        hover.tile = ti;
+        drawHover();
+      }
+      return;
+    }
+    hover.tile = -1;
     if (bi < 0) {
       const z = zoneAt(x, y);
       if (!z) {

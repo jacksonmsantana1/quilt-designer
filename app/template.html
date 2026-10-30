@@ -204,6 +204,8 @@
   /* Symmetry: a round button on the tool rail; its five choices slide out beside it (to the left when there is
      no room on the right) */
   .sym-wrap { position: relative; }
+  .rail-btn[hidden], .sym-wrap[hidden] { display: none; }
+  #mos-card .param select, #mos-card .param input { grid-column: 1 / -1; }
   .sym-row { position: absolute; left: calc(100% + 8px); top: 50%; display: flex; gap: 6px; padding: 5px 8px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 14px rgba(20,25,40,.18); visibility: hidden; opacity: 0; transform: translate(-10px, -50%) scale(.92); transform-origin: left center; transition: opacity .16s ease, transform .16s ease, visibility 0s .16s; z-index: 5; }
   .sym-wrap.open .sym-row { visibility: visible; opacity: 1; transform: translate(0, -50%); transition-delay: 0s; }
   .sym-row.lefty { left: auto; right: calc(100% + 8px); transform-origin: right center; }
@@ -525,6 +527,7 @@
   .cg-settings label { display: inline-flex; flex-direction: column; gap: 3px; font-size: .8rem; color: var(--muted); }
   .cg-settings { align-items: flex-end; justify-content: center; gap: 10px 16px; }
   .cg-sheet { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .cg-sheet[hidden], .cg-quilt[hidden] { display: none; }
   @media (max-width: 900px) { .cg-sheet { grid-template-columns: minmax(0, 1fr); } }
   /* wide screens: the fabric list stays in view while the blocks scroll past */
   @media (min-width: 901px) {
@@ -859,7 +862,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
-      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, or on point: every block turned 45°, in diagonal rows"><option value="straight">Straight</option><option value="onpoint">On point</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
+      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
         <div class="fabs backfabs" id="dz-backfabs"></div>
@@ -890,7 +893,7 @@
           </div>
         </div>
       </div>
-      <p class="fine dz-size dz-size2" id="dz-size2">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size in millimetres" title="Type a new block size and press Enter"> mm<span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
+      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size in millimetres" title="Type a new block size and press Enter"> mm</span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
       <div class="tl-row" id="tl-row" hidden>
           <span class="tl-btns" role="group" aria-label="Timeline">
             <button class="btn" type="button" id="tl-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
@@ -942,6 +945,16 @@
         <h2>Setting triangles</h2>
         <p class="fine" style="margin:0 0 8px">The triangles that fill the edges of an on-point quilt. Click them on the quilt to come back here.</p>
         <div class="fabs" id="set-fabs"></div>
+      </div>
+      <div class="card" id="mos-card" hidden>
+        <h2>Mosaic</h2>
+        <p class="fine" style="margin:0 0 8px">One shape all over the quilt. Pick a fabric, then click a shape or drag over several to paint them. The arrows by Columns and Rows add more.</p>
+        <div class="param"><label for="mos-shape">Shape</label><output></output><select id="mos-shape" title="The shape the whole quilt is made of"><option value="hex">Hexagons (flower garden)</option><option value="diamond">Diamonds (tumbling blocks)</option><option value="triangle">Triangles</option></select></div>
+        <div class="fablib-groups mos-tools" id="mos-tools" role="group" aria-label="What a click paints"><button type="button" data-tool="one" aria-pressed="true" title="Paint one hexagon">One</button><button type="button" data-tool="rosette" aria-pressed="false" title="Paint a flower: the shape and the ones around it (with diamonds: the three of a cube)">Rosette</button><button type="button" data-tool="row" aria-pressed="false" title="Paint the whole row">Row</button><button type="button" data-tool="way" aria-pressed="false" title="Paint every shape lying the same way: every top, left or right of the cubes, or every triangle pointing up or down" hidden>Same way</button><button type="button" data-tool="random" aria-pressed="false" title="Each hexagon gets a fabric picked at random from the list below">Random</button></div>
+        <div class="param"><label for="mos-mm">Side of a shape</label><output>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape in millimetres"></div>
+        <p class="fine" style="margin:10px 0 4px">Paint with</p>
+        <div class="fabs" id="mos-fabs" aria-label="The fabric to paint with"></div>
+        <p style="margin:10px 0 0"><button class="btn sm" type="button" id="mos-fill" title="Paint every hexagon: in the chosen fabric, or with Random, each in a fabric from the list">Fill all</button></p>
       </div>
       <div class="card has-cancel" id="brd-card">
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>

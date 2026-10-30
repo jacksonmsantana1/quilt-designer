@@ -16,6 +16,7 @@ import { renderBorderUI } from './borders-ui.js';
 import { syncSymUI } from './settings.js';
 import { tlEnsure } from '../timeline/timeline.js';
 import { pieceFill } from '../render/fabric-fill.js';
+import { mosaicBrush } from './ui-state.js';
 
 function drawPartsEditor() {
   if (!design) return;
@@ -86,10 +87,22 @@ function renderDesigner() {
   if (!design) return;
   if (design.blocks[focusBlock] && design.blocks[focusBlock].under != null)
     setFocusBlock(design.blocks[focusBlock].under);
-  $('dz-cols').value = design.cols;
-  $('dz-rows').value = design.rows;
+  // a mosaic: the steppers count its shapes across and down (up to 60)
+  const grid = design.mosaic || design;
+  $('dz-cols').value = grid.cols;
+  $('dz-rows').value = grid.rows;
+  $('dz-cols').max = $('dz-rows').max = design.mosaic ? '60' : '20';
   // layout: on point, the setting triangles have a fabric (symmetry and large blocks wait, see syncSymUI)
-  $('dz-setting').value = isOnPoint(design) ? 'onpoint' : 'straight';
+  $('dz-setting').value = design.mosaic ? 'mosaic' : isOnPoint(design) ? 'onpoint' : 'straight';
+  // the block tools would change the blocks under a mosaic, which don't show: they wait until it's blocks again
+  for (const id of ['rail-parts', 'rail-sash', 'sym-wrap']) if ($(id)) $(id).hidden = !!design.mosaic;
+  if (design.mosaic) {
+    if (document.activeElement !== $('mos-mm')) $('mos-mm').value = design.mosaic.mm;
+    $('mos-shape').value = design.mosaic.shape;
+    // Same way: for diamonds and triangles (all hexagons lie the same way)
+    $('mos-tools').querySelector('[data-tool="way"]').hidden = design.mosaic.shape === 'hex';
+    drawPaletteInto($('mos-fabs'), mosaicBrush);
+  }
   drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');
   syncSymUI();
   for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = design.blockMm;

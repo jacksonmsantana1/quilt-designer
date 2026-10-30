@@ -59,6 +59,40 @@ const CG = (() => {
         return { kind: 'qst', cut: [c, c], yield: 4, how: `square ${mm(c)}, cut twice on the diagonals ⊠` };
       }
     }
+    // a diamond (tumbling blocks): four equal sides, not square; cut from strips as wide as it is across the flats
+    if (p.length === 4) {
+      const sides = p.map((a, i) => Math.hypot(p[(i + 1) % 4][0] - a[0], p[(i + 1) % 4][1] - a[1]));
+      if (sides.every(L => Math.abs(L - sides[0]) < 1e-6 * W)) {
+        const side = sides[0],
+          d1 = Math.hypot(p[2][0] - p[0][0], p[2][1] - p[0][1]),
+          d2 = Math.hypot(p[3][0] - p[1][0], p[3][1] - p[1][1]),
+          across = (d1 * d2) / (2 * side), // the diamond's height over one side
+          angle = Math.round((2 * Math.atan(Math.min(d1, d2) / Math.max(d1, d2)) * 180) / Math.PI),
+          flats = upmm(across + 2 * s),
+          long = upmm(Math.max(d1, d2) + 2 * s);
+        return {
+          kind: 'diamond',
+          cut: [long, flats],
+          yield: 1,
+          how: `diamond template (${angle}°), finished side ${mm(side)}; cut from a strip ${flats} mm wide`,
+        };
+      }
+    }
+    // a regular hexagon (mosaics): a template; across the flats it is √3 × side, plus the seam allowance each side
+    if (p.length === 6) {
+      const sides = p.map((a, i) => Math.hypot(p[(i + 1) % 6][0] - a[0], p[(i + 1) % 6][1] - a[1]));
+      if (sides.every(L => Math.abs(L - sides[0]) < 1e-6 * W)) {
+        const side = sides[0],
+          flats = upmm(Math.sqrt(3) * side + 2 * s),
+          points = upmm(2 * side + (4 * s) / Math.sqrt(3));
+        return {
+          kind: 'hex',
+          cut: [points, flats],
+          yield: 1,
+          how: `hexagon template, finished side ${mm(side)}; cut ${flats} mm across the flats (${points} mm point to point)`,
+        };
+      }
+    }
     // other shapes (e.g. triangles in non-square blocks): cut from a template
     const xs = p.map(q => q[0]),
       ys = p.map(q => q[1]);
@@ -110,14 +144,26 @@ const CG = (() => {
     const blockW = opts.blockMm,
       blockH = opts.blockMm; // blocks are square, of the size the user set
     const groups = new Map();
-    design.blocks.forEach((b, i) => {
-      if (b.under != null) return; // covered by a large block
-      const sp = b.span > 1 ? b.span : 1;
-      const key = b.pattern + '|' + sp + '|' + b.fabrics.join(','); // rotation does not change the cutting; size does
-      if (!groups.has(key))
-        groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
-      groups.get(key).count++;
-    });
+    // a shape mosaic: one group of its own, its shapes as the pieces (the blocks under it are not in the quilt)
+    if (opts.mosaic)
+      groups.set('mosaic', {
+        block: { pattern: 'mosaic', rot: 0, fabrics: opts.mosaic.fabrics },
+        count: 1,
+        index: 0,
+        span: 1,
+        size: opts.mosaic.size,
+        mosaic: true,
+        label: opts.mosaic.label,
+      });
+    else
+      design.blocks.forEach((b, i) => {
+        if (b.under != null) return; // covered by a large block
+        const sp = b.span > 1 ? b.span : 1;
+        const key = b.pattern + '|' + sp + '|' + b.fabrics.join(','); // rotation does not change the cutting; size does
+        if (!groups.has(key))
+          groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
+        groups.get(key).count++;
+      });
     // their own groups, even when the pattern and fabrics match a block: they are cut at another size
     (opts.extraBlocks || []).forEach((x, k) =>
       groups.set('extra|' + k, {
@@ -137,7 +183,7 @@ const CG = (() => {
     };
     const blocks = [];
     for (const g of groups.values()) {
-      const pieces = opts.partsOf(g.block.pattern).map((p, i) => ({
+      const pieces = (g.mosaic ? opts.mosaic.parts : opts.partsOf(g.block.pattern)).map((p, i) => ({
         part: p,
         fabric: g.block.fabrics[i],
         letter: letterOf(g.block.fabrics[i]),

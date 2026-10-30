@@ -21,6 +21,7 @@ import { drawQuiltingLines, quiltingOf, strokeSeams } from '../render/quilting.j
 import { drawHover } from './hover.js';
 import { fabricFill } from '../render/fabric-fill.js';
 import { symOf } from '../core/symmetry.js';
+import { SHAPE_NAMES } from '@quilt/shared/mosaic.js';
 
 function drawDesignerCanvas() {
   if (!design) return;
@@ -77,7 +78,7 @@ function drawDesignerCanvas() {
   g.lineWidth = Math.max(3, cw * 0.006);
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, cw - g.lineWidth, ch - g.lineWidth);
   // the selection frame shows only while blocks are being edited; otherwise only the hover marks a block
-  const editing = $('dz-dialog').open || editorInSide || selBlocks.size > 1;
+  const editing = !design.mosaic && ($('dz-dialog').open || editorInSide || selBlocks.size > 1);
   if (editing)
     for (const bi of selBlocks) {
       // the block's outline (a diamond on point), drawn 1.5 px inside its edge
@@ -132,8 +133,13 @@ function drawDesignerCanvas() {
   }
   const sz = sashOf(design);
   const nb = bordersOf(design).length;
+  // a mosaic has no blocks: its shapes instead of the block size
+  $('dz-bsize').hidden = !!design.mosaic;
+  const mos = design.mosaic
+    ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides`
+    : '';
   $('dz-size-b').textContent =
-    `${sz.mm ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(design)} mm)` : ''} · finished quilt ${Math.round(qmm.W)} × ${Math.round(qmm.H)} mm`;
+    `${mos}${sz.mm && !design.mosaic ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(design)} mm)` : ''} · finished quilt ${Math.round(qmm.W)} × ${Math.round(qmm.H)} mm`;
   drawBackCanvas(cw, ch, dpr);
   const hv = $('dz-hover');
   hv.style.width = cw + 'px';
@@ -154,7 +160,7 @@ function placeUnite(cw, ch) {
   const b = $('dz-unite'),
     cv = $('dz-quilt');
   if (!b) return;
-  if (selBlocks.size < 2 || flipped || document.body.classList.contains('tour-active')) {
+  if (selBlocks.size < 2 || flipped || design.mosaic || document.body.classList.contains('tour-active')) {
     b.hidden = true;
     return;
   }

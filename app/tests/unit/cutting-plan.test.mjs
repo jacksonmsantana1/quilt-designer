@@ -161,3 +161,15 @@ test('setting triangles are counted in their fabric', () => {
   // a straight quilt has none
   assert.deepEqual(CG.settingExtra(grid(3, 3), 7.5), []);
 });
+
+test('a regular hexagon is cut from a template: across the flats √3 × side plus the seams', () => {
+  const s = 50,
+    hexagon = Array.from({ length: 6 }, (_, k) => {
+      const a = (Math.PI / 180) * (60 * k - 90);
+      return [(s + s * Math.cos(a)) / 100, (s + s * Math.sin(a)) / 100];
+    });
+  const c = CG.classify(hexagon, 100, 100, 7.5);
+  assert.equal(c.kind, 'hex');
+  assert.deepEqual(c.cut, [Math.ceil(2 * s + (4 * 7.5) / Math.sqrt(3)), Math.ceil(Math.sqrt(3) * s + 15)]);
+  assert.match(c.how, /finished side 50 mm/);
+});

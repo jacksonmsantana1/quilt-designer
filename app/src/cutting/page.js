@@ -24,6 +24,7 @@ import {
 import { drawBordersExploded, explodedH } from '../render/quilt-draw.js';
 import { showPage } from '../app/pages.js';
 import { CG } from './plan.js';
+import { SHAPE_NAMES, mosaicMm, mosaicTiles } from '@quilt/shared/mosaic.js';
 import {
   SASH_WHAT,
   cgRedraws,
@@ -157,6 +158,8 @@ function openPartPop(kind) {
 const cgOpen = new Set(); // blocks whose cutting list is open          // distinct block picked on the cutting guide (double-click), -1 = none
 function renderCut() {
   if (!design) return;
+  // a mosaic: its shapes are one card of their own, and the whole quilt with every piece labelled is that card
+  document.querySelector('#page-cut .cg-quilt').hidden = !!design.mosaic;
   cgRedraws.length = 0;
   setFabHi(null);
   const sz = sashOf(design),
@@ -250,8 +253,10 @@ function renderCut() {
   });
   // on point: the triangles along the edges, cut from squares like half- and quarter-square triangles
   if (isOnPoint(design)) extra.push(...CG.settingExtra(design, cutOpts.seam));
+  const mos = design.mosaic ? mosaicForPlan(design) : null;
   const P = CG.plan(design, {
-    blockMm: design.blockMm,
+    blockMm: mos ? mos.size : design.blockMm,
+    mosaic: mos,
     sizeOf: k => blockSizeMm(design, k),
     seam: cutOpts.seam,
     fabricWidth: cutOpts.fabricWidth,
@@ -266,20 +271,30 @@ function renderCut() {
     quiltH: Math.round(qm.H),
   });
   setLastPlan(P);
-  $('cg-facts').innerHTML = [
-    ['Finished quilt', `${P.quiltW} × ${P.quiltH} mm`],
-    [
-      'Blocks',
-      isOnPoint(design)
-        ? `${design.cols} × ${design.rows} on point (${cellCount(design)} in all)`
-        : `${design.cols} × ${design.rows}`,
-    ],
-    [
-      'Block',
-      `${P.blockW} × ${P.blockH} mm finished · ${P.blockW + 2 * P.seam} × ${P.blockH + 2 * P.seam} mm with seam allowance`,
-    ],
-    ['Distinct blocks', P.blocks.filter(b => !b.corner).length],
-  ]
+  $('cg-facts').innerHTML = (
+    mos
+      ? [
+          ['Finished quilt', `${P.quiltW} × ${P.quiltH} mm`],
+          [
+            'Mosaic',
+            `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides`,
+          ],
+        ]
+      : [
+          ['Finished quilt', `${P.quiltW} × ${P.quiltH} mm`],
+          [
+            'Blocks',
+            isOnPoint(design)
+              ? `${design.cols} × ${design.rows} on point (${cellCount(design)} in all)`
+              : `${design.cols} × ${design.rows}`,
+          ],
+          [
+            'Block',
+            `${P.blockW} × ${P.blockH} mm finished · ${P.blockW + 2 * P.seam} × ${P.blockH + 2 * P.seam} mm with seam allowance`,
+          ],
+          ['Distinct blocks', P.blocks.filter(b => !b.corner).length],
+        ]
+  )
     .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`)
     .join('');
   // fabric table
@@ -315,7 +330,7 @@ function renderCut() {
       )
       .join('');
     // pieced cornerstones are a block card too (their IDs carry its number), named for what they are
-    div.innerHTML = `<h3>${b.corner ? 'Cornerstone block' : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` · large block, ${b.span} × ${b.span} cells (${b.size} mm)` : ''}${b.corner ? ` · ${b.size} mm` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ''}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list · double-click: see it in the quilt</span></div>
+    div.innerHTML = `<h3>${b.mosaic ? 'Mosaic' : b.corner ? 'Cornerstone block' : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` · large block, ${b.span} × ${b.span} cells (${b.size} mm)` : ''}${b.corner ? ` · ${b.size} mm` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ''}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list · double-click: see it in the quilt</span></div>
       <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>Fabric</th><th>Cut</th><th>Per block</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     box.appendChild(div);
     {
@@ -324,7 +339,9 @@ function renderCut() {
       draw();
       cgRedraws.push(draw);
     }
+    // (a mosaic is the whole quilt already: nothing to find in it)
     const pick = () => {
+      if (b.mosaic) return;
       setCgHi(i);
       drawCutQuilt(P);
       openQuiltPop(P, i);
@@ -520,9 +537,31 @@ function renderCut() {
     (typeof cgHi === 'string' && cgHi[0] === 'b' && !brdCuts.some(x => x.group === cgHi))
   )
     setCgHi(-1);
-  drawCutQuilt(P);
+  if (!mos) drawCutQuilt(P);
   $('cg-note').textContent =
     `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, of which ${P.usable / 10} cm is usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre. Requirements add 50 mm to straighten the edge; "buy" rounds up to 5 cm.`;
+}
+/**
+ * A mosaic for the cutting plan: its shapes as the parts of one square "block" of the quilt's longer side, the
+ * mosaic centred in it (the plan and the card drawing take parts in a unit square).
+ * @param {import('@quilt/shared/types.js').Design} d
+ */
+function mosaicForPlan(d) {
+  const m = d.mosaic,
+    { w, h } = mosaicMm(m),
+    S = Math.max(w, h),
+    ox = (S - w) / 2,
+    oy = (S - h) / 2;
+  return {
+    size: S,
+    fabrics: m.fabrics,
+    label: `${SHAPE_NAMES[m.shape][1][0].toUpperCase()}${SHAPE_NAMES[m.shape][1].slice(1)}, ${m.mm} mm sides`,
+    parts: mosaicTiles(m).map((t, i) => ({
+      name: `Shape ${i + 1}`,
+      role: 0,
+      poly: t.poly.map(([x, y]) => [(x + ox) / S, (y + oy) / S]),
+    })),
+  };
 }
 // hovering a line of a cutting list lights up those pieces in every picture
 function lightFabric(test, tr) {

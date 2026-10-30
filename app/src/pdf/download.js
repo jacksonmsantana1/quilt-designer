@@ -26,10 +26,9 @@ async function makeCutPdf() {
   if (!lastPlan) renderCut();
   const P = lastPlan,
     jobs = [];
-  jobs.push(
-    n => pdfFabricPage(P, n),
-    (n, p) => pdfQuiltPage(P, p, n),
-  );
+  jobs.push(n => pdfFabricPage(P, n));
+  // (a mosaic's card is the whole quilt already, its pieces labelled)
+  if (!design.mosaic) jobs.push((n, p) => pdfQuiltPage(P, p, n));
   P.blocks.forEach((b, i) => {
     jobs.push((n, p) => pdfBlockPage(P, b, i, p, n));
     jobs.push(...templateJobs(P, b, i));

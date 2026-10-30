@@ -99,7 +99,14 @@ function drawBlockArt(g, b, P, num, W, H, turn = 0) {
       }
     });
   }
+  // a mosaic has many shapes alike: one label for each kind of shape in each fabric is enough to find its ID
+  const labelled = new Set();
   b.pieces.forEach((pc, i) => {
+    if (b.mosaic) {
+      const id = pc.letter + '.' + pc.form;
+      if (labelled.has(id)) return;
+      labelled.add(id);
+    }
     // label at the roomiest point of the piece (far from every seam), sized to the room there
     const p = polys[i],
       xs = p.map(v => v[0]),
@@ -322,7 +329,7 @@ function hasChiralPiece(pattern) {
   return patternChiral[pattern];
 }
 function mirroredCount(pb) {
-  if (pb.corner || !hasChiralPiece(pb.block.pattern)) return 0; // cornerstone blocks are never turned over
+  if (pb.corner || pb.mosaic || !hasChiralPiece(pb.block.pattern)) return 0; // cornerstone blocks and mosaics are never turned over
   const k = pb.block.pattern + '|' + pb.span + '|' + pb.block.fabrics.join(',');
   return design.blocks.filter(
     b => b.flip && b.under == null && b.pattern + '|' + spanOf(b) + '|' + b.fabrics.join(',') === k,

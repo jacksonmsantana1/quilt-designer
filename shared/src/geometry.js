@@ -2,6 +2,7 @@
 // @ts-check
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Rect} Rect @typedef {import('./types.js').Poly} Poly */
 import { orientPoly, partsOf } from './patterns.js';
+import { isMosaic, mosaicMm, mosaicTiles } from './mosaic.js';
 
 const polyCentre = p => {
   let x = 0,
@@ -57,6 +58,11 @@ const cellCount = d => d.cols * d.rows + (isOnPoint(d) ? (d.cols - 1) * (d.rows 
 // the centre (blocks + sashing), before any borders
 /** Size of the centre (blocks + sashing), before borders. @param {Design} d @returns {{ W: number, H: number }} */
 function centreMm(d) {
+  // a shape mosaic: its own size (no blocks, no sashing)
+  if (isMosaic(d)) {
+    const m = mosaicMm(d.mosaic);
+    return { W: m.w, H: m.h };
+  }
   // on point it is the straight size with sashing all round, turned: √2 × (n blocks + n+1 strips) each way.
   // Not a whole number of mm, so where a size is shown it is rounded there (rounding here would make the blocks
   // very slightly out of square)
@@ -225,6 +231,7 @@ const blockSizeMm = (d, k) => k * d.blockMm + (k - 1) * sashOf(d).mm;
 // which block is at (x, y) on a W × H drawing (-1 on sashing or outside); a large block answers for all its area
 /** Index of the block at (x, y) on a W × H drawing, or -1. @param {Design} d @param {number} x @param {number} y @param {number} W @param {number} H @returns {number} */
 function blockAt(d, x, y, W, H) {
+  if (isMosaic(d)) return -1; // no blocks showing
   if (isOnPoint(d)) {
     for (let i = 0, n = cellCount(d); i < n; i++)
       if (d.blocks[i].under == null && pointInPoly(x, y, blockOutline(blockPlace(d, i, W, H)))) return i;
@@ -335,7 +342,7 @@ function placeBox(P) {
  * @param {Design} d @param {number} W @param {number} H @returns {{ kind: 'side' | 'corner', poly: Poly }[]}
  */
 function settingPieces(d, W, H) {
-  if (!isOnPoint(d)) return [];
+  if (!isOnPoint(d) || isMosaic(d)) return [];
   // outside the sashing that frames the outer blocks: D apart (one block and strip, corner to corner), the first
   // one m in from each edge
   const q = quiltMm(d),
@@ -467,6 +474,7 @@ function cellName(d, i) {
  * @param {Design} d @param {number} W @param {number} H @returns {(Rect & { kind: string })[]} kind: 'sash', 'corner' or 'long'
  */
 function sashRects(d, W, H) {
+  if (isMosaic(d)) return [];
   if (isOnPoint(d)) return sashOnPoint(d, W, H);
   /** @type {Set<object>} */
   const across = new Set(); // the pieces on the lines between rows: horizontal strips and crossings
@@ -748,12 +756,31 @@ function pointInPoly(x, y, poly) {
   }
   return inside;
 }
+/**
+ * A mosaic's shapes on a drawing of the whole quilt W × H px (borders included), in fabric order.
+ * @param {Design} d @param {number} W @param {number} H @returns {Poly[]}
+ */
+function tilePolys(d, W, H) {
+  if (!isMosaic(d)) return [];
+  const q = quiltMm(d),
+    kx = W / q.W,
+    ky = H / q.H,
+    o = borderTotal(d);
+  return mosaicTiles(d.mosaic).map(t => t.poly.map(([x, y]) => [(x + o) * kx, (y + o) * ky]));
+}
+/** The mosaic shape at a point of the drawing, or -1. @param {Design} d @param {number} x @param {number} y @param {number} W @param {number} H */
+function tileAtPx(d, x, y, W, H) {
+  return tilePolys(d, W, H).findIndex(p => pointInPoly(x, y, p));
+}
+
 function pathPolyInto(g, poly) {
   poly.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py)));
   g.closePath();
 }
 
 export {
+  tileAtPx,
+  tilePolys,
   BORDER_TYPES,
   CORNER_BLOCK_MIN_MM,
   CORNER_PATTERNS,

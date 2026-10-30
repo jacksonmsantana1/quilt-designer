@@ -19,6 +19,10 @@ import {
   setShowToolsPanel,
   setToolsPanel,
   toolsPanel,
+  mosaicBrush,
+  mosaicTool,
+  setMosaicBrush,
+  setMosaicTool,
 } from './ui-state.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
@@ -39,6 +43,7 @@ import {
   pointInPoly,
   quiltMm,
   sashRects,
+  tileAtPx,
   turnedSelection,
   uniteOf,
 } from '@quilt/shared/geometry.js';
@@ -61,9 +66,15 @@ import {
   setBlockSpan,
   setSetting,
   setSettingFabric,
+  paintEach,
+  paintTiles,
+  setMosaic,
+  setMosaicMm,
+  setMosaicShape,
 } from '../core/edits.js';
 import { notify } from '../ui/notice.js';
 import { defaultDesign } from '@quilt/shared/design.js';
+import { tilesForTool } from '@quilt/shared/mosaic.js';
 
 function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected
@@ -109,9 +120,57 @@ function initDesignerUI() {
     }
     return out;
   };
+  // ---- a mosaic: click a shape to paint it, or drag over several (one undo step: painting merges)
+  let painting = null;
+  // Random: a fabric from the list in the Mosaic panel (the palette); otherwise the chosen fabric, over the shapes
+  // the tool reaches from each one (a rosette, a row)
+  const paletteIds = () =>
+    [...$('mos-fabs').querySelectorAll('button.fab[data-f]')].filter(b => !b.hidden).map(b => b.dataset.f);
+  const paintWithTool = ids => {
+    if (mosaicTool === 'random') {
+      const pal = paletteIds();
+      if (!pal.length) return;
+      dispatch(
+        paintEach,
+        ids.map(i => [i, pal[Math.floor(Math.random() * pal.length)]]),
+      );
+    } else
+      dispatch(
+        paintTiles,
+        ids.flatMap(i => tilesForTool(design.mosaic, i, mosaicTool)),
+        mosaicBrush,
+      );
+  };
+  const paintAt = e => {
+    const r = qcv.getBoundingClientRect(),
+      i = tileAtPx(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (i >= 0 && i !== painting.last) {
+      painting.last = i;
+      paintWithTool([i]);
+    }
+    return i;
+  };
+  qcv.addEventListener('pointerdown', e => {
+    if (!design || !design.mosaic || flipped || e.button !== 0) return;
+    painting = { id: e.pointerId, last: -1 };
+    if (paintAt(e) < 0)
+      painting = null; // a border: its click opens its settings
+    else if (e.pointerType !== 'touch')
+      try {
+        qcv.setPointerCapture(e.pointerId); // keep painting when the mouse runs past the edge
+      } catch (err) {}
+  });
+  qcv.addEventListener('pointermove', e => {
+    if (painting && e.pointerId === painting.id && e.pointerType !== 'touch') paintAt(e);
+  });
+  const stopPainting = e => {
+    if (painting && e.pointerId === painting.id) painting = null;
+  };
+  qcv.addEventListener('pointerup', stopPainting);
+  qcv.addEventListener('pointercancel', stopPainting);
   qcv.addEventListener('pointerdown', e => {
     suppressClick = false;
-    if (flipped || e.button !== 0 || !design) return;
+    if (flipped || e.button !== 0 || !design || design.mosaic) return;
     if (e.pointerType === 'touch') return; // on phones a drag scrolls the page
     const r = qcv.getBoundingClientRect(),
       x = e.clientX - r.left,
@@ -220,6 +279,7 @@ function initDesignerUI() {
     if (flipped || e.defaultPrevented) return;
     const r = e.currentTarget.getBoundingClientRect();
     const bi = blockAt(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (design.mosaic && tileAtPx(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height) >= 0) return; // painted
     if (bi < 0) {
       // a click on a border or the sashing opens its settings
       const q = quiltMm(design),
@@ -378,8 +438,43 @@ function initDesignerUI() {
   });
   // layout: straight, or on point (blocks turned 45°); the setting triangles' fabric has its own card
   $('dz-setting').addEventListener('change', e => {
-    dispatch(setSetting, e.target.value === 'onpoint');
+    const v = e.target.value;
+    // a mosaic: the blocks stay underneath; going back to blocks shows them again, straight or on point
+    if (v === 'mosaic') {
+      dispatch(setMosaic, true);
+      showPanel('mosaic');
+      return;
+    }
+    if (design.mosaic) {
+      dispatch(setMosaic, false);
+      if (toolsOpen && toolsPanel === 'mosaic') setTools(false);
+    }
+    dispatch(setSetting, v === 'onpoint');
     if (toolsOpen && toolsPanel === 'set' && !isOnPoint(design)) setTools(false);
+  });
+  $('mos-fabs').addEventListener('click', e => {
+    const b = e.target.closest('button.fab');
+    if (!b) return;
+    setMosaicBrush(b.dataset.f);
+    drawPaletteInto($('mos-fabs'), mosaicBrush);
+  });
+  $('mos-tools').addEventListener('click', e => {
+    const b = e.target.closest('button[data-tool]');
+    if (!b) return;
+    setMosaicTool(b.dataset.tool);
+    for (const t of $('mos-tools').querySelectorAll('button')) t.setAttribute('aria-pressed', String(t === b));
+  });
+  $('mos-fill').addEventListener('click', () => {
+    if (!design.mosaic) return;
+    const all = design.mosaic.fabrics.map((_, i) => i);
+    if (mosaicTool === 'random') paintWithTool(all);
+    else dispatch(paintTiles, all, mosaicBrush);
+  });
+  $('mos-shape').addEventListener('change', e => dispatch(setMosaicShape, e.target.value));
+  $('mos-mm').addEventListener('change', e => {
+    const v = Math.round(+e.target.value);
+    if (v >= 10 && v <= 200) dispatch(setMosaicMm, v);
+    else e.target.value = design.mosaic ? design.mosaic.mm : 50;
   });
   $('set-fabs').addEventListener('click', e => {
     const b = e.target.closest('button.fab');
@@ -422,8 +517,9 @@ function initDesignerUI() {
   $('dz-rows').addEventListener('change', sizeChange);
   for (const b of document.querySelectorAll('[data-step]'))
     b.addEventListener('click', () => {
-      const [which, d] = b.dataset.step.split(':');
-      resizeTo(design.cols + (which === 'c' ? +d : 0), design.rows + (which === 'r' ? +d : 0));
+      const [which, d] = b.dataset.step.split(':'),
+        g = design.mosaic || design; // a mosaic: shapes across and down
+      resizeTo(g.cols + (which === 'c' ? +d : 0), g.rows + (which === 'r' ? +d : 0));
     });
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {
