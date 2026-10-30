@@ -432,6 +432,10 @@
   .fablib-groups button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .fabs.fablib-grid { display: grid; overflow: visible; grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .fabs.fablib-grid .fab { flex: none; }
+  /* the block library: the fabric library's window, with block tiles; "More blocks" is a dashed tile ending the list */
+  .pats .pat-more { border-style: dashed; color: var(--muted); }
+  .pats .pat-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
+  .pats.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .fablib-more { display: block; margin: 10px auto 0; }
   .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
@@ -578,6 +582,7 @@
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
     .pats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .fabs.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pats.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
     details.model { padding: 12px; }
   }
@@ -1012,6 +1017,14 @@
     <button class="btn" type="button" id="save-asnew" hidden>Save as new</button>
     <button class="btn primary" type="button" id="save-ok">Save</button>
   </div>
+</dialog>
+<dialog class="dz-dialog fablib" id="blklib" aria-labelledby="blklib-title">
+  <div class="dlg-head"><h2 id="blklib-title">Block library</h2><button class="btn sm dlg-x" type="button" id="blklib-x" aria-label="Close">×</button></div>
+  <input type="search" id="blklib-q" placeholder="Search: star, nine patch, log…" aria-label="Search blocks by name or family" autocomplete="off">
+  <div class="fablib-groups" id="blklib-groups" role="group" aria-label="Which blocks"></div>
+  <div class="pats fablib-grid" id="blklib-grid" aria-label="Blocks: click one to use it"></div>
+  <p class="fine" id="blklib-none" hidden></p>
+  <button class="btn sm fablib-more" type="button" id="blklib-more" hidden></button>
 </dialog>
 <dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
   <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>
@@ -1919,6 +1932,454 @@ function memoryDb() {
   };
 }
 
+// ../shared/src/blocks.js
+var GRID_BLOCKS = {
+  // ---- four patch family
+  doublefour: {
+    label: "Double four patch",
+    family: "Four patch",
+    n: 4,
+    rows: String.raw`
+      1 0 0 -
+      0 1 | +
+      0 - 1 0
+      | + 0 1`
+  },
+  sixteen: {
+    label: "Sixteen patch",
+    family: "Four patch",
+    n: 4,
+    rows: String.raw`
+      1 0 1 0
+      0 1 0 1
+      1 0 1 0
+      0 1 0 1`
+  },
+  diamond: {
+    label: "Diamond",
+    family: "Four patch",
+    n: 2,
+    rows: String.raw`
+      0/1 1\0
+      0\1 1/0`
+  },
+  bowtie: {
+    label: "Bow tie",
+    family: "Four patch",
+    n: 4,
+    rows: String.raw`
+      1 - x x
+      | + x x
+      x x 1 -
+      x x | +`,
+    extra: [
+      ["Background \xB7 upper right", 0, [2, 0, 4, 0, 4, 2, 3, 2, 2, 1]],
+      ["Knot \xB7 upper right", 1, [2, 1, 3, 2, 2, 2]],
+      ["Background \xB7 lower left", 0, [0, 2, 1, 2, 2, 3, 2, 4, 0, 4]],
+      ["Knot \xB7 lower left", 1, [1, 2, 2, 2, 2, 3]]
+    ]
+  },
+  dutchman: {
+    label: "Dutchman's puzzle",
+    family: "Four patch",
+    n: 4,
+    fourfold: true,
+    rows: String.raw`
+      ^10 -
+      ^20 -`
+  },
+  windowpane: {
+    label: "Window pane",
+    family: "Four patch",
+    n: 5,
+    rows: String.raw`
+      0 - 1 0 -
+      | + | | +
+      1 - 2 1 -
+      0 - 1 0 -
+      | + | | +`
+  },
+  // ---- nine patch family
+  shoofly: {
+    label: "Shoo fly",
+    family: "Nine patch",
+    n: 3,
+    rows: String.raw`
+      1/0 0 0\1
+      0   1 0
+      1\0 0 0/1`
+  },
+  splitnine: {
+    label: "Split nine patch",
+    family: "Nine patch",
+    n: 3,
+    rows: String.raw`
+      1   1   1/0
+      1   1/0 0
+      1/0 0   0`
+  },
+  puss: {
+    label: "Puss in the corner",
+    family: "Nine patch",
+    n: 4,
+    rows: String.raw`
+      1 0 - 1
+      0 2 - 0
+      | | + |
+      1 0 - 1`
+  },
+  plus: {
+    label: "Plus",
+    family: "Nine patch",
+    n: 3,
+    rows: String.raw`
+      0 1 0
+      1 | 1
+      0 | 0`
+  },
+  snowball: {
+    label: "Snowball",
+    family: "Nine patch",
+    n: 3,
+    rows: String.raw`
+      x x x
+      x x x
+      x x x`,
+    extra: [
+      ["Snowball", 1, [1, 0, 2, 0, 3, 1, 3, 2, 2, 3, 1, 3, 0, 2, 0, 1]],
+      ["Corner \xB7 upper left", 0, [0, 0, 1, 0, 0, 1]],
+      ["Corner \xB7 upper right", 0, [2, 0, 3, 0, 3, 1]],
+      ["Corner \xB7 lower right", 0, [3, 2, 3, 3, 2, 3]],
+      ["Corner \xB7 lower left", 0, [0, 2, 1, 3, 0, 3]]
+    ]
+  },
+  attic: {
+    label: "Attic windows",
+    family: "Nine patch",
+    n: 3,
+    rows: String.raw`
+      x x x
+      x x x
+      x x x`,
+    extra: [
+      ["Window", 0, [1, 0, 3, 0, 3, 2, 1, 2]],
+      ["Sill \xB7 left", 1, [0, 0, 1, 0, 1, 2, 0, 3]],
+      ["Sill \xB7 bottom", 2, [0, 3, 1, 2, 3, 2, 3, 3]]
+    ]
+  },
+  churnrev: {
+    label: "Churn dash, reversed",
+    family: "Nine patch",
+    n: 6,
+    rows: String.raw`
+      0/1 - 0 - 1\0 -
+      |   + 1 - |   +
+      0   1 0 - 1   0
+      |   | | + |   |
+      0\1 - 1 - 1/0 -
+      |   + 0 - |   +`
+  },
+  emptyspool: {
+    label: "Empty spool",
+    family: "Other",
+    n: 8,
+    rows: String.raw`
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x`,
+    extra: [
+      ["Spool top", 1, [0, 0, 8, 0, 5, 3, 3, 3]],
+      ["Thread", 1, [3, 3, 5, 3, 5, 5, 3, 5]],
+      ["Spool bottom", 1, [3, 5, 5, 5, 8, 8, 0, 8]],
+      ["Side \xB7 left", 0, [0, 0, 3, 3, 3, 5, 0, 8]],
+      ["Side \xB7 right", 0, [8, 0, 8, 8, 5, 5, 5, 3]]
+    ]
+  },
+  cutglass: {
+    label: "Cut glass dish",
+    family: "Larger grids",
+    n: 8,
+    rows: String.raw`
+      1\2 1\2 1\2 1\2 1\2 1\2 0   -
+      1\2 1\2 1\2 1\2 1\2 1\2 |   +
+      1\2 1\2 0   -   -   -   1\2 1\2
+      1\2 1\2 |   +   +   +   1\2 1\2
+      1\2 1\2 |   +   +   +   1\2 1\2
+      1\2 1\2 |   +   +   +   1\2 1\2
+      0   -   1\2 1\2 1\2 1\2 1\2 1\2
+      |   +   1\2 1\2 1\2 1\2 1\2 1\2`
+  },
+  // ---- stars
+  friendstar: {
+    label: "Friendship star",
+    family: "Stars",
+    n: 3,
+    rows: String.raw`
+      0   1\0 0
+      0/1 1   1/0
+      0   0\1 0`
+  },
+  risingstar: {
+    label: "Rising star",
+    family: "Stars",
+    n: 8,
+    rows: String.raw`
+      0   - ^10 -   - - 0   -
+      |   + |   +   + + |   +
+      <10 - 0   ^20 - 0 >10 -
+      |   + <20 1   - >20 | +
+      |   + |   |   + | |   +
+      |   + 0   v20 - 0 |   +
+      0   - v10 -   - - 0   -
+      |   + |   +   + + |   +`
+  },
+  // ---- strips and logs
+  railfence: {
+    label: "Rail fence",
+    family: "Strips and logs",
+    n: 3,
+    rows: String.raw`
+      1 - -
+      2 - -
+      0 - -`
+  },
+  basket: {
+    label: "Basket weave",
+    family: "Strips and logs",
+    n: 4,
+    rows: String.raw`
+      1 - 1 0
+      0 - | |
+      1 0 1 -
+      | | 0 -`
+  },
+  bricks: {
+    label: "Brick wall",
+    family: "Strips and logs",
+    n: 4,
+    rows: String.raw`
+      1 - 0 -
+      2 0 - 1
+      0 - 2 -
+      1 2 - 0`
+  },
+  courthouse: {
+    label: "Courthouse steps",
+    family: "Strips and logs",
+    n: 7,
+    rows: String.raw`
+      1 0 - - - - 1
+      | 1 0 - - 1 |
+      | | 1 0 1 | |
+      | | | 2 | | |
+      | | | 0 | | |
+      | | 0 - - | |
+      | 0 - - - - |`
+  },
+  coins: {
+    label: "Chinese coins",
+    family: "Strips and logs",
+    n: 5,
+    rows: String.raw`
+      1 0 2 0 1
+      2 | 1 | 2
+      1 | 2 | 1
+      2 | 1 | 2
+      1 | 2 | 1`
+  },
+  chevron: {
+    label: "Chevron",
+    family: "Strips and logs",
+    n: 4,
+    rows: String.raw`
+      0/1 1\0 0/1 1\0
+      1/0 0\1 1/0 0\1
+      0/2 2\0 0/2 2\0
+      2/0 0\2 2/0 0\2`
+  },
+  // ---- larger grids
+  twentyfive: {
+    label: "Twenty-five patch",
+    family: "Larger grids",
+    n: 5,
+    rows: String.raw`
+      1 0 1 0 1
+      0 1 0 1 0
+      1 0 1 0 1
+      0 1 0 1 0
+      1 0 1 0 1`
+  },
+  irishchain: {
+    label: "Double Irish chain",
+    family: "Larger grids",
+    n: 5,
+    rows: String.raw`
+      1 0 2 0 1
+      0 1 0 1 0
+      2 0 1 0 2
+      0 1 0 1 0
+      1 0 2 0 1`
+  },
+  bearspaw: {
+    label: "Bear's paw",
+    family: "Larger grids",
+    n: 7,
+    fourfold: true,
+    rows: String.raw`
+      0   0/1 0/1 0
+      0/1 1   -   |
+      0/1 |   +   |`,
+    extra: [["Centre", 2, [3, 3, 4, 3, 4, 4, 3, 4]]]
+  },
+  centerdiamond: {
+    label: "Center diamond",
+    family: "Larger grids",
+    n: 6,
+    rows: String.raw`
+      2 1 - - - 2
+      1 x x x x 1
+      | x x x x |
+      | x x x x |
+      | x x x x |
+      2 1 - - - 2`,
+    extra: [
+      ["Diamond", 2, [3, 1, 5, 3, 3, 5, 1, 3]],
+      ["Field \xB7 upper left", 0, [1, 1, 3, 1, 1, 3]],
+      ["Field \xB7 upper right", 0, [3, 1, 5, 1, 5, 3]],
+      ["Field \xB7 lower right", 0, [5, 3, 5, 5, 3, 5]],
+      ["Field \xB7 lower left", 0, [1, 3, 3, 5, 1, 5]]
+    ]
+  }
+};
+
+// ../shared/src/grid-blocks.js
+var KIND = { sq: "Square", rect: "Rectangle", tri: "Triangle", goose: "Goose", sky: "Sky" };
+function parseGrid(text) {
+  const cells = text.trim().split("\n").map((l) => l.trim().split(/\s+/));
+  const h = cells.length, taken = cells.map((r) => r.map((t) => t === "x"));
+  const at = (x, y) => y < h && x < cells[y].length ? cells[y][x] : null;
+  const role = (c) => {
+    if (!/^[012]$/.test(c)) throw new Error(`colour role must be 0, 1 or 2, not "${c}"`);
+    return +c;
+  };
+  const out = [];
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < cells[y].length; x++) {
+      const t = cells[y][x];
+      if (taken[y][x]) continue;
+      if ("-|+".includes(t)) throw new Error(`row ${y + 1}, column ${x + 1}: "${t}" belongs to no piece`);
+      let w = 1, hh = 1;
+      while (at(x + w, y) === "-" && !taken[y][x + w]) w++;
+      while (at(x, y + hh) === "|" && !taken[y + hh][x]) hh++;
+      for (let j = 0; j < hh; j++)
+        for (let i = 0; i < w; i++) {
+          const want = i && j ? "+" : i ? "-" : j ? "|" : t;
+          if (at(x + i, y + j) !== want)
+            throw new Error(
+              `row ${y + j + 1}, column ${x + i + 1}: expected "${want}" inside the piece at row ${y + 1}, column ${x + 1}`
+            );
+          taken[y + j][x + i] = true;
+        }
+      const x1 = x + w, y1 = y + hh, c = [x + w / 2, y + hh / 2];
+      const [p00, p10, p11, p01] = [
+        [x, y],
+        [x1, y],
+        [x1, y1],
+        [x, y1]
+      ];
+      let m;
+      if (m = /^([012])$/.exec(t)) out.push([w === hh ? "sq" : "rect", role(m[1]), [p00, p10, p11, p01]]);
+      else if (m = /^([012])\/([012])$/.exec(t))
+        out.push(["tri", role(m[1]), [p00, p10, p01]], ["tri", role(m[2]), [p10, p11, p01]]);
+      else if (m = /^([012])\\([012])$/.exec(t))
+        out.push(["tri", role(m[1]), [p00, p11, p01]], ["tri", role(m[2]), [p00, p10, p11]]);
+      else if (m = /^q([012])([012])([012])([012])$/.exec(t))
+        out.push(
+          ["tri", role(m[1]), [p00, p10, c]],
+          ["tri", role(m[2]), [p10, p11, c]],
+          ["tri", role(m[3]), [p11, p01, c]],
+          ["tri", role(m[4]), [p01, p00, c]]
+        );
+      else if (m = /^([\^v<>])([012])([012])$/.exec(t)) {
+        const goose = role(m[2]), sky = role(m[3]);
+        const mx = x + w / 2, my = y + hh / 2;
+        const shapes = {
+          "^": [
+            [p01, [mx, y], p11],
+            [p00, [mx, y], p01],
+            [[mx, y], p10, p11]
+          ],
+          v: [
+            [p00, p10, [mx, y1]],
+            [p00, [mx, y1], p01],
+            [p10, p11, [mx, y1]]
+          ],
+          "<": [
+            [p10, p11, [x, my]],
+            [p00, p10, [x, my]],
+            [[x, my], p11, p01]
+          ],
+          ">": [
+            [p00, [x1, my], p01],
+            [p00, p10, [x1, my]],
+            [[x1, my], p11, p01]
+          ]
+        }[m[1]];
+        out.push(["goose", goose, shapes[0]], ["sky", sky, shapes[1]], ["sky", sky, shapes[2]]);
+      } else throw new Error(`row ${y + 1}, column ${x + 1}: "${t}" is not a piece`);
+    }
+  return out;
+}
+var centroid = (poly) => {
+  let a = 0, cx = 0, cy = 0;
+  poly.forEach(([x0, y0], i) => {
+    const [x1, y1] = poly[(i + 1) % poly.length], k = x0 * y1 - x1 * y0;
+    a += k;
+    cx += (x0 + x1) * k;
+    cy += (y0 + y1) * k;
+  });
+  return [cx / (3 * a), cy / (3 * a)];
+};
+function placeName(poly) {
+  const [cx, cy] = centroid(poly), col = Math.floor(cx), row = Math.floor(cy), dx = cx - col - 0.5, dy = cy - row - 0.5;
+  const v = dy < -0.1 ? "upper" : dy > 0.1 ? "lower" : "", h = dx < -0.1 ? "left" : dx > 0.1 ? "right" : "";
+  const side = v && h ? `${v} ${h}` : v ? v === "upper" ? "top" : "bottom" : h;
+  return `row ${row + 1}, column ${col + 1}${side ? " \xB7 " + side : ""}`;
+}
+function gridParts(def) {
+  const { n } = def;
+  let pieces = parseGrid(def.rows).map(([kind, role, poly]) => ({ kind: KIND[kind], role, poly, name: "" }));
+  if (def.fourfold) {
+    const turn = (poly, k) => {
+      let p = poly;
+      for (let i = 0; i < k; i++) p = p.map(([x, y]) => [n - y, x]);
+      return p;
+    };
+    pieces = [1, 2, 3].reduce((all, k) => all.concat(pieces.map((p) => ({ ...p, poly: turn(p.poly, k) }))), pieces);
+  }
+  pieces = pieces.map((p) => ({ ...p, name: `${p.kind} \xB7 ${placeName(p.poly)}` }));
+  for (const [name, role, flat] of def.extra || [])
+    pieces.push({
+      kind: "",
+      role,
+      name,
+      poly: Array.from({ length: flat.length / 2 }, (_, i) => [flat[2 * i], flat[2 * i + 1]])
+    });
+  return pieces.map((p) => ({
+    name: p.name,
+    role: (
+      /** @type {0 | 1 | 2} */
+      p.role
+    ),
+    poly: p.poly.map(([x, y]) => [x / n, y / n])
+  }));
+}
+
 // ../shared/src/patterns.js
 var P_ = (name, role, poly) => ({ name, role, poly });
 function rotPoly(poly, k) {
@@ -2728,6 +3189,17 @@ Object.assign(PATTERNS, {
     }
   }
 });
+var FAMILY = {
+  Basics: ["plain", "hst", "hourglass", "four", "nine", "pinwheel", "geese", "sqsq", "economy"],
+  Stars: ["ohio", "sawstar", "eightstar", "fanstar"],
+  "Nine patch": ["churn", "dnine"],
+  "Strips and logs": ["logcabin"],
+  "Your drawings": Object.keys(TRACED)
+};
+for (const [family, keys] of Object.entries(FAMILY)) for (const k of keys) PATTERNS[k].family = family;
+for (const [key, def] of Object.entries(GRID_BLOCKS))
+  PATTERNS[key] = { label: def.label, family: def.family, parts: () => gridParts(def) };
+for (const p of Object.values(PATTERNS)) p.family ??= "Other";
 var PCACHE = {};
 var partsOf = (name) => PCACHE[name] = PCACHE[name] || PATTERNS[name].parts();
 
@@ -6066,13 +6538,16 @@ function shortList({ basics, selected = null, inQuilt = [], recent = [], newest 
   return [...basics, ...extra];
 }
 var withRecent = (list, id, max = 12) => [id, ...list.filter((x) => x !== id)].slice(0, max);
-function findFabrics(fabrics2, { query = "", group = "all", inQuilt = /* @__PURE__ */ new Set(), recent = [] }) {
+function wordsMatcher(query) {
   const plain = (s) => s.normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase();
   const words = plain(query).split(/[\s,]+/).filter(Boolean);
-  const named = (f) => {
-    const n = plain(f.name);
-    return words.every((w) => n.includes(w));
+  return (text) => {
+    const t = plain(text);
+    return words.every((w) => t.includes(w));
   };
+}
+function findFabrics(fabrics2, { query = "", group = "all", inQuilt = /* @__PURE__ */ new Set(), recent = [] }) {
+  const matches = wordsMatcher(query), named = (f) => matches(f.name);
   if (group === "recent") {
     const byId2 = new Map(fabrics2.map((f) => [f.id, f]));
     return recent.map((id) => byId2.get(id)).filter((f) => f && named(f));
@@ -6455,6 +6930,190 @@ initLibrary();
 function refreshLibrary() {
   if ($("fablib").open) drawLibrary();
 }
+
+// src/core/block-picks.js
+function patternsIn(design2) {
+  const out = /* @__PURE__ */ new Set();
+  if (!design2) return out;
+  for (const b of design2.blocks) if (b.under == null) out.add(b.pattern);
+  if (design2.sashing?.cornerBlock) out.add(design2.sashing.cornerBlock.pattern);
+  return out;
+}
+function findBlocks(blocks, { query = "", group = "all", inQuilt = /* @__PURE__ */ new Set(), recent = [] }) {
+  const matches = wordsMatcher(query), found = (b) => matches(`${b.label} ${b.family}`);
+  if (group === "recent") {
+    const byKey = new Map(blocks.map((b) => [b.key, b]));
+    return recent.map((k) => byKey.get(k)).filter((b) => b && found(b));
+  }
+  const inGroup = group === "all" ? () => true : group === "quilt" ? (b) => inQuilt.has(b.key) : (b) => b.family === group;
+  return blocks.filter((b) => inGroup(b) && found(b));
+}
+
+// src/designer/block-picker.js
+var PAGE2 = 60;
+var STARTERS = Object.keys(PATTERNS).filter((k) => !(k in GRID_BLOCKS));
+var RECENT_KEY2 = "quilt-recent-blocks.v1";
+function recentBlocks() {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENT_KEY2) || "[]");
+    return Array.isArray(v) ? v.filter((k) => k in PATTERNS) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function noteRecentBlock(key) {
+  try {
+    localStorage.setItem(RECENT_KEY2, JSON.stringify(withRecent(recentBlocks(), key)));
+  } catch (e) {
+  }
+}
+function patternTile(key) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "pat";
+  b.dataset.p = key;
+  b.title = PATTERNS[key].label;
+  const c = document.createElement("canvas");
+  c.width = c.height = 96;
+  const g = c.getContext("2d");
+  const cols = ["#efe5cf", "#2f466f", "#c79a45"];
+  for (const part of partsOf(key)) {
+    g.fillStyle = cols[part.role];
+    pathPoly(
+      g,
+      part.poly.map(([u, v]) => [u * 96, v * 96])
+    );
+    g.fill();
+    g.strokeStyle = "rgba(0,0,0,.25)";
+    g.stroke();
+  }
+  const s = document.createElement("span");
+  s.textContent = PATTERNS[key].label;
+  b.append(c, s);
+  return b;
+}
+function drawPatternList() {
+  if (!design) return;
+  const box2 = $("dz-patterns"), cur = design.blocks[focusBlock].pattern;
+  const keys = shortList({
+    basics: STARTERS,
+    selected: cur,
+    inQuilt: patternsIn(design),
+    recent: recentBlocks(),
+    max: 10
+  });
+  if (box2.dataset.keys !== keys.join()) {
+    box2.dataset.keys = keys.join();
+    box2.innerHTML = "";
+    for (const k of keys) box2.appendChild(patternTile(k));
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "pat pat-more";
+    more.title = "All blocks: search by name or family";
+    more.innerHTML = `<b aria-hidden="true">\u22EF</b><span>More blocks (${Object.keys(PATTERNS).length - keys.length})</span>`;
+    more.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openBlockLibrary();
+    });
+    box2.appendChild(more);
+  }
+  for (const b of box2.querySelectorAll(".pat[data-p]")) b.setAttribute("aria-pressed", String(b.dataset.p === cur));
+}
+var lib2 = { group: "all", shown: PAGE2 };
+var FAMILIES = ["Basics", "Four patch", "Nine patch", "Stars", "Strips and logs", "Larger grids", "Your drawings"];
+var ALL = () => Object.entries(PATTERNS).map(([key, p]) => ({ key, label: p.label, family: p.family }));
+function openBlockLibrary() {
+  lib2.group = "all";
+  lib2.shown = PAGE2;
+  $("blklib-q").value = "";
+  drawBlockLibrary();
+  const dlg = $("blklib");
+  if (!dlg.open) {
+    try {
+      dlg.showModal();
+    } catch (e) {
+      dlg.setAttribute("open", "");
+    }
+  }
+  $("blklib-q").focus();
+}
+function drawBlockLibrary() {
+  const all = ALL(), inQuilt = patternsIn(design), recent = recentBlocks(), query = $("blklib-q").value, cur = design ? design.blocks[focusBlock].pattern : null;
+  const groups = $("blklib-groups");
+  groups.innerHTML = "";
+  const names = { all: "All", quilt: "In this quilt", recent: "Recent" };
+  for (const f of [...FAMILIES, ...all.map((b) => b.family)]) names[f] ??= f;
+  for (const [g, label] of Object.entries(names)) {
+    const n = findBlocks(all, { group: g, inQuilt, recent }).length;
+    if (!n && g !== "all" && g !== lib2.group) continue;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.g = g;
+    b.textContent = `${label} ${n}`;
+    b.setAttribute("aria-pressed", String(g === lib2.group));
+    groups.appendChild(b);
+  }
+  const found = findBlocks(all, { query, group: lib2.group, inQuilt, recent });
+  const grid = $("blklib-grid");
+  grid.innerHTML = "";
+  for (const b of found.slice(0, lib2.shown)) {
+    const t = patternTile(b.key);
+    t.setAttribute("aria-pressed", String(b.key === cur));
+    grid.appendChild(t);
+  }
+  const left = found.length - lib2.shown;
+  $("blklib-more").hidden = left <= 0;
+  $("blklib-more").textContent = `Show more (${left} more)`;
+  $("blklib-none").hidden = found.length > 0;
+  $("blklib-none").textContent = query.trim() ? `No blocks match \u201C${query.trim()}\u201D.` : "No blocks here yet.";
+}
+function pickFromLibrary2(key) {
+  $("blklib").close();
+  noteRecentBlock(key);
+  const box2 = $("dz-patterns"), b = document.createElement("button");
+  b.type = "button";
+  b.className = "pat";
+  b.dataset.p = key;
+  b.hidden = true;
+  box2.appendChild(b);
+  b.click();
+  b.remove();
+}
+function initBlockLibrary() {
+  const dlg = $("blklib");
+  $("blklib-x").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("click", (e) => {
+    if (e.target !== dlg) return;
+    const r = dlg.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+  });
+  $("blklib-q").addEventListener("input", () => {
+    lib2.shown = PAGE2;
+    drawBlockLibrary();
+  });
+  $("blklib-groups").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (!b) return;
+    lib2.group = b.dataset.g;
+    lib2.shown = PAGE2;
+    drawBlockLibrary();
+  });
+  $("blklib-grid").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button.pat")
+    );
+    if (b?.dataset.p) pickFromLibrary2(b.dataset.p);
+  });
+  $("blklib-more").addEventListener("click", () => {
+    lib2.shown += PAGE2;
+    drawBlockLibrary();
+  });
+}
+initBlockLibrary();
 
 // src/designer/design-state.js
 function loadDesign() {
@@ -7227,7 +7886,7 @@ function setFussy2(u, v) {
 // src/designer/parts-editor.js
 function drawPartsEditor() {
   if (!design) return;
-  drawBlockLibrary();
+  drawBlockLibrary2();
   const cv = $("dz-block"), css = BLOCK_PX, dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = cv.height = css * dpr;
   cv.style.width = css + "px";
@@ -7265,37 +7924,7 @@ function drawPartsEditor() {
   $("dz-blockname").textContent = `${PATTERNS[b.pattern].label} \xB7 block ${cellName(design, focusBlock)}` + (selBlocks.size > 1 ? ` \xB7 editing ${selBlocks.size} blocks` : "");
 }
 function drawPatternButtons() {
-  if (!design) return;
-  const box2 = $("dz-patterns");
-  if (!box2.childElementCount) {
-    for (const [key, p] of Object.entries(PATTERNS)) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "pat";
-      b.dataset.p = key;
-      b.title = p.label;
-      const c = document.createElement("canvas");
-      c.width = c.height = 96;
-      const g = c.getContext("2d");
-      const cols = ["#efe5cf", "#2f466f", "#c79a45"];
-      partsOf(key).forEach((part) => {
-        g.fillStyle = cols[part.role];
-        pathPoly(
-          g,
-          part.poly.map(([u, v]) => [u * 96, v * 96])
-        );
-        g.fill();
-        g.strokeStyle = "rgba(0,0,0,.25)";
-        g.stroke();
-      });
-      const s = document.createElement("span");
-      s.textContent = p.label;
-      b.append(c, s);
-      box2.appendChild(b);
-    }
-  }
-  const cur = design.blocks[focusBlock].pattern;
-  for (const b of box2.children) b.setAttribute("aria-pressed", String(b.dataset.p === cur));
+  drawPatternList();
 }
 function drawFabricPalette() {
   for (const id of ["dz-fabrics", "dz-fabrics2"]) if ($(id)) drawPaletteInto($(id));
@@ -7341,7 +7970,7 @@ var blockKey = (b) => {
   }
   return k;
 };
-function drawBlockLibrary() {
+function drawBlockLibrary2() {
   const box2 = $("dz-library");
   if (!box2 || !design) return;
   const seen = /* @__PURE__ */ new Map();

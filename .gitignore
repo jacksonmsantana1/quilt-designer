@@ -19,3 +19,6 @@ server/.env
 
 # development photo storage (STORAGE=local)
 server/.data/
+
+# the block review sheet (node shared/tools/block-sheet.mjs)
+/block-sheet.html

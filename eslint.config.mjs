@@ -52,7 +52,7 @@ export default [
     },
   },
   {
-    files: ['app/tests/**/*.mjs', 'shared/tests/**/*.mjs', '**/*.config.mjs', 'app/tools/**/*.mjs'],
+    files: ['app/tests/**/*.mjs', 'shared/tests/**/*.mjs', '**/*.config.mjs', 'app/tools/**/*.mjs', 'shared/tools/**/*.mjs'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
     rules: { 'no-empty': ['error', { allowEmptyCatch: true }], 'no-unused-vars': ['error', { caughtErrors: 'none' }] },
   },

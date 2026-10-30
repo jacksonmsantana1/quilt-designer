@@ -5,6 +5,7 @@ import { $ } from '../core/dom.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
 import { drawShortList } from './fabric-picker.js';
+import { drawPatternList } from './block-picker.js';
 import { blockPolys, cellName, isOnPoint, pathPoly } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas } from './canvas.js';
 import { drawFussy } from './fussy-cut.js';
@@ -66,38 +67,9 @@ function drawPartsEditor() {
     `${PATTERNS[b.pattern].label} · block ${cellName(design, focusBlock)}` +
     (selBlocks.size > 1 ? ` · editing ${selBlocks.size} blocks` : '');
 }
+/** The list under "Block pattern" (designer/block-picker.js). */
 function drawPatternButtons() {
-  if (!design) return;
-  const box = $('dz-patterns');
-  if (!box.childElementCount) {
-    for (const [key, p] of Object.entries(PATTERNS)) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pat';
-      b.dataset.p = key;
-      b.title = p.label;
-      const c = document.createElement('canvas');
-      c.width = c.height = 96;
-      const g = c.getContext('2d');
-      const cols = ['#efe5cf', '#2f466f', '#c79a45'];
-      partsOf(key).forEach(part => {
-        g.fillStyle = cols[part.role];
-        pathPoly(
-          g,
-          part.poly.map(([u, v]) => [u * 96, v * 96]),
-        );
-        g.fill();
-        g.strokeStyle = 'rgba(0,0,0,.25)';
-        g.stroke();
-      });
-      const s = document.createElement('span');
-      s.textContent = p.label;
-      b.append(c, s);
-      box.appendChild(b);
-    }
-  }
-  const cur = design.blocks[focusBlock].pattern;
-  for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.p === cur));
+  drawPatternList();
 }
 function drawFabricPalette() {
   for (const id of ['dz-fabrics', 'dz-fabrics2']) if ($(id)) drawPaletteInto($(id));

@@ -11,6 +11,9 @@
 
 // Each pattern is a list of parts: a polygon in the unit square (y down) and
 // a colour role (0 background, 1 main, 2 accent) used for default fabrics.
+import { GRID_BLOCKS } from './blocks.js';
+import { gridParts } from './grid-blocks.js';
+
 const P_ = (name, role, poly) => ({ name, role, poly });
 /** Turns a unit-square polygon k quarter turns clockwise. @param {import('./types.js').Poly} poly @param {number} k @returns {import('./types.js').Poly} */
 function rotPoly(poly, k) {
@@ -858,6 +861,19 @@ Object.assign(PATTERNS, {
     },
   },
 });
+// The families the block library groups blocks by (the grid blocks bring their own)
+const FAMILY = {
+  Basics: ['plain', 'hst', 'hourglass', 'four', 'nine', 'pinwheel', 'geese', 'sqsq', 'economy'],
+  Stars: ['ohio', 'sawstar', 'eightstar', 'fanstar'],
+  'Nine patch': ['churn', 'dnine'],
+  'Strips and logs': ['logcabin'],
+  'Your drawings': Object.keys(TRACED),
+};
+for (const [family, keys] of Object.entries(FAMILY)) for (const k of keys) PATTERNS[k].family = family;
+for (const [key, def] of Object.entries(GRID_BLOCKS))
+  PATTERNS[key] = { label: def.label, family: def.family, parts: () => gridParts(def) };
+for (const p of Object.values(PATTERNS)) p.family ??= 'Other';
+
 const PCACHE = {};
 /** The parts of a pattern (cached). @param {string} name @returns {import('./types.js').Part[]} */
 const partsOf = name => (PCACHE[name] = PCACHE[name] || PATTERNS[name].parts());

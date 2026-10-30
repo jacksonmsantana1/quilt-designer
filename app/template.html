@@ -431,6 +431,10 @@
   .fablib-groups button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .fabs.fablib-grid { display: grid; overflow: visible; grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .fabs.fablib-grid .fab { flex: none; }
+  /* the block library: the fabric library's window, with block tiles; "More blocks" is a dashed tile ending the list */
+  .pats .pat-more { border-style: dashed; color: var(--muted); }
+  .pats .pat-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
+  .pats.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .fablib-more { display: block; margin: 10px auto 0; }
   .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
@@ -577,6 +581,7 @@
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
     .pats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .fabs.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pats.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
     details.model { padding: 12px; }
   }
@@ -1011,6 +1016,14 @@
     <button class="btn" type="button" id="save-asnew" hidden>Save as new</button>
     <button class="btn primary" type="button" id="save-ok">Save</button>
   </div>
+</dialog>
+<dialog class="dz-dialog fablib" id="blklib" aria-labelledby="blklib-title">
+  <div class="dlg-head"><h2 id="blklib-title">Block library</h2><button class="btn sm dlg-x" type="button" id="blklib-x" aria-label="Close">×</button></div>
+  <input type="search" id="blklib-q" placeholder="Search: star, nine patch, log…" aria-label="Search blocks by name or family" autocomplete="off">
+  <div class="fablib-groups" id="blklib-groups" role="group" aria-label="Which blocks"></div>
+  <div class="pats fablib-grid" id="blklib-grid" aria-label="Blocks: click one to use it"></div>
+  <p class="fine" id="blklib-none" hidden></p>
+  <button class="btn sm fablib-more" type="button" id="blklib-more" hidden></button>
 </dialog>
 <dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
   <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>

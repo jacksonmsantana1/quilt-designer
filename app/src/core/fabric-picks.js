@@ -42,6 +42,25 @@ export function shortList({ basics, selected = null, inQuilt = [], recent = [], 
 export const withRecent = (list, id, max = 12) => [id, ...list.filter(x => x !== id)].slice(0, max);
 
 /**
+ * A search for the libraries: true for a text that has every word typed, in any case, accents ignored
+ * ("applique" finds "appliqué"). @param {string} query @returns {(text: string) => boolean}
+ */
+export function wordsMatcher(query) {
+  const plain = s =>
+    s
+      .normalize('NFD')
+      .replace(/\p{Mn}/gu, '')
+      .toLowerCase();
+  const words = plain(query)
+    .split(/[\s,]+/)
+    .filter(Boolean);
+  return text => {
+    const t = plain(text);
+    return words.every(w => t.includes(w));
+  };
+}
+
+/**
  * The fabric library's search: every word typed must be in the name (any case, accents ignored), within the
  * chosen group. Basics come first, then photos newest first; the "recent" group keeps its own order.
  * @template {{ id: string, name: string, basic?: boolean, added?: number }} F
@@ -51,18 +70,8 @@ export const withRecent = (list, id, max = 12) => [id, ...list.filter(x => x !==
  * @returns {F[]}
  */
 export function findFabrics(fabrics, { query = '', group = 'all', inQuilt = new Set(), recent = [] }) {
-  const plain = s =>
-    s
-      .normalize('NFD')
-      .replace(/\p{Mn}/gu, '')
-      .toLowerCase(); // "appliqué" -> "applique"
-  const words = plain(query)
-    .split(/[\s,]+/)
-    .filter(Boolean);
-  const named = f => {
-    const n = plain(f.name);
-    return words.every(w => n.includes(w));
-  };
+  const matches = wordsMatcher(query),
+    named = f => matches(f.name);
   if (group === 'recent') {
     const byId = new Map(fabrics.map(f => [f.id, f]));
     return recent.map(id => byId.get(id)).filter(f => f && named(f));
