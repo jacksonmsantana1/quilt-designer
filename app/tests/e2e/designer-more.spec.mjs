@@ -25,15 +25,9 @@ test('resting the mouse on a part lights it; a click then edits just that part',
   expect(changed).toEqual(['b8']); // only the centre square
 });
 
-test('the part buttons: all, same fabric, clear', async ({ app, page }) => {
+test('no part buttons below the block: parts are picked on the block itself', async ({ app, page }) => {
   await openBlock(app, page, 0);
-  const n = (await app.current()).blocks[0].fabrics.length;
-  await page.locator('#dz-allparts').click();
-  await page.locator('#dz-fabrics2 .fab', { hasText: 'Rose cotton' }).click();
-  expect((await app.current()).blocks[0].fabrics).toEqual(Array(n).fill('b8'));
-  await page.locator('#dz-noparts').click();
-  await expect(page.locator('#dz-parts-info')).not.toContainText(/^\d+ parts? selected/);
-  await page.locator('#dz-sameparts').click();
+  for (const id of ['#dz-allparts', '#dz-sameparts', '#dz-noparts']) await expect(page.locator(id)).toHaveCount(0);
 });
 
 test('the hover flip button flips every selected block', async ({ app, page }) => {

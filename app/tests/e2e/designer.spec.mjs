@@ -170,7 +170,7 @@ test('after an area selection, a click on empty space ends it and closes Block p
 test('a click on a control keeps the area selection and Block parts open', async ({ app, page }) => {
   await dragSelect(app, page, 0, 6);
   await expect(page.locator('#dz-blockname')).toContainText('editing 4 blocks');
-  await page.locator('#dz-allparts').click(); // a button in the panel
+  await page.locator('#dz-block').click(); // a part of the block, in the panel
   await page.locator('#dz-cols').click({ position: { x: 4, y: 12 } }); // a field beside the quilt (not its arrows)
   await expect(page.locator('#dz-side')).toBeVisible();
   await expect(page.locator('#dz-blockname')).toContainText('editing 4 blocks');

@@ -23,7 +23,6 @@ import {
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
-import { partsOf } from '@quilt/shared/patterns.js';
 import { addFabric } from './fabric-library.js';
 import { refreshLibrary } from './fabric-picker.js';
 import {
@@ -280,24 +279,6 @@ function initDesignerUI() {
       hit = blockPolys(b, 0, 0, BLOCK_PX, BLOCK_PX).findIndex(p => pointInPoly(x, y, p));
     if (hit < 0) return;
     selectSameFabric(hit);
-  });
-  $('dz-allparts').addEventListener('click', () => {
-    setSelParts(new Set(partsOf(design.blocks[focusBlock].pattern).map((_, i) => i)));
-    drawPartsEditor();
-  });
-  $('dz-sameparts').addEventListener('click', () => {
-    const b = design.blocks[focusBlock],
-      ref = selParts.size ? b.fabrics[[...selParts][0]] : null;
-    if (ref === null) {
-      $('dz-parts-info').textContent = 'Select one part first; this then selects every part with the same fabric.';
-      return;
-    }
-    setSelParts(new Set(b.fabrics.map((f, i) => (f === ref ? i : -1)).filter(i => i >= 0)));
-    drawPartsEditor();
-  });
-  $('dz-noparts').addEventListener('click', () => {
-    selParts.clear();
-    drawPartsEditor();
   });
   $('dz-allblocks').addEventListener('click', () => {
     setSelBlocks(new Set(design.blocks.map((_, i) => i)));

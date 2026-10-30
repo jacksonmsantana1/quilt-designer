@@ -34,7 +34,7 @@ test('the library finds a photo by name and puts it on the selected parts', asyn
   await addPhotos(app, page, 70);
   const c = await app.blockCentre(await app.current(), 0);
   await page.mouse.click(c.x, c.y);
-  await page.locator('#dz-allparts').click();
+  await page.locator('#dz-block').click(); // the centre part
   await page.locator('#dz-fabrics2').hover();
   await page.locator('#fab-more-float').click();
   const lib = page.locator('#fablib');
@@ -52,7 +52,7 @@ test('the library finds a photo by name and puts it on the selected parts', asyn
   await expect(lib).toBeHidden();
   const id = await photoId(app, 'Test photo 07');
   const b = (await app.current()).blocks[0];
-  expect(new Set(b.fabrics)).toEqual(new Set([id]));
+  expect(b.fabrics.filter(f => f === id)).toHaveLength(1); // the centre part
   // now in the quilt and recently picked: in the short list, chosen
   await expect(page.locator('#dz-fabrics2 .fab[aria-pressed="true"]')).toHaveText('Test photo 07');
 });
