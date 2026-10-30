@@ -13,25 +13,69 @@ import { dispatch, openDesign } from './dispatch.js';
 import { setQuilting } from '../core/edits.js';
 
 // small round button on the Block parts card: undo everything done since the design tools were opened, and close them
-// symmetry setting (Block parts): turning one on mirrors the design from its top-left part straight away
+// symmetry (a round button on the tool rail): turning one on mirrors the design from its top-left part straight away
 function syncSymUI() {
   if ($('dz-quilting') && design) $('dz-quilting').value = quiltingOf(design);
-  const el = $('dz-sym');
-  if (!el || !design) return;
-  for (const o of el.options) o.disabled = o.value === 'kal' && design.cols !== design.rows;
-  el.value = symOf(design);
+  const btn = $('rail-sym');
+  if (!btn || !design) return;
+  // the round Symmetry button shows the current choice, filled while one is on
+  const cur = symOf(design),
+    onPoint = isOnPoint(design);
+  for (const o of document.querySelectorAll('#sym-row .sym-opt')) {
+    const v = /** @type {HTMLElement} */ (o).dataset.sym;
+    o.setAttribute('aria-pressed', String(v === cur));
+    // 8-way mirrors across the diagonals too: only a square layout has them
+    const off = v === 'kal' && design.cols !== design.rows;
+    /** @type {HTMLButtonElement} */ (o).disabled = off;
+    o.setAttribute(
+      'title',
+      off ? 'Kaleidoscope (8-way): only for square layouts (as many columns as rows)' : o.getAttribute('aria-label'),
+    );
+    if (v === cur) btn.querySelector('svg').innerHTML = o.querySelector('svg').innerHTML;
+  }
+  btn.setAttribute('aria-pressed', String(cur !== 'off'));
   // on point has no symmetry yet (large blocks are made by uniting a selection: designer/canvas.js)
-  const onPoint = isOnPoint(design);
-  el.disabled = onPoint;
-  el.title = onPoint ? 'Not available for quilts set on point yet' : '';
+  btn.disabled = onPoint;
+  btn.title = onPoint
+    ? 'Symmetry: not available for quilts set on point yet'
+    : 'Symmetry: every change to a block is copied to its mirror partners';
+  if (onPoint) openSym(false);
+}
+/** Slides the five symmetry choices out beside the button (to the left, over the quilt, when there is no room on the right), or back. @param {boolean} open */
+function openSym(open) {
+  const wrap = $('sym-wrap'),
+    row = $('sym-row');
+  if (!wrap) return;
+  if (open) {
+    row.classList.remove('lefty');
+    const r = row.getBoundingClientRect(),
+      b = $('rail-sym').getBoundingClientRect();
+    // no room on the right: the window's edge, or the side panel (it would cover the choices)
+    const side = $('dz-side'),
+      limit = side && !side.hidden ? side.getBoundingClientRect().left : innerWidth - 4;
+    if (b.right + 8 + r.width > limit) row.classList.add('lefty');
+  }
+  wrap.classList.toggle('open', open);
+  $('rail-sym').setAttribute('aria-expanded', String(open));
 }
 $('dz-quilting').addEventListener('change', e => {
   if (!design) return;
   dispatch(setQuilting, e.target.value);
 });
-$('dz-sym').addEventListener('change', e => {
-  if (!design) return;
-  dispatch(setSymmetry, e.target.value);
+$('rail-sym').addEventListener('click', () => openSym(!$('sym-wrap').classList.contains('open')));
+$('sym-row').addEventListener('click', e => {
+  const o = /** @type {HTMLButtonElement | null} */ (/** @type {HTMLElement} */ (e.target).closest('.sym-opt'));
+  if (!o || o.disabled || !design) return;
+  dispatch(setSymmetry, o.dataset.sym); // turning one on mirrors the top-left part straight away (undo takes it back)
+  openSym(false);
+});
+// a click anywhere else, or Esc, closes it unchanged
+document.addEventListener('click', e => {
+  if ($('sym-wrap').classList.contains('open') && !$('sym-wrap').contains(/** @type {Node} */ (e.target)))
+    openSym(false);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('sym-wrap').classList.contains('open')) openSym(false);
 });
 const cancelTools = () => {
   if (toolsSnap && design) {

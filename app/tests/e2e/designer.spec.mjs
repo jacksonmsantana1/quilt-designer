@@ -38,7 +38,8 @@ test('kaleidoscope symmetry mirrors a change to all eight partners', async ({ ap
   let d = await app.current();
   const c = await app.blockCentre(d, 1);
   await page.mouse.click(c.x, c.y);
-  await page.locator('#dz-sym').selectOption('kal');
+  await page.locator('#rail-sym').click();
+  await page.locator('.sym-opt[data-sym="kal"]').click();
   await page.locator('#dz-patterns [data-p="twisted"]').click();
   d = await app.current();
   expect(d.sym).toBe('kal');
@@ -200,7 +201,7 @@ test('on point: blocks turn 45°, a block sits between each 2 × 2, triangles fi
   // the block between the first four (one column and one row in, where four diamonds meet)
   await page.mouse.click(box.x + col, box.y + row);
   await expect(page.locator('#dz-blockname')).toContainText('block 1½, 1½');
-  await expect(page.locator('#dz-sym')).toBeDisabled(); // not on point yet
+  await expect(page.locator('#rail-sym')).toBeDisabled(); // no symmetry on point yet
   await expect(page.locator('#rail-sash')).toBeEnabled(); // sashing works on point
   // a setting triangle on the top edge, between the first two blocks: its own card and fabric
   await page.mouse.click(box.x + col, box.y + 4);
@@ -312,4 +313,44 @@ test('on point: a drag that starts on a setting triangle starts from the nearest
   await page.mouse.move(b.x, b.y, { steps: 8 });
   await page.mouse.up();
   await expect(page.locator('#dz-blockname')).toContainText(/editing \d+ blocks/);
+});
+
+// ---- symmetry: a round button on the tool rail; its five choices slide out beside it
+
+test('Symmetry opens five round choices beside it, with the current one pressed', async ({ page }) => {
+  await expect(page.locator('#dz-sym')).toHaveCount(0); // the old menu in Block parts is gone
+  const row = page.locator('#sym-row');
+  await expect(row).toBeHidden();
+  await page.locator('#rail-sym').click();
+  await expect(row).toBeVisible();
+  await expect(row.locator('.sym-opt span')).toHaveText(['Off', 'Left–right', 'Up–down', '4-way', '8-way']);
+  await expect(row.locator('.sym-opt[aria-pressed="true"]')).toHaveAttribute('data-sym', 'off');
+});
+
+test('picking 4-way mirrors the design, closes the choices and fills the Symmetry button', async ({ app, page }) => {
+  await page.locator('#rail-sym').click();
+  await page.locator('.sym-opt[data-sym="both"]').click();
+  expect((await app.current()).sym).toBe('both');
+  await expect(page.locator('#sym-row')).toBeHidden();
+  await expect(page.locator('#rail-sym')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('Esc, or a click elsewhere, closes the choices without changing anything', async ({ app, page }) => {
+  await page.locator('#rail-sym').click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#sym-row')).toBeHidden();
+  await page.locator('#rail-sym').click();
+  await page.mouse.click(20, 700);
+  await expect(page.locator('#sym-row')).toBeHidden();
+  expect((await app.current()).sym ?? 'off').toBe('off');
+});
+
+test('8-way needs a square layout: greyed on 5 × 4, there on 5 × 5', async ({ page }) => {
+  await page.locator('[data-step="r:-1"]').click(); // 5 × 4
+  await page.locator('#rail-sym').click();
+  await expect(page.locator('.sym-opt[data-sym="kal"]')).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await page.locator('[data-step="r:1"]').click(); // 5 × 5
+  await page.locator('#rail-sym').click();
+  await expect(page.locator('.sym-opt[data-sym="kal"]')).toBeEnabled();
 });
