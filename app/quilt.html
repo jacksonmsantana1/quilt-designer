@@ -383,10 +383,25 @@
   .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .pats .pat:disabled { opacity: .4; cursor: not-allowed; } /* e.g. cornerstone blocks on narrow sashing */
-  .fabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  /* a fabric list is one row that scrolls sideways (the mouse wheel scrolls it too), with a round "More fabrics"
+     button just outside its card while the mouse is over it. The library window keeps its grid (.fablib-grid) */
+  .fabs { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
+  .fabs .fab { flex: 0 0 84px; scroll-snap-align: start; }
+  .fabs:not(.fablib-grid) .fab span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
   /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
   .fabs .fab-more { border-style: dashed; color: var(--muted); }
+  .fabs-row { display: flex; align-items: center; gap: 8px; }
+  .fabs-row > .fabs { flex: 1 1 auto; min-width: 0; }
+  .fab-more-btn { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent); background: var(--panel); color: var(--accent); display: grid; place-items: center; align-content: center; gap: 0; padding: 0; cursor: pointer; box-shadow: 0 2px 8px rgba(20,25,40,.18); }
+  .fab-more-btn:hover { background: var(--accent); color: var(--accent-ink); }
+  .fab-more-btn[hidden] { display: none; }
+  .fab-more-btn b { font-size: 1.3rem; line-height: 1; font-weight: 500; }
+  .fab-more-btn span { font-size: .68rem; line-height: 1.1; }
+  /* with a mouse: one floating button, just outside the card of the row the mouse is over (fabric-picker.js);
+     the button by each row is for touch screens, which have no hover */
+  .fab-more-float { position: fixed; z-index: 50; }
+  @media (hover: hover) { .fabs-row > .fab-more-btn { display: none; } }
   .fabs .fab-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
   /* a steady height, from near the top: the window doesn't jump about as the search narrows the list */
   .fablib { width: min(760px, calc(100vw - 32px)); height: min(860px, calc(100dvh - 48px)); margin-top: 24px; }
@@ -394,7 +409,8 @@
   .fablib-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .fablib-groups button { font: 500 .78rem var(--font-body); padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--ink); cursor: pointer; }
   .fablib-groups button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  .fabs.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .fabs.fablib-grid { display: grid; overflow: visible; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .fabs.fablib-grid .fab { flex: none; }
   .fablib-more { display: block; margin: 10px auto 0; }
   .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
@@ -416,8 +432,8 @@
   }
   @media (prefers-reduced-motion: reduce) { .flip-inner { transition: none; } .flipper.lift { animation: none; } }
   .dz-backbar { margin-bottom: 10px; }
-  .backfabs { display: flex; flex-wrap: wrap; justify-content: center; max-width: 860px; margin: 0 auto; }
-  .backfabs .fab { width: 74px; }
+  .backfabs { max-width: 860px; margin: 0 auto; }
+  .backfabs .fab { flex-basis: 74px; }
   .dz-backbar { text-align: center; max-width: 860px; margin-left: auto; margin-right: auto; }
   .blib { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
   .blib-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
@@ -534,7 +550,7 @@
     .toggles input { width: 20px; height: 20px; }
     .dz-toolbar { gap: 8px; }
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
-    .pats, .fabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .fabs.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
     details.model { padding: 12px; }
@@ -2716,14 +2732,15 @@ var CORNER_BLOCK_MIN_MM = 76;
 var CORNER_PATTERNS = ["four", "nine", "hst", "hourglass", "sqsq", "pinwheel", "ohio"];
 var sashOf = (d) => {
   const s = d && d.sashing;
-  if (!(s && s.mm > 0) || isOnPoint(d))
+  if (!(s && s.mm > 0))
     return { mm: 0, fabric: "b0", corner: "b0", border: false, cornerstones: true, cornerBlock: null };
   const cornerstones = s.cornerstones !== false;
   return {
     mm: s.mm,
     fabric: s.fabric || "b0",
     corner: s.corner || s.fabric || "b0",
-    border: !!s.border,
+    border: isOnPoint(d) || !!s.border,
+    // on point the sashing always frames every block, outer ones too
     cornerstones,
     cornerBlock: cornerstones && s.mm >= CORNER_BLOCK_MIN_MM && s.cornerBlock ? s.cornerBlock : null
   };
@@ -2731,7 +2748,13 @@ var sashOf = (d) => {
 var isOnPoint = (d) => !!d && d.setting === "onpoint";
 var cellCount = (d) => d.cols * d.rows + (isOnPoint(d) ? (d.cols - 1) * (d.rows - 1) : 0);
 function centreMm(d) {
-  if (isOnPoint(d)) return { W: d.cols * d.blockMm * Math.SQRT2, H: d.rows * d.blockMm * Math.SQRT2 };
+  if (isOnPoint(d)) {
+    const s2 = sashOf(d).mm;
+    return {
+      W: Math.SQRT2 * (d.cols * (d.blockMm + s2) + s2),
+      H: Math.SQRT2 * (d.rows * (d.blockMm + s2) + s2)
+    };
+  }
   const s = sashOf(d), e = s.border ? 2 : 0;
   return { W: d.cols * d.blockMm + s.mm * (d.cols - 1 + e), H: d.rows * d.blockMm + s.mm * (d.rows - 1 + e) };
 }
@@ -2834,18 +2857,24 @@ function blockAt(d, x, y, W, H) {
 }
 function blockPlace(d, i, W, H) {
   if (!isOnPoint(d)) return { ...blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H), turn: 0 };
-  const q = quiltMm(d), cm = centreMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, dx = cm.W / d.cols, dy = cm.H / d.rows, big = d.cols * d.rows;
-  let cx, cy;
-  if (i < big) {
-    cx = bt + dx * (i % d.cols + 0.5);
-    cy = bt + dy * (Math.floor(i / d.cols) + 0.5);
-  } else {
-    const j = i - big;
-    cx = bt + dx * (j % (d.cols - 1) + 1);
-    cy = bt + dy * (Math.floor(j / (d.cols - 1)) + 1);
-  }
-  const w = dx / Math.SQRT2 * kx, h = dy / Math.SQRT2 * ky;
-  return { x: cx * kx - w / 2, y: cy * ky - h / 2, w, h, turn: Math.PI / 4 };
+  const f = turnedFrame(d, W, H), [u, v] = f.cell(i);
+  return f.place(u * f.p + f.s, v * f.p + f.s, d.blockMm, d.blockMm);
+}
+function turnedFrame(d, W, H) {
+  const s = sashOf(d).mm, p = d.blockMm + s, q = quiltMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, m = (d.blockMm / 2 + s) * Math.SQRT2, big = d.cols * d.rows;
+  const cell = (i) => {
+    if (i < big) {
+      const c2 = i % d.cols, r2 = Math.floor(i / d.cols);
+      return [c2 + r2, r2 - c2];
+    }
+    const j = i - big, c = j % (d.cols - 1), r = Math.floor(j / (d.cols - 1));
+    return [c + r + 1, r - c];
+  };
+  const place = (u0, v0, w, h) => {
+    const u = u0 + w / 2, v = v0 + h / 2, cx = (bt + m + (u - v) / Math.SQRT2) * kx, cy = (bt + (u + v) / Math.SQRT2) * ky;
+    return { x: cx - w * kx / 2, y: cy - h * ky / 2, w: w * kx, h: h * ky, turn: Math.PI / 4 };
+  };
+  return { s, p, m, cell, place };
 }
 var turnPoint = (P) => {
   if (!P.turn) return (p) => p;
@@ -2870,22 +2899,22 @@ function placeBox(P) {
 }
 function settingPieces(d, W, H) {
   if (!isOnPoint(d)) return [];
-  const q = quiltMm(d), cm = centreMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, dx = cm.W / d.cols, dy = cm.H / d.rows, x0 = bt, y0 = bt, x1 = bt + cm.W, y1 = bt + cm.H, out = [];
+  const q = quiltMm(d), cm = centreMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, { p, m } = turnedFrame(d, W, H), D = p * Math.SQRT2, x0 = bt, y0 = bt, x1 = bt + cm.W, y1 = bt + cm.H, out = [];
   const add = (kind, ...pts) => out.push({ kind, poly: pts.map(([x, y]) => [x * kx, y * ky]) });
   for (let c = 0; c < d.cols - 1; c++) {
-    const a = x0 + dx * (c + 0.5), m = a + dx / 2, b = a + dx;
-    add("side", [a, y0], [b, y0], [m, y0 + dy / 2]);
-    add("side", [a, y1], [m, y1 - dy / 2], [b, y1]);
+    const a = x0 + m + D * c, mid = a + D / 2, b = a + D;
+    add("side", [a, y0], [b, y0], [mid, y0 + D / 2]);
+    add("side", [a, y1], [mid, y1 - D / 2], [b, y1]);
   }
   for (let r = 0; r < d.rows - 1; r++) {
-    const a = y0 + dy * (r + 0.5), m = a + dy / 2, b = a + dy;
-    add("side", [x0, a], [x0 + dx / 2, m], [x0, b]);
-    add("side", [x1, a], [x1, b], [x1 - dx / 2, m]);
+    const a = y0 + m + D * r, mid = a + D / 2, b = a + D;
+    add("side", [x0, a], [x0 + D / 2, mid], [x0, b]);
+    add("side", [x1, a], [x1, b], [x1 - D / 2, mid]);
   }
-  add("corner", [x0, y0], [x0 + dx / 2, y0], [x0, y0 + dy / 2]);
-  add("corner", [x1, y0], [x1, y0 + dy / 2], [x1 - dx / 2, y0]);
-  add("corner", [x0, y1], [x0, y1 - dy / 2], [x0 + dx / 2, y1]);
-  add("corner", [x1, y1], [x1 - dx / 2, y1], [x1, y1 - dy / 2]);
+  add("corner", [x0, y0], [x0 + m, y0], [x0, y0 + m]);
+  add("corner", [x1, y0], [x1, y0 + m], [x1 - m, y0]);
+  add("corner", [x0, y1], [x0, y1 - m], [x0 + m, y1]);
+  add("corner", [x1, y1], [x1 - m, y1], [x1, y1 - m]);
   return out;
 }
 function cellName(d, i) {
@@ -2895,6 +2924,7 @@ function cellName(d, i) {
   return `${Math.floor(j / (d.cols - 1)) + 1}\xBD, ${j % (d.cols - 1) + 1}\xBD`;
 }
 function sashRects(d, W, H) {
+  if (isOnPoint(d)) return sashOnPoint(d, W, H);
   const across = /* @__PURE__ */ new Set();
   const all = sashPieces(d, W, H, across);
   if (sashOf(d).cornerstones) return all;
@@ -2905,6 +2935,42 @@ function sashRects(d, W, H) {
   return [...rows.filter((rc) => rc.kind !== "corner"), ...cols].map(
     (rc) => rc.kind === "corner" ? { ...rc, kind: "sash" } : rc
   );
+}
+function sashOnPoint(d, W, H) {
+  const sz = sashOf(d);
+  if (!sz.mm) return [];
+  const f = turnedFrame(d, W, H), { s, p } = f, b = d.blockMm, pieces = /* @__PURE__ */ new Map(), across = /* @__PURE__ */ new Set();
+  const put2 = (key, kind, u, v, w, h, isAcross) => {
+    if (pieces.has(key)) return;
+    const rc = { kind, x: u, y: v, w, h };
+    pieces.set(key, rc);
+    if (isAcross) across.add(rc);
+  };
+  for (let i = 0, n = cellCount(d); i < n; i++) {
+    const [I, J] = f.cell(i);
+    put2(`v${I},${J}`, "sash", I * p, J * p + s, s, b, false);
+    put2(`v${I + 1},${J}`, "sash", (I + 1) * p, J * p + s, s, b, false);
+    put2(`h${I},${J}`, "sash", I * p + s, J * p, b, s, true);
+    put2(`h${I},${J + 1}`, "sash", I * p + s, (J + 1) * p, b, s, true);
+    for (const [a, c] of [
+      [I, J],
+      [I + 1, J],
+      [I, J + 1],
+      [I + 1, J + 1]
+    ])
+      put2(`c${a},${c}`, "corner", a * p, c * p, s, s, true);
+  }
+  let rects = [...pieces.values()];
+  if (!sz.cornerstones) {
+    const rows = joinRuns(
+      rects.filter((rc) => across.has(rc)),
+      "x"
+    ), lone = rows.filter((rc) => rc.kind === "corner"), cols = joinRuns([...rects.filter((rc) => !across.has(rc)), ...lone], "y");
+    rects = [...rows.filter((rc) => rc.kind !== "corner"), ...cols].map(
+      (rc) => rc.kind === "corner" ? { ...rc, kind: "sash" } : rc
+    );
+  }
+  return rects.map((rc) => ({ ...f.place(rc.x, rc.y, rc.w, rc.h), kind: rc.kind }));
 }
 function joinRuns(pieces, ax) {
   const len = ax === "x" ? "w" : "h", lines = /* @__PURE__ */ new Map();
@@ -6050,29 +6116,132 @@ function shortListFabrics(selected) {
   });
   return ids.map((id) => byId2.get(id)).filter(Boolean);
 }
-function moreTile(box2, shown) {
+function moreButton(box2, shown) {
   const b = document.createElement("button");
   b.type = "button";
-  b.className = "fab fab-more";
-  const rest = listedFabrics().length - shown;
-  b.title = "All fabrics: search, and add photos of your own";
-  const plus = document.createElement("b");
-  plus.textContent = rest > 0 ? "\u22EF" : "+";
-  plus.setAttribute("aria-hidden", "true");
-  const s = document.createElement("span");
-  s.textContent = rest > 0 ? `More fabrics (${rest})` : "Add a fabric photo";
-  b.append(plus, s);
-  b.addEventListener("click", (e) => {
-    e.stopPropagation();
-    openLibrary(box2);
-  });
+  b.className = "fab-more-btn";
+  if (box2.id) b.id = box2.id + "-more";
+  const rest = listedFabrics().length - shown, label = rest > 0 ? `More fabrics (${rest})` : "Add a fabric photo";
+  b.title = `${label}: search all fabrics, and add photos of your own`;
+  b.setAttribute("aria-label", label);
+  const sign = document.createElement("b");
+  sign.textContent = rest > 0 ? "\u22EF" : "+";
+  sign.setAttribute("aria-hidden", "true");
+  b.append(sign);
+  if (rest > 0) {
+    const n = document.createElement("span");
+    n.textContent = String(rest);
+    n.setAttribute("aria-hidden", "true");
+    b.append(n);
+  }
+  b.addEventListener("click", () => openLibrary(box2));
   return b;
+}
+var float = {
+  el: (
+    /** @type {HTMLButtonElement | null} */
+    null
+  ),
+  box: (
+    /** @type {HTMLElement | null} */
+    null
+  ),
+  timer: 0
+};
+function floatButton() {
+  if (float.el) return float.el;
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "fab-more-btn fab-more-float";
+  b.id = "fab-more-float";
+  b.hidden = true;
+  b.addEventListener("mouseenter", () => clearTimeout(float.timer));
+  b.addEventListener("mouseleave", hideFloatSoon);
+  b.addEventListener("click", () => {
+    const box2 = float.box;
+    hideFloat();
+    if (box2) openLibrary(box2);
+  });
+  addEventListener(
+    "scroll",
+    () => {
+      if (b.hidden || !float.box) return;
+      if (float.box.parentElement.matches(":hover") || b.matches(":hover")) showFloat(float.box);
+      else hideFloat();
+    },
+    true
+  );
+  document.body.append(b);
+  return float.el = b;
+}
+function showFloat(box2) {
+  const inline = (
+    /** @type {HTMLElement | null} */
+    box2.parentElement.querySelector(":scope > .fab-more-btn")
+  );
+  if (!inline || matchMedia("(hover: none)").matches) return;
+  const b = floatButton();
+  clearTimeout(float.timer);
+  float.box = box2;
+  b.replaceChildren(...[...inline.childNodes].map((n) => n.cloneNode(true)));
+  b.title = inline.title;
+  b.setAttribute("aria-label", inline.getAttribute("aria-label") || "");
+  const size = 52, edge = (
+    /** @type {HTMLElement} */
+    (box2.closest(".card") || box2.parentElement).getBoundingClientRect()
+  ), row = box2.getBoundingClientRect();
+  let left = edge.left - size - 10;
+  if (left < 4) left = edge.right + 10;
+  b.style.left = left + "px";
+  b.style.top = row.top + row.height / 2 - size / 2 + "px";
+  b.hidden = false;
+}
+function hideFloat() {
+  clearTimeout(float.timer);
+  if (float.el) float.el.hidden = true;
+}
+function hideFloatSoon() {
+  clearTimeout(float.timer);
+  float.timer = setTimeout(hideFloat, 300);
 }
 function drawShortList(box2, selected) {
   box2.innerHTML = "";
   const fabs = shortListFabrics(selected);
   for (const f of fabs) box2.appendChild(fabricTile(f, f.id === selected));
-  box2.appendChild(moreTile(box2, fabs.length));
+  let wrap = box2.parentElement;
+  if (!wrap.classList.contains("fabs-row")) {
+    wrap = document.createElement("div");
+    wrap.className = "fabs-row";
+    box2.replaceWith(wrap);
+    wrap.append(box2);
+  }
+  wrap.querySelector(":scope > .fab-more-btn")?.remove();
+  wrap.prepend(moreButton(box2, fabs.length));
+  if (!wrap.dataset.float) {
+    wrap.dataset.float = "1";
+    wrap.addEventListener("mouseenter", () => showFloat(box2));
+    wrap.addEventListener("focusin", () => showFloat(box2));
+    wrap.addEventListener("mouseleave", hideFloatSoon);
+  }
+  if (!box2.dataset.roller) {
+    box2.dataset.roller = "1";
+    box2.addEventListener(
+      "wheel",
+      (e) => {
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || box2.scrollWidth <= box2.clientWidth) return;
+        const max = box2.scrollWidth - box2.clientWidth;
+        if (e.deltaY < 0 && box2.scrollLeft <= 0 || e.deltaY > 0 && box2.scrollLeft >= max - 1) return;
+        e.preventDefault();
+        box2.scrollLeft += e.deltaY;
+      },
+      { passive: false }
+    );
+  }
+  const on = (
+    /** @type {HTMLElement | null} */
+    box2.querySelector('.fab[aria-pressed="true"]')
+  );
+  if (on && box2.clientWidth) box2.scrollLeft = Math.max(0, on.offsetLeft - (box2.clientWidth - on.offsetWidth) / 2);
 }
 var lib = { source: (
   /** @type {HTMLElement | null} */
@@ -6635,9 +6804,9 @@ function drawBordersExploded(g, W, gap, focus = -1) {
   return H;
 }
 function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
-  const polys = blockPolys(cb, rc.x, rc.y, rc.w, rc.h);
+  const polys = placedPolys(cb, rc);
   polys.forEach((poly, pi) => {
-    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi);
+    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi, rc.turn || 0);
     pathPoly(g, poly);
     g.fill();
     dimUnlessHi(g, { t: "sash", kind: "corner", fabric: cb.fabrics[pi] });
@@ -6659,15 +6828,14 @@ function drawQuilt(g, W, H, opts = {}) {
       drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
       continue;
     }
-    g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + k);
-    g.fillRect(rc.x, rc.y, rc.w, rc.h);
-    g.beginPath();
-    g.rect(rc.x, rc.y, rc.w, rc.h);
+    g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + k, rc.turn || 0);
+    pathPoly(g, blockOutline(rc));
+    g.fill();
     dimUnlessHi(g, { t: "sash", kind: rc.kind });
     if (opts.seams) {
       g.strokeStyle = "rgba(40,30,20,.35)";
       g.lineWidth = Math.max(1, W / 1400);
-      g.strokeRect(rc.x, rc.y, rc.w, rc.h);
+      g.stroke();
     }
   }
   for (const [k, sp] of settingPieces(d, W, H).entries()) {
@@ -7005,11 +7173,8 @@ function renderDesigner() {
     setFocusBlock(design.blocks[focusBlock].under);
   $("dz-cols").value = design.cols;
   $("dz-rows").value = design.rows;
-  const onPoint = isOnPoint(design);
-  $("dz-setting").value = onPoint ? "onpoint" : "straight";
+  $("dz-setting").value = isOnPoint(design) ? "onpoint" : "straight";
   drawPaletteInto($("set-fabs"), design.settingFabric || "b0");
-  $("rail-sash").disabled = onPoint;
-  $("rail-sash").title = onPoint ? "Sashing: not available for quilts set on point yet" : "Sashing: strips between the blocks";
   syncSymUI();
   for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
   $("dz-rot").textContent = `Rotate 90\xB0 (${design.blocks[focusBlock].rot * 90}\xB0)`;
@@ -7270,9 +7435,11 @@ function initDesignerUI() {
     if (bi < 0) {
       const q = quiltMm(design), bt = borderTotal(design), mx = (e.clientX - r.left) / r.width * q.W, my = (e.clientY - r.top) / r.height * q.H;
       if (bt && (mx < bt || my < bt || mx > q.W - bt || my > q.H - bt)) openBorders();
-      else if (isOnPoint(design))
-        showPanel("set");
-      else if (sashOf(design).mm) openSashing();
+      else if (sashRects(design, r.width, r.height).some(
+        (rc) => pointInPoly(e.clientX - r.left, e.clientY - r.top, blockOutline(rc))
+      ))
+        openSashing();
+      else if (isOnPoint(design)) showPanel("set");
       return;
     }
     const multi = e.shiftKey || e.ctrlKey || e.metaKey;
@@ -7905,7 +8072,10 @@ function drawQuiltingLines(g, W, H, kind) {
 }
 function strokeSeams(g, W, H) {
   const d = design;
-  for (const rc of sashRects(d, W, H)) g.strokeRect(rc.x, rc.y, rc.w, rc.h);
+  for (const rc of sashRects(d, W, H)) {
+    pathPoly(g, blockOutline(rc));
+    g.stroke();
+  }
   for (const sp of settingPieces(d, W, H)) {
     pathPoly(g, sp.poly);
     g.stroke();
@@ -8103,6 +8273,7 @@ function swatchCanvas(fab, w = 72, h = 48) {
 var cgRedraws = [];
 var SASH_WHAT = { sash: "Sashing strips", long: "Long sashing strips", corner: "Cornerstones" };
 function sashMini() {
+  if (isOnPoint(design)) return settingMini();
   const c = Math.min(2, design.cols), r = Math.min(2, design.rows);
   return {
     ...design,
@@ -8153,7 +8324,7 @@ function drawSashPic(g, S, sashCuts, u) {
     if (rc.w < 18 * u && rc.h < 18 * u) continue;
     g.save();
     g.translate(rc.x + rc.w / 2, rc.y + rc.h / 2);
-    if (vert && rc.w < tw) g.rotate(-Math.PI / 2);
+    if (vert && rc.w < tw && !rc.turn) g.rotate(-Math.PI / 2);
     g.fillStyle = "rgba(255,255,255,.92)";
     g.fillRect(-tw / 2, -hh / 2, tw, hh);
     g.fillStyle = "#1f1d1a";
@@ -8263,17 +8434,19 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
     const rs = sashRects(design, W, H);
     g.beginPath();
     g.rect(0, 0, W, H);
-    for (const r of rs) g.rect(r.x, r.y, r.w, r.h);
+    for (const r of rs) pathPolyInto(g, blockOutline(r));
     g.fillStyle = "rgba(236,239,244,.72)";
     g.fill("evenodd");
-    for (const r of rs) {
-      g.lineWidth = 3;
-      g.strokeStyle = "#fff";
-      g.strokeRect(r.x, r.y, r.w, r.h);
-      g.lineWidth = 1.6;
-      g.strokeStyle = "#e0592a";
-      g.strokeRect(r.x, r.y, r.w, r.h);
-    }
+    for (const r of rs)
+      for (const [lw, c] of [
+        [3, "#fff"],
+        [1.6, "#e0592a"]
+      ]) {
+        g.lineWidth = lw;
+        g.strokeStyle = c;
+        pathPoly(g, blockOutline(r));
+        g.stroke();
+      }
   } else if (kind === "setting") {
     const ps = settingPieces(design, W, H);
     g.beginPath();
@@ -8321,24 +8494,28 @@ function drawCutQuilt(P, into) {
   g.translate(lab, lab);
   const pxPerCm = k * 10;
   if (bordersOf(design).length) drawBorders(g, d2, W, H, pxPerCm, true);
-  const sr = s.mm ? sashRects(d2, W, H) : [], ci = P.blocks.findIndex((b) => b.corner), rects = [];
+  const sr = (s.mm ? sashRects(d2, W, H) : []).map((rc) => rc.turn ? { ...rc, poly: blockOutline(rc) } : rc), ci = P.blocks.findIndex((b) => b.corner), rects = [];
   sr.forEach((rc, i) => {
     if (rc.kind === "corner" && ci >= 0) {
       g.save();
       g.translate(rc.x, rc.y);
-      drawBlockArt(g, P.blocks[ci], P, ci + 1, rc.w, rc.h);
+      drawBlockArt(g, P.blocks[ci], P, ci + 1, rc.w, rc.h, rc.turn || 0);
       g.restore();
-      rects.push({ ...rc, i: ci });
+      rects.push({ ...rc.turn ? placeBox(rc) : rc, i: ci, poly: rc.poly || null });
       return;
     }
-    g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + i);
-    g.fillRect(rc.x, rc.y, rc.w, rc.h);
-    g.beginPath();
-    g.rect(rc.x, rc.y, rc.w, rc.h);
+    g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + i, rc.turn || 0);
+    if (rc.poly) pathPoly(g, rc.poly);
+    else {
+      g.beginPath();
+      g.rect(rc.x, rc.y, rc.w, rc.h);
+    }
+    g.fill();
     dimUnlessHi(g, { t: "sash", kind: rc.kind });
     g.strokeStyle = "rgba(40,30,20,.35)";
     g.lineWidth = u;
-    g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
+    if (rc.poly) g.stroke();
+    else g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
   });
   const setting = settingPieces(d2, W, H);
   for (const [j, sp] of setting.entries()) {
@@ -8406,7 +8583,7 @@ function drawCutQuilt(P, into) {
           g.stroke();
           tag(t, lx, ly, 9 * u, false);
         }
-      } else if (long > 40 * u) tag(t, rc.x + rc.w / 2, rc.y + rc.h / 2, fs, rc.h > rc.w);
+      } else if (long > 40 * u) tag(t, rc.x + rc.w / 2, rc.y + rc.h / 2, fs, !rc.turn && rc.h > rc.w);
     }
   }
   const bs = bordersOf(design);
@@ -9007,7 +9184,7 @@ function renderCut() {
     const rows = sashCuts.map(
       (x) => `<tr data-k="${Object.keys(SASH_WHAT).find((k) => SASH_WHAT[k] === x.what)}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`
     ).join("");
-    div.innerHTML = `<h3>Sashing</h3><p class="meta">${sz2.mm} mm wide${sz2.border ? ", also around the outside" : ""}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` + listOf("<th>ID</th><th>Cut</th><th>Total</th>", rows);
+    div.innerHTML = `<h3>Sashing</h3><p class="meta">${sz2.mm} mm wide${isOnPoint(design) ? ", framing every block" : sz2.border ? ", also around the outside" : ""}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` + listOf("<th>ID</th><th>Cut</th><th>Total</th>", rows);
     box2.appendChild(div);
     const cv = div.querySelector("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 300;
     const drawSash = () => {
@@ -9231,7 +9408,10 @@ function renderSashUI() {
   if (!design || !$("sash-card")) return;
   const s = sashOf(design), raw = design.sashing || {};
   if (document.activeElement !== $("sash-mm")) $("sash-mm").value = s.mm;
-  $("sash-border").checked = !!raw.border;
+  const onPoint = isOnPoint(design);
+  $("sash-border").checked = onPoint || !!raw.border;
+  $("sash-border").disabled = onPoint;
+  $("sash-border").parentElement.title = onPoint ? "On point, the sashing always frames every block" : "";
   $("sash-cs").checked = s.cornerstones;
   $("sash-cs-box").hidden = !s.cornerstones;
   const box2 = $("sash-presets");
@@ -11057,7 +11237,7 @@ function zoneAt(x, y) {
   for (const sp of settingPieces(design, W, H))
     if (pointInPoly(x, y, sp.poly)) return { zone: "setting", zi: -1, zr: sp };
   for (const r of sashRects(design, W, H))
-    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { zone: "sash", zi: -1, zr: r };
+    if (pointInPoly(x, y, blockOutline(r))) return { zone: "sash", zi: -1, zr: r };
   return null;
 }
 function hoverLabel(g, txt, W) {
@@ -11090,7 +11270,7 @@ function drawHover() {
       g.rect(z.o, z.o, W2 - 2 * z.o, H - 2 * z.o);
       g.rect(z.o + z.t, z.o + z.t, W2 - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
     } else if (hover.zone === "setting") for (const sp of settingPieces(design, W2, H)) pathPolyInto(g, sp.poly);
-    else for (const r of sashRects(design, W2, H)) g.rect(r.x, r.y, r.w, r.h);
+    else for (const r of sashRects(design, W2, H)) pathPolyInto(g, blockOutline(r));
     g.fillStyle = "rgba(255,255,255,.26)";
     g.fill("evenodd");
     g.lineJoin = "round";
@@ -11106,7 +11286,10 @@ function drawHover() {
       } else if (hover.zone === "setting") {
         pathPoly(g, z.poly);
         g.stroke();
-      } else g.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2);
+      } else {
+        pathPoly(g, blockOutline(z));
+        g.stroke();
+      }
     }
     g.restore();
     const s = sashOf(design), b2 = hover.zone === "brd" ? bordersOf(design)[hover.zi] : null;

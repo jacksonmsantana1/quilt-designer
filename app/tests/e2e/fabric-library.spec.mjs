@@ -21,10 +21,13 @@ async function addPhotos(app, page, n) {
 }
 const photoId = (app, name) => app.storage((s, nm) => s.fabrics.list().find(f => f.name === nm).id, name);
 
-test('the short list: the basics, a few photos, and a tile for the rest', async ({ app, page }) => {
+test('the short list: the basics, a few photos, and a button for the rest', async ({ app, page }) => {
   await addPhotos(app, page, 70);
-  await expect(page.locator('#dz-fabrics2 > *')).toHaveCount(15 + 5 + 1); // the 5 newest photos fill in
-  await expect(page.locator('#dz-fabrics2 .fab-more')).toHaveText(/More fabrics \(65\)/);
+  // the 5 newest photos fill in; "More fabrics" is a round button outside the row
+  await expect(page.locator('#dz-fabrics2 > *')).toHaveCount(15 + 5);
+  await page.locator('#rail-parts').click(); // the Block parts card, where this list is
+  await page.locator('#dz-fabrics2').hover(); // the round button appears beside the card
+  await expect(page.locator('#fab-more-float')).toHaveAttribute('aria-label', 'More fabrics (65)');
 });
 
 test('the library finds a photo by name and puts it on the selected parts', async ({ app, page }) => {
@@ -32,7 +35,8 @@ test('the library finds a photo by name and puts it on the selected parts', asyn
   const c = await app.blockCentre(await app.current(), 0);
   await page.mouse.click(c.x, c.y);
   await page.locator('#dz-allparts').click();
-  await page.locator('#dz-fabrics2 .fab-more').click();
+  await page.locator('#dz-fabrics2').hover();
+  await page.locator('#fab-more-float').click();
   const lib = page.locator('#fablib');
   await expect(lib).toBeVisible();
   // 60 at a time, after the "Add fabric photo" tile
@@ -56,7 +60,8 @@ test('the library finds a photo by name and puts it on the selected parts', asyn
 test('the library also serves the other fabric choices (sashing here)', async ({ app, page }) => {
   await addPhotos(app, page, 12);
   await page.locator('#rail-sash').click();
-  await page.locator('#sash-fabs .fab-more').click();
+  await page.locator('#sash-fabs').hover();
+  await page.locator('#fab-more-float').click();
   await page.locator('#fablib-q').fill('photo 03');
   await page.locator('#fablib-grid button.fab').click();
   expect((await app.current()).sashing.fabric).toBe(await photoId(app, 'Test photo 03'));
@@ -66,7 +71,8 @@ test('the library also serves the other fabric choices (sashing here)', async ({
 test('a search with no match says so', async ({ app, page }) => {
   await app.open();
   await page.locator('#rail-parts').click();
-  await page.locator('#dz-fabrics2 .fab-more').click();
+  await page.locator('#dz-fabrics2').hover();
+  await page.locator('#fab-more-float').click();
   await page.locator('#fablib-q').fill('velvet');
   await expect(page.locator('#fablib-none')).toHaveText('No fabrics match “velvet”.');
   await page.keyboard.press('Escape'); // in a search box, the first Escape clears it

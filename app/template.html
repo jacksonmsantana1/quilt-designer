@@ -382,10 +382,25 @@
   .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .pats .pat:disabled { opacity: .4; cursor: not-allowed; } /* e.g. cornerstone blocks on narrow sashing */
-  .fabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  /* a fabric list is one row that scrolls sideways (the mouse wheel scrolls it too), with a round "More fabrics"
+     button just outside its card while the mouse is over it. The library window keeps its grid (.fablib-grid) */
+  .fabs { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
+  .fabs .fab { flex: 0 0 84px; scroll-snap-align: start; }
+  .fabs:not(.fablib-grid) .fab span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
   /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
   .fabs .fab-more { border-style: dashed; color: var(--muted); }
+  .fabs-row { display: flex; align-items: center; gap: 8px; }
+  .fabs-row > .fabs { flex: 1 1 auto; min-width: 0; }
+  .fab-more-btn { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent); background: var(--panel); color: var(--accent); display: grid; place-items: center; align-content: center; gap: 0; padding: 0; cursor: pointer; box-shadow: 0 2px 8px rgba(20,25,40,.18); }
+  .fab-more-btn:hover { background: var(--accent); color: var(--accent-ink); }
+  .fab-more-btn[hidden] { display: none; }
+  .fab-more-btn b { font-size: 1.3rem; line-height: 1; font-weight: 500; }
+  .fab-more-btn span { font-size: .68rem; line-height: 1.1; }
+  /* with a mouse: one floating button, just outside the card of the row the mouse is over (fabric-picker.js);
+     the button by each row is for touch screens, which have no hover */
+  .fab-more-float { position: fixed; z-index: 50; }
+  @media (hover: hover) { .fabs-row > .fab-more-btn { display: none; } }
   .fabs .fab-more b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 1.6rem; font-weight: 500; color: var(--accent); }
   /* a steady height, from near the top: the window doesn't jump about as the search narrows the list */
   .fablib { width: min(760px, calc(100vw - 32px)); height: min(860px, calc(100dvh - 48px)); margin-top: 24px; }
@@ -393,7 +408,8 @@
   .fablib-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .fablib-groups button { font: 500 .78rem var(--font-body); padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--ink); cursor: pointer; }
   .fablib-groups button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  .fabs.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .fabs.fablib-grid { display: grid; overflow: visible; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .fabs.fablib-grid .fab { flex: none; }
   .fablib-more { display: block; margin: 10px auto 0; }
   .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
@@ -415,8 +431,8 @@
   }
   @media (prefers-reduced-motion: reduce) { .flip-inner { transition: none; } .flipper.lift { animation: none; } }
   .dz-backbar { margin-bottom: 10px; }
-  .backfabs { display: flex; flex-wrap: wrap; justify-content: center; max-width: 860px; margin: 0 auto; }
-  .backfabs .fab { width: 74px; }
+  .backfabs { max-width: 860px; margin: 0 auto; }
+  .backfabs .fab { flex-basis: 74px; }
   .dz-backbar { text-align: center; max-width: 860px; margin-left: auto; margin-right: auto; }
   .blib { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
   .blib-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
@@ -533,7 +549,7 @@
     .toggles input { width: 20px; height: 20px; }
     .dz-toolbar { gap: 8px; }
     .dz-toolbar .btn { flex: 1 1 calc(50% - 8px); }
-    .pats, .fabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .fabs.fablib-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .dz-dialog { padding: 12px; width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
     details.model { padding: 12px; }

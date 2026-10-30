@@ -57,33 +57,136 @@ function shortListFabrics(selected) {
   return ids.map(id => byId.get(id)).filter(Boolean);
 }
 
-/** The last tile of a short list: opens the library for that list. @param {HTMLElement} box @param {number} shown */
-function moreTile(box, shown) {
+/**
+ * "More fabrics": a round button beside a short list (outside its row, so it never covers a fabric); it opens the
+ * library for that list. @param {HTMLElement} box @param {number} shown
+ */
+function moreButton(box, shown) {
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'fab fab-more';
-  const rest = listedFabrics().length - shown;
-  b.title = 'All fabrics: search, and add photos of your own';
-  const plus = document.createElement('b');
-  plus.textContent = rest > 0 ? '⋯' : '+';
-  plus.setAttribute('aria-hidden', 'true');
-  const s = document.createElement('span');
-  s.textContent = rest > 0 ? `More fabrics (${rest})` : 'Add a fabric photo';
-  b.append(plus, s);
-  // its own click: the list's handler (one fabric per button) must not see it
-  b.addEventListener('click', e => {
-    e.stopPropagation();
-    openLibrary(box);
-  });
+  b.className = 'fab-more-btn';
+  if (box.id) b.id = box.id + '-more';
+  const rest = listedFabrics().length - shown,
+    label = rest > 0 ? `More fabrics (${rest})` : 'Add a fabric photo';
+  b.title = `${label}: search all fabrics, and add photos of your own`;
+  b.setAttribute('aria-label', label);
+  const sign = document.createElement('b');
+  sign.textContent = rest > 0 ? '⋯' : '+';
+  sign.setAttribute('aria-hidden', 'true');
+  b.append(sign);
+  if (rest > 0) {
+    const n = document.createElement('span');
+    n.textContent = String(rest);
+    n.setAttribute('aria-hidden', 'true');
+    b.append(n);
+  }
+  b.addEventListener('click', () => openLibrary(box));
   return b;
 }
 
 /** Fills a short list. @param {HTMLElement} box @param {string | null} selected */
+// ---- the floating "More fabrics" button: one for the page, on the body so a scrolling panel can't clip it
+const float = {
+  el: /** @type {HTMLButtonElement | null} */ (null),
+  box: /** @type {HTMLElement | null} */ (null),
+  timer: 0,
+};
+function floatButton() {
+  if (float.el) return float.el;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'fab-more-btn fab-more-float';
+  b.id = 'fab-more-float';
+  b.hidden = true;
+  b.addEventListener('mouseenter', () => clearTimeout(float.timer)); // moving onto it keeps it
+  b.addEventListener('mouseleave', hideFloatSoon);
+  b.addEventListener('click', () => {
+    const box = float.box;
+    hideFloat();
+    if (box) openLibrary(box);
+  });
+  // a scroll (the row itself, its panel or the page): while the mouse is still on the row or the button, the
+  // button follows the row; otherwise it goes
+  addEventListener(
+    'scroll',
+    () => {
+      if (b.hidden || !float.box) return;
+      if (float.box.parentElement.matches(':hover') || b.matches(':hover')) showFloat(float.box);
+      else hideFloat();
+    },
+    true,
+  );
+  document.body.append(b);
+  return (float.el = b);
+}
+/** Shows the floating button for a list, just left of its card (or of the row, when it has no card). @param {HTMLElement} box */
+function showFloat(box) {
+  const inline = /** @type {HTMLElement | null} */ (box.parentElement.querySelector(':scope > .fab-more-btn'));
+  if (!inline || matchMedia('(hover: none)').matches) return;
+  const b = floatButton();
+  clearTimeout(float.timer);
+  float.box = box;
+  b.replaceChildren(...[...inline.childNodes].map(n => n.cloneNode(true)));
+  b.title = inline.title;
+  b.setAttribute('aria-label', inline.getAttribute('aria-label') || '');
+  const size = 52,
+    edge = /** @type {HTMLElement} */ (box.closest('.card') || box.parentElement).getBoundingClientRect(),
+    row = box.getBoundingClientRect();
+  let left = edge.left - size - 10;
+  if (left < 4) left = edge.right + 10; // no room on the left: the other side
+  b.style.left = left + 'px';
+  b.style.top = row.top + row.height / 2 - size / 2 + 'px';
+  b.hidden = false;
+}
+function hideFloat() {
+  clearTimeout(float.timer);
+  if (float.el) float.el.hidden = true;
+}
+function hideFloatSoon() {
+  clearTimeout(float.timer);
+  float.timer = setTimeout(hideFloat, 300); // time to move the mouse from the row onto it
+}
+
 function drawShortList(box, selected) {
   box.innerHTML = '';
   const fabs = shortListFabrics(selected);
   for (const f of fabs) box.appendChild(fabricTile(f, f.id === selected));
-  box.appendChild(moreTile(box, fabs.length));
+  // the round "More fabrics" button sits just left of the row: the row is wrapped once to hold the two side by side
+  let wrap = box.parentElement;
+  if (!wrap.classList.contains('fabs-row')) {
+    wrap = document.createElement('div');
+    wrap.className = 'fabs-row';
+    box.replaceWith(wrap);
+    wrap.append(box);
+  }
+  wrap.querySelector(':scope > .fab-more-btn')?.remove();
+  wrap.prepend(moreButton(box, fabs.length)); // on the left: shown there only on touch screens (no hover)
+  // with a mouse, one floating copy appears just outside the list's card while the mouse is over the row
+  if (!wrap.dataset.float) {
+    wrap.dataset.float = '1';
+    wrap.addEventListener('mouseenter', () => showFloat(box));
+    wrap.addEventListener('focusin', () => showFloat(box));
+    wrap.addEventListener('mouseleave', hideFloatSoon);
+  }
+  // the list is one row that scrolls sideways: the mouse wheel scrolls it too (once per list), but only while
+  // there is more to see that way, so the page still scrolls at either end
+  if (!box.dataset.roller) {
+    box.dataset.roller = '1';
+    box.addEventListener(
+      'wheel',
+      e => {
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || box.scrollWidth <= box.clientWidth) return;
+        const max = box.scrollWidth - box.clientWidth;
+        if ((e.deltaY < 0 && box.scrollLeft <= 0) || (e.deltaY > 0 && box.scrollLeft >= max - 1)) return;
+        e.preventDefault();
+        box.scrollLeft += e.deltaY;
+      },
+      { passive: false },
+    );
+  }
+  // and the chosen fabric is in view (drawn again after every change, which brings the row back to its start)
+  const on = /** @type {HTMLElement | null} */ (box.querySelector('.fab[aria-pressed="true"]'));
+  if (on && box.clientWidth) box.scrollLeft = Math.max(0, on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2);
 }
 
 // ---- the fabric library window
