@@ -6991,6 +6991,11 @@ var float = {
     /** @type {HTMLElement | null} */
     null
   ),
+  region: (
+    /** @type {HTMLElement | null} */
+    null
+  ),
+  // the part of the page that shows it while the mouse is over it
   timer: 0
 };
 function floatButton() {
@@ -7014,7 +7019,7 @@ function floatButton() {
     "scroll",
     () => {
       if (b.hidden || !float.box) return;
-      if (float.box.parentElement.matches(":hover") || b.matches(":hover")) showFloat(float.box);
+      if (float.region?.matches(":hover") || b.matches(":hover")) showFloat(float.box, float.region);
       else hideFloat();
     },
     true
@@ -7022,7 +7027,7 @@ function floatButton() {
   document.body.append(b);
   return float.el = b;
 }
-function showFloat(box2) {
+function showFloat(box2, region) {
   const inline = (
     /** @type {HTMLElement | null} */
     box2.parentElement.querySelector(":scope > .fab-more-btn")
@@ -7031,6 +7036,7 @@ function showFloat(box2) {
   const b = floatButton();
   clearTimeout(float.timer);
   float.box = box2;
+  float.region = region;
   b.replaceChildren(...[...inline.childNodes].map((n) => n.cloneNode(true)));
   b.title = inline.title;
   b.setAttribute("aria-label", inline.getAttribute("aria-label") || "");
@@ -7062,11 +7068,12 @@ function placeMoreButton(box2, button) {
   }
   wrap.querySelector(":scope > .fab-more-btn")?.remove();
   wrap.prepend(button);
-  if (!wrap.dataset.float) {
-    wrap.dataset.float = "1";
-    wrap.addEventListener("mouseenter", () => showFloat(box2));
-    wrap.addEventListener("focusin", () => showFloat(box2));
-    wrap.addEventListener("mouseleave", hideFloatSoon);
+  const parent = wrap.parentElement, lists = parent ? parent.querySelectorAll(".fabs:not(.fablib-grid), #dz-patterns").length : 0, region = parent && parent !== document.body && lists === 1 ? parent : wrap;
+  if (!region.dataset.float) {
+    region.dataset.float = "1";
+    region.addEventListener("mouseenter", () => showFloat(box2, region));
+    region.addEventListener("focusin", () => showFloat(box2, region));
+    region.addEventListener("mouseleave", hideFloatSoon);
   }
 }
 function drawShortList(box2, selected) {

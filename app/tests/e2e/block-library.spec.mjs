@@ -45,3 +45,26 @@ test('the library groups blocks by family', async ({ app, page }) => {
   await page.locator('#blklib-q').fill('velvet');
   await expect(page.locator('#blklib-none')).toHaveText('No blocks match “velvet”.');
 });
+
+test('the round button shows while the mouse is anywhere over the Fabrics or Block pattern section', async ({
+  app,
+  page,
+}) => {
+  await openBlock(app, page, 0);
+  const float = page.locator('#fab-more-float');
+  for (const [section, label] of [
+    ['#dz-fabbox', /^(More fabrics|Add a fabric photo)/], // (with no photos stored, it offers to add one)
+    ['#dz-patbox', /^More blocks/],
+  ]) {
+    // over the section's title, not its row of tiles
+    await page.locator(`${section} > p.fine`).first().hover();
+    await expect(float).toBeVisible();
+    await expect(float).toHaveAttribute('aria-label', label);
+    // still there over the row
+    await page.locator(`${section} .fabs-row`).hover();
+    await expect(float).toBeVisible();
+    // and gone once the mouse leaves the section
+    await page.mouse.move(5, 5);
+    await expect(float).toBeHidden();
+  }
+});

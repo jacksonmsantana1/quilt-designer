@@ -89,6 +89,7 @@ function moreButton(box, shown) {
 const float = {
   el: /** @type {HTMLButtonElement | null} */ (null),
   box: /** @type {HTMLElement | null} */ (null),
+  region: /** @type {HTMLElement | null} */ (null), // the part of the page that shows it while the mouse is over it
   timer: 0,
 };
 function floatButton() {
@@ -106,13 +107,13 @@ function floatButton() {
     hideFloat();
     inline?.click();
   });
-  // a scroll (the row itself, its panel or the page): while the mouse is still on the row or the button, the
-  // button follows the row; otherwise it goes
+  // a scroll (the row itself, its panel or the page): while the mouse is still over the list's section or the
+  // button, the button follows the row; otherwise it goes
   addEventListener(
     'scroll',
     () => {
       if (b.hidden || !float.box) return;
-      if (float.box.parentElement.matches(':hover') || b.matches(':hover')) showFloat(float.box);
+      if (float.region?.matches(':hover') || b.matches(':hover')) showFloat(float.box, float.region);
       else hideFloat();
     },
     true,
@@ -120,13 +121,17 @@ function floatButton() {
   document.body.append(b);
   return (float.el = b);
 }
-/** Shows the floating button for a list, just left of its card (or of the row, when it has no card). @param {HTMLElement} box */
-function showFloat(box) {
+/**
+ * Shows the floating button for a list, just left of its card (or of the row, when it has no card).
+ * @param {HTMLElement} box the row @param {HTMLElement} region the part of the page it belongs to
+ */
+function showFloat(box, region) {
   const inline = /** @type {HTMLElement | null} */ (box.parentElement.querySelector(':scope > .fab-more-btn'));
   if (!inline || matchMedia('(hover: none)').matches) return;
   const b = floatButton();
   clearTimeout(float.timer);
   float.box = box;
+  float.region = region;
   b.replaceChildren(...[...inline.childNodes].map(n => n.cloneNode(true)));
   b.title = inline.title;
   b.setAttribute('aria-label', inline.getAttribute('aria-label') || '');
@@ -150,7 +155,9 @@ function hideFloatSoon() {
 
 /**
  * Puts a row's round "More" button beside it (fabrics and blocks alike): just left of the row on touch screens;
- * with a mouse, a floating copy just outside the row's card while the mouse is over the row.
+ * with a mouse, a floating copy just outside the row's card while the mouse is anywhere over the list's section:
+ * the block holding its title and row ("Fabric for the selected parts", "Block pattern"), when that block holds just
+ * this one list; where a card has two lists (sashing and cornerstones), each its own row.
  * @param {HTMLElement} box the row @param {HTMLButtonElement} button
  */
 function placeMoreButton(box, button) {
@@ -164,11 +171,14 @@ function placeMoreButton(box, button) {
   }
   wrap.querySelector(':scope > .fab-more-btn')?.remove();
   wrap.prepend(button);
-  if (!wrap.dataset.float) {
-    wrap.dataset.float = '1';
-    wrap.addEventListener('mouseenter', () => showFloat(box));
-    wrap.addEventListener('focusin', () => showFloat(box));
-    wrap.addEventListener('mouseleave', hideFloatSoon);
+  const parent = wrap.parentElement,
+    lists = parent ? parent.querySelectorAll('.fabs:not(.fablib-grid), #dz-patterns').length : 0,
+    region = parent && parent !== document.body && lists === 1 ? parent : wrap;
+  if (!region.dataset.float) {
+    region.dataset.float = '1';
+    region.addEventListener('mouseenter', () => showFloat(box, region));
+    region.addEventListener('focusin', () => showFloat(box, region));
+    region.addEventListener('mouseleave', hideFloatSoon);
   }
 }
 
