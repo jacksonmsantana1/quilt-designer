@@ -68,3 +68,30 @@ test('the round button shows while the mouse is anywhere over the Fabrics or Blo
     await expect(float).toBeHidden();
   }
 });
+
+test('the round button stays while the mouse is over a section and the row or the page scrolls', async ({
+  app,
+  page,
+}) => {
+  await openBlock(app, page, 0);
+  const float = page.locator('#fab-more-float'),
+    row = page.locator('#dz-fabrics2');
+  await row.hover();
+  await expect(float).toBeVisible();
+  // the mouse wheel over the row scrolls it sideways
+  const before = await row.evaluate(e => e.scrollLeft);
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => row.evaluate(e => e.scrollLeft)).toBeGreaterThan(before);
+  await page.waitForTimeout(500); // longer than the button's goodbye delay
+  await expect(float).toBeVisible();
+  // the page (or the panel) scrolls under a still mouse: the button follows the row while the mouse is still over it
+  await page.evaluate(() => {
+    const side = document.getElementById('dz-side');
+    (side.scrollHeight > side.clientHeight ? side : document.scrollingElement).scrollBy(0, 20);
+  });
+  await page.waitForTimeout(500);
+  await expect(float).toBeVisible();
+  const top = (await float.boundingBox()).y + 26,
+    r = await row.boundingBox();
+  expect(Math.abs(top - (r.y + r.height / 2))).toBeLessThan(3); // beside the row where it now is
+});

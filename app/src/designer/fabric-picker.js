@@ -107,20 +107,40 @@ function floatButton() {
     hideFloat();
     inline?.click();
   });
-  // a scroll (the row itself, its panel or the page): while the mouse is still over the list's section or the
-  // button, the button follows the row; otherwise it goes
-  addEventListener(
-    'scroll',
-    () => {
-      if (b.hidden || !float.box) return;
-      if (float.region?.matches(':hover') || b.matches(':hover')) showFloat(float.box, float.region);
-      else hideFloat();
-    },
-    true,
-  );
   document.body.append(b);
   return (float.el = b);
 }
+// Where the mouse is, kept here: after a scroll the browser doesn't update which element is "hovered" until the
+// mouse moves again, so asking it then said "not over the list", hid the button, and it stayed hidden.
+const pointer = { x: -1, y: -1 };
+addEventListener(
+  'mousemove',
+  e => {
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
+  },
+  { passive: true },
+);
+/** Each list's section (the part of the page that shows its button), with its row. */
+const sectionRow = new WeakMap();
+// a scroll (a row sideways, its panel or the page): the section now under the mouse shows its button, beside its
+// row where the row has moved to; with none under it (and the mouse not on the button) the button goes
+addEventListener(
+  'scroll',
+  () => {
+    if (pointer.x < 0 || matchMedia('(hover: none)').matches) return;
+    const el = document.elementFromPoint(pointer.x, pointer.y);
+    if (float.el && !float.el.hidden && el && float.el.contains(el)) {
+      if (float.box) showFloat(float.box, float.region);
+      return;
+    }
+    const region = el ? el.closest('[data-float]') : null;
+    if (region && sectionRow.has(region)) showFloat(sectionRow.get(region), region);
+    else hideFloat();
+  },
+  true,
+);
+
 /**
  * Shows the floating button for a list, just left of its card (or of the row, when it has no card).
  * @param {HTMLElement} box the row @param {HTMLElement} region the part of the page it belongs to
@@ -176,6 +196,7 @@ function placeMoreButton(box, button) {
     region = parent && parent !== document.body && lists === 1 ? parent : wrap;
   if (!region.dataset.float) {
     region.dataset.float = '1';
+    sectionRow.set(region, box);
     region.addEventListener('mouseenter', () => showFloat(box, region));
     region.addEventListener('focusin', () => showFloat(box, region));
     region.addEventListener('mouseleave', hideFloatSoon);

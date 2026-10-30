@@ -7015,18 +7015,34 @@ function floatButton() {
     hideFloat();
     inline?.click();
   });
-  addEventListener(
-    "scroll",
-    () => {
-      if (b.hidden || !float.box) return;
-      if (float.region?.matches(":hover") || b.matches(":hover")) showFloat(float.box, float.region);
-      else hideFloat();
-    },
-    true
-  );
   document.body.append(b);
   return float.el = b;
 }
+var pointer = { x: -1, y: -1 };
+addEventListener(
+  "mousemove",
+  (e) => {
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
+  },
+  { passive: true }
+);
+var sectionRow = /* @__PURE__ */ new WeakMap();
+addEventListener(
+  "scroll",
+  () => {
+    if (pointer.x < 0 || matchMedia("(hover: none)").matches) return;
+    const el = document.elementFromPoint(pointer.x, pointer.y);
+    if (float.el && !float.el.hidden && el && float.el.contains(el)) {
+      if (float.box) showFloat(float.box, float.region);
+      return;
+    }
+    const region = el ? el.closest("[data-float]") : null;
+    if (region && sectionRow.has(region)) showFloat(sectionRow.get(region), region);
+    else hideFloat();
+  },
+  true
+);
 function showFloat(box2, region) {
   const inline = (
     /** @type {HTMLElement | null} */
@@ -7071,6 +7087,7 @@ function placeMoreButton(box2, button) {
   const parent = wrap.parentElement, lists = parent ? parent.querySelectorAll(".fabs:not(.fablib-grid), #dz-patterns").length : 0, region = parent && parent !== document.body && lists === 1 ? parent : wrap;
   if (!region.dataset.float) {
     region.dataset.float = "1";
+    sectionRow.set(region, box2);
     region.addEventListener("mouseenter", () => showFloat(box2, region));
     region.addEventListener("focusin", () => showFloat(box2, region));
     region.addEventListener("mouseleave", hideFloatSoon);
