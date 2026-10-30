@@ -12,7 +12,7 @@ import {
   setRenderT0,
 } from './sim-state.js';
 import { $ } from '../core/dom.js';
-import { PARAMS, PRESETS, SUBSTEPS, bedM, bedState, isTableSim, quilt, state } from './config.js';
+import { PARAMS, PRESETS, SUBSTEPS, bedM, bedState, isBedSim, isTableSim, quilt, state } from './config.js';
 import { dropPosM, send } from './worker-link.js';
 import { camera, canvas, renderer, scene, sun } from './renderer.js';
 import { colliderMeshes } from './stage.js';
@@ -151,12 +151,12 @@ const alongZ = () => bedState.l >= bedState.w;
 // (starting over the headboard would make it drape on both sides of the board)
 function dropMin() {
   const L = Math.max(bedState.w, bedState.l);
-  if (isTableSim() || !alongZ()) return -Math.round(L / 2);
+  if (!isBedSim() || !alongZ()) return -Math.round(L / 2);
   const len = (quiltTurned ? quilt.w : quilt.l) * 1000;
   return Math.round(-bedState.l / 2 + 20 + len / 2);
 }
 function defaultDropPos() {
-  if (isTableSim() || !alongZ()) return 0;
+  if (!isBedSim() || !alongZ()) return 0;
   const len = (quiltTurned ? quilt.w : quilt.l) * 1000;
   return Math.round(-bedState.l / 2 + 70 + len / 2); // head edge of the quilt 7 cm from the head of the bed
 }

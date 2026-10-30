@@ -70,6 +70,16 @@ const M = {
     sheenRoughness: 0.5,
     sheenColor: new THREE.Color(0.4, 0.4, 0.4),
   }),
+  // the couch's upholstery: a warm grey linen, plain so it doesn't fight the quilt
+  couch: new THREE.MeshPhysicalMaterial({
+    map: weaveMap([10, 6]),
+    normalMap: weaveNormal([10, 6]),
+    color: 0x9a948b,
+    roughness: 0.97,
+    sheen: 1,
+    sheenRoughness: 0.7,
+    sheenColor: new THREE.Color(0.3, 0.29, 0.27),
+  }),
   wall: new THREE.MeshStandardMaterial({ color: 0xd8d0c3, roughness: 0.96 }),
   rug: new THREE.MeshPhysicalMaterial({
     map: weaveMap([8, 6]),

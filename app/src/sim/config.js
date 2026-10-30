@@ -1,4 +1,4 @@
-// Simulation settings: quilt size, beds and tables, fabric presets and physical parameters.
+// Simulation settings: quilt size, beds, tables and couches, fabric presets and physical parameters.
 import '../storage/boot.js'; // load order: runs after storage/boot
 
 const N = 40; // simulation grid (N × N nodes)
@@ -25,6 +25,10 @@ const BEDS = [
   { key: 'tb-rect6', group: 'Tables', kind: 'table', label: 'Rectangular table, 6 seats', w: 900, l: 1800, h: 750 },
   { key: 'tb-rect8', group: 'Tables', kind: 'table', label: 'Rectangular table, 8 seats', w: 1000, l: 2400, h: 750 },
   { key: 'tb-coffee', group: 'Tables', kind: 'table', label: 'Coffee table', w: 600, l: 1200, h: 450 },
+  // couches (width × depth, mm; seat 450 mm, back 850 mm high): the long side runs across, the back away from you
+  { key: 'co-armchair', group: 'Couches', kind: 'couch', label: 'Armchair', w: 950, l: 900, seats: 1 },
+  { key: 'co-loveseat', group: 'Couches', kind: 'couch', label: 'Loveseat, 2 seats', w: 1500, l: 900, seats: 2 },
+  { key: 'co-sofa', group: 'Couches', kind: 'couch', label: 'Sofa, 3 seats', w: 2100, l: 900, seats: 3 },
 ];
 const BED_KEY = 'quilt-bed.v1';
 const bedState = { key: 'us-queen', kind: 'bed', w: 1525, l: 2030, h: 750, drop: 300, tuck: true };
@@ -32,19 +36,26 @@ try {
   Object.assign(bedState, JSON.parse(localStorage.getItem(BED_KEY) || '{}'));
 } catch (e) {}
 const isTableSim = () => bedState.kind === 'table';
+const isCouchSim = () => bedState.kind === 'couch';
+/** A bed (not a table or a couch): pillows, a head end, the quilt tucked under the pillows. */
+const isBedSim = () => !isTableSim() && !isCouchSim();
 const bedM = () =>
   isTableSim()
     ? { kind: 'table', w: bedState.w / 1000, l: bedState.l / 1000, h: bedState.h / 1000 }
-    : { w: bedState.w / 1000, l: bedState.l / 1000 };
+    : isCouchSim()
+      ? { kind: 'couch', w: bedState.w / 1000, l: bedState.l / 1000, seats: bedState.seats || 3 }
+      : { w: bedState.w / 1000, l: bedState.l / 1000 };
 const bedName = () => {
   const b = BEDS.find(x => x.key === bedState.key);
   return b
-    ? b.kind === 'table'
+    ? b.kind === 'table' || b.kind === 'couch'
       ? b.label.toLowerCase()
       : `${b.group === 'Brazil' ? 'Brazilian' : 'US'} ${b.label.toLowerCase()} bed`
     : isTableSim()
       ? 'custom table'
-      : 'custom bed';
+      : isCouchSim()
+        ? 'custom couch'
+        : 'custom bed';
 };
 const WOOD_PARTS = n => n === 'frame' || n === 'headboard' || n === 'tabletop' || n.startsWith('leg');
 
@@ -119,6 +130,8 @@ export {
   bedM,
   bedName,
   bedState,
+  isBedSim,
+  isCouchSim,
   isTableSim,
   quilt,
   state,

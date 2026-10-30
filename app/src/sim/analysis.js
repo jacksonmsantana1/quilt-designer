@@ -3,7 +3,7 @@ import './camera.js'; // load order: runs after sim/camera
 import * as THREE from 'three';
 import { colliders, havePos, setColliders } from './sim-state.js';
 import { $ } from '../core/dom.js';
-import { N, R, WOOD_PARTS, bedM, isTableSim, quilt, state } from './config.js';
+import { N, R, WOOD_PARTS, bedM, isBedSim, quilt, state } from './config.js';
 import { scene } from './renderer.js';
 import { colliderMeshes, legs, roundedBoxGeometry } from './stage.js';
 import { applyLook } from './lighting.js';
@@ -15,7 +15,7 @@ import { qGeo, quiltBind, quiltBot, quiltTop, simPos, subdivide } from './quilt-
 // on the quilt, the simulation mesh overlaid, a neutral grey workspace with
 // outlined parts and a floor grid, and drape measurements.
 
-const MAT = { top: ClothSim.surfaceTop(bedM()), headFace: isTableSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055 };
+const MAT = { top: ClothSim.surfaceTop(bedM()), headFace: !isBedSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055 };
 const FIELDS = {
   strain: {
     label: 'Membrane strain',

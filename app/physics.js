@@ -456,18 +456,17 @@ const ClothSim = (function () {
     // The cloth as drawn. A sharp edge (a table top is only 4 cm thick) pokes through a stretch of cloth whose two
     // ends both keep clear of it: with nodes ~6 cm apart, the wood showed through the quilt all round the table.
     // So for drawing (not for the physics: pushing the cloth there made it bounce and never settle), the points a
-    // quarter, half and three quarters along each edge of the cloth that touches the bed or table keep clear of
-    // its sharp parts: the deepest pushes both ends out, each in proportion to how near it is. Only sharp parts:
-    // one rounded over more than half the cloth's spacing (mattress, pillows) can't be cut by a straight stretch.
+    // quarter, half and three quarters along each edge of the cloth that touches the bed, table or couch keep clear of
+    // it (all its parts: even a soft cushion edge is cut a little by a 6 cm stretch): the deepest pushes both ends
+    // out, each in proportion to how near it is.
     drawnPositions() {
       const { pos, invMass: w, colliders, inContact, cA, cB, params: P } = this;
       const x = new Float32Array(pos),
         r = P.thickness / 2,
         n = this._n,
         p = [0, 0, 0],
-        spacing = Math.min(this.hx, this.hy),
-        sharp = colliders.filter(b => b.enabled && b.r <= 0.5 * spacing);
-      if (!sharp.length) return x;
+        parts = colliders.filter(b => b.enabled);
+      if (!parts.length) return x;
       for (let pass = 0; pass < 2; pass++)
         for (let e = 0; e < cA.length; e++) {
           const ia = cA[e], ib = cB[e];
@@ -475,7 +474,7 @@ const ClothSim = (function () {
           const wa = w[ia] ? 1 : 0, wb = w[ib] ? 1 : 0; // a held point stays where it is held
           if (!wa && !wb) continue;
           const a = 3 * ia, b = 3 * ib;
-          for (const box of sharp) {
+          for (const box of parts) {
             // both ends over the same flat face (not near an edge or corner): the cloth between them can't cut in
             const fa = faceOf(x, a, box), fb = faceOf(x, b, box);
             if (fa >= 0 && fa === fb) continue;
@@ -564,12 +563,36 @@ const ClothSim = (function () {
       out.push({ name: 'leg' + n, c: [sx * ix, lh, sz * iz], h: [0.03, lh, 0.03], r: 0.004, muScale: 0.75, enabled: true });
     return out;
   }
+  // A couch, its long side across (x) and its back at −z (where a bed's headboard is), its seat facing +z: a base on
+  // short legs, one seat cushion per seat between two arms, and a back cushion the full width. Soft rounded
+  // edges (5–6 cm) on everything the quilt lies on, so a straight stretch of cloth can't cut through them.
+  const COUCH = { seat: 0.45, back: 0.85, arm: 0.62, base: 0.33, legs: 0.1, backDepth: 0.2 };
+  function couchColliders(t) {
+    const W = t.w / 2, D = t.l / 2, k = COUCH, aw = t.w < 1.2 ? 0.15 : 0.18, seats = Math.max(1, t.seats || 3);
+    const out = [
+      { name: 'couchbase', c: [0, (k.legs + k.base) / 2, 0], h: [W, (k.base - k.legs) / 2, D], r: 0.02, muScale: 0.9, enabled: true },
+      { name: 'couchback', c: [0, (k.base + k.back) / 2, -D + k.backDepth / 2], h: [W, (k.back - k.base) / 2, k.backDepth / 2], r: 0.05, muScale: 0.9, enabled: true },
+    ];
+    for (const [sx, n] of [[-1, 'L'], [1, 'R']])
+      out.push({ name: 'couchArm' + n, c: [sx * (W - aw / 2), (k.base + k.arm) / 2, k.backDepth / 2],
+        h: [aw / 2, (k.arm - k.base) / 2, D - k.backDepth / 2], r: 0.06, muScale: 0.9, enabled: true });
+    // the seat cushions side by side between the arms
+    const inner = W - aw, sw = (2 * inner) / seats;
+    for (let i = 0; i < seats; i++)
+      out.push({ name: 'couchSeat' + i, c: [-inner + sw * (i + 0.5), (k.base + k.seat) / 2, k.backDepth / 2],
+        h: [sw / 2, (k.seat - k.base) / 2, D - k.backDepth / 2], r: 0.05, muScale: 0.9, enabled: true });
+    for (const [sx, sz, n] of [[-1, -1, 0], [1, -1, 1], [-1, 1, 2], [1, 1, 3]])
+      out.push({ name: 'leg' + n, c: [sx * (W - 0.06), k.legs / 2, sz * (D - 0.06)], h: [0.025, k.legs / 2, 0.025], r: 0.004, muScale: 0.75, enabled: true });
+    return out;
+  }
+  const isCouch = bed => !!bed && bed.kind === 'couch';
   const isTable = bed => !!bed && bed.kind === 'table';
   // height of the surface the quilt is laid on, and where along z the quilt's centre starts
-  const surfaceTop = bed => isTable(bed) ? (bed.h || 0.75) : MATTRESS_TOP;
-  const startZ = (bed, length) => isTable(bed) ? 0 : -bed.l / 2 + 0.07 + length / 2;
+  const surfaceTop = bed => isCouch(bed) ? COUCH.back : isTable(bed) ? (bed.h || 0.75) : MATTRESS_TOP;
+  const startZ = (bed, length) => isTable(bed) || isCouch(bed) ? 0 : -bed.l / 2 + 0.07 + length / 2;
   function bedColliders(bed = DEFAULT_BED) {
     if (isTable(bed)) return tableColliders(bed);
+    if (isCouch(bed)) return couchColliders(bed);
     const W = bed.w / 2, L = bed.l / 2;
     const single = bed.w < 1.2, pw = single ? Math.min(0.33, W - 0.06) : Math.min(0.33, (W - 0.07) / 2);
     const px = single ? 0 : Math.min(0.36, W - 0.04 - pw), pz = -L + 0.295;
@@ -663,7 +686,7 @@ const ClothSim = (function () {
         if (this.bed.w > this.bed.l) xc = this.pos;
         // on a bed the quilt may not start over the headboard: its head edge stays at or past the head of the mattress,
         // otherwise its first layout would cut through the board and the cloth would drape on both sides of it
-        else zc = isTable(this.bed) ? this.pos : Math.max(this.pos, -this.bed.l / 2 + 0.02 + (turn ? c.width : c.length) / 2);
+        else zc = isTable(this.bed) || isCouch(this.bed) ? this.pos : Math.max(this.pos, -this.bed.l / 2 + 0.02 + (turn ? c.width : c.length) / 2);
       }
       c.layFlat(xc, surfaceTop(this.bed) + h, zc);
       if (turn) {
@@ -822,6 +845,6 @@ const ClothSim = (function () {
     }
   }
 
-  return { Cloth, SimController, SCENARIOS, bedColliders, DEFAULT_BED, roundedBoxSDF, serve, GRAV, RHO_AIR, MATTRESS_TOP, surfaceTop };
+  return { Cloth, SimController, SCENARIOS, bedColliders, DEFAULT_BED, roundedBoxSDF, serve, GRAV, RHO_AIR, MATTRESS_TOP, COUCH, surfaceTop };
 })();
 if (typeof module !== 'undefined') module.exports = ClothSim;

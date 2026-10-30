@@ -1,9 +1,9 @@
-// Bed and table choice, overhang readout and quilt-size suggestions.
+// Bed, table and couch choice, overhang readout and quilt-size suggestions.
 import './design-maps.js'; // load order: runs after sim/design-maps
 import { setColliders, setDropPos } from './sim-state.js';
 import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
-import { BEDS, BED_KEY, bedM, bedName, bedState, isTableSim, quilt } from './config.js';
+import { BEDS, BED_KEY, bedM, bedName, bedState, isBedSim, isCouchSim, isTableSim, quilt } from './config.js';
 import { send } from './worker-link.js';
 import { buildBedMeshes, colliderMeshes } from './stage.js';
 import { placeCamera, target } from './camera.js';
@@ -17,7 +17,7 @@ import { setBlockMm } from '../core/edits.js';
 // textures are recreated at the new size, and the physics rebuilds the cloth.
 function updateIntro() {
   $('intro').textContent =
-    `A ${quilt.w.toFixed(2)} × ${quilt.l.toFixed(2)} m quilt meeting a ${bedName()} (${isTableSim() ? `${bedState.w} × ${bedState.l} mm top, ${bedState.h} mm high` : `${bedState.w} × ${bedState.l} mm mattress`}). Every motion comes from the physics: gravity, fabric elasticity and bending, air drag, and Coulomb friction, in SI units.`;
+    `A ${quilt.w.toFixed(2)} × ${quilt.l.toFixed(2)} m quilt meeting a ${bedName()} (${isTableSim() ? `${bedState.w} × ${bedState.l} mm top, ${bedState.h} mm high` : isCouchSim() ? `${bedState.w} mm wide, ${bedState.l} mm deep` : `${bedState.w} × ${bedState.l} mm mattress`}). Every motion comes from the physics: gravity, fabric elasticity and bending, air drag, and Coulomb friction, in SI units.`;
 }
 function saveBed() {
   try {
@@ -28,24 +28,31 @@ function saveBed() {
 function overhang() {
   const W = quilt.w * 1000,
     L = quilt.l * 1000;
-  if (isTableSim()) return { side: Math.round((W - bedState.w) / 2), foot: Math.round((L - bedState.l) / 2) };
+  if (!isBedSim()) return { side: Math.round((W - bedState.w) / 2), foot: Math.round((L - bedState.l) / 2) };
   return { side: Math.round((W - bedState.w) / 2), foot: Math.round(L - 70 - bedState.l) };
 }
 function updateFitReadout() {
   const o = overhang(),
     say = v => (v >= 0 ? `${v} mm` : `${-v} mm short`);
-  const t = isTableSim()
-    ? `Quilt ${Math.round(quilt.w * 1000)} × ${Math.round(quilt.l * 1000)} mm on a ${bedState.w} × ${bedState.l} mm table, ${bedState.h} mm high: hangs ${say(o.side)} over each side and ${say(o.foot)} over each end.`
-    : `Quilt ${Math.round(quilt.w * 1000)} × ${Math.round(quilt.l * 1000)} mm on a ${bedState.w} × ${bedState.l} mm mattress: hangs ${say(o.side)} over each side and ${say(o.foot)} past the foot.`;
+  const t = isCouchSim()
+    ? `Quilt ${Math.round(quilt.w * 1000)} × ${Math.round(quilt.l * 1000)} mm over a couch ${bedState.w} mm wide and ${bedState.l} mm deep.`
+    : isTableSim()
+      ? `Quilt ${Math.round(quilt.w * 1000)} × ${Math.round(quilt.l * 1000)} mm on a ${bedState.w} × ${bedState.l} mm table, ${bedState.h} mm high: hangs ${say(o.side)} over each side and ${say(o.foot)} over each end.`
+      : `Quilt ${Math.round(quilt.w * 1000)} × ${Math.round(quilt.l * 1000)} mm on a ${bedState.w} × ${bedState.l} mm mattress: hangs ${say(o.side)} over each side and ${say(o.foot)} past the foot.`;
   if ($('bed-fit')) $('bed-fit').textContent = t;
   if ($('fit-now')) $('fit-now').textContent = 'In the simulation now: ' + t.charAt(0).toLowerCase() + t.slice(1);
 }
-function setBed(key, w, l, h) {
+/** A couch's seats fit when each cushion is at least 40 cm wide between the arms (18 cm each). */
+const couchFits = (w, seats) => seats >= 1 && seats <= 5 && (w - 360) / seats >= 400;
+function setBed(key, w, l, h, seats) {
   const b = BEDS.find(x => x.key === key);
-  bedState.key = b ? key : key === 'custom-table' ? 'custom-table' : 'custom';
-  bedState.kind = b ? b.kind || 'bed' : key === 'custom-table' ? 'table' : 'bed';
+  const custom = { 'custom-table': 'table', 'custom-couch': 'couch' };
+  bedState.key = b ? key : key in custom ? key : 'custom';
+  bedState.kind = b ? b.kind || 'bed' : custom[key] || 'bed';
+  if (!b && seats) bedState.seats = Math.round(seats);
   bedState.w = b ? b.w : Math.round(w);
   bedState.l = b ? b.l : Math.round(l);
+  if (b && b.seats) bedState.seats = b.seats;
   if (b && b.h) bedState.h = b.h;
   else if (h) bedState.h = Math.round(h);
   saveBed();
@@ -54,13 +61,13 @@ function setBed(key, w, l, h) {
   buildBedExtras();
   setColliders(ClothSim.bedColliders(bedM()));
   MAT.top = ClothSim.surfaceTop(bedM());
-  MAT.headFace = isTableSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055;
+  MAT.headFace = !isBedSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055;
   const pil = $('pillows').checked;
   if (colliderMeshes.pillowL) {
     colliderMeshes.pillowL.visible = pil;
     colliderMeshes.pillowR.visible = pil && !colliderMeshes.pillowR.userData.dup;
   }
-  if ($('pillows').closest('label')) $('pillows').closest('label').hidden = isTableSim();
+  if ($('pillows').closest('label')) $('pillows').closest('label').hidden = !isBedSim();
   target.y = isTableSim() ? Math.max(0.3, bedM().h - 0.1) : 0.5;
   placeCamera();
   if (analysis.on) setEngineering(true);
@@ -75,17 +82,23 @@ function setBed(key, w, l, h) {
 }
 function syncBedUI() {
   const known = BEDS.some(b => b.key === bedState.key),
-    ck = isTableSim() ? 'custom-table' : 'custom';
+    ck = isTableSim() ? 'custom-table' : isCouchSim() ? 'custom-couch' : 'custom';
   for (const id of ['bedsel', 'fit-bed']) {
     const s = $(id);
     if (s) s.value = known ? bedState.key : id === 'fit-bed' ? 'custom' : ck;
   }
-  for (const id of ['bed-custom', 'fit-custom']) if ($(id)) $(id).hidden = known || isTableSim();
+  for (const id of ['bed-custom', 'fit-custom']) if ($(id)) $(id).hidden = known || !isBedSim();
   if ($('table-custom')) {
     $('table-custom').hidden = known || !isTableSim();
     $('tbl-w').value = bedState.w;
     $('tbl-l').value = bedState.l;
     $('tbl-h').value = bedState.h;
+  }
+  if ($('couch-custom')) {
+    $('couch-custom').hidden = known || !isCouchSim();
+    $('cch-w').value = bedState.w;
+    $('cch-l').value = bedState.l;
+    $('cch-s').value = bedState.seats || 3;
   }
   for (const [w, l] of [
     ['bed-w', 'bed-l'],
@@ -100,9 +113,9 @@ function syncBedUI() {
 }
 function fillBedSelect(sel, withTables = true) {
   sel.innerHTML = '';
-  for (const g of withTables ? ['Brazil', 'United States', 'Tables'] : ['Brazil', 'United States']) {
+  for (const g of withTables ? ['Brazil', 'United States', 'Tables', 'Couches'] : ['Brazil', 'United States']) {
     const og = document.createElement('optgroup');
-    og.label = g === 'Tables' ? 'Tables' : `Beds · ${g}`;
+    og.label = g === 'Tables' || g === 'Couches' ? g : `Beds · ${g}`;
     for (const b of BEDS.filter(x => x.group === g))
       og.appendChild(
         new Option(`${b.label} · ${b.w} × ${b.l} mm${b.kind === 'table' ? ` · ${b.h} mm high` : ''}`, b.key),
@@ -110,7 +123,10 @@ function fillBedSelect(sel, withTables = true) {
     sel.appendChild(og);
   }
   sel.appendChild(new Option('Custom bed size…', 'custom'));
-  if (withTables) sel.appendChild(new Option('Custom table…', 'custom-table'));
+  if (withTables) {
+    sel.appendChild(new Option('Custom table…', 'custom-table'));
+    sel.appendChild(new Option('Custom couch…', 'custom-couch'));
+  }
 }
 // Target quilt size for the bed: mattress + drop on both sides and at the foot (+ 250 mm pillow tuck).
 const TUCK = 250;
@@ -193,11 +209,18 @@ function initBedUI() {
   fillBedSelect($('fit-bed'), false);
   const onSel = e => {
     if (e.target.value === 'custom') {
-      if (isTableSim()) setBed('custom', 1525, 2030);
+      if (!isBedSim())
+        setBed('custom', 1525, 2030); // from a table or couch: a queen-size custom bed to start from
       else {
         bedState.key = 'custom';
         syncBedUI();
       }
+      return;
+    }
+    if (e.target.value === 'custom-couch') {
+      // starts from the couch shown, or a 3-seat sofa
+      const c = isCouchSim();
+      setBed('custom-couch', c ? bedState.w : 2100, c ? bedState.l : 900, undefined, c ? bedState.seats || 3 : 3);
       return;
     }
     if (e.target.value === 'custom-table') {
@@ -214,6 +237,14 @@ function initBedUI() {
     else syncBedUI();
   };
   for (const id of ['tbl-w', 'tbl-l', 'tbl-h']) $(id).addEventListener('change', onTable);
+  const onCouch = () => {
+    const w = +$('cch-w').value,
+      l = +$('cch-l').value,
+      s = Math.round(+$('cch-s').value);
+    if (w >= 800 && w <= 3500 && l >= 700 && l <= 1200 && couchFits(w, s)) setBed('custom-couch', w, l, undefined, s);
+    else syncBedUI(); // back to the couch shown (too many seats for the width, or a size out of range)
+  };
+  for (const id of ['cch-w', 'cch-l', 'cch-s']) $(id).addEventListener('change', onCouch);
   $('bedsel').addEventListener('change', onSel);
   $('fit-bed').addEventListener('change', onSel);
   const onCustom = (wi, li) => () => {
