@@ -2,6 +2,7 @@
 import '../sim/quilt-size.js'; // load order: runs after sim/quilt-size
 import { design } from '../core/store.js';
 import {
+  blockOutline,
   blockPlace,
   cellCount,
   pathPoly,
@@ -77,7 +78,10 @@ function drawQuiltingLines(g, W, H, kind) {
 }
 function strokeSeams(g, W, H) {
   const d = design;
-  for (const rc of sashRects(d, W, H)) g.strokeRect(rc.x, rc.y, rc.w, rc.h);
+  for (const rc of sashRects(d, W, H)) {
+    pathPoly(g, blockOutline(rc)); // (turned on point)
+    g.stroke();
+  }
   for (const sp of settingPieces(d, W, H)) {
     pathPoly(g, sp.poly);
     g.stroke();

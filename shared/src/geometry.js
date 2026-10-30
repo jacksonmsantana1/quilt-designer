@@ -33,15 +33,15 @@ const CORNER_PATTERNS = ['four', 'nine', 'hst', 'hourglass', 'sqsq', 'pinwheel',
  */
 const sashOf = d => {
   const s = d && d.sashing;
-  if (!(s && s.mm > 0) || isOnPoint(d))
-    // (on point has no sashing yet: it stays saved, unused)
+  if (!(s && s.mm > 0))
     return { mm: 0, fabric: 'b0', corner: 'b0', border: false, cornerstones: true, cornerBlock: null };
   const cornerstones = s.cornerstones !== false;
   return {
     mm: s.mm,
     fabric: s.fabric || 'b0',
     corner: s.corner || s.fabric || 'b0',
-    border: !!s.border,
+    border: isOnPoint(d) || !!s.border, // on point the sashing always frames every block, outer ones too
+
     cornerstones,
     cornerBlock: cornerstones && s.mm >= CORNER_BLOCK_MIN_MM && s.cornerBlock ? s.cornerBlock : null,
   };
@@ -57,9 +57,16 @@ const cellCount = d => d.cols * d.rows + (isOnPoint(d) ? (d.cols - 1) * (d.rows 
 // the centre (blocks + sashing), before any borders
 /** Size of the centre (blocks + sashing), before borders. @param {Design} d @returns {{ W: number, H: number }} */
 function centreMm(d) {
-  // on point each column and row is one block diagonal wide: not a whole number of mm, so where a size is
-  // shown it is rounded there (rounding here would make the blocks very slightly out of square)
-  if (isOnPoint(d)) return { W: d.cols * d.blockMm * Math.SQRT2, H: d.rows * d.blockMm * Math.SQRT2 };
+  // on point it is the straight size with sashing all round, turned: √2 × (n blocks + n+1 strips) each way.
+  // Not a whole number of mm, so where a size is shown it is rounded there (rounding here would make the blocks
+  // very slightly out of square)
+  if (isOnPoint(d)) {
+    const s = sashOf(d).mm;
+    return {
+      W: Math.SQRT2 * (d.cols * (d.blockMm + s) + s),
+      H: Math.SQRT2 * (d.rows * (d.blockMm + s) + s),
+    };
+  }
   const s = sashOf(d),
     e = s.border ? 2 : 0;
   return { W: d.cols * d.blockMm + s.mm * (d.cols - 1 + e), H: d.rows * d.blockMm + s.mm * (d.rows - 1 + e) };
@@ -227,26 +234,48 @@ function blockAt(d, x, y, W, H) {
  */
 function blockPlace(d, i, W, H) {
   if (!isOnPoint(d)) return { ...blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H), turn: 0 };
-  const q = quiltMm(d),
-    cm = centreMm(d),
+  const f = turnedFrame(d, W, H),
+    [u, v] = f.cell(i);
+  return f.place(u * f.p + f.s, v * f.p + f.s, d.blockMm, d.blockMm);
+}
+/**
+ * On point, worked out in the turned frame: there the blocks stand on a straight grid, (u, v) along a block's top
+ * and left edges, each block in a cell of block + sashing, with sashing all round like a straight quilt with its
+ * outside strips. Block (c, r) is grid square (c + r, r − c); the one between (c, r) and (c + 1, r + 1) is
+ * (c + r + 1, r − c). `place` turns a rectangle of that frame (mm) into a Place on the W × H drawing.
+ * @param {Design} d @param {number} W @param {number} H
+ */
+function turnedFrame(d, W, H) {
+  const s = sashOf(d).mm,
+    p = d.blockMm + s,
+    q = quiltMm(d),
     bt = borderTotal(d),
     kx = W / q.W,
     ky = H / q.H,
-    dx = cm.W / d.cols, // one block diagonal across, and down
-    dy = cm.H / d.rows,
+    m = (d.blockMm / 2 + s) * Math.SQRT2, // the centre's edge to the middle of the first row and column
     big = d.cols * d.rows;
-  let cx, cy;
-  if (i < big) {
-    cx = bt + dx * ((i % d.cols) + 0.5);
-    cy = bt + dy * (Math.floor(i / d.cols) + 0.5);
-  } else {
-    const j = i - big; // between the rows and columns of the others
-    cx = bt + dx * ((j % (d.cols - 1)) + 1);
-    cy = bt + dy * (Math.floor(j / (d.cols - 1)) + 1);
-  }
-  const w = (dx / Math.SQRT2) * kx,
-    h = (dy / Math.SQRT2) * ky;
-  return { x: cx * kx - w / 2, y: cy * ky - h / 2, w, h, turn: Math.PI / 4 };
+  /** @param {number} i @returns {[number, number]} */
+  const cell = i => {
+    if (i < big) {
+      const c = i % d.cols,
+        r = Math.floor(i / d.cols);
+      return [c + r, r - c];
+    }
+    const j = i - big,
+      c = j % (d.cols - 1),
+      r = Math.floor(j / (d.cols - 1));
+    return [c + r + 1, r - c];
+  };
+  /** @param {number} u0 @param {number} v0 @param {number} w @param {number} h @returns {Place} */
+  const place = (u0, v0, w, h) => {
+    // u runs down-right, v down-left: the turn of 45° that also turns a block's own parts that way
+    const u = u0 + w / 2,
+      v = v0 + h / 2,
+      cx = (bt + m + (u - v) / Math.SQRT2) * kx,
+      cy = (bt + (u + v) / Math.SQRT2) * ky;
+    return { x: cx - (w * kx) / 2, y: cy - (h * ky) / 2, w: w * kx, h: h * ky, turn: Math.PI / 4 };
+  };
+  return { s, p, m, cell, place };
 }
 /** A point of a placed block's square, turned with it. @param {Place} P @returns {(p: number[]) => number[]} */
 const turnPoint = P => {
@@ -286,13 +315,15 @@ function placeBox(P) {
  */
 function settingPieces(d, W, H) {
   if (!isOnPoint(d)) return [];
+  // outside the sashing that frames the outer blocks: D apart (one block and strip, corner to corner), the first
+  // one m in from each edge
   const q = quiltMm(d),
     cm = centreMm(d),
     bt = borderTotal(d),
     kx = W / q.W,
     ky = H / q.H,
-    dx = cm.W / d.cols,
-    dy = cm.H / d.rows,
+    { p, m } = turnedFrame(d, W, H),
+    D = p * Math.SQRT2,
     x0 = bt,
     y0 = bt,
     x1 = bt + cm.W,
@@ -300,23 +331,23 @@ function settingPieces(d, W, H) {
     out = [];
   const add = (kind, ...pts) => out.push({ kind, poly: pts.map(([x, y]) => [x * kx, y * ky]) });
   for (let c = 0; c < d.cols - 1; c++) {
-    const a = x0 + dx * (c + 0.5),
-      m = a + dx / 2,
-      b = a + dx;
-    add('side', [a, y0], [b, y0], [m, y0 + dy / 2]);
-    add('side', [a, y1], [m, y1 - dy / 2], [b, y1]);
+    const a = x0 + m + D * c,
+      mid = a + D / 2,
+      b = a + D;
+    add('side', [a, y0], [b, y0], [mid, y0 + D / 2]);
+    add('side', [a, y1], [mid, y1 - D / 2], [b, y1]);
   }
   for (let r = 0; r < d.rows - 1; r++) {
-    const a = y0 + dy * (r + 0.5),
-      m = a + dy / 2,
-      b = a + dy;
-    add('side', [x0, a], [x0 + dx / 2, m], [x0, b]);
-    add('side', [x1, a], [x1, b], [x1 - dx / 2, m]);
+    const a = y0 + m + D * r,
+      mid = a + D / 2,
+      b = a + D;
+    add('side', [x0, a], [x0 + D / 2, mid], [x0, b]);
+    add('side', [x1, a], [x1, b], [x1 - D / 2, mid]);
   }
-  add('corner', [x0, y0], [x0 + dx / 2, y0], [x0, y0 + dy / 2]);
-  add('corner', [x1, y0], [x1, y0 + dy / 2], [x1 - dx / 2, y0]);
-  add('corner', [x0, y1], [x0, y1 - dy / 2], [x0 + dx / 2, y1]);
-  add('corner', [x1, y1], [x1 - dx / 2, y1], [x1, y1 - dy / 2]);
+  add('corner', [x0, y0], [x0 + m, y0], [x0, y0 + m]);
+  add('corner', [x1, y0], [x1, y0 + m], [x1 - m, y0]);
+  add('corner', [x0, y1], [x0, y1 - m], [x0 + m, y1]);
+  add('corner', [x1, y1], [x1 - m, y1], [x1, y1 - m]);
   return out;
 }
 /** How a block's position is named: "2, 3" (row, column); on point, a block between rows and columns "1½, 2½". @param {Design} d @param {number} i */
@@ -334,6 +365,7 @@ function cellName(d, i) {
  * @param {Design} d @param {number} W @param {number} H @returns {(Rect & { kind: string })[]} kind: 'sash', 'corner' or 'long'
  */
 function sashRects(d, W, H) {
+  if (isOnPoint(d)) return sashOnPoint(d, W, H);
   /** @type {Set<object>} */
   const across = new Set(); // the pieces on the lines between rows: horizontal strips and crossings
   const all = sashPieces(d, W, H, across);
@@ -348,6 +380,55 @@ function sashRects(d, W, H) {
   return [...rows.filter(rc => rc.kind !== 'corner'), ...cols].map(rc =>
     rc.kind === 'corner' ? { ...rc, kind: 'sash' } : rc,
   );
+}
+/**
+ * On point: the sashing round every block, worked out in the turned frame (where it is straight sashing with strips
+ * all round) and turned onto the drawing. Each piece is a Place (turned 45°) with its kind, as in sashRects.
+ * @param {Design} d @param {number} W @param {number} H @returns {(Place & { kind: string })[]}
+ */
+function sashOnPoint(d, W, H) {
+  const sz = sashOf(d);
+  if (!sz.mm) return [];
+  const f = turnedFrame(d, W, H),
+    { s, p } = f,
+    b = d.blockMm,
+    pieces = new Map(), // by place: a strip or crossing two blocks share is there once
+    /** @type {Set<object>} */
+    across = new Set(); // the pieces along u (the turned frame's rows): strips and crossings
+  const put = (key, kind, u, v, w, h, isAcross) => {
+    if (pieces.has(key)) return;
+    const rc = { kind, x: u, y: v, w, h };
+    pieces.set(key, rc);
+    if (isAcross) across.add(rc);
+  };
+  for (let i = 0, n = cellCount(d); i < n; i++) {
+    const [I, J] = f.cell(i);
+    put(`v${I},${J}`, 'sash', I * p, J * p + s, s, b, false);
+    put(`v${I + 1},${J}`, 'sash', (I + 1) * p, J * p + s, s, b, false);
+    put(`h${I},${J}`, 'sash', I * p + s, J * p, b, s, true);
+    put(`h${I},${J + 1}`, 'sash', I * p + s, (J + 1) * p, b, s, true);
+    for (const [a, c] of [
+      [I, J],
+      [I + 1, J],
+      [I, J + 1],
+      [I + 1, J + 1],
+    ])
+      put(`c${a},${c}`, 'corner', a * p, c * p, s, s, true);
+  }
+  let rects = [...pieces.values()];
+  if (!sz.cornerstones) {
+    // as straight: the strips and crossings along each row of the turned frame join into long strips
+    const rows = joinRuns(
+        rects.filter(rc => across.has(rc)),
+        'x',
+      ),
+      lone = rows.filter(rc => rc.kind === 'corner'),
+      cols = joinRuns([...rects.filter(rc => !across.has(rc)), ...lone], 'y');
+    rects = [...rows.filter(rc => rc.kind !== 'corner'), ...cols].map(rc =>
+      rc.kind === 'corner' ? { ...rc, kind: 'sash' } : rc,
+    );
+  }
+  return rects.map(rc => ({ ...f.place(rc.x, rc.y, rc.w, rc.h), kind: rc.kind }));
 }
 /**
  * Pieces on the same line that touch end to end along x (or y) joined: a run of several becomes one 'long' strip.

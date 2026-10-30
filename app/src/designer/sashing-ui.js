@@ -6,6 +6,7 @@ import { $ } from '../core/dom.js';
 import {
   CORNER_BLOCK_MIN_MM,
   CORNER_PATTERNS,
+  isOnPoint,
   blockPolys,
   pathPoly,
   pointInPoly,
@@ -95,7 +96,11 @@ function renderSashUI() {
   const s = sashOf(design),
     raw = design.sashing || {};
   if (document.activeElement !== $('sash-mm')) $('sash-mm').value = s.mm;
-  $('sash-border').checked = !!raw.border;
+  // on point the sashing always frames every block (so the setting triangles stay simple triangles)
+  const onPoint = isOnPoint(design);
+  $('sash-border').checked = onPoint || !!raw.border;
+  $('sash-border').disabled = onPoint;
+  $('sash-border').parentElement.title = onPoint ? 'On point, the sashing always frames every block' : '';
   $('sash-cs').checked = s.cornerstones;
   $('sash-cs-box').hidden = !s.cornerstones; // no cornerstones: no fabric to choose for them
   const box = $('sash-presets');

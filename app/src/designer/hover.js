@@ -60,7 +60,8 @@ function zoneAt(x, y) {
   for (const sp of settingPieces(design, W, H))
     if (pointInPoly(x, y, sp.poly)) return { zone: 'setting', zi: -1, zr: sp };
   for (const r of sashRects(design, W, H))
-    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { zone: 'sash', zi: -1, zr: r };
+    // (turned on point)
+    if (pointInPoly(x, y, blockOutline(r))) return { zone: 'sash', zi: -1, zr: r };
   return null;
 }
 function hoverLabel(g, txt, W) {
@@ -97,7 +98,7 @@ function drawHover() {
       g.rect(z.o, z.o, W - 2 * z.o, H - 2 * z.o);
       g.rect(z.o + z.t, z.o + z.t, W - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
     } else if (hover.zone === 'setting') for (const sp of settingPieces(design, W, H)) pathPolyInto(g, sp.poly);
-    else for (const r of sashRects(design, W, H)) g.rect(r.x, r.y, r.w, r.h);
+    else for (const r of sashRects(design, W, H)) pathPolyInto(g, blockOutline(r));
     g.fillStyle = 'rgba(255,255,255,.26)';
     g.fill('evenodd');
     g.lineJoin = 'round';
@@ -113,7 +114,10 @@ function drawHover() {
       } else if (hover.zone === 'setting') {
         pathPoly(g, z.poly);
         g.stroke();
-      } else g.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2);
+      } else {
+        pathPoly(g, blockOutline(z));
+        g.stroke();
+      }
     }
     g.restore();
     const s = sashOf(design),

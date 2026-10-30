@@ -220,7 +220,8 @@ test('on point: each column and row is a block diagonal wide; blocks between the
   const d = onPoint(3, 3);
   assert.equal(cellCount(d), 9 + 4);
   assert.deepEqual(centreMm(d), { W: 300 * Math.SQRT2, H: 300 * Math.SQRT2 });
-  assert.equal(sashOf({ ...d, sashing: { mm: 50 } }).mm, 0, 'no sashing on point (yet)');
+  const framed = sashOf({ ...d, sashing: { mm: 50 } });
+  assert.deepEqual([framed.mm, framed.border], [50, true], 'on point the sashing frames every block');
   assert.equal(cellName(d, 4), '2, 2');
   assert.equal(cellName(d, 9), '1½, 1½');
   assert.equal(cellName(d, 12), '2½, 2½');
@@ -286,4 +287,57 @@ test('convexOverlap: a rectangle and a diamond', () => {
   assert.equal(convexOverlap(box(0, 0, 0.4, 0.4), diamond), false); // in the empty corner of its box
   assert.equal(convexOverlap(box(-1, 0.9, 3, 1.1), diamond), true); // a thin strip right across
   assert.equal(convexOverlap(box(2, 0, 3, 2), diamond), false); // only touching
+});
+
+test('on point with sashing: every block framed; blocks, sashing and triangles fill the quilt exactly', () => {
+  for (const [cols, rows, mm, cornerstones, brd] of [
+    [3, 3, 50, true, 0],
+    [3, 3, 50, false, 0],
+    [4, 2, 30, true, 60],
+    [1, 3, 40, true, 0],
+  ]) {
+    const d = onPoint(cols, rows, {
+      sashing: { mm, fabric: 'b0', corner: 'b1', cornerstones },
+      borders: brd ? [{ type: 'plain', mm: brd, fabrics: ['b1'] }] : [],
+    });
+    const q = quiltMm(d),
+      cm = centreMm(d),
+      sr = sashRects(d, q.W, q.H);
+    // the straight size with sashing all round, turned
+    assert.ok(close(cm.W, Math.SQRT2 * (cols * (100 + mm) + mm)));
+    let A =
+      settingPieces(d, q.W, q.H).reduce((a, p) => a + area(p.poly), 0) +
+      sr.reduce((a, r) => a + area(blockOutline(r)), 0);
+    for (let i = 0; i < cellCount(d); i++) {
+      const P = blockPlace(d, i, q.W, q.H);
+      A += area(blockOutline(P));
+      assert.equal(blockAt(d, P.x + P.w / 2, P.y + P.h / 2, q.W, q.H), i);
+    }
+    assert.ok(close(A, cm.W * cm.H), `${cols} × ${rows}, ${mm} mm: ${A} of ${cm.W * cm.H}`);
+    // nothing reaches past the centre
+    for (const r of sr)
+      for (const [x, y] of blockOutline(r))
+        assert.ok(x > brd - 1e-6 && y > brd - 1e-6 && x < brd + cm.W + 1e-6 && y < brd + cm.H + 1e-6);
+  }
+});
+
+test('on point with sashing: strips all round each block; without cornerstones, long strips on the diagonals', () => {
+  const kinds = d => {
+    const q = quiltMm(d),
+      out = {};
+    for (const r of sashRects(d, q.W, q.H)) {
+      const k = `${r.kind} ${Math.round(Math.max(r.w, r.h))}`;
+      out[k] = (out[k] || 0) + 1;
+    }
+    return out;
+  };
+  const s = { mm: 50, fabric: 'b0', corner: 'b1' };
+  // 9 + 4 blocks: each strip between two blocks once, and the frame round the outside
+  assert.deepEqual(kinds(onPoint(3, 3, { blockMm: 300, sashing: s })), { 'sash 300': 36, 'corner 50': 24 });
+  assert.deepEqual(kinds(onPoint(3, 3, { blockMm: 300, sashing: { ...s, cornerstones: false } })), {
+    'long 1800': 2,
+    'long 1100': 2,
+    'long 400': 2,
+    'sash 300': 18,
+  });
 });

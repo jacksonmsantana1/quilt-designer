@@ -363,7 +363,7 @@ function renderCut() {
       )
       .join('');
     div.innerHTML =
-      `<h3>Sashing</h3><p class="meta">${sz.mm} mm wide${sz.border ? ', also around the outside' : ''}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` +
+      `<h3>Sashing</h3><p class="meta">${sz.mm} mm wide${isOnPoint(design) ? ', framing every block' : sz.border ? ', also around the outside' : ''}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` +
       listOf('<th>ID</th><th>Cut</th><th>Total</th>', rows);
     box.appendChild(div);
     // a 2 × 2 corner of the quilt, to show how strips and cornerstones go together

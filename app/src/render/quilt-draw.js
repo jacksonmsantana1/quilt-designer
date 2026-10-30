@@ -4,8 +4,8 @@ import { design } from '../core/store.js';
 import { dimUnlessHi } from './highlight.js';
 import { fabricById } from '../designer/fabric-library.js';
 import {
+  blockOutline,
   blockPlace,
-  blockPolys,
   borderCornerSlot,
   borderFab,
   borderSidePieces,
@@ -181,10 +181,11 @@ function drawBordersExploded(g, W, gap, focus = -1) {
  * @param {{ seams?: boolean, design?: import('@quilt/shared/types.js').Design }} [opts] design: the one being edited by default
  */
 // a cornerstone pieced as a block (sashing.cornerBlock), filling the cornerstone rc
+// (rc may be turned, on point: the block turns with it)
 function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
-  const polys = blockPolys(cb, rc.x, rc.y, rc.w, rc.h);
+  const polys = placedPolys(cb, rc);
   polys.forEach((poly, pi) => {
-    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi);
+    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi, rc.turn || 0);
     pathPoly(g, poly);
     g.fill();
     dimUnlessHi(g, { t: 'sash', kind: 'corner', fabric: cb.fabrics[pi] });
@@ -208,15 +209,15 @@ function drawQuilt(g, W, H, opts = {}) {
       drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
       continue;
     }
-    g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + k);
-    g.fillRect(rc.x, rc.y, rc.w, rc.h);
-    g.beginPath();
-    g.rect(rc.x, rc.y, rc.w, rc.h);
+    // a strip or cornerstone: turned on point, its print along it
+    g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + k, rc.turn || 0);
+    pathPoly(g, blockOutline(rc));
+    g.fill();
     dimUnlessHi(g, { t: 'sash', kind: rc.kind });
     if (opts.seams) {
       g.strokeStyle = 'rgba(40,30,20,.35)';
       g.lineWidth = Math.max(1, W / 1400);
-      g.strokeRect(rc.x, rc.y, rc.w, rc.h);
+      g.stroke();
     }
   }
   // on point: the setting triangles along the edges

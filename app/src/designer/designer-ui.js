@@ -38,7 +38,7 @@ import {
   isOnPoint,
   pointInPoly,
   quiltMm,
-  sashOf,
+  sashRects,
 } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt } from './canvas.js';
 import { drawFabricPalette, drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
@@ -173,9 +173,13 @@ function initDesignerUI() {
         mx = ((e.clientX - r.left) / r.width) * q.W,
         my = ((e.clientY - r.top) / r.height) * q.H;
       if (bt && (mx < bt || my < bt || mx > q.W - bt || my > q.H - bt)) openBorders();
-      else if (isOnPoint(design))
-        showPanel('set'); // a setting triangle
-      else if (sashOf(design).mm) openSashing();
+      else if (
+        sashRects(design, r.width, r.height).some(rc =>
+          pointInPoly(e.clientX - r.left, e.clientY - r.top, blockOutline(rc)),
+        )
+      )
+        openSashing();
+      else if (isOnPoint(design)) showPanel('set'); // a setting triangle
       return;
     }
     const multi = e.shiftKey || e.ctrlKey || e.metaKey;

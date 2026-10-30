@@ -161,8 +161,10 @@ test('on point: a card for the setting triangles, cut from squares like quarter-
 }) => {
   await page.locator('#tabs [data-page="design"]').click();
   await page.locator('#dz-setting').selectOption('onpoint');
+  // the sashing off, so the triangles below are sized for the blocks alone; the borders stay
+  await page.locator('#rail-sash').click();
+  await page.locator('#sash-presets button', { hasText: 'None' }).click();
   await page.locator('#tabs [data-page="cut"]').click();
-  // no sashing on point (yet); the borders stay
   await expect(page.locator('#cg-blocks .cgblock h3')).toHaveText([
     /Block 1/,
     /Block 2/,

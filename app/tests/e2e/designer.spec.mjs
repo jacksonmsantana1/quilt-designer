@@ -141,7 +141,7 @@ test('on point: blocks turn 45°, a block sits between each 2 × 2, triangles fi
   await page.mouse.click(box.x + col, box.y + row);
   await expect(page.locator('#dz-blockname')).toContainText('block 1½, 1½');
   await expect(page.locator('#dz-sym')).toBeDisabled(); // not on point yet
-  await expect(page.locator('#rail-sash')).toBeDisabled();
+  await expect(page.locator('#rail-sash')).toBeEnabled(); // sashing works on point
   // a setting triangle on the top edge, between the first two blocks: its own card and fabric
   await page.mouse.click(box.x + col, box.y + 4);
   await expect(page.locator('#set-card')).toBeVisible();
@@ -154,4 +154,30 @@ test('on point: blocks turn 45°, a block sits between each 2 × 2, triangles fi
   d = await app.current();
   expect(d.setting).toBeUndefined();
   expect(d.blocks.length).toBe(25);
+});
+
+test('on point: sashing frames every block, and the cutting guide lists it', async ({ app, page }) => {
+  await page.locator('#dz-setting').selectOption('onpoint');
+  await page.locator('#rail-sash').click();
+  await page.locator('#sash-presets button', { hasText: '50 mm' }).click();
+  expect((await app.current()).sashing.mm).toBe(50);
+  await expect(page.locator('#sash-border')).toBeChecked(); // always on point
+  await expect(page.locator('#sash-border')).toBeDisabled();
+  // a click on a strip opens the sashing card: the strip along the first block's top-right edge, framing it
+  await page.locator('#rail-sash').click(); // (close the card first)
+  const box = await page.locator('#dz-quilt').boundingBox(),
+    d = await app.current();
+  const q = Math.SQRT2 * (5 * (d.blockMm + 50) + 50), // the quilt's width in mm, on point
+    k = box.width / q,
+    m = (d.blockMm / 2 + 50) * Math.SQRT2; // edge to the first block's middle
+  // halfway along that edge, and a quarter strip out from the block
+  const ex = m + (d.blockMm / 2 / Math.SQRT2) * 1 + 25 / Math.SQRT2,
+    ey = m - (d.blockMm / 2) * Math.SQRT2 + d.blockMm / 2 / Math.SQRT2 - 25 / Math.SQRT2;
+  await page.mouse.click(box.x + ex * k, box.y + ey * k);
+  await expect(page.locator('#sash-card')).toBeVisible();
+  await page.locator('#tabs [data-page="cut"]').click();
+  const sash = page.locator('#cg-blocks .cgblock', { has: page.locator('h3', { hasText: /^Sashing$/ }) });
+  await expect(sash.locator('.meta')).toContainText('framing every block');
+  await expect(sash.locator('td:nth-child(2)')).toHaveText([/^Sashing strips: /, /^Cornerstones: /]);
+  await expect(page.locator('#cg-blocks .cgblock h3', { hasText: 'Setting triangles' })).toBeVisible();
 });

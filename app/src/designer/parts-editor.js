@@ -116,14 +116,9 @@ function renderDesigner() {
     setFocusBlock(design.blocks[focusBlock].under);
   $('dz-cols').value = design.cols;
   $('dz-rows').value = design.rows;
-  // layout: on point, the setting triangles have a fabric, and sashing (like symmetry and large blocks) waits
-  const onPoint = isOnPoint(design);
-  $('dz-setting').value = onPoint ? 'onpoint' : 'straight';
+  // layout: on point, the setting triangles have a fabric (symmetry and large blocks wait, see syncSymUI)
+  $('dz-setting').value = isOnPoint(design) ? 'onpoint' : 'straight';
   drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');
-  $('rail-sash').disabled = onPoint;
-  $('rail-sash').title = onPoint
-    ? 'Sashing: not available for quilts set on point yet'
-    : 'Sashing: strips between the blocks';
   syncSymUI();
   for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
   $('dz-rot').textContent = `Rotate 90° (${design.blocks[focusBlock].rot * 90}°)`;

@@ -147,6 +147,7 @@ const SASH_WHAT = { sash: 'Sashing strips', long: 'Long sashing strips', corner:
 // the sashing picture: a 2 × 2 corner of the quilt with every strip and cornerstone labelled with its ID.
 // S is the width in px; u scales the labels (1 on screen, more for the PDF at print resolution)
 function sashMini() {
+  if (isOnPoint(design)) return settingMini(); // 2 × 2 on point, with the block between them
   const c = Math.min(2, design.cols),
     r = Math.min(2, design.rows);
   return {
@@ -209,7 +210,7 @@ function drawSashPic(g, S, sashCuts, u) {
     if (rc.w < 18 * u && rc.h < 18 * u) continue;
     g.save();
     g.translate(rc.x + rc.w / 2, rc.y + rc.h / 2);
-    if (vert && rc.w < tw) g.rotate(-Math.PI / 2);
+    if (vert && rc.w < tw && !rc.turn) g.rotate(-Math.PI / 2); // (level on a turned strip, on point)
     g.fillStyle = 'rgba(255,255,255,.92)';
     g.fillRect(-tw / 2, -hh / 2, tw, hh);
     g.fillStyle = '#1f1d1a';
@@ -346,17 +347,19 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
     const rs = sashRects(design, W, H);
     g.beginPath();
     g.rect(0, 0, W, H);
-    for (const r of rs) g.rect(r.x, r.y, r.w, r.h);
+    for (const r of rs) pathPolyInto(g, blockOutline(r)); // (turned on point)
     g.fillStyle = 'rgba(236,239,244,.72)';
     g.fill('evenodd');
-    for (const r of rs) {
-      g.lineWidth = 3;
-      g.strokeStyle = '#fff';
-      g.strokeRect(r.x, r.y, r.w, r.h);
-      g.lineWidth = 1.6;
-      g.strokeStyle = '#e0592a';
-      g.strokeRect(r.x, r.y, r.w, r.h);
-    }
+    for (const r of rs)
+      for (const [lw, c] of [
+        [3, '#fff'],
+        [1.6, '#e0592a'],
+      ]) {
+        g.lineWidth = lw;
+        g.strokeStyle = c;
+        pathPoly(g, blockOutline(r));
+        g.stroke();
+      }
   } else if (kind === 'setting') {
     const ps = settingPieces(design, W, H);
     g.beginPath();
@@ -415,26 +418,31 @@ function drawCutQuilt(P, into) {
   const pxPerCm = k * 10;
   // borders and sashing in their fabrics
   if (bordersOf(design).length) drawBorders(g, d2, W, H, pxPerCm, true);
-  const sr = s.mm ? sashRects(d2, W, H) : [],
+  // (on point the pieces are turned: poly is their outline, for drawing and for the highlight)
+  const sr = (s.mm ? sashRects(d2, W, H) : []).map(rc => (rc.turn ? { ...rc, poly: blockOutline(rc) } : rc)),
     ci = P.blocks.findIndex(b => b.corner), // pieced cornerstones: drawn like their block card, pieces labelled
     rects = [];
   sr.forEach((rc, i) => {
     if (rc.kind === 'corner' && ci >= 0) {
       g.save();
       g.translate(rc.x, rc.y);
-      drawBlockArt(g, P.blocks[ci], P, ci + 1, rc.w, rc.h);
+      drawBlockArt(g, P.blocks[ci], P, ci + 1, rc.w, rc.h, rc.turn || 0);
       g.restore();
-      rects.push({ ...rc, i: ci });
+      rects.push({ ...(rc.turn ? placeBox(rc) : rc), i: ci, poly: rc.poly || null });
       return;
     }
-    g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + i);
-    g.fillRect(rc.x, rc.y, rc.w, rc.h);
-    g.beginPath();
-    g.rect(rc.x, rc.y, rc.w, rc.h);
+    g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + i, rc.turn || 0);
+    if (rc.poly) pathPoly(g, rc.poly);
+    else {
+      g.beginPath();
+      g.rect(rc.x, rc.y, rc.w, rc.h);
+    }
+    g.fill();
     dimUnlessHi(g, { t: 'sash', kind: rc.kind });
     g.strokeStyle = 'rgba(40,30,20,.35)';
     g.lineWidth = u;
-    g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
+    if (rc.poly) g.stroke();
+    else g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
   });
   // on point: the setting triangles along the edges
   const setting = settingPieces(d2, W, H);
@@ -516,7 +524,7 @@ function drawCutQuilt(P, into) {
           g.stroke();
           tag(t, lx, ly, 9 * u, false);
         }
-      } else if (long > 40 * u) tag(t, rc.x + rc.w / 2, rc.y + rc.h / 2, fs, rc.h > rc.w);
+      } else if (long > 40 * u) tag(t, rc.x + rc.w / 2, rc.y + rc.h / 2, fs, !rc.turn && rc.h > rc.w); // level on point
     }
   }
   const bs = bordersOf(design);
