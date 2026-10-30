@@ -3,13 +3,27 @@
 import './fabric-library.js'; // load order: runs after designer/fabric-library
 import { design } from '../core/store.js';
 import { $, sideRoller } from '../core/dom.js';
-import { isFabric, listedFabrics, loadFabrics, noteRecent, recentFabrics, thumbUrl } from './fabric-library.js';
-import { fabricIdsIn, findFabrics, shortList } from '../core/fabric-picks.js';
+import {
+  fabricPalette,
+  isFabric,
+  listedFabrics,
+  loadFabrics,
+  noteRecent,
+  recentFabrics,
+  setFabricPalette,
+  thumbUrl,
+} from './fabric-library.js';
+import { fabricIdsIn, findFabrics, paletteList, shortList, withFabric, withoutFabric } from '../core/fabric-picks.js';
+import { notify } from '../ui/notice.js';
 
 const PAGE = 60; // tiles the library shows at a time ("Show more" adds as many again)
 
-/** One fabric tile: a button with a small picture and the name. @param {import('./fabric-library.js').Fabric} f */
-function fabricTile(f, pressed) {
+/**
+ * One fabric tile: a button with a small picture and the name. In a short list, `mark` adds a corner badge: an ×
+ * that takes the fabric off the palette ('remove'), or a ✓ for one that can't be taken off now ('fixed').
+ * @param {import('./fabric-library.js').Fabric} f @param {boolean} pressed @param {'remove' | 'fixed'} [mark]
+ */
+function fabricTile(f, pressed, mark) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'fab';
@@ -33,28 +47,88 @@ function fabricTile(f, pressed) {
   s.textContent = f.name;
   b.append(pic, s);
   b.setAttribute('aria-pressed', String(!!pressed));
+  if (mark === 'remove') {
+    // inside the tile (one row of buttons), so its own click must not reach the list's handler: that would choose it
+    const x = document.createElement('span');
+    x.className = 'fab-x';
+    x.title = `Take ${f.name} off this list (it stays in the fabric library)`;
+    x.setAttribute('aria-hidden', 'true');
+    x.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      removeFromPalette(f);
+    });
+    b.append(x);
+    b.addEventListener('keydown', e => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        removeFromPalette(f);
+      }
+    });
+  } else if (mark === 'fixed') {
+    const ok = document.createElement('span');
+    ok.className = 'fab-in';
+    ok.title = 'In this quilt, or chosen now: it stays on this list';
+    ok.setAttribute('aria-hidden', 'true');
+    b.append(ok);
+  }
   return b;
 }
 
 /**
- * The fabrics a short list shows: the basics, the one chosen now, the ones in this quilt, recent picks, and the
- * newest photos while there are few others. @param {string | null} selected @returns {import('./fabric-library.js').Fabric[]}
+ * The palette before anyone changes it: the basics, recent picks, and the newest photos while there are few
+ * others. @returns {string[]}
  */
-function shortListFabrics(selected) {
-  const listed = listedFabrics(),
-    byId = new Map(listed.map(f => [f.id, f]));
+function defaultPalette() {
+  const listed = listedFabrics();
   const newest = listed
     .filter(f => !f.basic)
     .sort((a, b) => (b.added || 0) - (a.added || 0))
     .map(f => f.id);
-  const ids = shortList({
-    basics: listed.filter(f => f.basic).map(f => f.id),
-    selected,
+  return shortList({ basics: listed.filter(f => f.basic).map(f => f.id), recent: recentFabrics(), newest });
+}
+
+/**
+ * The fabrics a short list shows: the palette (or the default), then the ones in this quilt and the one chosen now
+ * when they aren't on it; those can't be taken off (`fixed`).
+ * @param {string | null} selected @returns {{ f: import('./fabric-library.js').Fabric, fixed: boolean }[]}
+ */
+function shortListFabrics(selected) {
+  const byId = new Map(listedFabrics().map(f => [f.id, f]));
+  return paletteList({
+    palette: fabricPalette(),
+    defaults: defaultPalette(),
     inQuilt: design ? fabricIdsIn(design, isFabric) : [],
-    recent: recentFabrics(),
-    newest,
+    selected,
+  })
+    .filter(t => byId.has(t.id))
+    .map(t => ({ f: byId.get(t.id), fixed: t.fixed }));
+}
+
+// every short list drawn, with the fabric chosen in it, to draw them all again when the palette changes
+const lists = new Map();
+function redrawLists() {
+  for (const [box, selected] of lists) {
+    if (box.isConnected) drawShortList(box, selected);
+    else lists.delete(box);
+  }
+}
+
+/** Takes a fabric off the palette (every short list), with an Undo. @param {import('./fabric-library.js').Fabric} f */
+function removeFromPalette(f) {
+  const before = fabricPalette();
+  setFabricPalette(withoutFabric(before || defaultPalette(), f.id));
+  redrawLists();
+  notify(`Took ${f.name} off the fabric lists. It stays in the fabric library.`, {
+    ms: 6000,
+    action: {
+      label: 'Undo',
+      run: () => {
+        setFabricPalette(before);
+        redrawLists();
+      },
+    },
   });
-  return ids.map(id => byId.get(id)).filter(Boolean);
 }
 
 /**
@@ -204,9 +278,10 @@ function placeMoreButton(box, button) {
 }
 
 function drawShortList(box, selected) {
+  lists.set(box, selected);
   box.innerHTML = '';
   const fabs = shortListFabrics(selected);
-  for (const f of fabs) box.appendChild(fabricTile(f, f.id === selected));
+  for (const { f, fixed } of fabs) box.appendChild(fabricTile(f, f.id === selected, fixed ? 'fixed' : 'remove'));
   placeMoreButton(box, moreButton(box, fabs.length));
   // one row that scrolls sideways, the chosen fabric in view
   sideRoller(box, '.fab[aria-pressed="true"]');
@@ -266,7 +341,17 @@ function drawLibrary() {
     add.innerHTML = '<b aria-hidden="true">+</b><span>Add fabric photo</span>';
     grid.appendChild(add);
   }
-  for (const f of found.slice(0, lib.shown)) grid.appendChild(fabricTile(f, f.id === lib.selected));
+  // a dot marks the fabrics on the palette (in the short lists)
+  const onPalette = new Set(fabricPalette() || defaultPalette());
+  for (const f of found.slice(0, lib.shown)) {
+    const t = fabricTile(f, f.id === lib.selected);
+    if (onPalette.has(f.id)) {
+      t.classList.add('on-palette');
+      t.title = `${f.name} · in your fabric lists`;
+    }
+    grid.appendChild(t);
+  }
+  $('fablib-reset').hidden = !fabricPalette();
   const left = found.length - lib.shown;
   $('fablib-more').hidden = left <= 0;
   $('fablib-more').textContent = `Show more (${left} more)`;
@@ -286,6 +371,9 @@ function pickFromLibrary(id) {
   if (!box) return;
   loadFabrics([id]);
   noteRecent(id);
+  // a fabric picked in the library joins the palette, at its end
+  const palette = fabricPalette();
+  if (palette || !defaultPalette().includes(id)) setFabricPalette(withFabric(palette || defaultPalette(), id));
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'fab';
@@ -322,6 +410,12 @@ function initLibrary() {
   $('fablib-grid').addEventListener('click', e => {
     const b = /** @type {HTMLElement} */ (e.target).closest('button.fab');
     if (b?.dataset.f) pickFromLibrary(b.dataset.f);
+  });
+  // the fabric lists as they were at first: the basics and the newest photos
+  $('fablib-reset').addEventListener('click', () => {
+    setFabricPalette(null);
+    redrawLists();
+    drawLibrary();
   });
   $('fablib-more').addEventListener('click', () => {
     lib.shown += PAGE;

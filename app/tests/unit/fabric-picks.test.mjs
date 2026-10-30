@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fabricIdsIn, findFabrics, shortList, withRecent } from '../../src/core/fabric-picks.js';
+import {
+  fabricIdsIn,
+  findFabrics,
+  paletteList,
+  shortList,
+  withFabric,
+  withRecent,
+  withoutFabric,
+} from '../../src/core/fabric-picks.js';
 import { defaultDesign } from '@quilt/shared/design.js';
 
 const BASICS = ['b0', 'b1', 'b2'];
@@ -68,4 +76,26 @@ test('findFabrics: words in any order and case, accents ignored, within a group'
   assert.deepEqual(ids({ group: 'quilt', inQuilt: new Set(['f1', 'b0']) }), ['b0', 'f1']);
   assert.deepEqual(ids({ group: 'recent', recent: ['f3', 'gone', 'b1'] }), ['f3', 'b1'], 'recent keeps its order');
   assert.deepEqual(ids({ query: 'velvet' }), []);
+});
+
+test('the palette: its own list (or the default), and the quilt’s fabrics and the chosen one always shown', () => {
+  const ids = o => paletteList(o).map(t => t.id + (t.fixed ? '!' : ''));
+  // nobody changed it: the default
+  assert.deepEqual(ids({ palette: null, defaults: ['b0', 'b1'] }), ['b0', 'b1']);
+  // someone's own list, in their order
+  assert.deepEqual(ids({ palette: ['f2', 'b1'], defaults: ['b0', 'b1'] }), ['f2', 'b1']);
+  // fabrics used in the quilt, and the chosen one, stay (and can't be taken off), even when not on the list
+  assert.deepEqual(ids({ palette: ['f2', 'b1'], defaults: [], inQuilt: ['b1', 'b5'], selected: 'f9' }), [
+    'f2',
+    'b1!',
+    'b5!',
+    'f9!',
+  ]);
+});
+
+test('taking a fabric off the palette and putting it back (at the end, once)', () => {
+  assert.deepEqual(withoutFabric(['b0', 'b1', 'f2'], 'b1'), ['b0', 'f2']);
+  assert.deepEqual(withFabric(['b0', 'f2'], 'b1'), ['b0', 'f2', 'b1']);
+  const p = ['b0', 'f2'];
+  assert.equal(withFabric(p, 'f2'), p, 'already there: unchanged');
 });

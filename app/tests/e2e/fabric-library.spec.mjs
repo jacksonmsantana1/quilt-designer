@@ -79,3 +79,41 @@ test('a search with no match says so', async ({ app, page }) => {
   await page.keyboard.press('Escape');
   await expect(page.locator('#fablib')).toBeHidden();
 });
+
+test('the palette: × takes a fabric off every list (with Undo); the library puts it back', async ({ app, page }) => {
+  await app.open();
+  await page.locator('#rail-parts').click();
+  const row = page.locator('#dz-fabrics2'),
+    teal = row.locator('.fab', { hasText: 'Teal cotton' });
+  // the default quilt uses cream, indigo, mustard, red linen: those show a ✓ and have no ×
+  await expect(row.locator('.fab', { hasText: 'Cream cotton' }).locator('.fab-in')).toHaveCount(1);
+  await expect(row.locator('.fab', { hasText: 'Cream cotton' }).locator('.fab-x')).toHaveCount(0);
+  await teal.hover();
+  await teal.locator('.fab-x').click();
+  await expect(teal).toHaveCount(0);
+  expect((await app.current()).blocks.every(b => !b.fabrics.includes('b14'))).toBe(true); // nothing chosen by the click
+  // gone from the other lists too
+  await page.locator('#rail-sash').click();
+  await expect(page.locator('#sash-fabs .fab', { hasText: 'Teal cotton' })).toHaveCount(0);
+  // Undo brings it back
+  await page.locator('#notice button', { hasText: 'Undo' }).click();
+  await expect(page.locator('#sash-fabs .fab', { hasText: 'Teal cotton' })).toHaveCount(1);
+  // off again, then back from the library: at the end of the list, with a dot in the library
+  await page.locator('#rail-parts').click();
+  await teal.hover();
+  await teal.locator('.fab-x').click();
+  await expect(teal).toHaveCount(0);
+  await page.locator('#dz-fabrics2').hover();
+  await page.locator('#fab-more-float').click();
+  await page.locator('#fablib-q').fill('teal');
+  await expect(page.locator('#fablib-grid .fab.on-palette', { hasText: 'Teal cotton' })).toHaveCount(0);
+  await expect(page.locator('#fablib-reset')).toBeVisible();
+  await page.locator('#fablib-grid button.fab', { hasText: 'Teal cotton' }).click();
+  await expect(row.locator('.fab').last()).toContainText('Teal cotton');
+  // reset: the lists as at first
+  await page.locator('#dz-fabrics2').hover();
+  await page.locator('#fab-more-float').click();
+  await page.locator('#fablib-reset').click();
+  await expect(page.locator('#fablib-reset')).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('quilt-fabric-palette.v1'))).toBeNull();
+});

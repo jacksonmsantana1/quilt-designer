@@ -412,6 +412,19 @@
   .fabs { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
   .fabs .fab { flex: 0 0 84px; scroll-snap-align: start; }
   .fabs:not(.fablib-grid) .fab span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* the palette: an × to take a fabric off the lists (on hover; always on touch screens), a ✓ on one that stays */
+  .fabs .fab { position: relative; }
+  .fab .fab-x, .fab .fab-in { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 600 13px/1 var(--font-body); }
+  .fab .fab-x { background: rgba(20, 25, 40, .72); color: #fff; cursor: pointer; opacity: 0; transition: opacity .12s; }
+  .fab:hover .fab-x, .fab:focus-visible .fab-x { opacity: 1; }
+  .fab .fab-x:hover { background: #b3261e; }
+  @media (hover: none) { .fab .fab-x { opacity: .85; } }
+  /* the marks are drawn here, not written in the tile: its text stays the fabric's name */
+  .fab .fab-x::before { content: "×"; }
+  .fab .fab-in::before { content: "✓"; }
+  .fab .fab-in { background: var(--panel); color: var(--accent); border: 1px solid var(--line); font-size: 11px; }
+  /* in the library: a dot on the fabrics that are in the lists */
+  .fablib-grid .fab.on-palette::after { content: ""; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--panel); }
   .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
   /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
   .fabs .fab-more { border-style: dashed; color: var(--muted); }
@@ -1053,6 +1066,7 @@
       <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
     </div>
     <p class="fine" id="dz-fabnote"></p>
+    <p class="fine" style="margin:6px 0 0"><button class="btn sm" type="button" id="fablib-reset" hidden title="Bring back the fabric lists as they were at first: the basics and your newest photos">Reset palette</button></p>
   </div>
 </dialog>
 <section id="page-cut" hidden>
@@ -4504,6 +4518,18 @@ function notify(text, opts = {}) {
     document.body.appendChild(box);
   }
   box.textContent = text;
+  if (opts.action) {
+    const { label, run: run2 } = opts.action, b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.style.cssText = "margin-left:12px;background:none;border:1px solid rgba(255,255,255,.7);color:#fff;border-radius:6px;padding:2px 10px;font:600 13px system-ui,sans-serif;cursor:pointer";
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      box.hidden = true;
+      run2();
+    });
+    box.appendChild(b);
+  }
   box.hidden = false;
   clearTimeout(timer);
   timer = setTimeout(() => box.hidden = true, opts.ms || Math.max(5e3, text.length * 60));
@@ -6818,6 +6844,15 @@ function findFabrics(fabrics2, { query = "", group = "all", inQuilt = /* @__PURE
   }[group];
   return fabrics2.filter((f) => inGroup(f) && named(f)).sort((a, b) => a.basic === b.basic ? a.basic ? 0 : (b.added || 0) - (a.added || 0) : a.basic ? -1 : 1);
 }
+function paletteList({ palette, defaults, inQuilt = [], selected = null }) {
+  const keep = new Set(inQuilt);
+  if (selected) keep.add(selected);
+  const ids = [...palette || defaults];
+  for (const id of keep) if (!ids.includes(id)) ids.push(id);
+  return ids.map((id) => ({ id, fixed: keep.has(id) }));
+}
+var withoutFabric = (palette, id) => palette.filter((x) => x !== id);
+var withFabric = (palette, id) => palette.includes(id) ? palette : [...palette, id];
 
 // src/designer/fabric-library.js
 var fabricLib = [];
@@ -6912,6 +6947,22 @@ function noteRecent(id) {
   } catch (e) {
   }
 }
+var PALETTE_KEY = "quilt-fabric-palette.v1";
+function fabricPalette() {
+  try {
+    const v = JSON.parse(localStorage.getItem(PALETTE_KEY) || "null");
+    return Array.isArray(v) ? v.filter(isFabric2) : null;
+  } catch (e) {
+    return null;
+  }
+}
+function setFabricPalette(ids) {
+  try {
+    if (ids) localStorage.setItem(PALETTE_KEY, JSON.stringify(ids));
+    else localStorage.removeItem(PALETTE_KEY);
+  } catch (e) {
+  }
+}
 async function addFabric(canvas2, meta) {
   const blob = await new Promise(
     (resolve, reject) => canvas2.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
@@ -6919,12 +6970,14 @@ async function addFabric(canvas2, meta) {
   const { id } = await fabrics.add(blob, meta);
   if (!byId.has(id)) put({ id, name: meta.name, canvas: canvas2, cm: meta.cm, blob, added: Date.now() });
   noteRecent(id);
+  const palette = fabricPalette();
+  if (palette && !palette.includes(id)) setFabricPalette([...palette, id]);
   return id;
 }
 
 // src/designer/fabric-picker.js
 var PAGE = 60;
-function fabricTile(f, pressed) {
+function fabricTile(f, pressed, mark) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "fab";
@@ -6947,19 +7000,67 @@ function fabricTile(f, pressed) {
   s.textContent = f.name;
   b.append(pic, s);
   b.setAttribute("aria-pressed", String(!!pressed));
+  if (mark === "remove") {
+    const x = document.createElement("span");
+    x.className = "fab-x";
+    x.title = `Take ${f.name} off this list (it stays in the fabric library)`;
+    x.setAttribute("aria-hidden", "true");
+    x.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      removeFromPalette(f);
+    });
+    b.append(x);
+    b.addEventListener("keydown", (e) => {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        removeFromPalette(f);
+      }
+    });
+  } else if (mark === "fixed") {
+    const ok = document.createElement("span");
+    ok.className = "fab-in";
+    ok.title = "In this quilt, or chosen now: it stays on this list";
+    ok.setAttribute("aria-hidden", "true");
+    b.append(ok);
+  }
   return b;
 }
-function shortListFabrics(selected) {
-  const listed = listedFabrics(), byId2 = new Map(listed.map((f) => [f.id, f]));
+function defaultPalette() {
+  const listed = listedFabrics();
   const newest = listed.filter((f) => !f.basic).sort((a, b) => (b.added || 0) - (a.added || 0)).map((f) => f.id);
-  const ids = shortList({
-    basics: listed.filter((f) => f.basic).map((f) => f.id),
-    selected,
+  return shortList({ basics: listed.filter((f) => f.basic).map((f) => f.id), recent: recentFabrics(), newest });
+}
+function shortListFabrics(selected) {
+  const byId2 = new Map(listedFabrics().map((f) => [f.id, f]));
+  return paletteList({
+    palette: fabricPalette(),
+    defaults: defaultPalette(),
     inQuilt: design ? fabricIdsIn(design, isFabric2) : [],
-    recent: recentFabrics(),
-    newest
+    selected
+  }).filter((t) => byId2.has(t.id)).map((t) => ({ f: byId2.get(t.id), fixed: t.fixed }));
+}
+var lists = /* @__PURE__ */ new Map();
+function redrawLists() {
+  for (const [box2, selected] of lists) {
+    if (box2.isConnected) drawShortList(box2, selected);
+    else lists.delete(box2);
+  }
+}
+function removeFromPalette(f) {
+  const before2 = fabricPalette();
+  setFabricPalette(withoutFabric(before2 || defaultPalette(), f.id));
+  redrawLists();
+  notify(`Took ${f.name} off the fabric lists. It stays in the fabric library.`, {
+    ms: 6e3,
+    action: {
+      label: "Undo",
+      run: () => {
+        setFabricPalette(before2);
+        redrawLists();
+      }
+    }
   });
-  return ids.map((id) => byId2.get(id)).filter(Boolean);
 }
 function moreButton(box2, shown) {
   const b = document.createElement("button");
@@ -7084,7 +7185,7 @@ function placeMoreButton(box2, button) {
   }
   wrap.querySelector(":scope > .fab-more-btn")?.remove();
   wrap.prepend(button);
-  const parent = wrap.parentElement, lists = parent ? parent.querySelectorAll(".fabs:not(.fablib-grid), #dz-patterns").length : 0, region = parent && parent !== document.body && lists === 1 ? parent : wrap;
+  const parent = wrap.parentElement, lists2 = parent ? parent.querySelectorAll(".fabs:not(.fablib-grid), #dz-patterns").length : 0, region = parent && parent !== document.body && lists2 === 1 ? parent : wrap;
   if (!region.dataset.float) {
     region.dataset.float = "1";
     sectionRow.set(region, box2);
@@ -7094,9 +7195,10 @@ function placeMoreButton(box2, button) {
   }
 }
 function drawShortList(box2, selected) {
+  lists.set(box2, selected);
   box2.innerHTML = "";
   const fabs = shortListFabrics(selected);
-  for (const f of fabs) box2.appendChild(fabricTile(f, f.id === selected));
+  for (const { f, fixed } of fabs) box2.appendChild(fabricTile(f, f.id === selected, fixed ? "fixed" : "remove"));
   placeMoreButton(box2, moreButton(box2, fabs.length));
   sideRoller(box2, '.fab[aria-pressed="true"]');
 }
@@ -7155,7 +7257,16 @@ function drawLibrary() {
     add.innerHTML = '<b aria-hidden="true">+</b><span>Add fabric photo</span>';
     grid.appendChild(add);
   }
-  for (const f of found.slice(0, lib.shown)) grid.appendChild(fabricTile(f, f.id === lib.selected));
+  const onPalette = new Set(fabricPalette() || defaultPalette());
+  for (const f of found.slice(0, lib.shown)) {
+    const t = fabricTile(f, f.id === lib.selected);
+    if (onPalette.has(f.id)) {
+      t.classList.add("on-palette");
+      t.title = `${f.name} \xB7 in your fabric lists`;
+    }
+    grid.appendChild(t);
+  }
+  $("fablib-reset").hidden = !fabricPalette();
   const left = found.length - lib.shown;
   $("fablib-more").hidden = left <= 0;
   $("fablib-more").textContent = `Show more (${left} more)`;
@@ -7168,6 +7279,8 @@ function pickFromLibrary(id) {
   if (!box2) return;
   loadFabrics([id]);
   noteRecent(id);
+  const palette = fabricPalette();
+  if (palette || !defaultPalette().includes(id)) setFabricPalette(withFabric(palette || defaultPalette(), id));
   const b = document.createElement("button");
   b.type = "button";
   b.className = "fab";
@@ -7208,6 +7321,11 @@ function initLibrary() {
       e.target.closest("button.fab")
     );
     if (b?.dataset.f) pickFromLibrary(b.dataset.f);
+  });
+  $("fablib-reset").addEventListener("click", () => {
+    setFabricPalette(null);
+    redrawLists();
+    drawLibrary();
   });
   $("fablib-more").addEventListener("click", () => {
     lib.shown += PAGE;

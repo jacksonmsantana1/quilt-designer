@@ -2,8 +2,9 @@
 let box = null,
   timer = 0;
 /**
- * Shows a message for a few seconds (longer for longer messages). Click it to close it.
- * @param {string} text @param {{ ms?: number }} [opts]
+ * Shows a message for a few seconds (longer for longer messages). Click it to close it. With an action, a
+ * button follows the text ("Undo") that runs it and closes the message.
+ * @param {string} text @param {{ ms?: number, action?: { label: string, run: () => void } }} [opts]
  */
 function notify(text, opts = {}) {
   if (typeof document === 'undefined') return;
@@ -19,6 +20,21 @@ function notify(text, opts = {}) {
     document.body.appendChild(box);
   }
   box.textContent = text;
+  if (opts.action) {
+    const { label, run } = opts.action,
+      b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.style.cssText =
+      'margin-left:12px;background:none;border:1px solid rgba(255,255,255,.7);color:#fff;border-radius:6px;' +
+      'padding:2px 10px;font:600 13px system-ui,sans-serif;cursor:pointer';
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      box.hidden = true;
+      run();
+    });
+    box.appendChild(b);
+  }
   box.hidden = false;
   clearTimeout(timer);
   timer = setTimeout(() => (box.hidden = true), opts.ms || Math.max(5000, text.length * 60));

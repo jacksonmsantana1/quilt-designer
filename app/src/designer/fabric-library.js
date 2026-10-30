@@ -126,9 +126,29 @@ function noteRecent(id) {
   } catch (e) {}
 }
 
+// ---- the palette: the fabrics kept in the short lists, in order (× takes one off, the library puts it back);
+// per device. null until the person changes it: the lists then show the default (core/fabric-picks.js)
+const PALETTE_KEY = 'quilt-fabric-palette.v1';
+/** @returns {string[] | null} */
+function fabricPalette() {
+  try {
+    const v = JSON.parse(localStorage.getItem(PALETTE_KEY) || 'null');
+    return Array.isArray(v) ? v.filter(isFabric) : null;
+  } catch (e) {
+    return null;
+  }
+}
+/** Keeps the palette (null: back to the default). @param {string[] | null} ids */
+function setFabricPalette(ids) {
+  try {
+    if (ids) localStorage.setItem(PALETTE_KEY, JSON.stringify(ids));
+    else localStorage.removeItem(PALETTE_KEY);
+  } catch (e) {}
+}
+
 /**
  * Adds a fabric from a photo and keeps it in storage. The same photo twice gives the same fabric. A photo just
- * added counts as recently picked, so it shows in the short lists.
+ * added counts as recently picked, and joins the palette (when there is one), so it shows in the short lists.
  * @param {HTMLCanvasElement} canvas @param {{ name: string, cm: number }} meta @returns {Promise<string>} its id
  */
 async function addFabric(canvas, meta) {
@@ -138,6 +158,8 @@ async function addFabric(canvas, meta) {
   const { id } = await fabrics.add(blob, meta);
   if (!byId.has(id)) put({ id, name: meta.name, canvas, cm: meta.cm, blob, added: Date.now() });
   noteRecent(id);
+  const palette = fabricPalette();
+  if (palette && !palette.includes(id)) setFabricPalette([...palette, id]);
   return id;
 }
 const ROLE_DEFAULT = ['b0', 'b1', 'b3']; // cream, indigo, mustard
@@ -148,6 +170,7 @@ export {
   addStoredFabric,
   fabricById,
   fabricLib,
+  fabricPalette,
   initFabricLib,
   isFabric,
   listedFabrics,
@@ -155,5 +178,6 @@ export {
   noteRecent,
   onFabricsLoaded,
   recentFabrics,
+  setFabricPalette,
   thumbUrl,
 };

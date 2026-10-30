@@ -86,3 +86,26 @@ export function findFabrics(fabrics, { query = '', group = 'all', inQuilt = new 
     .filter(f => inGroup(f) && named(f))
     .sort((a, b) => (a.basic === b.basic ? (a.basic ? 0 : (b.added || 0) - (a.added || 0)) : a.basic ? -1 : 1));
 }
+
+// ---- the palette: the fabrics a person keeps in the short lists, in their order (removed with ×, added from the
+// library). Until they change it there is none, and the lists show the default (basics, recent picks, newest photos).
+
+/**
+ * The tiles of a short list: the palette (or the default), then fabrics of the quilt and the chosen one when they
+ * aren't on it. `fixed`: can't be taken off now (used in this quilt, or the one chosen).
+ * @param {{ palette: string[] | null, defaults: string[], inQuilt?: Iterable<string>, selected?: string | null }} o
+ * @returns {{ id: string, fixed: boolean }[]}
+ */
+export function paletteList({ palette, defaults, inQuilt = [], selected = null }) {
+  const keep = new Set(inQuilt);
+  if (selected) keep.add(selected);
+  const ids = [...(palette || defaults)];
+  for (const id of keep) if (!ids.includes(id)) ids.push(id);
+  return ids.map(id => ({ id, fixed: keep.has(id) }));
+}
+
+/** The palette without a fabric. @param {string[]} palette @param {string} id */
+export const withoutFabric = (palette, id) => palette.filter(x => x !== id);
+
+/** The palette with a fabric at its end (once). @param {string[]} palette @param {string} id */
+export const withFabric = (palette, id) => (palette.includes(id) ? palette : [...palette, id]);
