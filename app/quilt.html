@@ -426,6 +426,10 @@
   .bmm-in input { width: 5.2em; font: inherit; font-size: .95rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 6px; text-align: right; }
   .marquee { position: absolute; z-index: 2; border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 2px; pointer-events: none; }
   .marquee::after { content: attr(data-count); position: absolute; right: 4px; bottom: 4px; font: 600 .72rem var(--font-body); color: var(--accent-ink); background: var(--accent); padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+  .marquee[data-count=""]::after { display: none; }
+  /* on point: the box is turned (45°), so its size is on a tag of its own beside its right corner */
+  .marquee-tag { position: absolute; z-index: 3; pointer-events: none; font: 600 .72rem var(--font-body); color: var(--accent-ink); background: var(--accent); padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .marquee-tag[hidden] { display: none; }
   #dz-quilt { cursor: crosshair; user-select: none; -webkit-user-select: none; }
   .flipper { perspective: 1800px; width: max-content; max-width: 100%; }
   .flip-inner { position: relative; transform-style: preserve-3d; transition: transform .95s cubic-bezier(.45, .05, .25, 1); }
@@ -2940,6 +2944,32 @@ function settingPieces(d, W, H) {
   add("corner", [x0, y1], [x0, y1 - m], [x0 + m, y1]);
   add("corner", [x1, y1], [x1 - m, y1], [x1, y1 - m]);
   return out;
+}
+function nearestBlock(d, x, y, W, H) {
+  const at = blockAt(d, x, y, W, H);
+  if (at >= 0) return at;
+  let best = 0, bd = Infinity;
+  for (let i = 0, n = cellCount(d); i < n; i++) {
+    if (d.blocks[i].under != null) continue;
+    const P = blockPlace(d, i, W, H), dist = Math.hypot(P.x + P.w / 2 - x, P.y + P.h / 2 - y);
+    if (dist < bd) bd = dist, best = i;
+  }
+  return best;
+}
+function turnedSelection(d, a, b, W, H) {
+  const g = cellGrid(d), f = turnedFrame(d, W, H), [ax, ay] = g.cell(a), [bx, by] = g.cell(b), x0 = Math.min(ax, bx), x1 = Math.max(ax, bx), y0 = Math.min(ay, by), y1 = Math.max(ay, by), blocks = /* @__PURE__ */ new Set();
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      const j = g.at(x, y);
+      if (j >= 0) blocks.add(anchorOf(d, j));
+    }
+  const cols = x1 - x0 + 1, rows = y1 - y0 + 1;
+  return {
+    blocks: [...blocks],
+    box: f.place(x0 * f.p + f.s, y0 * f.p + f.s, cols * f.p - f.s, rows * f.p - f.s),
+    cols,
+    rows
+  };
 }
 var gridCell = (d, i) => isOnPoint(d) ? turnedFrame(d, 1, 1).cell(i) : [i % d.cols, Math.floor(i / d.cols)];
 function uniteOf(d, sel) {
@@ -7418,6 +7448,10 @@ function choosePattern(key) {
 // src/designer/designer-ui.js
 function initDesignerUI() {
   const qcv = $("dz-quilt"), mq = $("dz-marquee");
+  const mqTag = document.createElement("div");
+  mqTag.className = "marquee-tag";
+  mqTag.hidden = true;
+  mq.after(mqTag);
   let marquee = null, suppressClick = false, mqFrame = 0;
   const blocksIn = (x0, y0, x1, y1) => {
     const r = qcv.getBoundingClientRect(), out = /* @__PURE__ */ new Set();
@@ -7429,6 +7463,10 @@ function initDesignerUI() {
       [L, B2]
     ];
     const onPoint = isOnPoint(design);
+    if (onPoint) {
+      const a = nearestBlock(design, x0, y0, r.width, r.height), b = nearestBlock(design, x1, y1, r.width, r.height);
+      return new Set(turnedSelection(design, a, b, r.width, r.height).blocks);
+    }
     for (let i = 0, n = cellCount(design); i < n; i++) {
       const P = blockPlace(design, i, r.width, r.height), cx = P.x + P.w / 2, cy = P.y + P.h / 2;
       if (onPoint ? cx > L && cx < R2 && cy > T && cy < B2 : convexOverlap(box2, blockOutline(P)))
@@ -7464,14 +7502,37 @@ function initDesignerUI() {
     if (!marquee.active) return;
     e.preventDefault();
     const { x0, y0, x1, y1 } = marquee;
-    Object.assign(mq.style, {
-      left: Math.min(x0, x1) + "px",
-      top: Math.min(y0, y1) + "px",
-      width: Math.abs(x1 - x0) + "px",
-      height: Math.abs(y1 - y0) + "px"
-    });
-    const inside = blocksIn(x0, y0, x1, y1);
-    mq.dataset.count = `${inside.size} block${inside.size === 1 ? "" : "s"}`;
+    if (isOnPoint(design)) {
+      const t = turnedSelection(
+        design,
+        nearestBlock(design, x0, y0, r.width, r.height),
+        nearestBlock(design, x1, y1, r.width, r.height),
+        r.width,
+        r.height
+      );
+      Object.assign(mq.style, {
+        left: t.box.x + "px",
+        top: t.box.y + "px",
+        width: t.box.w + "px",
+        height: t.box.h + "px",
+        transform: "rotate(45deg)"
+      });
+      mq.dataset.count = "";
+      const right = blockOutline(t.box).reduce((m, pt) => pt[0] > m[0] ? pt : m);
+      mqTag.textContent = `${t.cols} \xD7 ${t.rows} block${t.cols * t.rows === 1 ? "" : "s"}`;
+      Object.assign(mqTag.style, { left: right[0] + 8 + "px", top: right[1] - 11 + "px" });
+      mqTag.hidden = false;
+    } else {
+      Object.assign(mq.style, {
+        left: Math.min(x0, x1) + "px",
+        top: Math.min(y0, y1) + "px",
+        width: Math.abs(x1 - x0) + "px",
+        height: Math.abs(y1 - y0) + "px",
+        transform: ""
+      });
+      const inside = blocksIn(x0, y0, x1, y1);
+      mq.dataset.count = `${inside.size} block${inside.size === 1 ? "" : "s"}`;
+    }
     if (!mqFrame)
       mqFrame = requestAnimationFrame(() => {
         mqFrame = 0;
@@ -7485,6 +7546,7 @@ function initDesignerUI() {
     const m0 = marquee;
     marquee = null;
     mq.hidden = true;
+    mqTag.hidden = true;
     if (!m0.active) return;
     suppressClick = true;
     if (cancel) {

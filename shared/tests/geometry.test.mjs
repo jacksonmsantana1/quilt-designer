@@ -9,6 +9,8 @@ import {
   normalizeSpans,
   setSpan,
   spanOf,
+  nearestBlock,
+  turnedSelection,
   uniteOf,
   anchorOf,
   blockSizeMm,
@@ -376,4 +378,25 @@ test('uniting on point: the diamonds must make a bigger diamond', () => {
   // block 4 (row 2, column 2), the ones between it and its lower neighbours (11, 12), and block 7 below it
   assert.deepEqual(uniteOf(d, [4, 11, 12, 7]), { i: 4, k: 2 });
   assert.deepEqual(uniteOf(d, [4, 5]), { why: 'square' }); // two diamonds side by side only touch at a corner
+});
+
+test('on point: a selection between two diamonds turns with the blocks and takes whole diamonds only', () => {
+  const d = onPoint(5, 5),
+    q = quiltMm(d);
+  // block 6 (row 2, column 2) to block 33 (between rows 3 and 4, columns 1 and 2): 2 × 3 in the turned grid
+  const t = turnedSelection(d, 6, 33, q.W, q.H);
+  assert.deepEqual([t.cols, t.rows], [2, 3]);
+  assert.deepEqual(
+    [...t.blocks].sort((a, b) => a - b),
+    [6, 10, 11, 29, 30, 33],
+  );
+  assert.ok(t.box.turn > 0);
+  // every block it takes is inside its box (the box is round whole diamonds)
+  const box = blockOutline(t.box);
+  for (const i of t.blocks) {
+    const P = blockPlace(d, i, q.W, q.H);
+    assert.ok(pointInPoly(P.x + P.w / 2, P.y + P.h / 2, box), `block ${i}`);
+  }
+  // from a setting triangle on the top edge, between the first two blocks: the nearest diamond is one of them
+  assert.ok([0, 1].includes(nearestBlock(d, q.W / 5, 1, q.W, q.H)));
 });

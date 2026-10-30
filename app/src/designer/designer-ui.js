@@ -36,9 +36,11 @@ import {
   cellCount,
   convexOverlap,
   isOnPoint,
+  nearestBlock,
   pointInPoly,
   quiltMm,
   sashRects,
+  turnedSelection,
   uniteOf,
 } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt } from './canvas.js';
@@ -68,6 +70,11 @@ function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected
   const qcv = $('dz-quilt'),
     mq = $('dz-marquee');
+  // on point the box is turned, so its size shows on a tag of its own (upright), beside it
+  const mqTag = document.createElement('div');
+  mqTag.className = 'marquee-tag';
+  mqTag.hidden = true;
+  mq.after(mqTag);
   let marquee = null,
     suppressClick = false,
     mqFrame = 0;
@@ -85,6 +92,13 @@ function initDesignerUI() {
       [L, B2],
     ];
     const onPoint = isOnPoint(design);
+    if (onPoint) {
+      // on point the selection turns with the blocks: from the diamond where the drag began to the one under
+      // the mouse (or the nearest ones), every whole diamond between them in the turned grid
+      const a = nearestBlock(design, x0, y0, r.width, r.height),
+        b = nearestBlock(design, x1, y1, r.width, r.height);
+      return new Set(turnedSelection(design, a, b, r.width, r.height).blocks);
+    }
     for (let i = 0, n = cellCount(design); i < n; i++) {
       const P = blockPlace(design, i, r.width, r.height),
         cx = P.x + P.w / 2,
@@ -126,14 +140,38 @@ function initDesignerUI() {
     if (!marquee.active) return;
     e.preventDefault();
     const { x0, y0, x1, y1 } = marquee;
-    Object.assign(mq.style, {
-      left: Math.min(x0, x1) + 'px',
-      top: Math.min(y0, y1) + 'px',
-      width: Math.abs(x1 - x0) + 'px',
-      height: Math.abs(y1 - y0) + 'px',
-    });
-    const inside = blocksIn(x0, y0, x1, y1);
-    mq.dataset.count = `${inside.size} block${inside.size === 1 ? '' : 's'}`;
+    if (isOnPoint(design)) {
+      // the box turns with the blocks and wraps whole diamonds; its size sits upright at its right corner
+      const t = turnedSelection(
+        design,
+        nearestBlock(design, x0, y0, r.width, r.height),
+        nearestBlock(design, x1, y1, r.width, r.height),
+        r.width,
+        r.height,
+      );
+      Object.assign(mq.style, {
+        left: t.box.x + 'px',
+        top: t.box.y + 'px',
+        width: t.box.w + 'px',
+        height: t.box.h + 'px',
+        transform: 'rotate(45deg)',
+      });
+      mq.dataset.count = '';
+      const right = blockOutline(t.box).reduce((m, pt) => (pt[0] > m[0] ? pt : m));
+      mqTag.textContent = `${t.cols} × ${t.rows} block${t.cols * t.rows === 1 ? '' : 's'}`;
+      Object.assign(mqTag.style, { left: right[0] + 8 + 'px', top: right[1] - 11 + 'px' });
+      mqTag.hidden = false;
+    } else {
+      Object.assign(mq.style, {
+        left: Math.min(x0, x1) + 'px',
+        top: Math.min(y0, y1) + 'px',
+        width: Math.abs(x1 - x0) + 'px',
+        height: Math.abs(y1 - y0) + 'px',
+        transform: '',
+      });
+      const inside = blocksIn(x0, y0, x1, y1);
+      mq.dataset.count = `${inside.size} block${inside.size === 1 ? '' : 's'}`;
+    }
     if (!mqFrame)
       mqFrame = requestAnimationFrame(() => {
         // live highlight, at most once per frame
@@ -148,6 +186,7 @@ function initDesignerUI() {
     const m0 = marquee;
     marquee = null;
     mq.hidden = true;
+    mqTag.hidden = true;
     if (!m0.active) return; // a plain click: the click handler opens the block
     suppressClick = true;
     if (cancel) {

@@ -242,21 +242,18 @@ test('on point: sashing frames every block, and the cutting guide lists it', asy
   await expect(page.locator('#cg-blocks .cgblock h3', { hasText: 'Setting triangles' })).toBeVisible();
 });
 
-test('on point: dragging over four diamonds that make a bigger diamond unites them; Split gives them back', async ({
+test('on point: dragging from one diamond to the one below makes a diamond of 2 × 2; it unites, and Split gives them back', async ({
   app,
   page,
 }) => {
   await page.locator('#dz-setting').selectOption('onpoint');
   const d = await app.current();
-  // block 6 (row 2, column 2), the two between it and the row below (29, 30), and block 11 below it
-  const group = [6, 29, 30, 11],
-    pts = await Promise.all(group.map(i => app.blockCentre(d, i))),
-    xs = pts.map(p => p.x),
-    ys = pts.map(p => p.y),
-    pad = pts[0].w * 0.2; // a little round their middles, short of the diamonds next to them
-  await page.mouse.move(Math.min(...xs) - pad, Math.min(...ys) - pad);
+  // from block 6 (row 2, column 2) to block 11 below it: with the two between them (29, 30), a diamond of 2 × 2
+  const a = await app.blockCentre(d, 6),
+    b = await app.blockCentre(d, 11);
+  await page.mouse.move(a.x, a.y);
   await page.mouse.down();
-  await page.mouse.move(Math.max(...xs) + pad, Math.max(...ys) + pad, { steps: 8 });
+  await page.mouse.move(b.x, b.y, { steps: 8 });
   await page.mouse.up();
   await expect(page.locator('#dz-unite')).toHaveText('Unite 2 × 2');
   await page.locator('#dz-unite').click();
@@ -282,4 +279,37 @@ test('on point: two diamonds side by side only touch at a corner, so they cannot
   await page.mouse.click(b.x, b.y);
   await page.keyboard.up('Shift');
   await expect(page.locator('#dz-unite')).toHaveText('Select a square');
+});
+
+test('on point: the selection turns with the blocks, from one diamond to another, whole diamonds only', async ({
+  app,
+  page,
+}) => {
+  await page.locator('#dz-setting').selectOption('onpoint');
+  const d = await app.current();
+  // from block 6 to the block between rows 3 and 4 (33): 2 diamonds one way and 3 the other in the turned grid
+  const a = await app.blockCentre(d, 6),
+    b = await app.blockCentre(d, 33);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 8 });
+  // while dragging: the box is turned, and says its size upright beside it
+  await expect(page.locator('.marquee-tag')).toHaveText('2 × 3 blocks');
+  expect(await page.locator('#dz-marquee').evaluate(el => el.style.transform)).toBe('rotate(45deg)');
+  await page.mouse.up();
+  await expect(page.locator('#dz-blockname')).toContainText('editing 6 blocks');
+  await expect(page.locator('.marquee-tag')).toBeHidden();
+});
+
+test('on point: a drag that starts on a setting triangle starts from the nearest diamond', async ({ app, page }) => {
+  await page.locator('#dz-setting').selectOption('onpoint');
+  const d = await app.current(),
+    box = await page.locator('#dz-quilt').boundingBox(),
+    b = await app.blockCentre(d, 6);
+  // on the top edge between the first two blocks: a setting triangle; the nearest diamond is block 0 or 1
+  await page.mouse.move(box.x + box.width / 5, box.y + 3);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('#dz-blockname')).toContainText(/editing \d+ blocks/);
 });

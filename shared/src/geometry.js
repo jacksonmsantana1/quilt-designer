@@ -373,6 +373,55 @@ function settingPieces(d, W, H) {
 }
 /** How a block's position is named: "2, 3" (row, column); on point, a block between rows and columns "1½, 2½". @param {Design} d @param {number} i */
 /**
+ * The block at (x, y) on a W × H drawing, or (on a setting triangle, a strip, a border) the one whose middle is
+ * nearest; a covered cell answers with its large block. @param {Design} d @param {number} x @param {number} y
+ * @param {number} W @param {number} H @returns {number}
+ */
+function nearestBlock(d, x, y, W, H) {
+  const at = blockAt(d, x, y, W, H);
+  if (at >= 0) return at;
+  let best = 0,
+    bd = Infinity;
+  for (let i = 0, n = cellCount(d); i < n; i++) {
+    if (d.blocks[i].under != null) continue;
+    const P = blockPlace(d, i, W, H),
+      dist = Math.hypot(P.x + P.w / 2 - x, P.y + P.h / 2 - y);
+    if (dist < bd) ((bd = dist), (best = i));
+  }
+  return best;
+}
+/**
+ * On point, a selection that turns with the blocks: every block in the turned grid between blocks a and b (opposite
+ * corners, as a straight selection is between two corners), and the turned box round them on the W × H drawing.
+ * @param {Design} d @param {number} a @param {number} b @param {number} W @param {number} H
+ * @returns {{ blocks: number[], box: Place, cols: number, rows: number }}
+ */
+function turnedSelection(d, a, b, W, H) {
+  const g = cellGrid(d),
+    f = turnedFrame(d, W, H),
+    [ax, ay] = g.cell(a),
+    [bx, by] = g.cell(b),
+    x0 = Math.min(ax, bx),
+    x1 = Math.max(ax, bx),
+    y0 = Math.min(ay, by),
+    y1 = Math.max(ay, by),
+    blocks = new Set();
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      const j = g.at(x, y);
+      if (j >= 0) blocks.add(anchorOf(d, j));
+    }
+  const cols = x1 - x0 + 1,
+    rows = y1 - y0 + 1;
+  // round whole blocks: from the first one's edge to the last one's (the strips round the outside are left out)
+  return {
+    blocks: [...blocks],
+    box: f.place(x0 * f.p + f.s, y0 * f.p + f.s, cols * f.p - f.s, rows * f.p - f.s),
+    cols,
+    rows,
+  };
+}
+/**
  * Where block i is on the grid of cells: (column, row) straight; on point, its square in the turned frame, where
  * the diamonds stand on a straight grid too (see turnedFrame). @param {Design} d @param {number} i @returns {[number, number]}
  */
@@ -729,6 +778,7 @@ export {
   isOnPoint,
   normalizeSpans,
   pathPoly,
+  nearestBlock,
   pathPolyInto,
   placeBox,
   placedPolys,
@@ -741,5 +791,6 @@ export {
   setSpan,
   settingPieces,
   spanOf,
+  turnedSelection,
   uniteOf,
 };
