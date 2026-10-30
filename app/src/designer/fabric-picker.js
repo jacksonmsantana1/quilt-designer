@@ -239,7 +239,9 @@ function showFloat(box, region) {
     edge = /** @type {HTMLElement} */ (box.closest('.card') || box.parentElement).getBoundingClientRect(),
     row = box.getBoundingClientRect();
   let left = edge.left - size - 10;
-  if (left < 4) left = edge.right + 10; // no room on the left: the other side
+  // no room on the left (a small window): over the row's right end, inside the card. Just outside its right edge they
+  // fell under the next panel or off the page; the row scrolls, so the tile under them can still be reached
+  if (left < 4) left = Math.min(row.right, innerWidth) - size - 6;
   for (const [n, b] of buttons.entries()) {
     const src = inline[n];
     b.hidden = !src;

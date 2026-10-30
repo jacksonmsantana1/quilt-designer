@@ -7355,7 +7355,7 @@ function showFloat(box2, region) {
     (box2.closest(".card") || box2.parentElement).getBoundingClientRect()
   ), row = box2.getBoundingClientRect();
   let left = edge.left - size - 10;
-  if (left < 4) left = edge.right + 10;
+  if (left < 4) left = Math.min(row.right, innerWidth) - size - 6;
   for (const [n, b] of buttons.entries()) {
     const src = inline[n];
     b.hidden = !src;

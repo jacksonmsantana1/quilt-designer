@@ -97,3 +97,21 @@ test('colours picked on the wheel rank the fabrics; one clicked goes on the sele
   expect((await app.current()).blocks[0].fabrics.filter(f => f === id)).toHaveLength(1);
   await expect(page.locator('#dz-fabrics2 .fab[aria-pressed="true"]')).toHaveText('All green');
 });
+
+test('in a small window the round buttons sit over the row’s end, on the page', async ({ app, page }) => {
+  await page.setViewportSize({ width: 800, height: 900 });
+  await app.open();
+  await page.locator('#rail-parts').click();
+  const row = page.locator('#dz-fabrics2');
+  await row.scrollIntoViewIfNeeded();
+  await row.hover();
+  const r = await row.boundingBox();
+  for (const id of ['#fab-more-float', '#fab-colour-float']) {
+    await expect(page.locator(id)).toBeVisible();
+    const b = await page.locator(id).boundingBox();
+    expect(b.x).toBeGreaterThanOrEqual(r.x); // inside the row's width, not past the card's edge
+    expect(b.x + b.width).toBeLessThanOrEqual(Math.min(r.x + r.width, 800));
+  }
+  await page.locator('#fab-colour-float').click();
+  await expect(page.locator('#colfind')).toBeVisible();
+});
