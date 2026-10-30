@@ -79,6 +79,13 @@ test('on point with a large block (version 5): kept as it is', () => {
   const raw = JSON.parse(text('v5-on-point-large-block.json')),
     r = readDesign(raw);
   assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+});
+
+test('on point with a symmetry (version 6): kept as it is', () => {
+  const raw = JSON.parse(text('v6-on-point-symmetry.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
   assert.deepEqual(r.design, raw);
 });
 

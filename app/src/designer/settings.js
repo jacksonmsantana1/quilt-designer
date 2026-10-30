@@ -34,12 +34,13 @@ function syncSymUI() {
     if (v === cur) btn.querySelector('svg').innerHTML = o.querySelector('svg').innerHTML;
   }
   btn.setAttribute('aria-pressed', String(cur !== 'off'));
-  // on point has no symmetry yet (large blocks are made by uniting a selection: designer/canvas.js)
-  btn.disabled = onPoint;
-  btn.title = onPoint
-    ? 'Symmetry: not available for quilts set on point yet'
+  // on point the mirror lines only run through the blocks when the quilt is square; a choice made earlier waits
+  const paused = onPoint && design.cols !== design.rows;
+  btn.disabled = paused;
+  btn.title = paused
+    ? 'Symmetry on point needs as many columns as rows'
     : 'Symmetry: every change to a block is copied to its mirror partners';
-  if (onPoint) openSym(false);
+  if (paused) openSym(false);
 }
 /** Slides the five symmetry choices out beside the button (to the left, over the quilt, when there is no room on the right), or back. @param {boolean} open */
 function openSym(open) {

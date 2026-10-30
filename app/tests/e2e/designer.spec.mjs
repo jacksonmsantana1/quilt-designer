@@ -201,7 +201,7 @@ test('on point: blocks turn 45°, a block sits between each 2 × 2, triangles fi
   // the block between the first four (one column and one row in, where four diamonds meet)
   await page.mouse.click(box.x + col, box.y + row);
   await expect(page.locator('#dz-blockname')).toContainText('block 1½, 1½');
-  await expect(page.locator('#rail-sym')).toBeDisabled(); // no symmetry on point yet
+  await expect(page.locator('#rail-sym')).toBeEnabled(); // 5 × 5 is square: symmetry works on point
   await expect(page.locator('#rail-sash')).toBeEnabled(); // sashing works on point
   // a setting triangle on the top edge, between the first two blocks: its own card and fabric
   await page.mouse.click(box.x + col, box.y + 4);
@@ -353,4 +353,95 @@ test('8-way needs a square layout: greyed on 5 × 4, there on 5 × 5', async ({ 
   await page.locator('[data-step="r:1"]').click(); // 5 × 5
   await page.locator('#rail-sym').click();
   await expect(page.locator('.sym-opt[data-sym="kal"]')).toBeEnabled();
+});
+
+// ---- symmetry on point: square quilts only; the mirror lines run through the centre, across the diamonds
+
+/** puts the quilt on point and picks a symmetry from the round button */
+async function onPointSym(page, sym) {
+  await page.locator('#dz-setting').selectOption('onpoint');
+  await page.locator('#rail-sym').click();
+  await page.locator(`.sym-opt[data-sym="${sym}"]`).click();
+}
+/** the blocks that have a pattern */
+const withPattern = (d, p) => d.blocks.map((b, i) => (b.pattern === p ? i : -1)).filter(i => i >= 0);
+
+test('on point: Symmetry is there on a square quilt, greyed with a reason when it is not', async ({ page }) => {
+  await page.locator('#dz-setting').selectOption('onpoint');
+  const btn = page.locator('#rail-sym');
+  await expect(btn).toBeEnabled();
+  await btn.click();
+  await expect(page.locator('#sym-row .sym-opt')).toHaveCount(5);
+  await expect(page.locator('.sym-opt[data-sym="kal"]')).toBeEnabled();
+  await page.keyboard.press('Escape');
+  await page.locator('[data-step="r:-1"]').click(); // 5 × 4
+  await expect(btn).toBeDisabled();
+  await expect(btn).toHaveAttribute('title', 'Symmetry on point needs as many columns as rows');
+});
+
+test('on point, 4-way: a change to a corner diamond goes to the other three corners, mirrored', async ({
+  app,
+  page,
+}) => {
+  await onPointSym(page, 'both');
+  let d = await app.current();
+  const c = await app.blockCentre(d, 0); // the top-left corner diamond
+  await page.mouse.click(c.x, c.y);
+  await page.locator('#dz-patterns [data-p="twisted"]').click();
+  d = await app.current();
+  expect(withPattern(d, 'twisted')).toEqual([0, 4, 20, 24]);
+  // the one beside the top corner of the four between (block 25 is between blocks 0, 1, 5 and 6)
+  const b = await app.blockCentre(d, 25);
+  await page.mouse.click(b.x, b.y);
+  await page.locator('#dz-patterns [data-p="geese"]').click();
+  expect(withPattern(await app.current(), 'geese')).toEqual([25, 28, 37, 40]);
+});
+
+test('on point: turning 4-way on copies the top-left quarter; Undo takes it back', async ({ app, page }) => {
+  await page.locator('#dz-setting').selectOption('onpoint');
+  let d = await app.current();
+  const c = await app.blockCentre(d, 0);
+  await page.mouse.click(c.x, c.y);
+  await page.locator('#dz-patterns [data-p="twisted"]').click();
+  expect(withPattern(await app.current(), 'twisted')).toEqual([0]);
+  await page.mouse.click(20, 700);
+  await page.waitForTimeout(1500); // the timeline makes its step after a short pause
+  await page.locator('#rail-sym').click();
+  await page.locator('.sym-opt[data-sym="both"]').click();
+  d = await app.current();
+  expect(d.sym).toBe('both');
+  expect(withPattern(d, 'twisted')).toEqual([0, 4, 20, 24]);
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Control+z');
+  d = await app.current();
+  expect(d.sym).toBeUndefined();
+  expect(withPattern(d, 'twisted')).toEqual([0]);
+});
+
+test('on point: a quilt made not square pauses its symmetry; square again, it is back', async ({ app, page }) => {
+  await onPointSym(page, 'both');
+  await page.locator('[data-step="r:-1"]').click(); // 5 × 4
+  await expect(page.locator('#rail-sym')).toBeDisabled();
+  expect((await app.current()).sym).toBe('both'); // the choice is kept
+  let d = await app.current();
+  const c = await app.blockCentre(d, 0);
+  await page.mouse.click(c.x, c.y);
+  await page.locator('#dz-patterns [data-p="twisted"]').click();
+  expect(withPattern(await app.current(), 'twisted')).toEqual([0]); // paused: nothing mirrored
+  await page.mouse.click(20, 700);
+  await page.locator('[data-step="r:1"]').click(); // 5 × 5 again
+  await expect(page.locator('#rail-sym')).toBeEnabled();
+  await expect(page.locator('#rail-sym')).toHaveAttribute('aria-pressed', 'true');
+  d = await app.current();
+  const s = await app.blockCentre(d, 6);
+  await page.mouse.click(s.x, s.y);
+  await page.locator('#dz-patterns [data-p="geese"]').click();
+  expect(withPattern(await app.current(), 'geese')).toEqual([6, 8, 16, 18]);
+});
+
+test('switching between straight and on point turns symmetry off', async ({ app, page }) => {
+  await onPointSym(page, 'kal');
+  await page.locator('#dz-setting').selectOption('straight');
+  expect((await app.current()).sym).toBeUndefined();
+  await expect(page.locator('#rail-sym')).toHaveAttribute('aria-pressed', 'false');
 });

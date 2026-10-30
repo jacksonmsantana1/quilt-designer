@@ -771,6 +771,7 @@ export {
   borderUnits,
   bordersOf,
   cellCount,
+  cellGrid,
   cellName,
   cellRect,
   centreMm,

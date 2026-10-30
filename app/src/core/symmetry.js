@@ -1,7 +1,7 @@
 // Symmetry maths (pure): mirror partners of a block and how their orientation changes.
 // @ts-check
 /** @typedef {import('@quilt/shared/types.js').Design} Design @typedef {import('@quilt/shared/types.js').Orientation} Orientation */
-import { normalizeSpans, setSpan, spanOf } from '@quilt/shared/geometry.js';
+import { cellGrid, isOnPoint, normalizeSpans, setSpan, spanOf } from '@quilt/shared/geometry.js';
 
 // ---- symmetry: an edit to a block is copied to its mirror partners, mirrored to match
 // sym: 'off' | 'lr' (left-right) | 'tb' (top-bottom) | 'both' (4-way) | 'kal' (8-way, square layouts only)
@@ -12,10 +12,15 @@ const SYMS = {
   both: 'Mirror both ways (4-way)',
   kal: 'Kaleidoscope (8-way)',
 };
-/** The symmetry in force (kaleidoscope falls back to 4-way on a non-square layout). @param {Design} d @returns {import('@quilt/shared/types.js').SymmetryMode} */
+/**
+ * The symmetry in force (kaleidoscope falls back to 4-way on a non-square layout; on point, a quilt that isn't
+ * square has no mirror lines through its blocks, so its symmetry waits until it is square again).
+ * @param {Design} d @returns {import('@quilt/shared/types.js').SymmetryMode}
+ */
 const symOf = d => {
   const s = d ? d.sym : undefined;
-  return s === 'kal' && d.cols !== d.rows ? 'both' : SYMS[s] ? s : 'off';
+  if (!SYMS[s] || (isOnPoint(d) && d.cols !== d.rows)) return 'off';
+  return s === 'kal' && d.cols !== d.rows ? 'both' : s;
 };
 // orientation algebra: M = F^flip ∘ R^rot, R = quarter turn, F = left-right mirror
 /** @param {Orientation} o @returns {Orientation} */
@@ -29,25 +34,44 @@ const oDiag = o => (o.flip ? { rot: (o.rot + 3) % 4, flip: false } : { rot: (o.r
 function symPartners(bi, d) {
   const s = symOf(d);
   if (s === 'off') return [];
-  const C = d.cols,
-    Rr = d.rows,
-    c = bi % C,
-    r = Math.floor(bi / C),
+  const g = cellGrid(d),
+    [c, r] = g.cell(bi),
+    C = d.cols,
     out = [],
     k = spanOf(d.blocks[bi]);
   const add = (cc, rr, f) => {
-    const j = rr * C + cc;
-    if (j !== bi && !out.some(x => x[0] === j)) out.push([j, f]);
+    const j = g.at(cc, rr);
+    if (j >= 0 && j !== bi && !out.some(x => x[0] === j)) out.push([j, f]);
   };
   const id = o => o,
     comp = (f, g) => o => f(g(o));
-  const base = [[c, r, id]];
-  if (s === 'lr' || s === 'both' || s === 'kal') base.push([C - k - c, r, oLR]);
-  if (s === 'tb' || s === 'both' || s === 'kal') base.push([c, Rr - k - r, oTB]);
-  if (s === 'both' || s === 'kal') base.push([C - k - c, Rr - k - r, comp(oLR, oTB)]);
-  for (const [cc, rr, f] of base) {
-    add(cc, rr, f);
-    if (s === 'kal') add(rr, cc, comp(oDiag, f));
+  const lr = s === 'lr' || s === 'both' || s === 'kal',
+    tb = s === 'tb' || s === 'both' || s === 'kal',
+    base = [[c, r, id]];
+  /** @type {(b: any[]) => any[]} the 8-way's extra mirror (across a diagonal) of a partner already found */
+  let diag;
+  if (!isOnPoint(d)) {
+    const Rr = d.rows;
+    if (lr) base.push([C - k - c, r, oLR]);
+    if (tb) base.push([c, Rr - k - r, oTB]);
+    if (lr && tb) base.push([C - k - c, Rr - k - r, comp(oLR, oTB)]);
+    diag = ([cc, rr, f]) => [rr, cc, comp(oDiag, f)];
+  } else {
+    // on point the cells are (u, v) of the turned frame: u along a block's top edge (down-right on the screen),
+    // v along its left edge (down-left). The screen's up-down line swaps u and v (a transpose of the block), its
+    // left-right line swaps and reverses them, and the diagonals reverse just one; a square quilt of C × C has
+    // its centre at u = C − ½, v = ½
+    if (lr) base.push([r + C - 1, c - C + 1, oDiag]);
+    if (tb) base.push([C - k - r, C - k - c, o => oLR(oTB(oDiag(o)))]);
+    if (lr && tb) base.push([2 * C - 1 - k - c, 1 - k - r, comp(oLR, oTB)]);
+    diag = ([u, v, f]) => [2 * C - 1 - k - u, v, comp(oLR, f)];
+  }
+  for (const b of base) {
+    add(b[0], b[1], b[2]);
+    if (s === 'kal') {
+      const [x, y, f] = diag(b);
+      add(x, y, f);
+    }
   }
   return out;
 }
@@ -85,16 +109,21 @@ function withSymmetry(d, sources) {
 /** The blocks whose mirror images decide the rest when a symmetry is turned on: the top-left half, quarter or eighth. @param {Design} d @returns {number[]} */
 function symmetrySources(d) {
   const s = symOf(d),
+    g = cellGrid(d),
     C = d.cols,
     R = d.rows,
+    on = isOnPoint(d),
     src = [];
-  for (let r = 0; r < R; r++)
-    for (let c = 0; c < C; c++) {
-      const inL = c < Math.ceil(C / 2),
-        inT = r < Math.ceil(R / 2);
-      if (s === 'lr' ? inL : s === 'tb' ? inT : s === 'both' ? inL && inT : s === 'kal' ? inL && inT && c >= r : false)
-        src.push(r * C + c);
-    }
+  if (s === 'off') return src;
+  for (let i = 0; i < d.blocks.length; i++) {
+    // the middle of the block's cell from the quilt's centre, in half-blocks across the screen (left and up negative)
+    const [a, b] = g.cell(i),
+      x = on ? a - b - (C - 1) : 2 * a - (C - 1),
+      y = on ? a + b + 1 - C : 2 * b - (R - 1),
+      inL = x <= 0,
+      inT = y <= 0;
+    if (s === 'lr' ? inL : s === 'tb' ? inT : s === 'both' ? inL && inT : inL && inT && x >= y) src.push(i);
+  }
   return src;
 }
 /** Turns a symmetry on (mirroring the design from its top-left part straight away) or off. @param {Design} d @param {import('@quilt/shared/types.js').SymmetryMode} mode @returns {Design} */

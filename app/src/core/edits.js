@@ -159,8 +159,9 @@ function setSetting(d, on) {
     const { span: _s, under: _u, ...b } = blk;
     return b;
   };
+  // the mirror lines cross different blocks in the other layout: symmetry starts off again
   if (!on) {
-    const { setting: _s, ...rest } = d;
+    const { setting: _s, sym: _sym, ...rest } = d;
     return { ...rest, blocks: d.blocks.slice(0, big).map(single) };
   }
   const { sym: _sym, ...rest } = d,

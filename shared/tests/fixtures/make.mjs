@@ -113,6 +113,29 @@ w('v5-on-point-large-block.json', {
     blk('plain', 'b0', { under: 4 }),
   ],
 });
+// version 6: a square quilt on point with 4-way symmetry, its corner diamonds mirrored (turned and flipped to match)
+w('v6-on-point-symmetry.json', {
+  v: 6,
+  cols: 3,
+  rows: 3,
+  blockMm: 300,
+  backFabric: 'b0',
+  setting: 'onpoint',
+  settingFabric: 'b2',
+  sym: 'both',
+  blocks: [
+    blk('logcabin', 'b1'),
+    blk('nine', 'b4'),
+    blk('logcabin', 'b1', { rot: 1, flip: true }),
+    blk('nine', 'b4'),
+    blk('ohio', 'b3'),
+    blk('nine', 'b4'),
+    blk('logcabin', 'b1', { rot: 3, flip: true }),
+    blk('nine', 'b4'),
+    blk('logcabin', 'b1', { rot: 2 }),
+    ...Array.from({ length: 4 }, () => blk('plain', 'b0')),
+  ],
+});
 // saved by a later version of the app
 w('newer.json', {
   ...JSON.parse(fs.readFileSync(new URL('v0-before-block-sizes.json', D))),

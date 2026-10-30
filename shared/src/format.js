@@ -32,6 +32,8 @@ const MIGRATIONS = [
   d => ({ ...d, v: 4 }),
   // 4 → 5: on point can have large blocks too (a bigger diamond of k × k diamonds); version 4 dropped them there
   d => ({ ...d, v: 5 }),
+  // 5 → 6: square quilts on point can have a symmetry (sym); older saves on point have none
+  d => ({ ...d, v: 6 }),
 ];
 
 /** @type {Record<string, [number, number]>} */

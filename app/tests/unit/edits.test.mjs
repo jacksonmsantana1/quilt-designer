@@ -197,9 +197,10 @@ test('on point: a plain block goes between each 2 × 2; straight again drops the
   );
   assert.equal('sym' in on, false, 'symmetry goes off');
   assert.equal(setSetting(on, true), on); // nothing to change: the same design
-  const off = setSetting(on, false);
+  const off = setSetting({ ...on, sym: 'both' }, false);
   assert.equal(isOnPoint(off), false);
   assert.equal(off.blocks.length, 9);
+  assert.equal('sym' in off, false, 'symmetry goes off going straight too');
   assert.equal(setSettingFabric(on, 'b5').settingFabric, 'b5');
 });
 

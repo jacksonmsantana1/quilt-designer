@@ -3229,7 +3229,7 @@ function pathPolyInto(g, poly) {
 }
 
 // ../shared/src/design.js
-var FORMAT_VERSION = 5;
+var FORMAT_VERSION = 6;
 var ROLE_DEFAULT = ["b0", "b1", "b3"];
 function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
   return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
@@ -3270,7 +3270,9 @@ var MIGRATIONS = [
   // 3 → 4: quilts can be set on point (setting 'onpoint', settingFabric); older saves are straight
   (d) => ({ ...d, v: 4 }),
   // 4 → 5: on point can have large blocks too (a bigger diamond of k × k diamonds); version 4 dropped them there
-  (d) => ({ ...d, v: 5 })
+  (d) => ({ ...d, v: 5 }),
+  // 5 → 6: square quilts on point can have a symmetry (sym); older saves on point have none
+  (d) => ({ ...d, v: 6 })
 ];
 var LIMITS = { grid: [1, 20], blockMm: [50, 1e3], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
 var SYMS = ["off", "lr", "tb", "both", "kal"];
@@ -6478,7 +6480,8 @@ var SYMS2 = {
 };
 var symOf = (d) => {
   const s = d ? d.sym : void 0;
-  return s === "kal" && d.cols !== d.rows ? "both" : SYMS2[s] ? s : "off";
+  if (!SYMS2[s] || isOnPoint(d) && d.cols !== d.rows) return "off";
+  return s === "kal" && d.cols !== d.rows ? "both" : s;
 };
 var oLR = (o) => ({ rot: o.rot, flip: !o.flip });
 var oTB = (o) => ({ rot: (o.rot + 2) % 4, flip: !o.flip });
@@ -6486,19 +6489,32 @@ var oDiag = (o) => o.flip ? { rot: (o.rot + 3) % 4, flip: false } : { rot: (o.ro
 function symPartners(bi, d) {
   const s = symOf(d);
   if (s === "off") return [];
-  const C = d.cols, Rr = d.rows, c = bi % C, r = Math.floor(bi / C), out = [], k = spanOf(d.blocks[bi]);
+  const g = cellGrid(d), [c, r] = g.cell(bi), C = d.cols, out = [], k = spanOf(d.blocks[bi]);
   const add = (cc, rr, f) => {
-    const j = rr * C + cc;
-    if (j !== bi && !out.some((x) => x[0] === j)) out.push([j, f]);
+    const j = g.at(cc, rr);
+    if (j >= 0 && j !== bi && !out.some((x) => x[0] === j)) out.push([j, f]);
   };
-  const id = (o) => o, comp = (f, g) => (o) => f(g(o));
-  const base = [[c, r, id]];
-  if (s === "lr" || s === "both" || s === "kal") base.push([C - k - c, r, oLR]);
-  if (s === "tb" || s === "both" || s === "kal") base.push([c, Rr - k - r, oTB]);
-  if (s === "both" || s === "kal") base.push([C - k - c, Rr - k - r, comp(oLR, oTB)]);
-  for (const [cc, rr, f] of base) {
-    add(cc, rr, f);
-    if (s === "kal") add(rr, cc, comp(oDiag, f));
+  const id = (o) => o, comp = (f, g2) => (o) => f(g2(o));
+  const lr = s === "lr" || s === "both" || s === "kal", tb = s === "tb" || s === "both" || s === "kal", base = [[c, r, id]];
+  let diag;
+  if (!isOnPoint(d)) {
+    const Rr = d.rows;
+    if (lr) base.push([C - k - c, r, oLR]);
+    if (tb) base.push([c, Rr - k - r, oTB]);
+    if (lr && tb) base.push([C - k - c, Rr - k - r, comp(oLR, oTB)]);
+    diag = ([cc, rr, f]) => [rr, cc, comp(oDiag, f)];
+  } else {
+    if (lr) base.push([r + C - 1, c - C + 1, oDiag]);
+    if (tb) base.push([C - k - r, C - k - c, (o) => oLR(oTB(oDiag(o)))]);
+    if (lr && tb) base.push([2 * C - 1 - k - c, 1 - k - r, comp(oLR, oTB)]);
+    diag = ([u, v, f]) => [2 * C - 1 - k - u, v, comp(oLR, f)];
+  }
+  for (const b of base) {
+    add(b[0], b[1], b[2]);
+    if (s === "kal") {
+      const [x, y, f] = diag(b);
+      add(x, y, f);
+    }
   }
   return out;
 }
@@ -6526,13 +6542,12 @@ function withSymmetry(d, sources) {
   return normalizeSpans(out);
 }
 function symmetrySources(d) {
-  const s = symOf(d), C = d.cols, R2 = d.rows, src = [];
-  for (let r = 0; r < R2; r++)
-    for (let c = 0; c < C; c++) {
-      const inL = c < Math.ceil(C / 2), inT = r < Math.ceil(R2 / 2);
-      if (s === "lr" ? inL : s === "tb" ? inT : s === "both" ? inL && inT : s === "kal" ? inL && inT && c >= r : false)
-        src.push(r * C + c);
-    }
+  const s = symOf(d), g = cellGrid(d), C = d.cols, R2 = d.rows, on = isOnPoint(d), src = [];
+  if (s === "off") return src;
+  for (let i = 0; i < d.blocks.length; i++) {
+    const [a, b] = g.cell(i), x = on ? a - b - (C - 1) : 2 * a - (C - 1), y = on ? a + b + 1 - C : 2 * b - (R2 - 1), inL = x <= 0, inT = y <= 0;
+    if (s === "lr" ? inL : s === "tb" ? inT : s === "both" ? inL && inT : inL && inT && x >= y) src.push(i);
+  }
   return src;
 }
 function setSymmetry(d, mode) {
@@ -6643,7 +6658,7 @@ function setSetting(d, on) {
     return b;
   };
   if (!on) {
-    const { setting: _s, ...rest2 } = d;
+    const { setting: _s, sym: _sym2, ...rest2 } = d;
     return { ...rest2, blocks: d.blocks.slice(0, big).map(single) };
   }
   const { sym: _sym, ...rest } = d, between = Array.from({ length: (d.cols - 1) * (d.rows - 1) }, () => plainBetween(d));
@@ -9880,9 +9895,10 @@ function syncSymUI() {
     if (v === cur) btn.querySelector("svg").innerHTML = o.querySelector("svg").innerHTML;
   }
   btn.setAttribute("aria-pressed", String(cur !== "off"));
-  btn.disabled = onPoint;
-  btn.title = onPoint ? "Symmetry: not available for quilts set on point yet" : "Symmetry: every change to a block is copied to its mirror partners";
-  if (onPoint) openSym(false);
+  const paused = onPoint && design.cols !== design.rows;
+  btn.disabled = paused;
+  btn.title = paused ? "Symmetry on point needs as many columns as rows" : "Symmetry: every change to a block is copied to its mirror partners";
+  if (paused) openSym(false);
 }
 function openSym(open) {
   const wrap = $("sym-wrap"), row = $("sym-row");
