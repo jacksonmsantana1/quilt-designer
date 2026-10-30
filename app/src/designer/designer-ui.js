@@ -29,9 +29,13 @@ import { refreshLibrary } from './fabric-picker.js';
 import {
   anchorOf,
   blockAt,
+  blockOutline,
+  blockPlace,
   blockPolys,
-  blockRect,
   borderTotal,
+  cellCount,
+  convexOverlap,
+  isOnPoint,
   pointInPoly,
   quiltMm,
   sashOf,
@@ -47,7 +51,7 @@ import { tl, tlCommit, tlEnsure, tlKeyFor } from '../timeline/timeline.js';
 import { setSession, timelines } from '../storage/repo.js';
 import { setFold } from '../ui/folds.js';
 import { dispatch, replaceDesign, resizeTo } from './dispatch.js';
-import { copyBlock, rotateBlocks, setBackFabric, setBlockMm } from '../core/edits.js';
+import { copyBlock, rotateBlocks, setBackFabric, setBlockMm, setSetting, setSettingFabric } from '../core/edits.js';
 import { defaultDesign } from '@quilt/shared/design.js';
 
 function initDesignerUI() {
@@ -64,11 +68,16 @@ function initDesignerUI() {
       R2 = Math.max(x0, x1),
       T = Math.min(y0, y1),
       B2 = Math.max(y0, y1);
-    for (let rr = 0; rr < design.rows; rr++)
-      for (let cc = 0; cc < design.cols; cc++) {
-        const b = blockRect(design, cc, rr, r.width, r.height); // every block the rectangle touches
-        if (b.x < R2 && b.x + b.w > L && b.y < B2 && b.y + b.h > T) out.add(anchorOf(design, rr * design.cols + cc));
-      }
+    const box = [
+      [L, T],
+      [R2, T],
+      [R2, B2],
+      [L, B2],
+    ];
+    for (let i = 0, n = cellCount(design); i < n; i++) {
+      // every block the rectangle touches (on point, the diamond itself, not the box around it)
+      if (convexOverlap(box, blockOutline(blockPlace(design, i, r.width, r.height)))) out.add(anchorOf(design, i));
+    }
     return out;
   };
   qcv.addEventListener('pointerdown', e => {
@@ -164,6 +173,8 @@ function initDesignerUI() {
         mx = ((e.clientX - r.left) / r.width) * q.W,
         my = ((e.clientY - r.top) / r.height) * q.H;
       if (bt && (mx < bt || my < bt || mx > q.W - bt || my > q.H - bt)) openBorders();
+      else if (isOnPoint(design))
+        showPanel('set'); // a setting triangle
       else if (sashOf(design).mm) openSashing();
       return;
     }
@@ -309,7 +320,16 @@ function initDesignerUI() {
     $('dz-side').scrollTop = 0;
   };
   for (const [n] of Object.entries(PANEL_CARDS))
-    $('rail-' + n).addEventListener('click', () => (toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n)));
+    $('rail-' + n)?.addEventListener('click', () => (toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n)));
+  // layout: straight, or on point (blocks turned 45°); the setting triangles' fabric has its own card
+  $('dz-setting').addEventListener('change', e => {
+    dispatch(setSetting, e.target.value === 'onpoint');
+    if (toolsOpen && toolsPanel === 'set' && !isOnPoint(design)) setTools(false);
+  });
+  $('set-fabs').addEventListener('click', e => {
+    const b = e.target.closest('button.fab');
+    if (b) dispatch(setSettingFabric, b.dataset.f);
+  });
   setShowTools(() => {
     if (!toolsOpen || toolsPanel !== 'parts') showPanel('parts');
   });

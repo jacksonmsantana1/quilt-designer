@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'fs';
 import { FORMAT_VERSION, MIGRATIONS, readDesign, readDesignOrDefault } from '@quilt/shared/format.js';
 import { defaultDesign } from '@quilt/shared/design.js';
-import { normalizeSpans } from '@quilt/shared/geometry.js';
+import { cellCount, normalizeSpans } from '@quilt/shared/geometry.js';
 
 const DIR = new URL('./fixtures/designs/', import.meta.url);
 const text = f => fs.readFileSync(new URL(f, DIR), 'utf8');
@@ -35,7 +35,7 @@ test('every saved example opens at the current version', () => {
     const r = readDesign(text(f));
     assert.ok(r, f);
     if (!r.newer) assert.equal(r.design.v, FORMAT_VERSION, f);
-    assert.equal(r.design.blocks.length, r.design.cols * r.design.rows, f);
+    assert.equal(r.design.blocks.length, cellCount(r.design), f);
   }
 });
 
@@ -58,11 +58,28 @@ test('sashing without cornerstones is kept; with them, nothing extra is stored',
   assert.equal('cornerstones' in on.design.sashing, false); // on is the default
 });
 
+test('on point: kept with its blocks between; a wrong count or setting is repaired and reported', () => {
+  const raw = JSON.parse(text('v4-on-point.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+  assert.equal(r.design.blocks.length, 9 + 4);
+  // a block between the others missing: filled in, like any missing block
+  const short = readDesign({ ...raw, blocks: raw.blocks.slice(0, 12) });
+  assert.equal(short.design.blocks.length, 13);
+  assert.deepEqual(short.problems, ['1 missing block was filled with a plain square.']);
+  // an unknown layout: straight again, and the blocks between are left out
+  const odd = readDesign({ ...raw, setting: 'sideways' });
+  assert.equal('setting' in odd.design, false);
+  assert.equal(odd.design.blocks.length, 9);
+  assert.ok(odd.problems.includes('The layout went back to straight.'));
+});
+
 test('a cornerstone block is kept; an unreadable one is taken off and reported', () => {
   const raw = JSON.parse(text('v3-cornerstone-block.json')),
     r = readDesign(raw);
   assert.deepEqual(r.problems, []);
-  assert.deepEqual(r.design, raw);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
   const bad = readDesign({ ...raw, sashing: { ...raw.sashing, cornerBlock: { pattern: 'no-such-pattern' } } });
   assert.equal('cornerBlock' in bad.design.sashing, false);
   assert.deepEqual(bad.problems, ['The cornerstone block could not be read and was taken off.']);

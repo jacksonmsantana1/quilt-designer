@@ -5,7 +5,7 @@ import { $ } from '../core/dom.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
 import { drawShortList } from './fabric-picker.js';
-import { blockPolys, pathPoly } from '@quilt/shared/geometry.js';
+import { blockPolys, cellName, isOnPoint, pathPoly } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas } from './canvas.js';
 import { drawFussy } from './fussy-cut.js';
 import { drawBlockLibrary } from './block-library.js';
@@ -63,7 +63,7 @@ function drawPartsEditor() {
         : `${selParts.size} parts selected`;
   drawFussy();
   $('dz-blockname').textContent =
-    `${PATTERNS[b.pattern].label} · block ${Math.floor(focusBlock / design.cols) + 1}, ${(focusBlock % design.cols) + 1}` +
+    `${PATTERNS[b.pattern].label} · block ${cellName(design, focusBlock)}` +
     (selBlocks.size > 1 ? ` · editing ${selBlocks.size} blocks` : '');
 }
 function drawPatternButtons() {
@@ -116,6 +116,14 @@ function renderDesigner() {
     setFocusBlock(design.blocks[focusBlock].under);
   $('dz-cols').value = design.cols;
   $('dz-rows').value = design.rows;
+  // layout: on point, the setting triangles have a fabric, and sashing (like symmetry and large blocks) waits
+  const onPoint = isOnPoint(design);
+  $('dz-setting').value = onPoint ? 'onpoint' : 'straight';
+  drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');
+  $('rail-sash').disabled = onPoint;
+  $('rail-sash').title = onPoint
+    ? 'Sashing: not available for quilts set on point yet'
+    : 'Sashing: strips between the blocks';
   syncSymUI();
   for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
   $('dz-rot').textContent = `Rotate 90° (${design.blocks[focusBlock].rot * 90}°)`;

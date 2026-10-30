@@ -3,7 +3,7 @@
 // or the same design when nothing changes. They never touch the page, storage or the selection:
 // designer/dispatch.js applies them, then mirrors the change (symmetry), saves it and redraws.
 import { newBlock } from '@quilt/shared/design.js';
-import { setSpan } from '@quilt/shared/geometry.js';
+import { isOnPoint, normalizeSpans, setSpan } from '@quilt/shared/geometry.js';
 /** @typedef {import('@quilt/shared/types.js').Design} Design @typedef {import('@quilt/shared/types.js').Block} Block */
 
 const clone = x => JSON.parse(JSON.stringify(x));
@@ -126,10 +126,44 @@ function resize(d, cols0, rows0) {
       if (r < d.rows && c < d.cols) blocks.push(d.blocks[r * d.cols + c]);
       else blocks.push(clone(d.blocks[Math.min(r, d.rows - 1) * d.cols + Math.min(c, d.cols - 1)]));
     }
+  if (isOnPoint(d)) {
+    // the blocks between the others, in the same way (a quilt that had none gets plain ones)
+    const old = d.cols * d.rows,
+      OC = d.cols - 1,
+      OR = d.rows - 1;
+    for (let r = 0; r < rows - 1; r++)
+      for (let c = 0; c < cols - 1; c++) {
+        if (r < OR && c < OC) blocks.push(d.blocks[old + r * OC + c]);
+        else if (OC > 0 && OR > 0) blocks.push(clone(d.blocks[old + Math.min(r, OR - 1) * OC + Math.min(c, OC - 1)]));
+        else blocks.push(plainBetween(d));
+      }
+  }
   return { ...d, cols, rows, blocks };
 }
 // resizing is never mirrored: every block changes place
 resize.mirror = false;
+/** A plain square in the setting fabric: what goes between the blocks when a quilt is first set on point. @param {Design} d @returns {Block} */
+const plainBetween = d => ({ pattern: 'plain', rot: 0, fabrics: [d.settingFabric || 'b0'] });
+/**
+ * The quilt set straight or on point. Going on point adds a plain block between each 2 × 2 (the classic alternate
+ * block; any block can go there) and leaves out what on point does not have yet: large blocks become single ones
+ * and symmetry goes off. Going back to straight drops the blocks in between.
+ * @param {Design} d @param {boolean} on
+ */
+function setSetting(d, on) {
+  if (on === isOnPoint(d)) return d;
+  const big = d.cols * d.rows;
+  if (!on) {
+    const { setting: _s, ...rest } = d;
+    return { ...rest, blocks: d.blocks.slice(0, big) };
+  }
+  const { sym: _sym, ...rest } = d,
+    between = Array.from({ length: (d.cols - 1) * (d.rows - 1) }, () => plainBetween(d));
+  return normalizeSpans({ ...rest, setting: 'onpoint', blocks: [...d.blocks.slice(0, big), ...between] });
+}
+/** The fabric of the triangles along the edges of an on-point quilt. @param {Design} d @param {string} f */
+const setSettingFabric = (d, f) => (d.settingFabric === f ? d : { ...d, settingFabric: f });
+setSetting.mirror = setSettingFabric.mirror = false;
 // typing a number or holding a stepper makes one timeline step, not one per change
 resize.merge = setBlockMm.merge = setSashing.merge = updateBorder.merge = true;
 
@@ -142,6 +176,8 @@ export {
   setBackFabric,
   setBlockMm,
   setBlockSpan,
+  setSetting,
+  setSettingFabric,
   addBorder,
   moveBorder,
   removeBorder,

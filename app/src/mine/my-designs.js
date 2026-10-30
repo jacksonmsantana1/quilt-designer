@@ -135,7 +135,7 @@ function renderMine() {
     const nm = document.createElement('b');
     nm.textContent = m.name;
     const sm = document.createElement('small');
-    sm.textContent = `${d.cols} × ${d.rows} blocks · ${quiltMm(d).W} × ${quiltMm(d).H} mm · ${when(m.updatedAt)}`;
+    sm.textContent = `${d.cols} × ${d.rows} blocks · ${Math.round(quiltMm(d).W)} × ${Math.round(quiltMm(d).H)} mm · ${when(m.updatedAt)}`;
     meta.append(nm, sm);
     pin.append(img, meta);
     grid.appendChild(pin);

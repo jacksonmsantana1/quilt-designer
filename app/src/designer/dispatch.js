@@ -68,6 +68,14 @@ function dispatch(edit, ...args) {
   if (next === prev) return false;
   if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
   setCurrent(normalizeSpans(next));
+  // an edit that removed blocks (back to straight from on point, …) takes them out of the selection too
+  const n = design.blocks.length;
+  if (focusBlock >= n || [...selBlocks].some(i => i >= n)) {
+    const keep = [...selBlocks].filter(i => i < n);
+    setSelBlocks(new Set(keep.length ? keep : [0]));
+    setFocusBlock(focusBlock < n ? focusBlock : [...selBlocks][0]);
+    selParts.clear();
+  }
   saveDesign();
   tlRecord(edit.merge ? edit.name : null);
   renderDesigner();

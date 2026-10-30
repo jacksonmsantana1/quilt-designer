@@ -28,6 +28,8 @@ const MIGRATIONS = [
   d => ({ ...d, v: 2 }),
   // 2 → 3: cornerstones can be pieced as a block (sashing.cornerBlock); older saves have plain ones
   d => ({ ...d, v: 3 }),
+  // 3 → 4: quilts can be set on point (setting 'onpoint', settingFabric); older saves are straight
+  d => ({ ...d, v: 4 }),
 ];
 
 /** @type {Record<string, [number, number]>} */
@@ -56,8 +58,12 @@ function check(d) {
     rows = clamp(Math.round(d.rows), LIMITS.grid);
   if (cols !== d.cols || rows !== d.rows) problems.push(`The layout was changed to ${cols} × ${rows}.`);
 
-  // blocks: one per cell; a missing cell becomes a plain block, extra blocks are dropped
-  const n = cols * rows;
+  // layout: straight, or on point (an unknown setting goes back to straight)
+  const onPoint = d.setting === 'onpoint';
+  if (d.setting !== undefined && !onPoint) problems.push('The layout went back to straight.');
+  // blocks: one per cell (on point, also one between each 2 × 2); a missing cell becomes a plain block,
+  // extra blocks are dropped
+  const n = cols * rows + (onPoint ? (cols - 1) * (rows - 1) : 0);
   if (d.blocks.length !== n) {
     if (d.blocks.length > n) note('extra', d.blocks.length - n); // missing ones are counted by checkBlock
   }
@@ -85,6 +91,11 @@ function check(d) {
 
   /** @type {Design} */
   const out = { ...d, v: FORMAT_VERSION, cols, rows, blocks };
+  if (!onPoint) delete out.setting;
+  if (d.settingFabric !== undefined && !isFabric(d.settingFabric)) {
+    delete out.settingFabric;
+    problems.push('The fabric of the setting triangles was reset.');
+  }
   if (!num(d.blockMm) || d.blockMm !== clamp(Math.round(d.blockMm), LIMITS.blockMm)) {
     out.blockMm = num(d.blockMm) ? clamp(Math.round(d.blockMm), LIMITS.blockMm) : Math.round(2290 / cols);
     problems.push(`The block size was changed to ${out.blockMm} mm.`);

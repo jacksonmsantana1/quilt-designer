@@ -33,7 +33,8 @@ const CORNER_PATTERNS = ['four', 'nine', 'hst', 'hourglass', 'sqsq', 'pinwheel',
  */
 const sashOf = d => {
   const s = d && d.sashing;
-  if (!(s && s.mm > 0))
+  if (!(s && s.mm > 0) || isOnPoint(d))
+    // (on point has no sashing yet: it stays saved, unused)
     return { mm: 0, fabric: 'b0', corner: 'b0', border: false, cornerstones: true, cornerBlock: null };
   const cornerstones = s.cornerstones !== false;
   return {
@@ -45,10 +46,20 @@ const sashOf = d => {
     cornerBlock: cornerstones && s.mm >= CORNER_BLOCK_MIN_MM && s.cornerBlock ? s.cornerBlock : null,
   };
 };
+// ---- on point (design.setting 'onpoint'): every block turned 45°, standing on a corner, in diagonal rows.
+// cols × rows positions as in a straight quilt (blocks[0 … cols·rows-1], same order), then (cols-1) × (rows-1)
+// more between them (blocks after those, row by row); triangles in settingFabric fill the zig-zag edges.
+/** @param {Design} d */
+const isOnPoint = d => !!d && d.setting === 'onpoint';
+/** Number of block positions (the length of design.blocks). @param {Design} d @returns {number} */
+const cellCount = d => d.cols * d.rows + (isOnPoint(d) ? (d.cols - 1) * (d.rows - 1) : 0);
 // finished size of the quilt top in mm
 // the centre (blocks + sashing), before any borders
 /** Size of the centre (blocks + sashing), before borders. @param {Design} d @returns {{ W: number, H: number }} */
 function centreMm(d) {
+  // on point each column and row is one block diagonal wide: not a whole number of mm, so where a size is
+  // shown it is rounded there (rounding here would make the blocks very slightly out of square)
+  if (isOnPoint(d)) return { W: d.cols * d.blockMm * Math.SQRT2, H: d.rows * d.blockMm * Math.SQRT2 };
   const s = sashOf(d),
     e = s.border ? 2 : 0;
   return { W: d.cols * d.blockMm + s.mm * (d.cols - 1 + e), H: d.rows * d.blockMm + s.mm * (d.rows - 1 + e) };
@@ -80,6 +91,11 @@ const anchorOf = (d, i) => {
  */
 function normalizeSpans(d) {
   if (!d || !Array.isArray(d.blocks)) return d;
+  if (isOnPoint(d)) {
+    // no large blocks on point (yet): every block is a single one
+    if (!d.blocks.some(b => 'span' in b || 'under' in b)) return d;
+    return { ...d, blocks: d.blocks.map(({ span: _s, under: _u, ...b }) => b) };
+  }
   const C = d.cols,
     R = d.rows,
     n = d.blocks.length,
@@ -127,6 +143,7 @@ function normalizeSpans(d) {
  * @param {Design} d @param {number} i @param {number} k0 @returns {Design}
  */
 function setSpan(d, i, k0) {
+  if (isOnPoint(d)) return d; // no large blocks on point (yet)
   const C = d.cols,
     c = i % C,
     r = Math.floor(i / C),
@@ -185,6 +202,10 @@ const blockSizeMm = (d, k) => k * d.blockMm + (k - 1) * sashOf(d).mm;
 // which block is at (x, y) on a W × H drawing (-1 on sashing or outside); a large block answers for all its area
 /** Index of the block at (x, y) on a W × H drawing, or -1. @param {Design} d @param {number} x @param {number} y @param {number} W @param {number} H @returns {number} */
 function blockAt(d, x, y, W, H) {
+  if (isOnPoint(d)) {
+    for (let i = 0, n = cellCount(d); i < n; i++) if (pointInPoly(x, y, blockOutline(blockPlace(d, i, W, H)))) return i;
+    return -1;
+  }
   const s = sashOf(d),
     q = quiltMm(d),
     o = (s.border ? s.mm : 0) + borderTotal(d),
@@ -197,6 +218,113 @@ function blockAt(d, x, y, W, H) {
   const a = anchorOf(d, r * d.cols + c),
     R = blockRect(d, c, r, W, H);
   return x >= R.x && x <= R.x + R.w && y >= R.y && y <= R.y + R.h ? a : -1;
+}
+/**
+ * Where block i sits on a W × H drawing: its square (x, y, w, h) as if straight, and the turn about the square's
+ * centre (0, or 45° = π/4 on point). A cell covered by a large block answers with the large block's place.
+ * @typedef {Rect & { turn: number }} Place
+ * @param {Design} d @param {number} i @param {number} W @param {number} H @returns {Place}
+ */
+function blockPlace(d, i, W, H) {
+  if (!isOnPoint(d)) return { ...blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H), turn: 0 };
+  const q = quiltMm(d),
+    cm = centreMm(d),
+    bt = borderTotal(d),
+    kx = W / q.W,
+    ky = H / q.H,
+    dx = cm.W / d.cols, // one block diagonal across, and down
+    dy = cm.H / d.rows,
+    big = d.cols * d.rows;
+  let cx, cy;
+  if (i < big) {
+    cx = bt + dx * ((i % d.cols) + 0.5);
+    cy = bt + dy * (Math.floor(i / d.cols) + 0.5);
+  } else {
+    const j = i - big; // between the rows and columns of the others
+    cx = bt + dx * ((j % (d.cols - 1)) + 1);
+    cy = bt + dy * (Math.floor(j / (d.cols - 1)) + 1);
+  }
+  const w = (dx / Math.SQRT2) * kx,
+    h = (dy / Math.SQRT2) * ky;
+  return { x: cx * kx - w / 2, y: cy * ky - h / 2, w, h, turn: Math.PI / 4 };
+}
+/** A point of a placed block's square, turned with it. @param {Place} P @returns {(p: number[]) => number[]} */
+const turnPoint = P => {
+  if (!P.turn) return p => p;
+  const cx = P.x + P.w / 2,
+    cy = P.y + P.h / 2,
+    co = Math.cos(P.turn),
+    si = Math.sin(P.turn);
+  return ([x, y]) => [cx + (x - cx) * co - (y - cy) * si, cy + (x - cx) * si + (y - cy) * co];
+};
+/** The four corners of a placed block (a diamond on point). @param {Place} P @returns {Poly} */
+const blockOutline = P =>
+  [
+    [P.x, P.y],
+    [P.x + P.w, P.y],
+    [P.x + P.w, P.y + P.h],
+    [P.x, P.y + P.h],
+  ].map(turnPoint(P));
+/** blockPolys for a placed block: its parts where they are on the drawing. @param {import('./types.js').Block} b @param {Place} P @returns {Poly[]} */
+const placedPolys = (b, P) => blockPolys(b, P.x, P.y, P.w, P.h).map(poly => poly.map(turnPoint(P)));
+/** The smallest upright rectangle around a placed block. @param {Place} P @returns {Rect} */
+function placeBox(P) {
+  const o = blockOutline(P),
+    xs = o.map(p => p[0]),
+    ys = o.map(p => p[1]);
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    w: Math.max(...xs) - Math.min(...xs),
+    h: Math.max(...ys) - Math.min(...ys),
+  };
+}
+/**
+ * On point: the triangles that fill the zig-zag edges, on a W × H drawing. 'side' ones sit between two blocks on
+ * an edge (cut from a square cut twice on the diagonal), 'corner' ones fill the four corners (a square cut once).
+ * @param {Design} d @param {number} W @param {number} H @returns {{ kind: 'side' | 'corner', poly: Poly }[]}
+ */
+function settingPieces(d, W, H) {
+  if (!isOnPoint(d)) return [];
+  const q = quiltMm(d),
+    cm = centreMm(d),
+    bt = borderTotal(d),
+    kx = W / q.W,
+    ky = H / q.H,
+    dx = cm.W / d.cols,
+    dy = cm.H / d.rows,
+    x0 = bt,
+    y0 = bt,
+    x1 = bt + cm.W,
+    y1 = bt + cm.H,
+    out = [];
+  const add = (kind, ...pts) => out.push({ kind, poly: pts.map(([x, y]) => [x * kx, y * ky]) });
+  for (let c = 0; c < d.cols - 1; c++) {
+    const a = x0 + dx * (c + 0.5),
+      m = a + dx / 2,
+      b = a + dx;
+    add('side', [a, y0], [b, y0], [m, y0 + dy / 2]);
+    add('side', [a, y1], [m, y1 - dy / 2], [b, y1]);
+  }
+  for (let r = 0; r < d.rows - 1; r++) {
+    const a = y0 + dy * (r + 0.5),
+      m = a + dy / 2,
+      b = a + dy;
+    add('side', [x0, a], [x0 + dx / 2, m], [x0, b]);
+    add('side', [x1, a], [x1, b], [x1 - dx / 2, m]);
+  }
+  add('corner', [x0, y0], [x0 + dx / 2, y0], [x0, y0 + dy / 2]);
+  add('corner', [x1, y0], [x1, y0 + dy / 2], [x1 - dx / 2, y0]);
+  add('corner', [x0, y1], [x0, y1 - dy / 2], [x0 + dx / 2, y1]);
+  add('corner', [x1, y1], [x1 - dx / 2, y1], [x1, y1 - dy / 2]);
+  return out;
+}
+/** How a block's position is named: "2, 3" (row, column); on point, a block between rows and columns "1½, 2½". @param {Design} d @param {number} i */
+function cellName(d, i) {
+  const big = d.cols * d.rows;
+  if (!isOnPoint(d) || i < big) return `${Math.floor(i / d.cols) + 1}, ${(i % d.cols) + 1}`;
+  const j = i - big;
+  return `${Math.floor(j / (d.cols - 1)) + 1}½, ${(j % (d.cols - 1)) + 1}½`;
 }
 // the sashing strips and cornerstones on a W × H drawing
 /**
@@ -394,6 +522,28 @@ const borderCornerSlot = b => (b.type === 'plain' ? 1 : 2);
 const plainButted = b => b.type === 'plain' && borderFab(b, 1) === borderFab(b, 0); // no corner squares: long strips
 
 // ---- interaction
+/**
+ * Do two convex polygons overlap (more than touching)? They don't when some edge direction of either one has a
+ * gap between them along its perpendicular (the separating axis test).
+ * @param {Poly} a @param {Poly} b @returns {boolean}
+ */
+function convexOverlap(a, b) {
+  for (const poly of [a, b])
+    for (let i = 0; i < poly.length; i++) {
+      const [x1, y1] = poly[i],
+        [x2, y2] = poly[(i + 1) % poly.length],
+        nx = y1 - y2,
+        ny = x2 - x1;
+      const span = p => {
+        const ds = p.map(([x, y]) => x * nx + y * ny);
+        return [Math.min(...ds), Math.max(...ds)];
+      };
+      const [a0, a1] = span(a),
+        [b0, b1] = span(b);
+      if (a1 <= b0 || b1 <= a0) return false;
+    }
+  return true;
+}
 function pointInPoly(x, y, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -414,6 +564,8 @@ export {
   CORNER_PATTERNS,
   anchorOf,
   blockAt,
+  blockOutline,
+  blockPlace,
   blockPolys,
   blockRect,
   blockSizeMm,
@@ -423,11 +575,17 @@ export {
   borderTotal,
   borderUnits,
   bordersOf,
+  cellCount,
+  cellName,
   cellRect,
   centreMm,
+  convexOverlap,
+  isOnPoint,
   normalizeSpans,
   pathPoly,
   pathPolyInto,
+  placeBox,
+  placedPolys,
   plainButted,
   pointInPoly,
   polyCentre,
@@ -435,5 +593,6 @@ export {
   sashOf,
   sashRects,
   setSpan,
+  settingPieces,
   spanOf,
 };

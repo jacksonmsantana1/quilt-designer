@@ -760,7 +760,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
-      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="sr" id="dz-sync" aria-live="polite"></span></p>
+      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, or on point: every block turned 45°, in diagonal rows"><option value="straight">Straight</option><option value="onpoint">On point</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
         <div class="fabs backfabs" id="dz-backfabs"></div>
@@ -836,6 +836,11 @@
         <p class="fine" id="sash-note" style="margin:8px 0 0"></p>
       </div>
 
+      <div class="card" id="set-card" hidden>
+        <h2>Setting triangles</h2>
+        <p class="fine" style="margin:0 0 8px">The triangles that fill the edges of an on-point quilt. Click them on the quilt to come back here.</p>
+        <div class="fabs" id="set-fabs"></div>
+      </div>
       <div class="card has-cancel" id="brd-card">
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
         <h2>Borders</h2>
@@ -1878,7 +1883,7 @@ function memoryDb() {
   };
 }
 
-// ../node_modules/@quilt/shared/src/patterns.js
+// ../shared/src/patterns.js
 var P_ = (name, role, poly) => ({ name, role, poly });
 function rotPoly(poly, k) {
   let p = poly;
@@ -2690,7 +2695,7 @@ Object.assign(PATTERNS, {
 var PCACHE = {};
 var partsOf = (name) => PCACHE[name] = PCACHE[name] || PATTERNS[name].parts();
 
-// ../node_modules/@quilt/shared/src/geometry.js
+// ../shared/src/geometry.js
 var polyCentre = (p) => {
   let x = 0, y = 0;
   for (const q of p) {
@@ -2711,7 +2716,7 @@ var CORNER_BLOCK_MIN_MM = 76;
 var CORNER_PATTERNS = ["four", "nine", "hst", "hourglass", "sqsq", "pinwheel", "ohio"];
 var sashOf = (d) => {
   const s = d && d.sashing;
-  if (!(s && s.mm > 0))
+  if (!(s && s.mm > 0) || isOnPoint(d))
     return { mm: 0, fabric: "b0", corner: "b0", border: false, cornerstones: true, cornerBlock: null };
   const cornerstones = s.cornerstones !== false;
   return {
@@ -2723,7 +2728,10 @@ var sashOf = (d) => {
     cornerBlock: cornerstones && s.mm >= CORNER_BLOCK_MIN_MM && s.cornerBlock ? s.cornerBlock : null
   };
 };
+var isOnPoint = (d) => !!d && d.setting === "onpoint";
+var cellCount = (d) => d.cols * d.rows + (isOnPoint(d) ? (d.cols - 1) * (d.rows - 1) : 0);
 function centreMm(d) {
+  if (isOnPoint(d)) return { W: d.cols * d.blockMm * Math.SQRT2, H: d.rows * d.blockMm * Math.SQRT2 };
   const s = sashOf(d), e = s.border ? 2 : 0;
   return { W: d.cols * d.blockMm + s.mm * (d.cols - 1 + e), H: d.rows * d.blockMm + s.mm * (d.rows - 1 + e) };
 }
@@ -2740,6 +2748,10 @@ var anchorOf = (d, i) => {
 };
 function normalizeSpans(d) {
   if (!d || !Array.isArray(d.blocks)) return d;
+  if (isOnPoint(d)) {
+    if (!d.blocks.some((b) => "span" in b || "under" in b)) return d;
+    return { ...d, blocks: d.blocks.map(({ span: _s, under: _u, ...b }) => b) };
+  }
   const C = d.cols, R2 = d.rows, n = d.blocks.length, taken = new Array(n).fill(false), span = new Array(n).fill(0), under = new Array(n).fill(-1);
   for (let i = 0; i < n; i++) {
     const b = d.blocks[i], c = i % C, r = Math.floor(i / C);
@@ -2775,6 +2787,7 @@ function normalizeSpans(d) {
   return changed ? { ...d, blocks } : d;
 }
 function setSpan(d, i, k0) {
+  if (isOnPoint(d)) return d;
   const C = d.cols, c = i % C, r = Math.floor(i / C), k = Math.max(1, Math.min(k0, C - c, d.rows - r));
   const blocks = d.blocks.map((b, j) => {
     if (j === i) {
@@ -2809,11 +2822,77 @@ function blockRect(d, c0, r0, W, H) {
 }
 var blockSizeMm = (d, k) => k * d.blockMm + (k - 1) * sashOf(d).mm;
 function blockAt(d, x, y, W, H) {
+  if (isOnPoint(d)) {
+    for (let i = 0, n = cellCount(d); i < n; i++) if (pointInPoly(x, y, blockOutline(blockPlace(d, i, W, H)))) return i;
+    return -1;
+  }
   const s = sashOf(d), q = quiltMm(d), o = (s.border ? s.mm : 0) + borderTotal(d), mx = x / W * q.W - o, my = y / H * q.H - o, p = d.blockMm + s.mm;
   const c = Math.floor(mx / p), r = Math.floor(my / p);
   if (c < 0 || r < 0 || c >= d.cols || r >= d.rows) return -1;
   const a = anchorOf(d, r * d.cols + c), R2 = blockRect(d, c, r, W, H);
   return x >= R2.x && x <= R2.x + R2.w && y >= R2.y && y <= R2.y + R2.h ? a : -1;
+}
+function blockPlace(d, i, W, H) {
+  if (!isOnPoint(d)) return { ...blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H), turn: 0 };
+  const q = quiltMm(d), cm = centreMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, dx = cm.W / d.cols, dy = cm.H / d.rows, big = d.cols * d.rows;
+  let cx, cy;
+  if (i < big) {
+    cx = bt + dx * (i % d.cols + 0.5);
+    cy = bt + dy * (Math.floor(i / d.cols) + 0.5);
+  } else {
+    const j = i - big;
+    cx = bt + dx * (j % (d.cols - 1) + 1);
+    cy = bt + dy * (Math.floor(j / (d.cols - 1)) + 1);
+  }
+  const w = dx / Math.SQRT2 * kx, h = dy / Math.SQRT2 * ky;
+  return { x: cx * kx - w / 2, y: cy * ky - h / 2, w, h, turn: Math.PI / 4 };
+}
+var turnPoint = (P) => {
+  if (!P.turn) return (p) => p;
+  const cx = P.x + P.w / 2, cy = P.y + P.h / 2, co = Math.cos(P.turn), si = Math.sin(P.turn);
+  return ([x, y]) => [cx + (x - cx) * co - (y - cy) * si, cy + (x - cx) * si + (y - cy) * co];
+};
+var blockOutline = (P) => [
+  [P.x, P.y],
+  [P.x + P.w, P.y],
+  [P.x + P.w, P.y + P.h],
+  [P.x, P.y + P.h]
+].map(turnPoint(P));
+var placedPolys = (b, P) => blockPolys(b, P.x, P.y, P.w, P.h).map((poly) => poly.map(turnPoint(P)));
+function placeBox(P) {
+  const o = blockOutline(P), xs = o.map((p) => p[0]), ys = o.map((p) => p[1]);
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    w: Math.max(...xs) - Math.min(...xs),
+    h: Math.max(...ys) - Math.min(...ys)
+  };
+}
+function settingPieces(d, W, H) {
+  if (!isOnPoint(d)) return [];
+  const q = quiltMm(d), cm = centreMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, dx = cm.W / d.cols, dy = cm.H / d.rows, x0 = bt, y0 = bt, x1 = bt + cm.W, y1 = bt + cm.H, out = [];
+  const add = (kind, ...pts) => out.push({ kind, poly: pts.map(([x, y]) => [x * kx, y * ky]) });
+  for (let c = 0; c < d.cols - 1; c++) {
+    const a = x0 + dx * (c + 0.5), m = a + dx / 2, b = a + dx;
+    add("side", [a, y0], [b, y0], [m, y0 + dy / 2]);
+    add("side", [a, y1], [m, y1 - dy / 2], [b, y1]);
+  }
+  for (let r = 0; r < d.rows - 1; r++) {
+    const a = y0 + dy * (r + 0.5), m = a + dy / 2, b = a + dy;
+    add("side", [x0, a], [x0 + dx / 2, m], [x0, b]);
+    add("side", [x1, a], [x1, b], [x1 - dx / 2, m]);
+  }
+  add("corner", [x0, y0], [x0 + dx / 2, y0], [x0, y0 + dy / 2]);
+  add("corner", [x1, y0], [x1, y0 + dy / 2], [x1 - dx / 2, y0]);
+  add("corner", [x0, y1], [x0, y1 - dy / 2], [x0 + dx / 2, y1]);
+  add("corner", [x1, y1], [x1 - dx / 2, y1], [x1, y1 - dy / 2]);
+  return out;
+}
+function cellName(d, i) {
+  const big = d.cols * d.rows;
+  if (!isOnPoint(d) || i < big) return `${Math.floor(i / d.cols) + 1}, ${i % d.cols + 1}`;
+  const j = i - big;
+  return `${Math.floor(j / (d.cols - 1)) + 1}\xBD, ${j % (d.cols - 1) + 1}\xBD`;
 }
 function sashRects(d, W, H) {
   const across = /* @__PURE__ */ new Set();
@@ -2966,6 +3045,19 @@ function borderSidePieces(b, L) {
 var borderFab = (b, slot) => b.fabrics && b.fabrics[slot] || b.fabrics && b.fabrics[0] || "b0";
 var borderCornerSlot = (b) => b.type === "plain" ? 1 : 2;
 var plainButted = (b) => b.type === "plain" && borderFab(b, 1) === borderFab(b, 0);
+function convexOverlap(a, b) {
+  for (const poly of [a, b])
+    for (let i = 0; i < poly.length; i++) {
+      const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % poly.length], nx = y1 - y2, ny = x2 - x1;
+      const span = (p) => {
+        const ds = p.map(([x, y]) => x * nx + y * ny);
+        return [Math.min(...ds), Math.max(...ds)];
+      };
+      const [a0, a1] = span(a), [b0, b1] = span(b);
+      if (a1 <= b0 || b1 <= a0) return false;
+    }
+  return true;
+}
 function pointInPoly(x, y, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -2979,8 +3071,8 @@ function pathPolyInto(g, poly) {
   g.closePath();
 }
 
-// ../node_modules/@quilt/shared/src/design.js
-var FORMAT_VERSION = 3;
+// ../shared/src/design.js
+var FORMAT_VERSION = 4;
 var ROLE_DEFAULT = ["b0", "b1", "b3"];
 function newBlock(pattern = "ohio", roles = ROLE_DEFAULT) {
   return { pattern, rot: 0, fabrics: partsOf(pattern).map((p) => roles[p.role] || roles[0]) };
@@ -3003,7 +3095,7 @@ function rolesOf(b) {
   return roles;
 }
 
-// ../node_modules/@quilt/shared/src/format.js
+// ../shared/src/format.js
 var MIGRATIONS = [
   // 0 → 1: designs saved before block sizes and backing fabrics existed
   (d) => ({
@@ -3017,7 +3109,9 @@ var MIGRATIONS = [
   // can't save over the setting.)
   (d) => ({ ...d, v: 2 }),
   // 2 → 3: cornerstones can be pieced as a block (sashing.cornerBlock); older saves have plain ones
-  (d) => ({ ...d, v: 3 })
+  (d) => ({ ...d, v: 3 }),
+  // 3 → 4: quilts can be set on point (setting 'onpoint', settingFabric); older saves are straight
+  (d) => ({ ...d, v: 4 })
 ];
 var LIMITS = { grid: [1, 20], blockMm: [50, 1e3], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
 var SYMS = ["off", "lr", "tb", "both", "kal"];
@@ -3034,7 +3128,9 @@ function check(d) {
   const note = (key, n2 = 1) => count[key] = (count[key] || 0) + n2;
   const cols = clamp(Math.round(d.cols), LIMITS.grid), rows = clamp(Math.round(d.rows), LIMITS.grid);
   if (cols !== d.cols || rows !== d.rows) problems.push(`The layout was changed to ${cols} \xD7 ${rows}.`);
-  const n = cols * rows;
+  const onPoint = d.setting === "onpoint";
+  if (d.setting !== void 0 && !onPoint) problems.push("The layout went back to straight.");
+  const n = cols * rows + (onPoint ? (cols - 1) * (rows - 1) : 0);
   if (d.blocks.length !== n) {
     if (d.blocks.length > n) note("extra", d.blocks.length - n);
   }
@@ -3059,6 +3155,11 @@ function check(d) {
       `${plural(count.block, "block setting")} that could not be read ${count.block === 1 ? "was" : "were"} reset.`
     );
   const out = { ...d, v: FORMAT_VERSION, cols, rows, blocks };
+  if (!onPoint) delete out.setting;
+  if (d.settingFabric !== void 0 && !isFabric(d.settingFabric)) {
+    delete out.settingFabric;
+    problems.push("The fabric of the setting triangles was reset.");
+  }
   if (!num(d.blockMm) || d.blockMm !== clamp(Math.round(d.blockMm), LIMITS.blockMm)) {
     out.blockMm = num(d.blockMm) ? clamp(Math.round(d.blockMm), LIMITS.blockMm) : Math.round(2290 / cols);
     problems.push(`The block size was changed to ${out.blockMm} mm.`);
@@ -6259,9 +6360,31 @@ function resize2(d, cols0, rows0) {
       if (r < d.rows && c < d.cols) blocks.push(d.blocks[r * d.cols + c]);
       else blocks.push(clone(d.blocks[Math.min(r, d.rows - 1) * d.cols + Math.min(c, d.cols - 1)]));
     }
+  if (isOnPoint(d)) {
+    const old = d.cols * d.rows, OC = d.cols - 1, OR = d.rows - 1;
+    for (let r = 0; r < rows - 1; r++)
+      for (let c = 0; c < cols - 1; c++) {
+        if (r < OR && c < OC) blocks.push(d.blocks[old + r * OC + c]);
+        else if (OC > 0 && OR > 0) blocks.push(clone(d.blocks[old + Math.min(r, OR - 1) * OC + Math.min(c, OC - 1)]));
+        else blocks.push(plainBetween(d));
+      }
+  }
   return { ...d, cols, rows, blocks };
 }
 resize2.mirror = false;
+var plainBetween = (d) => ({ pattern: "plain", rot: 0, fabrics: [d.settingFabric || "b0"] });
+function setSetting(d, on) {
+  if (on === isOnPoint(d)) return d;
+  const big = d.cols * d.rows;
+  if (!on) {
+    const { setting: _s, ...rest2 } = d;
+    return { ...rest2, blocks: d.blocks.slice(0, big) };
+  }
+  const { sym: _sym, ...rest } = d, between = Array.from({ length: (d.cols - 1) * (d.rows - 1) }, () => plainBetween(d));
+  return normalizeSpans({ ...rest, setting: "onpoint", blocks: [...d.blocks.slice(0, big), ...between] });
+}
+var setSettingFabric = (d, f) => d.settingFabric === f ? d : { ...d, settingFabric: f };
+setSetting.mirror = setSettingFabric.mirror = false;
 resize2.merge = setBlockMm.merge = setSashing.merge = updateBorder.merge = true;
 
 // src/designer/dispatch.js
@@ -6296,6 +6419,13 @@ function dispatch(edit, ...args) {
   if (next === prev) return false;
   if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
   setCurrent(normalizeSpans(next));
+  const n = design.blocks.length;
+  if (focusBlock >= n || [...selBlocks].some((i) => i >= n)) {
+    const keep = [...selBlocks].filter((i) => i < n);
+    setSelBlocks(new Set(keep.length ? keep : [0]));
+    setFocusBlock(focusBlock < n ? focusBlock : [...selBlocks][0]);
+    selParts.clear();
+  }
   saveDesign();
   tlRecord(edit.merge ? edit.name : null);
   renderDesigner();
@@ -6537,26 +6667,36 @@ function drawQuilt(g, W, H, opts = {}) {
       g.strokeRect(rc.x, rc.y, rc.w, rc.h);
     }
   }
-  for (let r = 0; r < d.rows; r++)
-    for (let c = 0; c < d.cols; c++) {
-      const bi = r * d.cols + c, b = d.blocks[bi];
-      if (b.under != null) continue;
-      const R2 = blockRect(d, c, r, W, H), polys = blockPolys(b, R2.x, R2.y, R2.w, R2.h);
-      polys.forEach((poly, pi) => {
-        g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi);
-        pathPoly(g, poly);
-        g.fill();
-        dimUnlessHi(g, { t: "qpiece", fabric: b.fabrics[pi] });
-      });
-      if (opts.seams) {
-        g.strokeStyle = "rgba(40,30,20,.35)";
-        g.lineWidth = Math.max(1, W / 1400);
-        polys.forEach((poly) => {
-          pathPoly(g, poly);
-          g.stroke();
-        });
-      }
+  for (const [k, sp] of settingPieces(d, W, H).entries()) {
+    g.fillStyle = fabricFill(g, fabricById(d.settingFabric || "b0"), pxPerCm, 700 + k);
+    pathPoly(g, sp.poly);
+    g.fill();
+    dimUnlessHi(g, { t: "setting", kind: sp.kind });
+    if (opts.seams) {
+      g.strokeStyle = "rgba(40,30,20,.35)";
+      g.lineWidth = Math.max(1, W / 1400);
+      g.stroke();
     }
+  }
+  for (let bi = 0, n = cellCount(d); bi < n; bi++) {
+    const b = d.blocks[bi];
+    if (!b || b.under != null) continue;
+    const polys = placedPolys(b, blockPlace(d, bi, W, H));
+    polys.forEach((poly, pi) => {
+      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi);
+      pathPoly(g, poly);
+      g.fill();
+      dimUnlessHi(g, { t: "qpiece", fabric: b.fabrics[pi] });
+    });
+    if (opts.seams) {
+      g.strokeStyle = "rgba(40,30,20,.35)";
+      g.lineWidth = Math.max(1, W / 1400);
+      polys.forEach((poly) => {
+        pathPoly(g, poly);
+        g.stroke();
+      });
+    }
+  }
 }
 
 // src/designer/canvas.js
@@ -6607,14 +6747,16 @@ function drawDesignerCanvas() {
   const editing = $("dz-dialog").open || editorInSide || selBlocks.size > 1;
   if (editing)
     for (const bi of selBlocks) {
-      const R2 = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), cw, ch);
+      const P = blockPlace(design, bi, cw, ch), cx = P.x + P.w / 2, cy = P.y + P.h / 2, k = 1 - 3 / Math.max(P.w, 6);
+      const frame2 = blockOutline(P).map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]);
       g.lineWidth = 3;
       g.strokeStyle = "#ffffff";
-      g.strokeRect(R2.x + 1.5, R2.y + 1.5, R2.w - 3, R2.h - 3);
+      pathPoly(g, frame2);
+      g.stroke();
       g.lineWidth = 1.5;
       g.strokeStyle = bi === focusBlock ? "#e0592a" : "#1b2233";
       g.setLineDash(bi === focusBlock ? [] : [5, 4]);
-      g.strokeRect(R2.x + 1.5, R2.y + 1.5, R2.w - 3, R2.h - 3);
+      g.stroke();
       g.setLineDash([]);
     }
   const sy = symOf(design);
@@ -6646,7 +6788,7 @@ function drawDesignerCanvas() {
   }
   const sz = sashOf(design);
   const nb = bordersOf(design).length;
-  $("dz-size-b").textContent = `${sz.mm ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(design)} mm)` : ""} \xB7 finished quilt ${qmm.W} \xD7 ${qmm.H} mm`;
+  $("dz-size-b").textContent = `${sz.mm ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(design)} mm)` : ""} \xB7 finished quilt ${Math.round(qmm.W)} \xD7 ${Math.round(qmm.H)} mm`;
   drawBackCanvas(cw, ch, dpr);
   const hv = $("dz-hover");
   hv.style.width = cw + "px";
@@ -6809,7 +6951,7 @@ function drawPartsEditor() {
   const names = [...selParts].map((i) => partsOf(b.pattern)[i].name);
   $("dz-parts-info").textContent = selParts.size === 0 ? "Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric." : selParts.size === 1 ? `Selected: ${names[0]} \xB7 ${fabricById(b.fabrics[[...selParts][0]]).name}${b.fussy && b.fussy[[...selParts][0]] ? " \xB7 fussy cut" : ""}` : `${selParts.size} parts selected`;
   drawFussy();
-  $("dz-blockname").textContent = `${PATTERNS[b.pattern].label} \xB7 block ${Math.floor(focusBlock / design.cols) + 1}, ${focusBlock % design.cols + 1}` + (selBlocks.size > 1 ? ` \xB7 editing ${selBlocks.size} blocks` : "");
+  $("dz-blockname").textContent = `${PATTERNS[b.pattern].label} \xB7 block ${cellName(design, focusBlock)}` + (selBlocks.size > 1 ? ` \xB7 editing ${selBlocks.size} blocks` : "");
 }
 function drawPatternButtons() {
   if (!design) return;
@@ -6860,6 +7002,11 @@ function renderDesigner() {
     setFocusBlock(design.blocks[focusBlock].under);
   $("dz-cols").value = design.cols;
   $("dz-rows").value = design.rows;
+  const onPoint = isOnPoint(design);
+  $("dz-setting").value = onPoint ? "onpoint" : "straight";
+  drawPaletteInto($("set-fabs"), design.settingFabric || "b0");
+  $("rail-sash").disabled = onPoint;
+  $("rail-sash").title = onPoint ? "Sashing: not available for quilts set on point yet" : "Sashing: strips between the blocks";
   syncSymUI();
   for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
   $("dz-rot").textContent = `Rotate 90\xB0 (${design.blocks[focusBlock].rot * 90}\xB0)`;
@@ -6954,7 +7101,7 @@ var setPartTap = (v) => partTap = v;
 
 // src/designer/side-panel.js
 var editorInSide = false;
-var PANEL_CARDS = { parts: "dz-sideparts", sash: "sash-card", brd: "brd-card" };
+var PANEL_CARDS = { parts: "dz-sideparts", sash: "sash-card", brd: "brd-card", set: "set-card" };
 function syncRail() {
   for (const n of Object.keys(PANEL_CARDS)) {
     const b = $("rail-" + n);
@@ -7023,11 +7170,15 @@ function initDesignerUI() {
   const blocksIn = (x0, y0, x1, y1) => {
     const r = qcv.getBoundingClientRect(), out = /* @__PURE__ */ new Set();
     const L = Math.min(x0, x1), R2 = Math.max(x0, x1), T = Math.min(y0, y1), B2 = Math.max(y0, y1);
-    for (let rr = 0; rr < design.rows; rr++)
-      for (let cc = 0; cc < design.cols; cc++) {
-        const b = blockRect(design, cc, rr, r.width, r.height);
-        if (b.x < R2 && b.x + b.w > L && b.y < B2 && b.y + b.h > T) out.add(anchorOf(design, rr * design.cols + cc));
-      }
+    const box2 = [
+      [L, T],
+      [R2, T],
+      [R2, B2],
+      [L, B2]
+    ];
+    for (let i = 0, n = cellCount(design); i < n; i++) {
+      if (convexOverlap(box2, blockOutline(blockPlace(design, i, r.width, r.height)))) out.add(anchorOf(design, i));
+    }
     return out;
   };
   qcv.addEventListener("pointerdown", (e) => {
@@ -7116,6 +7267,8 @@ function initDesignerUI() {
     if (bi < 0) {
       const q = quiltMm(design), bt = borderTotal(design), mx = (e.clientX - r.left) / r.width * q.W, my = (e.clientY - r.top) / r.height * q.H;
       if (bt && (mx < bt || my < bt || mx > q.W - bt || my > q.H - bt)) openBorders();
+      else if (isOnPoint(design))
+        showPanel("set");
       else if (sashOf(design).mm) openSashing();
       return;
     }
@@ -7250,7 +7403,15 @@ function initDesignerUI() {
     $("dz-side").scrollTop = 0;
   };
   for (const [n] of Object.entries(PANEL_CARDS))
-    $("rail-" + n).addEventListener("click", () => toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n));
+    $("rail-" + n)?.addEventListener("click", () => toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n));
+  $("dz-setting").addEventListener("change", (e) => {
+    dispatch(setSetting, e.target.value === "onpoint");
+    if (toolsOpen && toolsPanel === "set" && !isOnPoint(design)) setTools(false);
+  });
+  $("set-fabs").addEventListener("click", (e) => {
+    const b = e.target.closest("button.fab");
+    if (b) dispatch(setSettingFabric, b.dataset.f);
+  });
   setShowTools(() => {
     if (!toolsOpen || toolsPanel !== "parts") showPanel("parts");
   });
@@ -7742,15 +7903,17 @@ function drawQuiltingLines(g, W, H, kind) {
 function strokeSeams(g, W, H) {
   const d = design;
   for (const rc of sashRects(d, W, H)) g.strokeRect(rc.x, rc.y, rc.w, rc.h);
-  for (let r = 0; r < d.rows; r++)
-    for (let c = 0; c < d.cols; c++) {
-      if (d.blocks[r * d.cols + c].under != null) continue;
-      const R2 = blockRect(d, c, r, W, H);
-      for (const poly of blockPolys(d.blocks[r * d.cols + c], R2.x, R2.y, R2.w, R2.h)) {
-        pathPoly(g, poly);
-        g.stroke();
-      }
+  for (const sp of settingPieces(d, W, H)) {
+    pathPoly(g, sp.poly);
+    g.stroke();
+  }
+  for (let i = 0, n = cellCount(d); i < n; i++) {
+    if (d.blocks[i].under != null) continue;
+    for (const poly of placedPolys(d.blocks[i], blockPlace(d, i, W, H))) {
+      pathPoly(g, poly);
+      g.stroke();
     }
+  }
 }
 function softSeams(W, H, blur, bg, ink, lineWidth) {
   const f = Math.max(1, blur), w = Math.max(8, Math.round(W / f)), h = Math.max(8, Math.round(H / f));
@@ -8119,26 +8282,37 @@ function drawCutQuilt(P, into) {
     g.lineWidth = u;
     g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
   });
+  for (const [j, sp] of settingPieces(d2, W, H).entries()) {
+    g.fillStyle = fabricFill(g, fabricById(design.settingFabric || "b0"), pxPerCm, 700 + j);
+    pathPoly(g, sp.poly);
+    g.fill();
+    dimUnlessHi(g, { t: "setting", kind: sp.kind });
+    g.strokeStyle = "rgba(40,30,20,.35)";
+    g.lineWidth = u;
+    g.stroke();
+  }
   const numOf = new Map(
     P.blocks.map((b, i) => [b.block.pattern + "|" + b.span + "|" + b.block.fabrics.join(","), i]).filter(([, i]) => !P.blocks[i].corner)
   );
   design.blocks.forEach((blk2, bi) => {
     if (blk2.under != null) return;
     const i = numOf.get(blk2.pattern + "|" + spanOf(blk2) + "|" + blk2.fabrics.join(",")), pb = P.blocks[i];
-    const r = Math.floor(bi / design.cols), c = bi % design.cols, R2 = blockRect(d2, c, r, W, H);
-    rects.push({ ...R2, i });
+    const Pl = blockPlace(d2, bi, W, H);
+    rects.push({ ...placeBox(Pl), i, poly: Pl.turn ? blockOutline(Pl) : null });
     const turned = {
       ...pb,
       index: bi,
       pieces: pb.pieces.map((pc) => ({ ...pc, part: { ...pc.part, poly: orientPoly(pc.part.poly, blk2) } }))
     };
     g.save();
-    g.translate(R2.x, R2.y);
-    drawBlockArt(g, turned, P, i + 1, R2.w, R2.h);
-    g.restore();
+    g.translate(Pl.x + Pl.w / 2, Pl.y + Pl.h / 2);
+    g.rotate(Pl.turn);
+    g.translate(-Pl.w / 2, -Pl.h / 2);
+    drawBlockArt(g, turned, P, i + 1, Pl.w, Pl.h);
     g.strokeStyle = "rgba(30,28,25,.55)";
     g.lineWidth = u;
-    g.strokeRect(R2.x + 0.5, R2.y + 0.5, R2.w - 1, R2.h - 1);
+    g.strokeRect(0.5, 0.5, Pl.w - 1, Pl.h - 1);
+    g.restore();
   });
   const extra = P.sashing || [], tag = (t, x, y, fs, rot) => {
     g.save();
@@ -8202,31 +8376,44 @@ function drawCutQuilt(P, into) {
     } else {
       g.beginPath();
       g.rect(0, 0, W, H);
-      for (const R2 of tgt) g.rect(R2.x, R2.y, R2.w, R2.h);
+      for (const R2 of tgt) R2.poly ? pathPolyInto(g, R2.poly) : g.rect(R2.x, R2.y, R2.w, R2.h);
       g.fillStyle = "rgba(236,239,244,.72)";
       g.fill("evenodd");
     }
     if (!ring)
       for (const R2 of tgt)
-        outline(
-          R2.x - (cgHi === "sash" ? 0 : 1),
-          R2.y - (cgHi === "sash" ? 0 : 1),
-          R2.w + (cgHi === "sash" ? 0 : 2),
-          R2.h + (cgHi === "sash" ? 0 : 2),
-          cgHi !== "sash"
-        );
+        if (R2.poly)
+          for (const [lw, c] of [
+            [6, "#fff"],
+            [3.5, "#e0592a"]
+          ]) {
+            g.lineWidth = lw;
+            g.strokeStyle = c;
+            g.lineJoin = "round";
+            pathPoly(g, R2.poly);
+            g.stroke();
+          }
+        else
+          outline(
+            R2.x - (cgHi === "sash" ? 0 : 1),
+            R2.y - (cgHi === "sash" ? 0 : 1),
+            R2.w + (cgHi === "sash" ? 0 : 2),
+            R2.h + (cgHi === "sash" ? 0 : 2),
+            cgHi !== "sash"
+          );
   }
   g.restore();
   g.fillStyle = "#6b665e";
   g.font = `${12 * u}px system-ui, sans-serif`;
   g.textAlign = "center";
   g.textBaseline = "middle";
+  const at = (c, r) => isOnPoint(d2) ? placeBox(blockPlace(d2, r * design.cols + c, W, H)) : cellRect(d2, c, r, W, H);
   for (let c = 0; c < design.cols; c++) {
-    const R2 = cellRect(d2, c, 0, W, H);
+    const R2 = at(c, 0);
     g.fillText(String(c + 1), lab + R2.x + R2.w / 2, lab / 2);
   }
   for (let r = 0; r < design.rows; r++) {
-    const R2 = cellRect(d2, 0, r, W, H);
+    const R2 = at(0, r);
     g.fillText(String(r + 1), lab / 2, lab + R2.y + R2.h / 2);
   }
   if (into) return;
@@ -8554,7 +8741,7 @@ function openPartPop(kind) {
   const d = $("cg-pop"), q = quiltMm(design), nb = bordersOf(design).length, s = sashOf(design);
   const bi = kind[0] === "b" && kind !== "brd" ? +kind.slice(1) : -1, b = bi >= 0 ? bordersOf(design)[bi] : null;
   $("cg-pop-title").textContent = kind === "sash" ? "Sashing" : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : "Border";
-  $("cg-pop-sub").textContent = kind === "sash" ? `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm` : b ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm` : `${borderTotal(design)} mm all round, marked in orange \xB7 finished quilt ${q.W} \xD7 ${q.H} mm`;
+  $("cg-pop-sub").textContent = kind === "sash" ? `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : b ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : `${borderTotal(design)} mm all round, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -8649,8 +8836,9 @@ function renderCut() {
     label: (k) => PATTERNS[k].label,
     extra,
     extraBlocks,
-    quiltW: qm.W,
-    quiltH: qm.H
+    quiltW: Math.round(qm.W),
+    // (on point the size is not a whole number of mm)
+    quiltH: Math.round(qm.H)
   });
   setLastPlan(P);
   $("cg-facts").innerHTML = [
@@ -9189,9 +9377,14 @@ function syncSymUI() {
   if (!el || !design) return;
   for (const o of el.options) o.disabled = o.value === "kal" && design.cols !== design.rows;
   el.value = symOf(design);
+  const onPoint = isOnPoint(design), later = "Not available for quilts set on point yet";
+  el.disabled = onPoint;
+  el.title = onPoint ? later : "";
   const sp = $("dz-span"), b = design.blocks[focusBlock];
   if (!sp || !b) return;
-  const c = focusBlock % design.cols, r = Math.floor(focusBlock / design.cols), max = Math.min(design.cols - c, design.rows - r);
+  sp.disabled = onPoint;
+  sp.title = onPoint ? later : "";
+  const c = focusBlock % design.cols, r = Math.floor(focusBlock / design.cols), max = onPoint ? 1 : Math.min(design.cols - c, design.rows - r);
   for (const o of sp.options) {
     o.disabled = +o.value > max;
     o.textContent = `${o.value} \xD7 ${o.value} cell${o.value > 1 ? "s" : ""} \xB7 ${blockSizeMm(design, +o.value)} mm`;
@@ -9737,7 +9930,7 @@ function renderMine() {
     const nm = document.createElement("b");
     nm.textContent = m.name;
     const sm = document.createElement("small");
-    sm.textContent = `${d.cols} \xD7 ${d.rows} blocks \xB7 ${quiltMm(d).W} \xD7 ${quiltMm(d).H} mm \xB7 ${when(m.updatedAt)}`;
+    sm.textContent = `${d.cols} \xD7 ${d.rows} blocks \xB7 ${Math.round(quiltMm(d).W)} \xD7 ${Math.round(quiltMm(d).H)} mm \xB7 ${when(m.updatedAt)}`;
     meta.append(nm, sm);
     pin.append(img, meta);
     grid.appendChild(pin);
@@ -10713,8 +10906,8 @@ function hoverGeom() {
   return { w, h };
 }
 function partAt(bi, x, y) {
-  const { w, h } = hoverGeom(), R2 = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), w, h);
-  return blockPolys(design.blocks[bi], R2.x, R2.y, R2.w, R2.h).findIndex((p) => pointInPoly(x, y, p));
+  const { w, h } = hoverGeom();
+  return placedPolys(design.blocks[bi], blockPlace(design, bi, w, h)).findIndex((p) => pointInPoly(x, y, p));
 }
 function zoneAt(x, y) {
   const { w: W, h: H } = hoverGeom(), q = quiltMm(design), k = W / q.W, mx = x / k, my = y / k;
@@ -10726,6 +10919,8 @@ function zoneAt(x, y) {
       o += bs[i].mm;
     }
   }
+  for (const sp of settingPieces(design, W, H))
+    if (pointInPoly(x, y, sp.poly)) return { zone: "setting", zi: -1, zr: sp };
   for (const r of sashRects(design, W, H))
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { zone: "sash", zi: -1, zr: r };
   return null;
@@ -10759,7 +10954,8 @@ function drawHover() {
     if (hover.zone === "brd") {
       g.rect(z.o, z.o, W2 - 2 * z.o, H - 2 * z.o);
       g.rect(z.o + z.t, z.o + z.t, W2 - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
-    } else for (const r of sashRects(design, W2, H)) g.rect(r.x, r.y, r.w, r.h);
+    } else if (hover.zone === "setting") for (const sp of settingPieces(design, W2, H)) pathPolyInto(g, sp.poly);
+    else for (const r of sashRects(design, W2, H)) g.rect(r.x, r.y, r.w, r.h);
     g.fillStyle = "rgba(255,255,255,.26)";
     g.fill("evenodd");
     g.lineJoin = "round";
@@ -10772,13 +10968,16 @@ function drawHover() {
       if (hover.zone === "brd") {
         g.strokeRect(z.o + 1, z.o + 1, W2 - 2 * z.o - 2, H - 2 * z.o - 2);
         g.strokeRect(z.o + z.t, z.o + z.t, W2 - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
+      } else if (hover.zone === "setting") {
+        pathPoly(g, z.poly);
+        g.stroke();
       } else g.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2);
     }
     g.restore();
     const s = sashOf(design), b2 = hover.zone === "brd" ? bordersOf(design)[hover.zi] : null;
     hoverLabel(
       g,
-      hover.zone === "brd" ? `Border ${hover.zi + 1} \xB7 ${BORDER_TYPES[b2.type].label} \xB7 ${b2.mm} mm \xB7 click to edit` : `${z.kind === "corner" ? "Cornerstone" : "Sashing"} \xB7 ${z.kind === "corner" && s.cornerBlock ? PATTERNS[s.cornerBlock.pattern].label : fabricById(z.kind === "corner" ? s.corner : s.fabric).name} \xB7 ${s.mm} mm \xB7 click to edit`,
+      hover.zone === "setting" ? `${z.kind === "corner" ? "Corner triangle" : "Setting triangle"} \xB7 ${fabricById(design.settingFabric || "b0").name} \xB7 click to edit` : hover.zone === "brd" ? `Border ${hover.zi + 1} \xB7 ${BORDER_TYPES[b2.type].label} \xB7 ${b2.mm} mm \xB7 click to edit` : `${z.kind === "corner" ? "Cornerstone" : "Sashing"} \xB7 ${z.kind === "corner" && s.cornerBlock ? PATTERNS[s.cornerBlock.pattern].label : fabricById(z.kind === "corner" ? s.corner : s.fabric).name} \xB7 ${s.mm} mm \xB7 click to edit`,
       W2
     );
     return;
@@ -10788,7 +10987,7 @@ function drawHover() {
     if ($("dz-hflip")) $("dz-hflip").hidden = true;
     return;
   }
-  const { w: HW, h: HH } = hoverGeom(), RR = blockRect(design, hover.bi % design.cols, Math.floor(hover.bi / design.cols), HW, HH), x = RR.x, y = RR.y, bw = RR.w, bh = RR.h;
+  const { w: HW, h: HH } = hoverGeom(), PP = blockPlace(design, hover.bi, HW, HH), outline = blockOutline(PP), RR = placeBox(PP), x = RR.x, y = RR.y, bw = RR.w;
   if (rb) {
     const sz = bw < 70 ? 22 : 28;
     rb.style.width = rb.style.height = sz + "px";
@@ -10804,21 +11003,27 @@ function drawHover() {
     }
   }
   if (hover.part < 0) {
+    pathPoly(g, outline);
     g.fillStyle = "rgba(255,255,255,.22)";
-    g.fillRect(x, y, bw, bh);
+    g.fill();
+    const cx = PP.x + PP.w / 2, cy = PP.y + PP.h / 2, k = 1 - 3 / Math.max(PP.w, 6);
+    pathPoly(
+      g,
+      outline.map(([px, py]) => [cx + (px - cx) * k, cy + (py - cy) * k])
+    );
     g.lineWidth = 3;
     g.strokeStyle = "rgba(255,255,255,.95)";
-    g.strokeRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
+    g.stroke();
     g.lineWidth = 1.5;
     g.strokeStyle = "#e0592a";
-    g.strokeRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
+    g.stroke();
     return;
   }
-  const polys = blockPolys(design.blocks[hover.bi], x, y, bw, bh), p = polys[hover.part];
+  const polys = placedPolys(design.blocks[hover.bi], PP), p = polys[hover.part];
   if (!p) return;
   g.save();
   g.beginPath();
-  g.rect(x, y, bw, bh);
+  pathPolyInto(g, outline);
   pathPolyInto(g, p);
   g.fillStyle = "rgba(20,24,34,.28)";
   g.fill("evenodd");

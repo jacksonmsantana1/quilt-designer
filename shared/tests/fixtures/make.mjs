@@ -79,6 +79,21 @@ w('v3-cornerstone-block.json', {
   sashing: { mm: 80, fabric: 'b0', corner: 'b3', border: true, cornerBlock: blk('nine', 'b1') },
   blocks: [blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4'), blk('ohio'), blk('nine', 'b4')],
 });
+// version 4: set on point, 3 × 3 blocks and the 2 × 2 between them, setting triangles in their own fabric
+w('v4-on-point.json', {
+  v: 4,
+  cols: 3,
+  rows: 3,
+  blockMm: 300,
+  backFabric: 'b0',
+  setting: 'onpoint',
+  settingFabric: 'b2',
+  borders: [{ type: 'plain', mm: 80, fabrics: ['b1', 'b1'] }],
+  blocks: [
+    ...Array.from({ length: 9 }, (_, i) => blk(i % 2 ? 'nine' : 'ohio', i % 2 ? 'b4' : 'b1')),
+    ...Array.from({ length: 4 }, () => blk('plain', 'b0')),
+  ],
+});
 // saved by a later version of the app
 w('newer.json', {
   ...JSON.parse(fs.readFileSync(new URL('v0-before-block-sizes.json', D))),

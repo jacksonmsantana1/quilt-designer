@@ -5,7 +5,7 @@ import { hideTools, toolsPanel } from './ui-state.js';
 import { drawDesignerCanvas, flipped } from './canvas.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
-import { blockSizeMm, spanOf } from '@quilt/shared/geometry.js';
+import { blockSizeMm, isOnPoint, spanOf } from '@quilt/shared/geometry.js';
 import { quiltingOf } from '../render/quilting.js';
 import { tl, tlCommit, tlGo } from '../timeline/timeline.js';
 import { setSymmetry, symOf } from '../core/symmetry.js';
@@ -20,12 +20,19 @@ function syncSymUI() {
   if (!el || !design) return;
   for (const o of el.options) o.disabled = o.value === 'kal' && design.cols !== design.rows;
   el.value = symOf(design);
+  // on point has no symmetry or large blocks yet
+  const onPoint = isOnPoint(design),
+    later = 'Not available for quilts set on point yet';
+  el.disabled = onPoint;
+  el.title = onPoint ? later : '';
   const sp = $('dz-span'),
     b = design.blocks[focusBlock];
   if (!sp || !b) return;
+  sp.disabled = onPoint;
+  sp.title = onPoint ? later : '';
   const c = focusBlock % design.cols,
     r = Math.floor(focusBlock / design.cols),
-    max = Math.min(design.cols - c, design.rows - r);
+    max = onPoint ? 1 : Math.min(design.cols - c, design.rows - r);
   for (const o of sp.options) {
     o.disabled = +o.value > max;
     o.textContent = `${o.value} × ${o.value} cell${o.value > 1 ? 's' : ''} · ${blockSizeMm(design, +o.value)} mm`;

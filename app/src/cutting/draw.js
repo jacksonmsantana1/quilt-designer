@@ -7,14 +7,19 @@ import { dimUnlessHi } from '../render/highlight.js';
 import { orientPoly, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
 import {
-  blockRect,
+  blockOutline,
+  blockPlace,
   borderTotal,
   bordersOf,
   cellRect,
+  isOnPoint,
   pathPoly,
+  pathPolyInto,
+  placeBox,
   quiltMm,
   sashOf,
   sashRects,
+  settingPieces,
   spanOf,
 } from '@quilt/shared/geometry.js';
 import { drawBorders, drawQuilt } from '../render/quilt-draw.js';
@@ -358,6 +363,16 @@ function drawCutQuilt(P, into) {
     g.lineWidth = u;
     g.strokeRect(rc.x + 0.5, rc.y + 0.5, rc.w - 1, rc.h - 1);
   });
+  // on point: the setting triangles along the edges (their cutting comes with the next step of on point)
+  for (const [j, sp] of settingPieces(d2, W, H).entries()) {
+    g.fillStyle = fabricFill(g, fabricById(design.settingFabric || 'b0'), pxPerCm, 700 + j);
+    pathPoly(g, sp.poly);
+    g.fill();
+    dimUnlessHi(g, { t: 'setting', kind: sp.kind });
+    g.strokeStyle = 'rgba(40,30,20,.35)';
+    g.lineWidth = u;
+    g.stroke();
+  }
   // blocks, each turned as designed, every piece labelled with its ID
   const numOf = new Map(
     P.blocks
@@ -368,22 +383,23 @@ function drawCutQuilt(P, into) {
     if (blk.under != null) return;
     const i = numOf.get(blk.pattern + '|' + spanOf(blk) + '|' + blk.fabrics.join(',')),
       pb = P.blocks[i];
-    const r = Math.floor(bi / design.cols),
-      c = bi % design.cols,
-      R = blockRect(d2, c, r, W, H);
-    rects.push({ ...R, i });
+    const Pl = blockPlace(d2, bi, W, H);
+    rects.push({ ...placeBox(Pl), i, poly: Pl.turn ? blockOutline(Pl) : null }); // poly: the diamond, on point
     const turned = {
       ...pb,
       index: bi,
       pieces: pb.pieces.map(pc => ({ ...pc, part: { ...pc.part, poly: orientPoly(pc.part.poly, blk) } })),
     };
+    // drawn in the block's own square, turned with it on point
     g.save();
-    g.translate(R.x, R.y);
-    drawBlockArt(g, turned, P, i + 1, R.w, R.h);
-    g.restore();
+    g.translate(Pl.x + Pl.w / 2, Pl.y + Pl.h / 2);
+    g.rotate(Pl.turn);
+    g.translate(-Pl.w / 2, -Pl.h / 2);
+    drawBlockArt(g, turned, P, i + 1, Pl.w, Pl.h);
     g.strokeStyle = 'rgba(30,28,25,.55)';
     g.lineWidth = u;
-    g.strokeRect(R.x + 0.5, R.y + 0.5, R.w - 1, R.h - 1);
+    g.strokeRect(0.5, 0.5, Pl.w - 1, Pl.h - 1);
+    g.restore();
   });
   // piece IDs on the sashing and on each border (where there is room)
   const extra = P.sashing || [],
@@ -461,19 +477,31 @@ function drawCutQuilt(P, into) {
     } else {
       g.beginPath();
       g.rect(0, 0, W, H);
-      for (const R of tgt) g.rect(R.x, R.y, R.w, R.h);
+      for (const R of tgt) R.poly ? pathPolyInto(g, R.poly) : g.rect(R.x, R.y, R.w, R.h);
       g.fillStyle = 'rgba(236,239,244,.72)';
       g.fill('evenodd');
     }
     if (!ring)
       for (const R of tgt)
-        outline(
-          R.x - (cgHi === 'sash' ? 0 : 1),
-          R.y - (cgHi === 'sash' ? 0 : 1),
-          R.w + (cgHi === 'sash' ? 0 : 2),
-          R.h + (cgHi === 'sash' ? 0 : 2),
-          cgHi !== 'sash',
-        );
+        if (R.poly)
+          for (const [lw, c] of [
+            [6, '#fff'],
+            [3.5, '#e0592a'],
+          ]) {
+            g.lineWidth = lw;
+            g.strokeStyle = c;
+            g.lineJoin = 'round';
+            pathPoly(g, R.poly);
+            g.stroke();
+          }
+        else
+          outline(
+            R.x - (cgHi === 'sash' ? 0 : 1),
+            R.y - (cgHi === 'sash' ? 0 : 1),
+            R.w + (cgHi === 'sash' ? 0 : 2),
+            R.h + (cgHi === 'sash' ? 0 : 2),
+            cgHi !== 'sash',
+          );
   }
   g.restore();
   // column and row numbers along the blocks
@@ -481,12 +509,14 @@ function drawCutQuilt(P, into) {
   g.font = `${12 * u}px system-ui, sans-serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
+  // (on point: the centre of each column and row of blocks)
+  const at = (c, r) => (isOnPoint(d2) ? placeBox(blockPlace(d2, r * design.cols + c, W, H)) : cellRect(d2, c, r, W, H));
   for (let c = 0; c < design.cols; c++) {
-    const R = cellRect(d2, c, 0, W, H);
+    const R = at(c, 0);
     g.fillText(String(c + 1), lab + R.x + R.w / 2, lab / 2);
   }
   for (let r = 0; r < design.rows; r++) {
-    const R = cellRect(d2, 0, r, W, H);
+    const R = at(0, r);
     g.fillText(String(r + 1), lab / 2, lab + R.y + R.h / 2);
   }
   if (into) return;

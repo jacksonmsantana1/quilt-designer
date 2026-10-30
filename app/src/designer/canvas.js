@@ -3,7 +3,7 @@ import '../render/quilt-draw.js'; // load order: runs after render/quilt-draw
 import { design, focusBlock, selBlocks } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { fabricById } from './fabric-library.js';
-import { blockRect, borderTotal, bordersOf, quiltMm, sashOf } from '@quilt/shared/geometry.js';
+import { blockOutline, blockPlace, borderTotal, bordersOf, pathPoly, quiltMm, sashOf } from '@quilt/shared/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
 import { drawPaletteInto } from './parts-editor.js';
 import { editorInSide } from './side-panel.js';
@@ -70,14 +70,20 @@ function drawDesignerCanvas() {
   const editing = $('dz-dialog').open || editorInSide || selBlocks.size > 1;
   if (editing)
     for (const bi of selBlocks) {
-      const R = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), cw, ch);
+      // the block's outline (a diamond on point), drawn 1.5 px inside its edge
+      const P = blockPlace(design, bi, cw, ch),
+        cx = P.x + P.w / 2,
+        cy = P.y + P.h / 2,
+        k = 1 - 3 / Math.max(P.w, 6);
+      const frame = blockOutline(P).map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]);
       g.lineWidth = 3;
       g.strokeStyle = '#ffffff';
-      g.strokeRect(R.x + 1.5, R.y + 1.5, R.w - 3, R.h - 3);
+      pathPoly(g, frame);
+      g.stroke();
       g.lineWidth = 1.5;
       g.strokeStyle = bi === focusBlock ? '#e0592a' : '#1b2233';
       g.setLineDash(bi === focusBlock ? [] : [5, 4]);
-      g.strokeRect(R.x + 1.5, R.y + 1.5, R.w - 3, R.h - 3);
+      g.stroke();
       g.setLineDash([]);
     }
   // symmetry axes (dashed) while a symmetry is on: the lines the design is mirrored across
@@ -117,7 +123,7 @@ function drawDesignerCanvas() {
   const sz = sashOf(design);
   const nb = bordersOf(design).length;
   $('dz-size-b').textContent =
-    `${sz.mm ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(design)} mm)` : ''} · finished quilt ${qmm.W} × ${qmm.H} mm`;
+    `${sz.mm ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(design)} mm)` : ''} · finished quilt ${Math.round(qmm.W)} × ${Math.round(qmm.H)} mm`;
   drawBackCanvas(cw, ch, dpr);
   const hv = $('dz-hover');
   hv.style.width = cw + 'px';

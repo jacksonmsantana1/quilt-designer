@@ -55,7 +55,9 @@
  * @property {number} rows
  * @property {number} blockMm      finished size of one grid cell
  * @property {string} backFabric
- * @property {Block[]} blocks      row by row: blocks[r * cols + c]
+ * @property {Block[]} blocks      row by row: blocks[r * cols + c]; on point, then the (cols-1) × (rows-1) between
+ * @property {'onpoint'} [setting] blocks turned 45° in diagonal rows (missing: straight)
+ * @property {string} [settingFabric] on point: the fabric of the triangles along the edges
  * @property {Sashing} [sashing]
  * @property {Border[]} [borders]
  * @property {SymmetryMode} [sym]

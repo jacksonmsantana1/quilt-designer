@@ -128,3 +128,30 @@ test('the arrow keys step through the timeline', async ({ app, page }) => {
   await page.keyboard.press('ArrowRight');
   await expect.poll(async () => (await app.current()).cols).toBe(3);
 });
+
+test('on point: blocks turn 45°, a block sits between each 2 × 2, triangles fill the edges', async ({ app, page }) => {
+  await page.locator('#dz-setting').selectOption('onpoint');
+  let d = await app.current();
+  expect(d.setting).toBe('onpoint');
+  expect(d.blocks.length).toBe(25 + 16);
+  const box = await page.locator('#dz-quilt').boundingBox(),
+    col = box.width / 5,
+    row = box.height / 5;
+  // the block between the first four (one column and one row in, where four diamonds meet)
+  await page.mouse.click(box.x + col, box.y + row);
+  await expect(page.locator('#dz-blockname')).toContainText('block 1½, 1½');
+  await expect(page.locator('#dz-sym')).toBeDisabled(); // not on point yet
+  await expect(page.locator('#rail-sash')).toBeDisabled();
+  // a setting triangle on the top edge, between the first two blocks: its own card and fabric
+  await page.mouse.click(box.x + col, box.y + 4);
+  await expect(page.locator('#set-card')).toBeVisible();
+  const fab = page.locator('#set-fabs .fab').nth(2),
+    id = await fab.getAttribute('data-f');
+  await fab.click();
+  expect((await app.current()).settingFabric).toBe(id);
+  // straight again: the blocks between go
+  await page.locator('#dz-setting').selectOption('straight');
+  d = await app.current();
+  expect(d.setting).toBeUndefined();
+  expect(d.blocks.length).toBe(25);
+});

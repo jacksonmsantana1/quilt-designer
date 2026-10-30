@@ -759,7 +759,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
-      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="sr" id="dz-sync" aria-live="polite"></span></p>
+      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, or on point: every block turned 45°, in diagonal rows"><option value="straight">Straight</option><option value="onpoint">On point</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
         <div class="fabs backfabs" id="dz-backfabs"></div>
@@ -835,6 +835,11 @@
         <p class="fine" id="sash-note" style="margin:8px 0 0"></p>
       </div>
 
+      <div class="card" id="set-card" hidden>
+        <h2>Setting triangles</h2>
+        <p class="fine" style="margin:0 0 8px">The triangles that fill the edges of an on-point quilt. Click them on the quilt to come back here.</p>
+        <div class="fabs" id="set-fabs"></div>
+      </div>
       <div class="card has-cancel" id="brd-card">
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
         <h2>Borders</h2>

@@ -127,10 +127,10 @@ function openPartPop(kind) {
     kind === 'sash' ? 'Sashing' : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : 'Border';
   $('cg-pop-sub').textContent =
     kind === 'sash'
-      ? `${s.mm} mm strips between the blocks${s.border ? ' and around the outside' : ''}, marked in orange · finished quilt ${q.W} × ${q.H} mm`
+      ? `${s.mm} mm strips between the blocks${s.border ? ' and around the outside' : ''}, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`
       : b
-        ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? (bi === 0 ? ' · the innermost border' : bi === nb - 1 ? ' · the outermost border' : '') : ''}, marked in orange · finished quilt ${q.W} × ${q.H} mm`
-        : `${borderTotal(design)} mm all round, marked in orange · finished quilt ${q.W} × ${q.H} mm`;
+        ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? (bi === 0 ? ' · the innermost border' : bi === nb - 1 ? ' · the outermost border' : '') : ''}, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`
+        : `${borderTotal(design)} mm all round, marked in orange · finished quilt ${Math.round(q.W)} × ${Math.round(q.H)} mm`;
   if (!d.open) {
     try {
       d.showModal();
@@ -246,8 +246,8 @@ function renderCut() {
     label: k => PATTERNS[k].label,
     extra,
     extraBlocks,
-    quiltW: qm.W,
-    quiltH: qm.H,
+    quiltW: Math.round(qm.W), // (on point the size is not a whole number of mm)
+    quiltH: Math.round(qm.H),
   });
   setLastPlan(P);
   $('cg-facts').innerHTML = [

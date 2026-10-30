@@ -17,6 +17,13 @@ import {
   pointInPoly,
   sashOf,
   CORNER_BLOCK_MIN_MM,
+  blockOutline,
+  blockPlace,
+  cellCount,
+  cellName,
+  convexOverlap,
+  placedPolys,
+  settingPieces,
 } from '@quilt/shared/geometry.js';
 import { grid } from './fixtures.mjs';
 import { area, close } from './helpers.mjs';
@@ -201,4 +208,82 @@ test('pointInPoly', () => {
   ];
   assert.equal(pointInPoly(0.5, 0.5, sq), true);
   assert.equal(pointInPoly(1.5, 0.5, sq), false);
+});
+
+// ---- on point
+const onPoint = (cols, rows, extra = {}) => {
+  const d = { ...grid(cols, rows, { blockMm: 100, ...extra }), setting: 'onpoint' };
+  return { ...d, blocks: [...d.blocks, ...grid(cols - 1 || 1, rows - 1 || 1).blocks].slice(0, cellCount(d)) };
+};
+
+test('on point: each column and row is a block diagonal wide; blocks between the others', () => {
+  const d = onPoint(3, 3);
+  assert.equal(cellCount(d), 9 + 4);
+  assert.deepEqual(centreMm(d), { W: 300 * Math.SQRT2, H: 300 * Math.SQRT2 });
+  assert.equal(sashOf({ ...d, sashing: { mm: 50 } }).mm, 0, 'no sashing on point (yet)');
+  assert.equal(cellName(d, 4), '2, 2');
+  assert.equal(cellName(d, 9), '1½, 1½');
+  assert.equal(cellName(d, 12), '2½, 2½');
+});
+
+test('on point: blocks and setting triangles fill the quilt exactly, borders included', () => {
+  for (const d of [
+    onPoint(3, 3),
+    onPoint(4, 2),
+    onPoint(1, 3),
+    onPoint(3, 3, { borders: [{ type: 'plain', mm: 40, fabrics: ['b1'] }] }),
+  ]) {
+    const q = quiltMm(d),
+      cm = centreMm(d),
+      sp = settingPieces(d, q.W, q.H);
+    assert.equal(sp.filter(p => p.kind === 'side').length, 2 * (d.cols - 1) + 2 * (d.rows - 1));
+    assert.equal(sp.filter(p => p.kind === 'corner').length, 4);
+    let A = sp.reduce((a, p) => a + area(p.poly), 0);
+    for (let i = 0; i < cellCount(d); i++) A += area(blockOutline(blockPlace(d, i, q.W, q.H)));
+    assert.ok(close(A, cm.W * cm.H), `${d.cols} × ${d.rows}: ${A} of ${cm.W * cm.H}`);
+  }
+});
+
+test('on point: blockAt finds each diamond, and nothing in the triangles', () => {
+  const d = onPoint(3, 2),
+    q = quiltMm(d);
+  for (let i = 0; i < cellCount(d); i++) {
+    const P = blockPlace(d, i, q.W, q.H);
+    assert.equal(blockAt(d, P.x + P.w / 2, P.y + P.h / 2, q.W, q.H), i);
+    // the parts of the block sit inside its diamond
+    for (const poly of placedPolys(d.blocks[i], P)) for (const [x, y] of poly) assert.ok(x >= -1e-9 && y >= -1e-9);
+  }
+  for (const sp of settingPieces(d, q.W, q.H)) {
+    const [x, y] = sp.poly.reduce(([a, b], [px, py]) => [a + px / 3, b + py / 3], [0, 0]);
+    assert.equal(blockAt(d, x, y, q.W, q.H), -1);
+  }
+});
+
+test('on point: no large blocks (yet)', () => {
+  const d = onPoint(3, 3);
+  assert.equal(setSpan(d, 0, 2), d);
+  const withSpan = {
+    ...d,
+    blocks: d.blocks.map((b, i) => (i === 0 ? { ...b, span: 2 } : i === 1 ? { ...b, under: 0 } : b)),
+  };
+  assert.ok(normalizeSpans(withSpan).blocks.every(b => !('span' in b) && !('under' in b)));
+});
+
+test('convexOverlap: a rectangle and a diamond', () => {
+  const diamond = [
+    [1, 0],
+    [2, 1],
+    [1, 2],
+    [0, 1],
+  ];
+  const box = (x0, y0, x1, y1) => [
+    [x0, y0],
+    [x1, y0],
+    [x1, y1],
+    [x0, y1],
+  ];
+  assert.equal(convexOverlap(box(0.9, 0.9, 1.1, 1.1), diamond), true); // inside
+  assert.equal(convexOverlap(box(0, 0, 0.4, 0.4), diamond), false); // in the empty corner of its box
+  assert.equal(convexOverlap(box(-1, 0.9, 3, 1.1), diamond), true); // a thin strip right across
+  assert.equal(convexOverlap(box(2, 0, 3, 2), diamond), false); // only touching
 });

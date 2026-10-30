@@ -4,17 +4,20 @@ import { design } from '../core/store.js';
 import { dimUnlessHi } from './highlight.js';
 import { fabricById } from '../designer/fabric-library.js';
 import {
+  blockPlace,
   blockPolys,
-  blockRect,
   borderCornerSlot,
   borderFab,
   borderSidePieces,
   bordersOf,
+  cellCount,
   pathPoly,
+  placedPolys,
   plainButted,
   quiltMm,
   sashOf,
   sashRects,
+  settingPieces,
 } from '@quilt/shared/geometry.js';
 import { fabricFill, pieceFill } from './fabric-fill.js';
 
@@ -216,28 +219,37 @@ function drawQuilt(g, W, H, opts = {}) {
       g.strokeRect(rc.x, rc.y, rc.w, rc.h);
     }
   }
-  for (let r = 0; r < d.rows; r++)
-    for (let c = 0; c < d.cols; c++) {
-      const bi = r * d.cols + c,
-        b = d.blocks[bi];
-      if (b.under != null) continue;
-      const R = blockRect(d, c, r, W, H),
-        polys = blockPolys(b, R.x, R.y, R.w, R.h);
-      polys.forEach((poly, pi) => {
-        g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi);
-        pathPoly(g, poly);
-        g.fill();
-        dimUnlessHi(g, { t: 'qpiece', fabric: b.fabrics[pi] });
-      });
-      if (opts.seams) {
-        g.strokeStyle = 'rgba(40,30,20,.35)';
-        g.lineWidth = Math.max(1, W / 1400);
-        polys.forEach(poly => {
-          pathPoly(g, poly);
-          g.stroke();
-        });
-      }
+  // on point: the setting triangles along the edges
+  for (const [k, sp] of settingPieces(d, W, H).entries()) {
+    g.fillStyle = fabricFill(g, fabricById(d.settingFabric || 'b0'), pxPerCm, 700 + k);
+    pathPoly(g, sp.poly);
+    g.fill();
+    dimUnlessHi(g, { t: 'setting', kind: sp.kind });
+    if (opts.seams) {
+      g.strokeStyle = 'rgba(40,30,20,.35)';
+      g.lineWidth = Math.max(1, W / 1400);
+      g.stroke();
     }
+  }
+  for (let bi = 0, n = cellCount(d); bi < n; bi++) {
+    const b = d.blocks[bi];
+    if (!b || b.under != null) continue;
+    const polys = placedPolys(b, blockPlace(d, bi, W, H));
+    polys.forEach((poly, pi) => {
+      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi);
+      pathPoly(g, poly);
+      g.fill();
+      dimUnlessHi(g, { t: 'qpiece', fabric: b.fabrics[pi] });
+    });
+    if (opts.seams) {
+      g.strokeStyle = 'rgba(40,30,20,.35)';
+      g.lineWidth = Math.max(1, W / 1400);
+      polys.forEach(poly => {
+        pathPoly(g, poly);
+        g.stroke();
+      });
+    }
+  }
 }
 
 export { drawBorders, drawBordersExploded, drawCornerBlock, drawQuilt, explodedH };
