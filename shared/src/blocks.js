@@ -535,6 +535,202 @@ const GRID_BLOCKS = {
       0 2 1 2 0 0 2 1 2 0 0 2 1 2 0 0 2 1 2 0
       0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0`,
   },
+  stepsaltar: {
+    label: 'Steps to the altar',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0\1 0   1   0   1
+      0   0\1 0   1   0
+      0   0   0\1 0   1
+      0   0   0   0\1 0
+      0   0   0   0   0\1`,
+  },
+  greekcross: {
+    label: 'Greek cross',
+    family: 'Other',
+    n: 5,
+    // from a picture: the block reader's cells, without the strips it joined where the picture prints seams; the
+    // dark fabric the main colour, the light triangles along the band the accent
+    rows: String.raw`
+      1\2 1   1   1   1
+      0\1 1\2 1   0   1
+      0   0\1 1\2 1   1
+      0   0   0\1 1\2 1
+      0   0   0   0\1 1\2`,
+  },
+  kingscrown2: {
+    label: "King's crown II",
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0   0   0   0   1
+      0   2   0   2/1 1/0
+      0   0   2/1 1/0 0
+      0   2/1 1/0 0   0
+      1   1/0 0   0   0`,
+  },
+  sawtoothfivepatch: {
+    label: 'Sawtooth five-patch',
+    family: 'Other',
+    n: 5,
+    // from a picture: the block reader's cells, without the pieces it joined where the picture prints seams
+    rows: String.raw`
+      0/1 0/1 0/1 0/1 0
+      0/1 1   1   1/0 0
+      0/1 1   1/0 0   0
+      0/1 1/0 0   0   0
+      0   0   0   0   0`,
+  },
+  doublesawtooth5: {
+    label: 'Double sawtooth five-patch',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader (the white the background, the dark the main colour, the light centre
+    // the accent)
+    rows: String.raw`
+      0   1/0 1/0 1/0 1
+      1/0 2   2   2   0/1
+      1/0 2   2   2   0/1
+      1/0 2   2   2   0/1
+      1   0/1 0/1 0/1 0`,
+  },
+  ladylake: {
+    label: 'Lady of the lake',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0/1 0/1 0/1 0/1 0/1
+      0/1 1   1   1/0 0/1
+      0/1 1   1/0 0   0/1
+      0/1 1/0 0   0   0/1
+      0/1 0/1 0/1 0/1 0/1`,
+  },
+  tentarmageddon: {
+    label: 'Tent of Armageddon',
+    family: 'Other',
+    n: 5,
+    // from a picture: 25 alike triangle squares (the block reader took it for a finer grid)
+    rows: String.raw`
+      1\0 1\0 1\0 1\0 1\0
+      1\0 1\0 1\0 1\0 1\0
+      1\0 1\0 1\0 1\0 1\0
+      1\0 1\0 1\0 1\0 1\0
+      1\0 1\0 1\0 1\0 1\0`,
+  },
+  alaskahomestead: {
+    label: 'Alaska homestead',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0   0/1 2   1\0 0
+      0/1 1   0   1   1\0
+      2   0   2   0   2
+      0\1 1   0   1   1/0
+      0   0\1 2   1/0 0`,
+  },
+  wishingring: {
+    label: 'Wishing ring',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      1/0 1   0   1   0\1
+      1   0/1 1   1\0 1
+      0   1   0   1   0
+      1   0\1 1   1/0 1
+      1\0 1   0   1   0/1`,
+  },
+  duckducklings: {
+    label: 'Duck and ducklings',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      0/1 0/1 1   1\0 1\0
+      0/1 1   0   1   1\0
+      1   0   1   0   1
+      0\1 1   0   1   1/0
+      0\1 0\1 1   1/0 1/0`,
+  },
+  singleweddingring: {
+    label: 'Single wedding ring I',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      0/1 0/1 0   1\0 1\0
+      0/1 0/1 1   1\0 1\0
+      0   1   0   1   0
+      0\1 0\1 1   1/0 1/0
+      0\1 0\1 0   1/0 1/0`,
+  },
+  weddingrings: {
+    label: 'Wedding rings',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: the dark triangles the main colour, the ring's squares and triangles two greys,
+    // the check in the corners a fifth fabric
+    rows: String.raw`
+      0/4 1/0 0   0\1 4\0
+      1/0 0/3 2   3\0 0\1
+      0   2   0   2   0
+      1\0 0\3 2   3/0 0/1
+      0\4 1\0 0   0/1 4/0`,
+  },
+  doublewrench: {
+    label: 'Double wrench',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      0   0/1 0   1\0 0
+      0/1 1   1   1   1\0
+      0   1   0   1   0
+      0\1 1   1   1   1/0
+      0   0\1 0   1/0 0`,
+  },
+  philadelphia5: {
+    label: 'Philadelphia pavements five-patch',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: the dark fabric the main colour, the light grey the accent
+    rows: String.raw`
+      1   2   2   2   1
+      2   1/2 0   2\1 2
+      2   0   1   0   2
+      2   1\2 0   2/1 2
+      1   2   2   2   1`,
+  },
+  ombre: {
+    label: 'Ombre',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: light, dark and mid greys stepping in from each corner, a dot print (3) and a
+    // check (4) around the centre
+    rows: String.raw`
+      1/2 2/0 3   0\2 2\1
+      2/0 0/1 4   1\0 0\2
+      3   4   0   4   3
+      2\0 0\1 4   1/0 0/2
+      1\2 2\0 3   0/2 2/1`,
+  },
+  flyinggeese5: {
+    label: 'Flying geese five-patch',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      0/1 0/1 0   1\0 1\0
+      0/1 0/1 0   1\0 1\0
+      0   0   1   0   0
+      0\1 0\1 0   1/0 1/0
+      0\1 0\1 0   1/0 1/0`,
+  },
   roadcalifornia: {
     label: 'Road to California',
     family: 'Larger grids',
