@@ -731,6 +731,415 @@ const GRID_BLOCKS = {
       0\1 0\1 0   1/0 1/0
       0\1 0\1 0   1/0 1/0`,
   },
+  foolssquare: {
+    label: "Fool's square",
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      1/0 1\0 0   0/1 0\1
+      0\1 1   0   1   1/0
+      0   0   1   0   0
+      0/1 1   0   1   1\0
+      1\0 1/0 0   0\1 0/1`,
+  },
+  ezquilt: {
+    label: 'E-Z quilt',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: the dark cross the main colour, the light star points and squares the accent
+    rows: String.raw`
+      0   2\0 1   0/2 0
+      0\2 2   1   2   2/0
+      1   1   0   1   1
+      0/2 2   1   2   2\0
+      0   2/0 1   0\2 0`,
+  },
+  farmersdaughter: {
+    label: "Farmer's daughter",
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: the dark squares the main colour, the light star points and squares the accent
+    rows: String.raw`
+      0   2\0 0   0/2 0
+      0\2 2   1   2   2/0
+      0   1   2   1   0
+      0/2 2   1   2   2\0
+      0   2/0 0   0\2 0`,
+  },
+  cainabel: {
+    label: 'Cain and Abel',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: black corner triangles (1), mid grey (2) and light grey (3) squares, a check (4)
+    rows: String.raw`
+      0/1 0   2   0   1\0
+      0   4/0 3   0\4 0
+      2   3   0   3   2
+      0   4\0 3   0/4 0
+      0\1 0   2   0   1/0`,
+  },
+  davidgoliath: {
+    label: 'David and Goliath',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader (the white the background, the grey the main colour, the light the
+    // accent); the corner units are three-triangle units
+    rows: String.raw`
+      0    02/1 1    1\02 0
+      20/1 1/2  1    2\1  1\20
+      1    1    2    1    1
+      20\1 1\2  1    2/1  1/02
+      0    02\1 1    1/20 0`,
+  },
+  oregon: {
+    label: 'Oregon',
+    family: 'Other',
+    n: 10,
+    // read from a picture by the block reader: five columns, the side ones cut in half-height pieces, so each square
+    // is 2 × 2 cells here (the white bottom squares written apart, as the picture shows them)
+    rows: String.raw`
+      1   -   0   -   0   -   0   -   1   -
+      |   +   |   +   |   +   |   +   |   +
+      0   -   0\1 -   0   -   1/0 -   0   -
+      1\0 -   |   +   |   +   |   +   0/1 -
+      |   +   0   -   1   -   0   -   |   +
+      1/0 -   |   +   |   +   |   +   0\1 -
+      |   +   0/1 -   0   -   1\0 -   |   +
+      0   -   |   +   |   +   |   +   0   -
+      1   -   0   -   0   -   0   -   1   -
+      |   +   |   +   |   +   |   +   |   +`,
+  },
+  providence2: {
+    label: 'Providence block II',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0     2\0   1     0/2   0
+      0\2   0     q1030 0     2/0
+      1     q0301 2     q0103 1
+      0/2   0     q3010 0     2\0
+      0     2/0   1     0\2   0`,
+  },
+  cathedralwindow5: {
+    label: 'Cathedral window five-patch',
+    family: 'Larger grids',
+    n: 10,
+    // from a picture: each cell's four quarters sampled between the printed seams
+    rows: String.raw`
+      1   0   0   0/1 1\0 0/1 1\0 0   0   1
+      0   1   1   0\1 0\1 1/0 1/0 1   1   0
+      0   1   1   0/1 0/1 1\0 1\0 1   1   0
+      0/1 1\0 0/1 1   1/0 0\1 1   1\0 0/1 1\0
+      0\1 1\0 0/1 1/0 0   0   0\1 1\0 0/1 1/0
+      0/1 1/0 0\1 1\0 0   0   0/1 1/0 0\1 1\0
+      0\1 1/0 0\1 1   1\0 0/1 1   1/0 0\1 1/0
+      0   1   1   0\1 0\1 1/0 1/0 1   1   0
+      0   1   1   0/1 0/1 1\0 1\0 1   1   0
+      1   0   0   0\1 1/0 0\1 1/0 0   0   1`,
+  },
+  domino5: {
+    label: 'Domino five-patch',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell (the block reader took it for a finer grid)
+    rows: String.raw`
+      1   1\0 0   0/1 1
+      0\1 1   1   1   1/0
+      0   1   0   1   0
+      0/1 1   1   1   1\0
+      1   1/0 0   0\1 1`,
+  },
+  dominochickenfoot: {
+    label: 'Domino chicken foot',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      2\1 1\0 0   0/1 1/2
+      0\2 1   0   1   2/0
+      0   1   2   1   0
+      0/2 1   0   1   2\0
+      2/1 1/0 0   0\1 1\2`,
+  },
+  grandmotherspuzzle: {
+    label: "Grandmother's puzzle",
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      2   0   0   1\0 2
+      0   1   1/0 1   1\0
+      0   1/0 2   0/1 0
+      0\1 1   0/1 1   0
+      2   0\1 0   0   2`,
+  },
+  gardeneden: {
+    label: 'Garden of Eden',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader (the white the background, the grey the main colour, the dark centre
+    // the accent)
+    rows: String.raw`
+      0/1 1\0 1   0/1 1\0
+      0\1 1/0 1   0\1 1/0
+      1   1   2   1   1
+      0/1 1\0 1   0/1 1\0
+      0\1 1/0 1   0\1 1/0`,
+  },
+  georgia: {
+    label: 'Georgia',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader (the white the background, the light grey the main colour, the dark
+    // the accent)
+    rows: String.raw`
+      0   1   2   1   0
+      1   1/2 0   2\1 1
+      2   0   1   0   2
+      1   1\2 0   2/1 1
+      0   1   2   1   0`,
+  },
+  grandmotherschoice: {
+    label: "Grandmother's choice",
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader (the white the background, the dark the main colour)
+    rows: String.raw`
+      1   0/1 0   1\0 1
+      0/1 1   0   1   1\0
+      0   0   1   0   0
+      0\1 1   0   1   1/0
+      1   0\1 0   1/0 1`,
+  },
+  mrskeller: {
+    label: "Mrs Keller's patch",
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      1/0 1/0 0   0\1 0\1
+      1/0 0   1   0   0\1
+      0   1   0   1   0
+      1\0 0   1   0   0/1
+      1\0 1\0 0   0/1 0/1`,
+  },
+  redcross5: {
+    label: 'Red cross five-patch',
+    family: 'Other',
+    n: 5,
+    // read from a picture by the block reader as it is: a dark cross, and a light diamond in each corner
+    rows: String.raw`
+      0/2 0\2 1   2/0 2\0
+      2\0 2/0 1   0\2 0/2
+      1   1   0   1   1
+      2/0 2\0 1   0/2 0\2
+      0\2 0/2 1   2\0 2/0`,
+  },
+  album5: {
+    label: 'Album five-patch',
+    family: 'Other',
+    n: 10,
+    // from a picture (block reader and each cell measured): a 5 × 5 block on a 10 grid, so the middle strip can start
+    // and end half a square in, with a light goose pointing at it from each side
+    rows: String.raw`
+      0/1 -   0/1 -   0   -   1\0 -   1\0 -
+      |   +   |   +   |   +   |   +   |   +
+      0/1 -   0/2 -   0   -   2\0 -   1\0 -
+      |   +   |   +   |   +   |   +   |   +
+      >20 0   -   -   -   -   -   -   -   <20
+      |   |   +   +   +   +   +   +   +   |
+      0\1 -   0\2 -   0   -   2/0 -   1/0 -
+      |   +   |   +   |   +   |   +   |   +
+      0\1 -   0\1 -   0   -   1/0 -   1/0 -
+      |   +   |   +   |   +   |   +   |   +`,
+  },
+  albumset: {
+    label: 'Album set',
+    family: 'Larger grids',
+    n: 20,
+    // Album five-patch, 2 × 2
+    rows: String.raw`
+      0/1 -   0/1 -   0   -   1\0 -   1\0 -   0/1 -   0/1 -   0   -   1\0 -   1\0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +
+      0/1 -   0/2 -   0   -   2\0 -   1\0 -   0/1 -   0/2 -   0   -   2\0 -   1\0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +
+      >20 0   -   -   -   -   -   -   -   <20 >20 0   -   -   -   -   -   -   -   <20
+      |   |   +   +   +   +   +   +   +   |   |   |   +   +   +   +   +   +   +   |
+      0\1 -   0\2 -   0   -   2/0 -   1/0 -   0\1 -   0\2 -   0   -   2/0 -   1/0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +
+      0\1 -   0\1 -   0   -   1/0 -   1/0 -   0\1 -   0\1 -   0   -   1/0 -   1/0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +
+      0/1 -   0/1 -   0   -   1\0 -   1\0 -   0/1 -   0/1 -   0   -   1\0 -   1\0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +
+      0/1 -   0/2 -   0   -   2\0 -   1\0 -   0/1 -   0/2 -   0   -   2\0 -   1\0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +
+      >20 0   -   -   -   -   -   -   -   <20 >20 0   -   -   -   -   -   -   -   <20
+      |   |   +   +   +   +   +   +   +   |   |   |   +   +   +   +   +   +   +   |
+      0\1 -   0\2 -   0   -   2/0 -   1/0 -   0\1 -   0\2 -   0   -   2/0 -   1/0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +
+      0\1 -   0\1 -   0   -   1/0 -   1/0 -   0\1 -   0\1 -   0   -   1/0 -   1/0 -
+      |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +   |   +`,
+  },
+  memory: {
+    label: 'Memory block',
+    family: 'Larger grids',
+    n: 10,
+    // from a picture: each cell measured, joined into the large corner triangles, the white squares and the long
+    // middle strip where the picture prints no seam
+    rows: String.raw`
+      0/1 -   0   0/1 1\0 0/1 1\0 0   1\0 -
+      |   +   0/1 0   0/1 1\0 0   1\0 |   +
+      0   0/1 1   0/1 0   -   1\0 1   1\0 0
+      0/1 0   0/1 1   |   +   1   1\0 0   1\0
+      0\1 0/1 0   -   -   -   -   -   1\0 1/0
+      0/1 0\1 |   +   +   +   +   +   1/0 1\0
+      0\1 0   0\1 1   0   -   1   1/0 0   1/0
+      0   0\1 1   0\1 |   +   1/0 1   1/0 0
+      0\1 -   0\1 0   0\1 1/0 0   1/0 1/0 -
+      |   +   0   0\1 1/0 0\1 1/0 0   |   +`,
+  },
+  josephscoat2: {
+    label: "Joseph's coat II",
+    family: 'Larger grids',
+    n: 10,
+    // from a picture: each cell measured; the white the background, mid grey the main colour, dark the accent, the
+    // light centres of the corner diamonds a fourth fabric
+    rows: String.raw`
+      1   1/0 0\1 1   2\0 0/2 1   1/0 0\1 1
+      1/0 3   3   0\1 2/0 0\2 1/0 3   3   0\1
+      1\0 3   3   0/1 2\0 0/2 1\0 3   3   0/1
+      1   1\0 0/1 1   2/0 0\2 1   1\0 0/1 1
+      0\2 2/0 0\2 2/0 0   -   0\2 2/0 0\2 2/0
+      0/2 2\0 0/2 2\0 |   +   0/2 2\0 0/2 2\0
+      1   1/0 0\1 1   2\0 0/2 1   1/0 0\1 1
+      1/0 3   3   0\1 2/0 0\2 1/0 3   3   0\1
+      1\0 3   3   0/1 2\0 0/2 1\0 3   3   0/1
+      1   1\0 0/1 1   2/0 0\2 1   1\0 0/1 1`,
+  },
+  widowerschoice: {
+    label: "Widower's choice",
+    family: 'Larger grids',
+    n: 20,
+    // from a picture: each cell measured. Two corner units of 8 × 8 small cells (white strips from the corners to a
+    // small grey centre), large grey squares in the other corners, white strips and a grey centre between
+    rows: String.raw`
+      0   0\1 1   1   1   1   1/0 0   0   -   -   -   1   -   -   -   -   -   -   -
+      1\0 0   0\1 1   1   1/0 0   0/1 |   +   +   +   |   +   +   +   +   +   +   +
+      1   1\0 0   0\1 1/0 0   0/1 1   |   +   +   +   |   +   +   +   +   +   +   +
+      1   1   1\0 1   1   0/1 1   1   |   +   +   +   |   +   +   +   +   +   +   +
+      1   1   1/0 1   1   0\1 1   1   |   +   +   +   |   +   +   +   +   +   +   +
+      1   1/0 0   0/1 1\0 0   0\1 1   |   +   +   +   |   +   +   +   +   +   +   +
+      1/0 0   0/1 1   1   1\0 0   0\1 |   +   +   +   |   +   +   +   +   +   +   +
+      0   0/1 1   1   1   1   1\0 0   |   +   +   +   |   +   +   +   +   +   +   +
+      0   -   -   -   -   -   -   -   1   -   -   -   0   -   -   -   -   -   -   -
+      |   +   +   +   +   +   +   +   |   +   +   +   |   +   +   +   +   +   +   +
+      |   +   +   +   +   +   +   +   |   +   +   +   |   +   +   +   +   +   +   +
+      |   +   +   +   +   +   +   +   |   +   +   +   |   +   +   +   +   +   +   +
+      1   -   -   -   -   -   -   -   0   -   -   -   0   0\1 1   1   1   1   1/0 0
+      |   +   +   +   +   +   +   +   |   +   +   +   1\0 0   0\1 1   1   1/0 0   0/1
+      |   +   +   +   +   +   +   +   |   +   +   +   1   1\0 0   0\1 1/0 0   0/1 1
+      |   +   +   +   +   +   +   +   |   +   +   +   1   1   1\0 1   1   0/1 1   1
+      |   +   +   +   +   +   +   +   |   +   +   +   1   1   1/0 1   1   0\1 1   1
+      |   +   +   +   +   +   +   +   |   +   +   +   1   1/0 0   0/1 1\0 0   0\1 1
+      |   +   +   +   +   +   +   +   |   +   +   +   1/0 0   0/1 1   1   1\0 0   0\1
+      |   +   +   +   +   +   +   +   |   +   +   +   0   0/1 1   1   1   1   1\0 0`,
+  },
+  leapfrog: {
+    label: 'Leap frog',
+    family: 'Larger grids',
+    n: 10,
+    // from a picture: each cell measured. Crossed strips in two corners, large triangles and squares in the other two
+    rows: String.raw`
+      1   1\0 0/1 1   0   -   1\0 -   1   -
+      0\1 1/0 0\1 1/0 |   +   |   +   |   +
+      0/1 1\0 0/1 1\0 |   +   1   -   1\0 -
+      1   1/0 0\1 1   |   +   |   +   |   +
+      0   -   -   -   1   -   0   -   -   -
+      |   +   +   +   |   +   |   +   +   +
+      0\1 -   1   -   0   -   1   1\0 0/1 1
+      |   +   |   +   |   +   0\1 1/0 0\1 1/0
+      1   -   0\1 -   |   +   0/1 1\0 0/1 1\0
+      |   +   |   +   |   +   1   1/0 0\1 1`,
+  },
+  bachelorspuzzle5: {
+    label: "Bachelor's puzzle five-patch",
+    family: 'Larger grids',
+    n: 10,
+    // from a picture: each cell measured. Crossed strips in all four corners, white strips and centre between
+    rows: String.raw`
+      1   1\0 0/1 1   0   -   1   1\0 0/1 1
+      0\1 1/0 0\1 1/0 |   +   0\1 1/0 0\1 1/0
+      0/1 1\0 0/1 1\0 |   +   0/1 1\0 0/1 1\0
+      1   1/0 0\1 1   |   +   1   1/0 0\1 1
+      0   -   -   -   0   -   0   -   -   -
+      |   +   +   +   |   +   |   +   +   +
+      1   1\0 0/1 1   0   -   1   1\0 0/1 1
+      0\1 1/0 0\1 1/0 |   +   0\1 1/0 0\1 1/0
+      0/1 1\0 0/1 1\0 |   +   0/1 1\0 0/1 1\0
+      1   1/0 0\1 1   |   +   1   1/0 0\1 1`,
+  },
+  brokenarrows: {
+    label: 'Broken arrows',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      0\1 1   0   0   0/1
+      0   0\1 1   0/1 1
+      0   1   1   1   0
+      1   1/0 1   1\0 0
+      1/0 0   0   1   1\0`,
+  },
+  honeyschoice: {
+    label: "Honey's choice",
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: a pinwheel in each corner, a square in the centre
+    rows: String.raw`
+      1\0 1/0 0   1\0 1/0
+      0/1 0\1 0   0/1 0\1
+      0   0   1   0   0
+      1\0 1/0 0   1\0 1/0
+      0/1 0\1 0   0/1 0\1`,
+  },
+  propeller: {
+    label: 'Propeller',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      0\1 1   0   0   0/1
+      0   0\1 1   0/1 1
+      0   1   0   1   0
+      1   1/0 1   1\0 0
+      1/0 0   0   1   1\0`,
+  },
+  crazyhorse: {
+    label: 'Crazy horse',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell
+    rows: String.raw`
+      1\0 1   0   1   1/0
+      1   0\1 1   0/1 1
+      0   1   0   1   0
+      1   1/0 1   1\0 1
+      0/1 1   0   1   0\1`,
+  },
+  hartford: {
+    label: 'Hartford',
+    family: 'Other',
+    n: 5,
+    // from a picture, cell by cell: light grey the main colour, mid grey the accent, a black centre (3)
+    rows: String.raw`
+      0   2\0 0/1 0   0
+      0   2/1 1   1\2 2/0
+      0\1 1   3   1   1\0
+      0/2 2\1 1   1/2 0
+      0   0   1/0 0\2 0`,
+  },
   roadcalifornia: {
     label: 'Road to California',
     family: 'Larger grids',
