@@ -2251,6 +2251,86 @@ var GRID_BLOCKS = {
       0/1   2     2\1   0\10  1/2   2     1\0
       0     1/0   0\1   0     1/0   0\1   0`
   },
+  henschickens: {
+    label: "Hens and chickens",
+    family: "Larger grids",
+    n: 7,
+    // read from a picture by the block reader; the 2 × 2 squares and 1 × 3 strips joined as the picture shows them
+    rows: String.raw`
+      2/3 2/3 2/3 1   3\2 3\2 3\2
+      2/3 0   -   |   0   -   3\2
+      2/3 |   +   |   |   +   3\2
+      1   -   -   2   1   -   -
+      2\3 0   -   1   0   -   3/2
+      2\3 |   +   |   |   +   3/2
+      2\3 2\3 2\3 |   3/2 3/2 3/2`
+  },
+  farmerspuzzle: {
+    label: "Farmer's puzzle",
+    family: "Larger grids",
+    n: 9,
+    // read from a picture by the block reader as it is (big triangles and strips joined where no seam is printed)
+    rows: String.raw`
+      1/0 -   0/1 -   0   1/0 -   0\1 -
+      |   +   |   +   |   |   +   |   +
+      1\0 -   0\1 -   |   0/1 -   1\0 -
+      |   +   |   +   |   |   +   |   +
+      0   -   -   -   0   0   -   -   -
+      0\1 -   1/0 -   0   1\0 -   0\1 -
+      |   +   |   +   |   |   +   |   +
+      1\0 -   0/1 -   |   1/0 -   0/1 -
+      |   +   |   +   |   |   +   |   +`
+  },
+  followleader: {
+    label: "Follow the leader",
+    family: "Other",
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0   1/0 0\1 0\1 0
+      1/0 0   |   0   0\1
+      1/0 -   1   0/1 -
+      1\0 0   1\0 0   0/1
+      0   1\0 |   0/1 0`
+  },
+  pinwheelsquare: {
+    label: "Pinwheel square",
+    family: "Other",
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      2   1/0 1\0 3\0 2
+      0/3 3\0 |   3/0 0\1
+      0/1 -   2   1/0 -
+      1\0 0/3 0\1 0\3 3/0
+      2   0\3 |   0/1 2`
+  },
+  kicks: {
+    label: "Kicks",
+    family: "Other",
+    n: 5,
+    // read from a picture by the block reader as it is
+    rows: String.raw`
+      0   0   0\1 1\0 0
+      0/1 1\0 0/1 1/0 0
+      1/0 0\1 2   1\0 0/1
+      0   0/1 1/0 0\1 1/0
+      0   0\1 1\0 0   0`
+  },
+  roadcalifornia: {
+    label: "Road to California",
+    family: "Larger grids",
+    n: 7,
+    // read from a picture by the block reader as it is (25 separate squares, as its cutting list has them)
+    rows: String.raw`
+      0   2/1 1\2 0   2\1 1/2 0
+      2/1 0   0   1\2 0   0   2/1
+      2\1 0   0   1/2 0   0   2\1
+      0   2\1 1/2 0   2/1 1\2 0
+      1\2 0   0   2/1 0   0   1\2
+      1/2 0   0   2\1 0   0   1/2
+      0   2/1 1\2 0   2\1 1/2 0`
+  },
   wingedsquare: {
     label: "Winged square set",
     family: "Larger grids",
@@ -2274,12 +2354,15 @@ var GRID_BLOCKS = {
     label: "Bear's paw",
     family: "Larger grids",
     n: 7,
-    fourfold: true,
+    // read from a picture by the block reader; the 2 × 2 paws and 1 × 3 strips joined as the picture shows them
     rows: String.raw`
-      0   0/1 0/1 0
-      0/1 1   -   |
-      0/1 |   +   |`,
-    extra: [["Centre", 2, [3, 3, 4, 3, 4, 4, 3, 4]]]
+      0   2\0 2\0 0   0/2 0/2 0
+      0\2 1   -   |   1   -   2/0
+      0\2 |   +   |   |   +   2/0
+      0   -   -   2   0   -   -
+      0/2 1   -   0   1   -   2\0
+      0/2 |   +   |   |   +   2\0
+      0   2/0 2/0 |   0\2 0\2 0`
   },
   centerdiamond: {
     label: "Center diamond",

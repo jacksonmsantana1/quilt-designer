@@ -26,8 +26,20 @@ test('reads the app’s own blocks: grid size, and the answer drawn back matches
   }
 });
 
-test('Southern pine comes out as the notation it is written in, four fabrics and all', () => {
-  const { rows } = readBlock(picture('southernpine'));
+test('cells are joined into one piece only where the picture prints no seam between them', () => {
+  // no seams drawn: the white corner is one 2 × 2 square
+  const plain = readBlock(picture('southernpine')).rows.split('\n')[0].trim().split(/\s+/);
+  assert.deepEqual(plain.slice(3), ['0', '-']);
+  // seams drawn: four squares, as the block is written
+  const seamed = readBlock(picture('southernpine', { seams: true }))
+    .rows.split('\n')[0]
+    .trim()
+    .split(/\s+/);
+  assert.deepEqual(seamed.slice(3), ['0', '0']);
+});
+
+test('Southern pine (seams drawn) comes out as the notation it is written in, four fabrics and all', () => {
+  const { rows } = readBlock(picture('southernpine', { seams: true }));
   assert.deepEqual(
     rows.split('\n').map(r => r.trim().split(/\s+/)),
     [

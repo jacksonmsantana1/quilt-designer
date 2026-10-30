@@ -194,7 +194,7 @@ function kmeans(points, k) {
 }
 
 /**
- * The fabrics: the number of clusters is the smallest k after which one more cluster no longer helps much; tiny
+ * The fabrics: six clusters, the closest joined while nearer than the picture's grain could explain; tiny
  * clusters (seam lines, specks of a print) are dropped. @returns {number[][]} cluster centres in Lab
  */
 function fabrics(L, e) {
@@ -211,20 +211,34 @@ function fabrics(L, e) {
         for (let dx = -2; dx <= 2; dx++) if (e[(y + dy) * S + x + dx] >= change) flat = false;
       if (flat) pts.push(L[y * S + x]);
     }
-  const runs = [kmeans(pts, 1)];
-  for (let k = 2; k <= 6; k++) {
-    runs.push(kmeans(pts, k));
-    const prev = runs[k - 2].cost,
-      cur = runs[k - 1].cost;
-    if (prev < 1.5 || cur > prev * 0.5) {
-      runs.pop();
-      break;
-    }
-  }
-  let { centres } = runs[runs.length - 1];
-  // drop clusters with almost no pixels
-  const count = centres.map(() => 0);
+  // six clusters, then the two closest joined while they are nearer than the grain could explain: two fabrics a
+  // little apart stay apart on a clean scan, one fabric is not split in two on a grainy photo
+  let { centres } = kmeans(pts, Math.min(6, pts.length));
+  let count = centres.map(() => 0);
   for (const p of pts) count[nearest(centres, p)]++;
+  const near = Math.max(6, grain * 3) ** 2;
+  for (;;) {
+    let bi = -1,
+      bj = -1,
+      bd = near;
+    for (let i = 0; i < centres.length; i++)
+      for (let j = i + 1; j < centres.length; j++) {
+        const d = dist2(centres[i], centres[j]);
+        if (d < bd) {
+          bd = d;
+          bi = i;
+          bj = j;
+        }
+      }
+    if (bi < 0) break;
+    const ni = count[bi],
+      nj = count[bj];
+    centres[bi] = centres[bi].map((v, k) => (v * ni + centres[bj][k] * nj) / (ni + nj || 1));
+    count[bi] += nj;
+    centres.splice(bj, 1);
+    count.splice(bj, 1);
+  }
+  // drop clusters with almost no pixels
   centres = centres.filter((_, i) => count[i] >= pts.length * 0.015);
   return centres;
 }
@@ -338,7 +352,102 @@ function pieces(labels, e, n) {
   return out;
 }
 
-/** The fabric (cluster) a piece has at pixel (x, y) of the S × S block, cells `size` pixels wide. */
+/**
+ * Is a seam printed along this straight line (in cells)? At points along its middle, the strongest colour change
+ * within two pixels of the line; the same a fifth of a cell to either side, inside the pieces. A seam is a line
+ * that stands out from both sides (a printed texture or a speck changes colour everywhere, not just on the line).
+ * Middle values throughout, so a speck or a crossing seam doesn't decide. Pictures without printed seams (photos
+ * of real quilts) show none.
+ */
+function seamAlong(e, n, ax, ay, bx, by) {
+  const size = S / n,
+    len = Math.hypot(bx - ax, by - ay),
+    nx = (-(by - ay) / len) * 0.2,
+    ny = ((bx - ax) / len) * 0.2;
+  const strength = (ox, oy) => {
+    const at = [];
+    for (let t = 0.2; t <= 0.8; t += 0.05) {
+      const x = Math.round((ax + (bx - ax) * t + ox) * size),
+        y = Math.round((ay + (by - ay) * t + oy) * size);
+      let m = 0;
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++)
+          m = Math.max(m, e[Math.min(S - 1, Math.max(0, y + dy)) * S + Math.min(S - 1, Math.max(0, x + dx))]);
+      at.push(m);
+    }
+    at.sort((p, q) => p - q);
+    return at[Math.floor(at.length / 2)];
+  };
+  const line = strength(0, 0),
+    beside = Math.max(strength(nx, ny), strength(-nx, -ny));
+  return line >= 12 && line > beside * 1.8 + 4;
+}
+
+/**
+ * Joins cells into the bigger pieces the picture shows: four cells that make one large half-square triangle, and
+ * neighbouring plain cells of one fabric (into rectangles), wherever no seam is printed between them.
+ */
+function joinPieces(ps, e, n) {
+  const at = new Array(n * n).fill(null);
+  for (const p of ps) if (p.w === 1 && p.h === 1) at[p.y * n + p.x] = p;
+  const cell = (x, y) => (x < n && y < n ? at[y * n + x] : null);
+  const same = (p, kind, clusters) => p && p.kind === kind && clusters.every((c, i) => p.clusters[i] === c);
+  const used = new Set(),
+    out = [];
+  const take = (big, cells) => {
+    for (const c of cells) used.add(c);
+    out.push(big);
+  };
+  // a large half-square triangle over 2 × 2 cells: the corner cells plain, the two on its diagonal split the same way
+  for (let j = 0; j + 1 < n; j++)
+    for (let i = 0; i + 1 < n; i++) {
+      const [tl, tr, bl, br] = [cell(i, j), cell(i + 1, j), cell(i, j + 1), cell(i + 1, j + 1)];
+      if (![tl, tr, bl, br].every(c => c && !used.has(c))) continue;
+      const midSeams = () =>
+        seamAlong(e, n, i + 1, j, i + 1, j + 1) ||
+        seamAlong(e, n, i + 1, j + 1, i + 1, j + 2) ||
+        seamAlong(e, n, i, j + 1, i + 1, j + 1) ||
+        seamAlong(e, n, i + 1, j + 1, i + 2, j + 1);
+      if (tr.kind === '/' && same(bl, '/', tr.clusters)) {
+        const [a, b] = tr.clusters;
+        if (same(tl, 'plain', [a]) && same(br, 'plain', [b]) && !midSeams())
+          take({ x: i, y: j, w: 2, h: 2, kind: '/', clusters: [a, b], miss: 0 }, [tl, tr, bl, br]);
+      } else if (tl.kind === '\\' && same(br, '\\', tl.clusters)) {
+        const [a, b] = tl.clusters;
+        if (same(bl, 'plain', [a]) && same(tr, 'plain', [b]) && !midSeams())
+          take({ x: i, y: j, w: 2, h: 2, kind: '\\', clusters: [a, b], miss: 0 }, [tl, tr, bl, br]);
+      }
+    }
+  // plain cells of one fabric into rectangles: as wide as it goes, then as deep as whole rows go
+  const free = (x, y, c) => {
+    const p = cell(x, y);
+    return p && !used.has(p) && same(p, 'plain', [c]) ? p : null;
+  };
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) {
+      const p = cell(i, j);
+      if (!p || used.has(p) || p.kind !== 'plain') continue;
+      const c = p.clusters[0];
+      let w = 1,
+        h = 1;
+      while (free(i + w, j, c) && !seamAlong(e, n, i + w, j, i + w, j + 1)) w++;
+      for (;;) {
+        let ok = true;
+        for (let x = i; x < i + w && ok; x++)
+          ok =
+            !!free(x, j + h, c) &&
+            !seamAlong(e, n, x, j + h, x + 1, j + h) &&
+            (x === i || !seamAlong(e, n, x, j + h, x, j + h + 1));
+        if (!ok) break;
+        h++;
+      }
+      const cells = [];
+      for (let y = j; y < j + h; y++) for (let x = i; x < i + w; x++) cells.push(cell(x, y));
+      take({ ...p, w, h }, cells);
+    }
+  return [...ps.filter(p => p.w > 1 || p.h > 1 || !used.has(p)), ...out].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
 /**
  * Which neighbouring quarters of an hourglass are one piece: same fabric and no seam printed between them (the
  * half-diagonal from their shared corner to the centre is plain). Quarters are top, right, bottom, left; the pair
@@ -390,6 +499,7 @@ function quarterToken(r, joined) {
   return 'q' + r.join('');
 }
 
+/** The fabric (cluster) a piece has at pixel (x, y) of the S × S block, cells `size` pixels wide. */
 function clusterAt(p, x, y, size) {
   const u = ((x + 0.5) / size - p.x) / p.w,
     v = ((y + 0.5) / size - p.y) / p.h;
@@ -418,7 +528,8 @@ function readBlock(img) {
     tries.push({ n, ps, explained: ps.reduce((s, p) => s + (1 - p.miss) * p.w * p.h, 0) / (n * n) });
   }
   const top = Math.max(...tries.map(t => t.explained));
-  const { n, ps } = tries.find(t => t.explained >= top - 0.015);
+  const { n, ps: cells } = tries.find(t => t.explained >= top - 0.015);
+  const ps = joinPieces(cells, e, n);
   // colour roles by area in the answer: the largest is the background
   const area = centres.map(() => 0);
   for (const p of ps) for (const l of p.clusters) area[l] += (p.w * p.h) / p.clusters.length;
