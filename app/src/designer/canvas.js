@@ -23,11 +23,75 @@ import { fabricFill } from '../render/fabric-fill.js';
 import { symOf } from '../core/symmetry.js';
 import { SHAPE_NAMES } from '@quilt/shared/mosaic.js';
 
+// ---- zoom: the mouse wheel over the quilt zooms in and out at the mouse; dragging with the wheel pressed moves
+// the quilt. Zoomed, the quilt is drawn bigger (so it stays sharp) in a window of its usual size, and moved in it:
+// everything that finds a block or shape under the mouse measures from the canvas, so it keeps working.
+const ZOOM_MAX = 6;
+const zoom = { z: 1, x: 0, y: 0 }; // x, y: how far the zoomed quilt is moved left and up, css px
+/** The quilt's size in its window (unzoomed), css px. */
+let view = { w: 0, h: 0 };
+/** Keeps the zoomed quilt filling its window. */
+function clampPan() {
+  zoom.x = Math.max(0, Math.min(view.w * zoom.z - view.w, zoom.x));
+  zoom.y = Math.max(0, Math.min(view.h * zoom.z - view.h, zoom.y));
+}
+/** Places the zoomed quilt (and the layer drawn over it) in its window, without drawing it again. */
+function placeZoomed() {
+  const on = zoom.z > 1,
+    inner = $('dz-quilt').parentElement;
+  inner.classList.toggle('zoomed', on);
+  inner.style.width = on ? view.w + 'px' : '';
+  inner.style.height = on ? view.h + 'px' : '';
+  for (const id of ['dz-quilt', 'dz-hover']) {
+    const el = $(id);
+    el.style.left = on ? -zoom.x + 'px' : '';
+    el.style.top = on ? -zoom.y + 'px' : '';
+  }
+}
+/**
+ * Zooms by a factor about a point of the quilt's window (css px from its top left), keeping that point under the
+ * mouse. Returns false when nothing changed (already all the way out: the page may scroll instead).
+ * @param {number} f @param {number} mx @param {number} my
+ */
+function zoomAt(f, mx, my) {
+  const z = Math.max(1, Math.min(ZOOM_MAX, zoom.z * f));
+  if (Math.abs(z - zoom.z) < 1e-3) return false;
+  const u = (mx + zoom.x) / zoom.z,
+    v = (my + zoom.y) / zoom.z;
+  zoom.z = z < 1.02 ? 1 : z; // close enough to the whole quilt: exactly it
+  zoom.x = u * zoom.z - mx;
+  zoom.y = v * zoom.z - my;
+  clampPan();
+  drawSoon();
+  return true;
+}
+/** Moves the zoomed quilt by (dx, dy) css px, as if dragged. */
+function panBy(dx, dy) {
+  zoom.x -= dx;
+  zoom.y -= dy;
+  clampPan();
+  placeZoomed();
+}
+/** Back to the whole quilt. */
+function resetZoom() {
+  if (zoom.z === 1) return;
+  Object.assign(zoom, { z: 1, x: 0, y: 0 });
+  drawDesignerCanvas();
+}
+let soonFrame = 0;
+const drawSoon = () => {
+  if (!soonFrame)
+    soonFrame = requestAnimationFrame(() => {
+      soonFrame = 0;
+      drawDesignerCanvas();
+    });
+};
+
 function drawDesignerCanvas() {
   if (!design) return;
   const cv = $('dz-quilt'),
     box = cv.closest('.dz-quiltwrap').getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2),
+  const dpr0 = Math.min(window.devicePixelRatio || 1, 2),
     qmm = quiltMm(design),
     ar = qmm.H / qmm.W;
   // the preview has the quilt's real proportions (square blocks), and fits the screen
@@ -51,7 +115,14 @@ function drawDesignerCanvas() {
     $('dz-side').style.maxHeight = '';
   }
   if (cw * ar > maxH) cw = Math.floor(maxH / ar);
-  const ch = Math.round(cw * ar);
+  // zoomed: the quilt is drawn zoom.z times bigger, in a window of the usual size (cw, ch from here on are the
+  // drawn size); a very big drawing uses fewer pixels per css px, so the canvas stays a sane size
+  view = { w: cw, h: Math.round(cw * ar) };
+  clampPan();
+  cw = Math.round(view.w * zoom.z);
+  const ch = Math.round(view.h * zoom.z),
+    dpr = Math.min(dpr0, 4096 / Math.max(cw, ch));
+  placeZoomed();
   cv.style.width = cw + 'px';
   cv.style.height = ch + 'px';
   cv.width = Math.floor(cw * dpr);
@@ -140,7 +211,7 @@ function drawDesignerCanvas() {
     : '';
   $('dz-size-b').textContent =
     `${mos}${sz.mm && !design.mosaic ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(design)} mm)` : ''} · finished quilt ${Math.round(qmm.W)} × ${Math.round(qmm.H)} mm`;
-  drawBackCanvas(cw, ch, dpr);
+  drawBackCanvas(view.w, view.h, dpr0);
   const hv = $('dz-hover');
   hv.style.width = cw + 'px';
   hv.style.height = ch + 'px';
@@ -219,6 +290,7 @@ function drawBackCanvas(cw, ch, dpr) {
 }
 let flipped = false;
 function turnQuilt() {
+  resetZoom(); // the back turns over the whole quilt
   flipped = !flipped;
   const f = $('dz-flipper');
   f.classList.remove('lift');
@@ -235,4 +307,4 @@ function turnQuilt() {
 }
 const BLOCK_PX = 300;
 
-export { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt };
+export { BLOCK_PX, drawDesignerCanvas, flipped, panBy, resetZoom, turnQuilt, zoom, zoomAt };

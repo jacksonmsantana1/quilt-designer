@@ -500,6 +500,10 @@
   .flipper { perspective: 1800px; width: max-content; max-width: 100%; }
   .flip-inner { position: relative; transform-style: preserve-3d; transition: transform .95s cubic-bezier(.45, .05, .25, 1); }
   .flipper.flipped .flip-inner { transform: rotateY(180deg); }
+  /* zoomed (mouse wheel): the quilt is drawn bigger and moved inside a window of its usual size */
+  .flip-inner.zoomed { overflow: hidden; transform-style: flat; border-radius: 4px; box-shadow: 0 6px 24px rgba(20,25,40,.18); }
+  .flip-inner.zoomed #dz-quilt { position: relative; box-shadow: none; border-radius: 0; max-width: none; }
+  .flip-inner.panning #dz-quilt { cursor: grabbing; }
   .flipper .face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
   .flipper .face.back { position: absolute; left: 0; top: 0; transform: rotateY(180deg); border-radius: 4px; box-shadow: 0 6px 24px rgba(20,25,40,.18); }
   .flipper.lift { animation: quilt-lift .95s cubic-bezier(.45, .05, .25, 1); }

@@ -47,7 +47,7 @@ import {
   turnedSelection,
   uniteOf,
 } from '@quilt/shared/geometry.js';
-import { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt } from './canvas.js';
+import { BLOCK_PX, drawDesignerCanvas, flipped, panBy, turnQuilt, zoom, zoomAt } from './canvas.js';
 import { drawFabricPalette, drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { copyBlockFrom, selectSameFabric } from './block-library.js';
 import { PANEL_CARDS, openBlockEditor, placeBlockEditor, syncRail, updateMultiUI } from './side-panel.js';
@@ -120,6 +120,48 @@ function initDesignerUI() {
     }
     return out;
   };
+  // ---- zoom with the mouse wheel over the quilt (at the mouse); drag with the wheel pressed to move it. All the way
+  // out, the wheel scrolls the page as usual
+  qcv.addEventListener(
+    'wheel',
+    e => {
+      if (flipped || !design || e.ctrlKey) return; // (ctrl + wheel: the browser's own zoom)
+      const r = qcv.parentElement.getBoundingClientRect(),
+        dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+      const zoomed = zoomAt(Math.exp(-dy * 0.0015), e.clientX - r.left, e.clientY - r.top);
+      // keep the page still while zooming, and at full zoom when zooming in further
+      if (zoomed || (dy < 0 && zoom.z > 1)) e.preventDefault();
+    },
+    { passive: false },
+  );
+  let pan = null;
+  qcv.addEventListener('pointerdown', e => {
+    if (e.button !== 1 || flipped) return;
+    e.preventDefault(); // no autoscroll
+    if (zoom.z <= 1) return;
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    try {
+      qcv.setPointerCapture(e.pointerId);
+    } catch (err) {}
+    qcv.parentElement.classList.add('panning');
+  });
+  qcv.addEventListener('mousedown', e => {
+    if (e.button === 1) e.preventDefault(); // (some browsers start autoscroll on the mouse event)
+  });
+  qcv.addEventListener('pointermove', e => {
+    if (!pan || e.pointerId !== pan.id) return;
+    panBy(e.clientX - pan.x, e.clientY - pan.y);
+    pan.x = e.clientX;
+    pan.y = e.clientY;
+  });
+  const endPan = e => {
+    if (!pan || e.pointerId !== pan.id) return;
+    pan = null;
+    qcv.parentElement.classList.remove('panning');
+  };
+  qcv.addEventListener('pointerup', endPan);
+  qcv.addEventListener('pointercancel', endPan);
+
   // ---- a mosaic: click a shape to paint it, or drag over several (one undo step: painting merges)
   let painting = null;
   // Random: a fabric from the list in the Mosaic panel (the palette); otherwise the chosen fabric, over the shapes

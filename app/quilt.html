@@ -501,6 +501,10 @@
   .flipper { perspective: 1800px; width: max-content; max-width: 100%; }
   .flip-inner { position: relative; transform-style: preserve-3d; transition: transform .95s cubic-bezier(.45, .05, .25, 1); }
   .flipper.flipped .flip-inner { transform: rotateY(180deg); }
+  /* zoomed (mouse wheel): the quilt is drawn bigger and moved inside a window of its usual size */
+  .flip-inner.zoomed { overflow: hidden; transform-style: flat; border-radius: 4px; box-shadow: 0 6px 24px rgba(20,25,40,.18); }
+  .flip-inner.zoomed #dz-quilt { position: relative; box-shadow: none; border-radius: 0; max-width: none; }
+  .flip-inner.panning #dz-quilt { cursor: grabbing; }
   .flipper .face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
   .flipper .face.back { position: absolute; left: 0; top: 0; transform: rotateY(180deg); border-radius: 4px; box-shadow: 0 6px 24px rgba(20,25,40,.18); }
   .flipper.lift { animation: quilt-lift .95s cubic-bezier(.45, .05, .25, 1); }
@@ -11441,10 +11445,58 @@ function drawQuilt2(g, W, H, opts = {}) {
 }
 
 // src/designer/canvas.js
+var ZOOM_MAX = 6;
+var zoom = { z: 1, x: 0, y: 0 };
+var view = { w: 0, h: 0 };
+function clampPan() {
+  zoom.x = Math.max(0, Math.min(view.w * zoom.z - view.w, zoom.x));
+  zoom.y = Math.max(0, Math.min(view.h * zoom.z - view.h, zoom.y));
+}
+function placeZoomed() {
+  const on = zoom.z > 1, inner = $("dz-quilt").parentElement;
+  inner.classList.toggle("zoomed", on);
+  inner.style.width = on ? view.w + "px" : "";
+  inner.style.height = on ? view.h + "px" : "";
+  for (const id of ["dz-quilt", "dz-hover"]) {
+    const el = $(id);
+    el.style.left = on ? -zoom.x + "px" : "";
+    el.style.top = on ? -zoom.y + "px" : "";
+  }
+}
+function zoomAt(f, mx, my) {
+  const z = Math.max(1, Math.min(ZOOM_MAX, zoom.z * f));
+  if (Math.abs(z - zoom.z) < 1e-3) return false;
+  const u = (mx + zoom.x) / zoom.z, v = (my + zoom.y) / zoom.z;
+  zoom.z = z < 1.02 ? 1 : z;
+  zoom.x = u * zoom.z - mx;
+  zoom.y = v * zoom.z - my;
+  clampPan();
+  drawSoon();
+  return true;
+}
+function panBy(dx, dy) {
+  zoom.x -= dx;
+  zoom.y -= dy;
+  clampPan();
+  placeZoomed();
+}
+function resetZoom() {
+  if (zoom.z === 1) return;
+  Object.assign(zoom, { z: 1, x: 0, y: 0 });
+  drawDesignerCanvas();
+}
+var soonFrame = 0;
+var drawSoon = () => {
+  if (!soonFrame)
+    soonFrame = requestAnimationFrame(() => {
+      soonFrame = 0;
+      drawDesignerCanvas();
+    });
+};
 function drawDesignerCanvas() {
   if (!design) return;
   const cv = $("dz-quilt"), box2 = cv.closest(".dz-quiltwrap").getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), qmm = quiltMm(design), ar = qmm.H / qmm.W;
+  const dpr0 = Math.min(window.devicePixelRatio || 1, 2), qmm = quiltMm(design), ar = qmm.H / qmm.W;
   let cw = Math.max(200, Math.floor(Math.min(box2.width - (window.innerWidth > 640 ? 128 : 0), 860)));
   let maxH = Math.max(320, Math.floor(window.innerHeight * 0.82));
   if (document.body.classList.contains("tl-open")) {
@@ -11461,7 +11513,11 @@ function drawDesignerCanvas() {
     $("dz-side").style.maxHeight = "";
   }
   if (cw * ar > maxH) cw = Math.floor(maxH / ar);
-  const ch = Math.round(cw * ar);
+  view = { w: cw, h: Math.round(cw * ar) };
+  clampPan();
+  cw = Math.round(view.w * zoom.z);
+  const ch = Math.round(view.h * zoom.z), dpr = Math.min(dpr0, 4096 / Math.max(cw, ch));
+  placeZoomed();
   cv.style.width = cw + "px";
   cv.style.height = ch + "px";
   cv.width = Math.floor(cw * dpr);
@@ -11532,7 +11588,7 @@ function drawDesignerCanvas() {
   $("dz-bsize").hidden = !!design.mosaic;
   const mos = design.mosaic ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides` : "";
   $("dz-size-b").textContent = `${mos}${sz.mm && !design.mosaic ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(design)} mm)` : ""} \xB7 finished quilt ${Math.round(qmm.W)} \xD7 ${Math.round(qmm.H)} mm`;
-  drawBackCanvas(cw, ch, dpr);
+  drawBackCanvas(view.w, view.h, dpr0);
   const hv = $("dz-hover");
   hv.style.width = cw + "px";
   hv.style.height = ch + "px";
@@ -11599,6 +11655,7 @@ function drawBackCanvas(cw, ch, dpr) {
 }
 var flipped = false;
 function turnQuilt() {
+  resetZoom();
   flipped = !flipped;
   const f = $("dz-flipper");
   f.classList.remove("lift");
@@ -11945,6 +12002,44 @@ function initDesignerUI() {
     }
     return out;
   };
+  qcv.addEventListener(
+    "wheel",
+    (e) => {
+      if (flipped || !design || e.ctrlKey) return;
+      const r = qcv.parentElement.getBoundingClientRect(), dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+      const zoomed = zoomAt(Math.exp(-dy * 15e-4), e.clientX - r.left, e.clientY - r.top);
+      if (zoomed || dy < 0 && zoom.z > 1) e.preventDefault();
+    },
+    { passive: false }
+  );
+  let pan = null;
+  qcv.addEventListener("pointerdown", (e) => {
+    if (e.button !== 1 || flipped) return;
+    e.preventDefault();
+    if (zoom.z <= 1) return;
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    try {
+      qcv.setPointerCapture(e.pointerId);
+    } catch (err) {
+    }
+    qcv.parentElement.classList.add("panning");
+  });
+  qcv.addEventListener("mousedown", (e) => {
+    if (e.button === 1) e.preventDefault();
+  });
+  qcv.addEventListener("pointermove", (e) => {
+    if (!pan || e.pointerId !== pan.id) return;
+    panBy(e.clientX - pan.x, e.clientY - pan.y);
+    pan.x = e.clientX;
+    pan.y = e.clientY;
+  });
+  const endPan = (e) => {
+    if (!pan || e.pointerId !== pan.id) return;
+    pan = null;
+    qcv.parentElement.classList.remove("panning");
+  };
+  qcv.addEventListener("pointerup", endPan);
+  qcv.addEventListener("pointercancel", endPan);
   let painting = null;
   const paletteIds = () => [...$("mos-fabs").querySelectorAll("button.fab[data-f]")].filter((b) => !b.hidden).map((b) => b.dataset.f);
   const paintWithTool = (ids) => {
