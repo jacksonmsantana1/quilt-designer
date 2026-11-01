@@ -12,6 +12,7 @@ import {
   recentFabrics,
   setFabricPalette,
   thumbUrl,
+  tileSource,
 } from './fabric-library.js';
 import { fabricIdsIn, findFabrics, paletteList, shortList, withFabric, withoutFabric } from '../core/fabric-picks.js';
 import { notify } from '../ui/notice.js';
@@ -40,8 +41,8 @@ function fabricTile(f, pressed, mark) {
   } else {
     pic = document.createElement('canvas');
     pic.width = pic.height = 64;
-    const k = Math.min(f.canvas.width, f.canvas.height, 360);
-    pic.getContext('2d').drawImage(f.canvas, 0, 0, k, k, 0, 0, 64, 64);
+    const [src, k] = tileSource(f);
+    pic.getContext('2d').drawImage(src, 0, 0, k, k, 0, 0, 64, 64);
   }
   const s = document.createElement('span');
   s.textContent = f.name;
@@ -82,7 +83,7 @@ function fabricTile(f, pressed, mark) {
 function defaultPalette() {
   const listed = listedFabrics();
   const newest = listed
-    .filter(f => !f.basic)
+    .filter(f => !f.basic && !f.collection)
     .sort((a, b) => (b.added || 0) - (a.added || 0))
     .map(f => f.id);
   return shortList({ basics: listed.filter(f => f.basic).map(f => f.id), recent: recentFabrics(), newest });
@@ -311,7 +312,14 @@ function drawShortList(box, selected) {
 
 // ---- the fabric library window
 const lib = { source: /** @type {HTMLElement | null} */ (null), selected: null, group: 'all', shown: PAGE };
-const GROUPS = { all: 'All', quilt: 'In this quilt', recent: 'Recent', basic: 'Basics', mine: 'My photos' };
+const GROUPS = {
+  all: 'All',
+  quilt: 'In this quilt',
+  recent: 'Recent',
+  basic: 'Basics',
+  collection: 'Collection',
+  mine: 'My photos',
+};
 
 /** Opens the library for one short list: a fabric picked there goes to that list. @param {HTMLElement} box */
 function openLibrary(box) {

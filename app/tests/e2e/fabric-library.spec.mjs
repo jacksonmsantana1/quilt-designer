@@ -27,7 +27,7 @@ test('the short list: the basics, a few photos, and a button for the rest', asyn
   await expect(page.locator('#dz-fabrics2 > *')).toHaveCount(15 + 5);
   await page.locator('#rail-parts').click(); // the Block parts card, where this list is
   await page.locator('#dz-fabrics2').hover(); // the round button appears beside the card
-  await expect(page.locator('#fab-more-float')).toHaveAttribute('aria-label', 'More fabrics (65)');
+  await expect(page.locator('#fab-more-float')).toHaveAttribute('aria-label', 'More fabrics (1565)'); // 65 photos, 1500 in the collection
 });
 
 test('the library finds a photo by name and puts it on the selected parts', async ({ app, page }) => {
@@ -39,10 +39,10 @@ test('the library finds a photo by name and puts it on the selected parts', asyn
   await page.locator('#fab-more-float').click();
   const lib = page.locator('#fablib');
   await expect(lib).toBeVisible();
-  // 60 at a time, after the "Add fabric photo" tile
+  // 60 at a time, after the "Add fabric photo" tile: the basics, then the photos (the collection after them)
   await expect(lib.locator('#fablib-grid > *')).toHaveCount(1 + 60);
   await lib.locator('#fablib-more').click();
-  await expect(lib.locator('#fablib-grid > *')).toHaveCount(1 + 85);
+  await expect(lib.locator('#fablib-grid > *')).toHaveCount(1 + 120);
   await lib.locator('#fablib-groups button', { hasText: 'Basics' }).click();
   await expect(lib.locator('#fablib-grid .fab')).toHaveCount(15);
   await lib.locator('#fablib-groups button', { hasText: 'All' }).click();
@@ -116,4 +116,29 @@ test('the palette: × takes a fabric off every list (with Undo); the library put
   await page.locator('#fablib-reset').click();
   await expect(page.locator('#fablib-reset')).toBeHidden();
   expect(await page.evaluate(() => localStorage.getItem('quilt-fabric-palette.v1'))).toBeNull();
+});
+
+test('the collection: 1500 fabrics drawn in code, found by name, used like any other', async ({ app, page }) => {
+  await app.open();
+  const c = await app.blockCentre(await app.current(), 0);
+  await page.mouse.click(c.x, c.y);
+  await page.locator('#dz-block').click(); // the centre part
+  await page.locator('#dz-fabrics2').hover();
+  await page.locator('#fab-more-float').click();
+  const lib = page.locator('#fablib');
+  await expect(lib.locator('#fablib-groups button', { hasText: 'Collection' })).toHaveText('Collection 1500');
+  await expect(lib.locator('#fablib-groups button', { hasText: 'My photos' })).toHaveCount(0); // no photos yet
+  await lib.locator('#fablib-groups button', { hasText: 'Collection' }).click();
+  await expect(lib.locator('#fablib-grid .fab')).toHaveCount(60);
+  await expect(lib.locator('#fablib-grid .fab').first()).toHaveText('Charcoal solid');
+  await lib.locator('#fablib-q').fill('forest gingham');
+  await lib.locator('#fablib-grid button.fab', { hasText: 'Forest gingham on cream' }).click();
+  await expect(lib).toBeHidden();
+  expect((await app.current()).blocks[0].fabrics.filter(f => f === 'c4')).toHaveLength(1);
+  // in the short list now, chosen; its picture is drawn (a green and cream check, not the cream stand-in)
+  await expect(page.locator('#dz-fabrics2 .fab[aria-pressed="true"]')).toHaveText('Forest gingham on cream');
+  const colours = await page
+    .locator('#dz-fabrics2 .fab[aria-pressed="true"] canvas')
+    .evaluate(cv => new Set(Array.from(cv.getContext('2d').getImageData(0, 0, 64, 64).data).map(v => v >> 5)).size);
+  expect(colours).toBeGreaterThan(3);
 });

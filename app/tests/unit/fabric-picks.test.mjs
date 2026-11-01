@@ -65,13 +65,20 @@ test('findFabrics: words in any order and case, accents ignored, within a group'
     { id: 'f1', name: 'Gingham, teal on cream #4', added: 1 },
     { id: 'f2', name: 'Chintz appliquéd quilt · Met 13869', added: 3 },
     { id: 'f3', name: 'Stripe, teal on white #9', added: 2 },
+    { id: 'c1', name: 'Teal gingham on cream', collection: true },
+    { id: 'c0', name: 'Navy solid', collection: true },
   ];
   const ids = o => findFabrics(fabs, o).map(f => f.id);
-  assert.deepEqual(ids({}), ['b0', 'b1', 'f2', 'f3', 'f1'], 'basics first, then photos newest first');
-  assert.deepEqual(ids({ query: 'TEAL' }), ['b1', 'f3', 'f1']);
-  assert.deepEqual(ids({ query: 'cream teal' }), ['f1']);
+  assert.deepEqual(
+    ids({}),
+    ['b0', 'b1', 'f2', 'f3', 'f1', 'c1', 'c0'],
+    'basics first, then photos newest first, then the collection in its order',
+  );
+  assert.deepEqual(ids({ query: 'TEAL' }), ['b1', 'f3', 'f1', 'c1']);
+  assert.deepEqual(ids({ query: 'cream teal' }), ['f1', 'c1']);
+  assert.deepEqual(ids({ group: 'collection' }), ['c1', 'c0']);
   assert.deepEqual(ids({ query: 'applique' }), ['f2']);
-  assert.deepEqual(ids({ query: 'teal', group: 'mine' }), ['f3', 'f1']);
+  assert.deepEqual(ids({ query: 'teal', group: 'mine' }), ['f3', 'f1'], 'my photos: not the collection');
   assert.deepEqual(ids({ group: 'basic' }), ['b0', 'b1']);
   assert.deepEqual(ids({ group: 'quilt', inQuilt: new Set(['f1', 'b0']) }), ['b0', 'f1']);
   assert.deepEqual(ids({ group: 'recent', recent: ['f3', 'gone', 'b1'] }), ['f3', 'b1'], 'recent keeps its order');

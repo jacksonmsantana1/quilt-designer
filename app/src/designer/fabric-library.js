@@ -4,13 +4,16 @@ import '../sim/controls.js'; // load order: runs after sim/controls
 import { BUNDLED, prepareSwatch } from '../sim/patchwork.js';
 import { fabrics, getSession } from '../storage/repo.js';
 import { fabricIdsIn, withRecent } from '../core/fabric-picks.js';
+import { SIZE, collection, drawCollectionFabric } from '@quilt/shared/fabric-patterns.js';
 
-// ---- fabric library (bundled scans + the user's photos)
+// ---- fabric library (bundled scans, the collection drawn in code, the user's photos)
 // A photo is turned into a picture to draw with (`canvas`) only when a quilt uses it or someone picks it: with
 // hundreds of photos, making them all at start took seconds and hundreds of MB. Until then its entry has the
-// stored `blob`, and lists show it with a small <img>.
+// stored `blob`, and lists show it with a small <img>. The collection's 1500 fabrics are drawn by code
+// (shared/src/fabric-patterns.js) the same way: only when used; lists show a small copy kept on its own.
 /** @typedef {{ id: string, name: string, cm: number, canvas: HTMLCanvasElement | null, blob?: Blob,
- *   basic?: boolean, print?: boolean, added?: number, loading?: Promise<void>, broken?: boolean }} Fabric */
+ *   basic?: boolean, print?: boolean, added?: number, loading?: Promise<void>, broken?: boolean,
+ *   collection?: boolean, pattern?: import('@quilt/shared/fabric-patterns.js').CollectionFabric }} Fabric */
 /** @type {Fabric[]} */
 const fabricLib = [];
 const byId = new Map();
@@ -34,6 +37,16 @@ function initFabricLib() {
         print: !s.tint && !/linen/i.test(s.name),
       }),
     );
+    for (const p of collection())
+      put({
+        id: p.id,
+        name: p.name,
+        cm: p.cm,
+        canvas: null,
+        collection: true,
+        pattern: p,
+        print: p.kind !== 'Solid' && p.kind !== 'Mottled',
+      });
     for (const r of fabrics.list()) addStoredFabric(r);
     await loadFabrics(fabricIdsIn(getSession('current'), isFabric));
   })());
@@ -47,6 +60,41 @@ async function blobCanvas(blob) {
   c.getContext('2d').drawImage(bm, 0, 0);
   bm.close?.();
   return c;
+}
+/** A collection fabric's picture, drawn now (about 10 ms). @param {Fabric['pattern']} p */
+function patternCanvas(p) {
+  const rgb = drawCollectionFabric(p),
+    c = document.createElement('canvas');
+  c.width = c.height = SIZE;
+  const g = c.getContext('2d'),
+    img = g.createImageData(SIZE, SIZE);
+  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
+    img.data[j] = rgb[i];
+    img.data[j + 1] = rgb[i + 1];
+    img.data[j + 2] = rgb[i + 2];
+    img.data[j + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+// small copies of collection fabrics for the lists: browsing all 1500 would otherwise keep 1500 big pictures
+const THUMB = 64;
+const thumbs = new Map();
+/**
+ * What a list draws a fabric's tile (or measures its colours) from: a picture and the size of the square to take
+ * from its corner (about 9 cm of cloth on the bundled scans). Not for photos (lists show those with an <img>).
+ * @param {Fabric} f @returns {[CanvasImageSource, number]}
+ */
+function tileSource(f) {
+  if (f.canvas) return [f.canvas, Math.min(f.canvas.width, f.canvas.height, 360)];
+  if (!thumbs.has(f.id)) {
+    const big = patternCanvas(f.pattern),
+      t = document.createElement('canvas');
+    t.width = t.height = THUMB;
+    t.getContext('2d').drawImage(big, 0, 0, 360, 360, 0, 0, THUMB, THUMB);
+    thumbs.set(f.id, t);
+  }
+  return [thumbs.get(f.id), THUMB];
 }
 /** A stored photo (kept here, or arrived from another device): into the fabric list, once. @param {{ id: string, name: string, cm: number, blob: Blob, createdAt?: number }} r */
 function addStoredFabric(r) {
@@ -68,7 +116,9 @@ async function loadFabrics(ids) {
   for (const id of ids) {
     const fab = byId.get(id);
     if (!fab || fab.canvas) continue;
-    fab.loading ??= blobCanvas(fab.blob).then(
+    fab.loading ??= (
+      fab.pattern ? Promise.resolve().then(() => patternCanvas(fab.pattern)) : blobCanvas(fab.blob)
+    ).then(
       c => {
         fab.canvas = c;
       },
@@ -180,4 +230,5 @@ export {
   recentFabrics,
   setFabricPalette,
   thumbUrl,
+  tileSource,
 };

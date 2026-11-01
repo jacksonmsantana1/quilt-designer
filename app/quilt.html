@@ -6893,9 +6893,9 @@ function check(d) {
     }
   }
   if (d.borders !== void 0) {
-    const list = Array.isArray(d.borders) ? d.borders : [];
+    const list2 = Array.isArray(d.borders) ? d.borders : [];
     let adjusted = 0;
-    out.borders = list.filter((b) => isObj(b) && BORDER_TYPES[b.type] && num(b.mm)).map((b) => {
+    out.borders = list2.filter((b) => isObj(b) && BORDER_TYPES[b.type] && num(b.mm)).map((b) => {
       const nb = {
         ...b,
         mm: clamp(Math.round(b.mm), LIMITS.borderMm),
@@ -9658,7 +9658,7 @@ function shortList({ basics, selected = null, inQuilt = [], recent = [], newest 
   for (const id of newest) if (extra.length < fill) add(id);
   return [...basics, ...extra];
 }
-var withRecent = (list, id, max = 12) => [id, ...list.filter((x) => x !== id)].slice(0, max);
+var withRecent = (list2, id, max = 12) => [id, ...list2.filter((x) => x !== id)].slice(0, max);
 function wordsMatcher(query) {
   const plain = (s) => s.normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase();
   const words = plain(query).split(/[\s,]+/).filter(Boolean);
@@ -9677,9 +9677,11 @@ function findFabrics(fabrics2, { query = "", group = "all", inQuilt = /* @__PURE
     all: () => true,
     quilt: (f) => inQuilt.has(f.id),
     basic: (f) => !!f.basic,
-    mine: (f) => !f.basic
+    collection: (f) => !!f.collection,
+    mine: (f) => !f.basic && !f.collection
   }[group];
-  return fabrics2.filter((f) => inGroup(f) && named(f)).sort((a, b) => a.basic === b.basic ? a.basic ? 0 : (b.added || 0) - (a.added || 0) : a.basic ? -1 : 1);
+  const rank = (f) => f.basic ? 0 : f.collection ? 2 : 1;
+  return fabrics2.filter((f) => inGroup(f) && named(f)).sort((a, b) => rank(a) - rank(b) || (rank(a) === 1 ? (b.added || 0) - (a.added || 0) : 0));
 }
 function paletteList({ palette, defaults, inQuilt = [], selected = null }) {
   const keep = new Set(inQuilt);
@@ -9690,6 +9692,314 @@ function paletteList({ palette, defaults, inQuilt = [], selected = null }) {
 }
 var withoutFabric = (palette, id) => palette.filter((x) => x !== id);
 var withFabric = (palette, id) => palette.includes(id) ? palette : [...palette, id];
+
+// ../shared/src/fabric-patterns.js
+var SIZE2 = 512;
+var COLOURS = [
+  ["navy", 2042436],
+  ["cobalt", 2380198],
+  ["sky", 9421283],
+  ["teal", 1802106],
+  ["aqua", 8376775],
+  ["sage", 10268552],
+  ["olive", 7043626],
+  ["forest", 3037754],
+  ["mustard", 14263584],
+  ["butter", 15983264],
+  ["tangerine", 15234604],
+  ["coral", 15695722],
+  ["brick", 10698798],
+  ["cherry", 12788794],
+  ["rose", 15311796],
+  ["blush", 16176592],
+  ["plum", 7024475],
+  ["lavender", 12035798],
+  ["chocolate", 5978665],
+  ["tan", 13215612],
+  ["charcoal", 3815996],
+  ["grey", 10132124],
+  ["cream", 16117728],
+  ["white", 16514040]
+];
+var MORE_COLOURS = (
+  /** @type {[string, number][]} */
+  [
+    ["indigo", 3098223],
+    ["denim", 5205391],
+    ["periwinkle", 9347030],
+    ["turquoise", 3123632],
+    ["mint", 11065533],
+    ["kelly green", 3840586],
+    ["moss", 8161866],
+    ["lemon", 15914571],
+    ["gold", 13212206],
+    ["peach", 16038286],
+    ["rust", 11884074],
+    ["red", 12066862],
+    ["wine", 8003379],
+    ["raspberry", 12728426],
+    ["pink", 15771328],
+    ["violet", 6966428],
+    ["mauve", 10977167],
+    ["taupe", 10193786],
+    ["linen", 15129803],
+    ["black", 1907999]
+  ]
+);
+var ALL_COLOURS = [...COLOURS, ...MORE_COLOURS];
+var NEW_COLOURS = (
+  /** @type {[string, number][]} */
+  [
+    ["royal blue", 2768831],
+    ["cornflower", 6983644],
+    ["peacock", 1007214],
+    ["jade", 3119736],
+    ["emerald", 1278031],
+    ["pine", 2311478],
+    ["lime", 11063626],
+    ["pistachio", 12966304],
+    ["chartreuse", 13162038],
+    ["sand", 14469539],
+    ["ochre", 12025898],
+    ["terracotta", 12806223],
+    ["salmon", 16095878],
+    ["watermelon", 15224923],
+    ["scarlet", 14820122],
+    ["fuchsia", 13706895],
+    ["magenta", 10624878],
+    ["orchid", 13077201],
+    ["lilac", 14206698],
+    ["eggplant", 4005694],
+    ["heather", 10787763],
+    ["caramel", 11037234],
+    ["cinnamon", 9063210],
+    ["cocoa", 8017992],
+    ["stone", 12433066],
+    ["pewter", 7369077],
+    ["marigold", 15309340],
+    ["sunflower", 16237086],
+    ["butterscotch", 14725210],
+    ["cranberry", 10165040],
+    ["flamingo", 15895200],
+    ["cerulean", 2789328],
+    ["mahogany", 6957598]
+  ]
+);
+var WHITES = COLOURS.filter(([n]) => n === "white" || n === "cream");
+function random(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = a + 1831565813 >>> 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+var pick = (rnd, list2) => list2[Math.floor(rnd() * list2.length)];
+var lum = (c) => 0.3 * (c >> 16 & 255) + 0.59 * (c >> 8 & 255) + 0.11 * (c & 255);
+var mix = (a, b, t) => {
+  const ch = (s) => Math.round((a >> s & 255) * (1 - t) + (b >> s & 255) * t);
+  return ch(16) << 16 | ch(8) << 8 | ch(0);
+};
+function canvas2() {
+  const px = new Uint8ClampedArray(SIZE2 * SIZE2 * 3);
+  const wrap = (v) => (v % SIZE2 + SIZE2) % SIZE2;
+  const blend = (x, y, c, a = 1) => {
+    const i = (wrap(y) * SIZE2 + wrap(x)) * 3;
+    px[i] += ((c >> 16 & 255) - px[i]) * a;
+    px[i + 1] += ((c >> 8 & 255) - px[i + 1]) * a;
+    px[i + 2] += ((c & 255) - px[i + 2]) * a;
+  };
+  return {
+    px,
+    blend,
+    /** Paints every pixel with the colour f(x, y) gives. @param {(x: number, y: number) => number} f */
+    fill(f) {
+      for (let y = 0; y < SIZE2; y++) for (let x = 0; x < SIZE2; x++) blend(x, y, f(x, y));
+    },
+    /** A filled circle with soft (anti-aliased) edges. */
+    circle(cx, cy, r, c) {
+      for (let y = Math.floor(cy - r - 1); y <= cy + r + 1; y++)
+        for (let x = Math.floor(cx - r - 1); x <= cx + r + 1; x++) {
+          const a = Math.min(1, Math.max(0, r - Math.hypot(x + 0.5 - cx, y + 0.5 - cy) + 0.5));
+          if (a > 0) blend(x, y, c, a);
+        }
+    },
+    /** A little random grain all over, so it reads as cloth rather than flat colour. */
+    grain(rnd, amount) {
+      for (let i = 0; i < px.length; i += 3) {
+        const d = (rnd() - 0.5) * amount;
+        px[i] += d;
+        px[i + 1] += d;
+        px[i + 2] += d;
+      }
+    }
+  };
+}
+var KINDS = {
+  Solid(d, rnd, bg, fg) {
+    d.fill(() => fg);
+    d.grain(rnd, 14);
+  },
+  Stripe(d, rnd, bg, fg) {
+    const p = pick(rnd, [16, 32, 64, 128]), w = Math.round(p * (0.2 + rnd() * 0.4)), across = rnd() < 0.5;
+    d.fill((x, y) => (across ? y : x) % p < w ? fg : bg);
+  },
+  Pinstripe(d, rnd, bg, fg) {
+    const p = pick(rnd, [8, 16, 32]), w = 1 + Math.floor(rnd() * 3), across = rnd() < 0.5;
+    d.fill((x, y) => (across ? y : x) % p < w ? fg : bg);
+  },
+  "Bias stripe"(d, rnd, bg, fg) {
+    const p = pick(rnd, [16, 32, 64]), w = Math.round(p * (0.3 + rnd() * 0.3)), left = rnd() < 0.5;
+    d.fill((x, y) => (left ? x + y : x - y + SIZE2) % p < w ? fg : bg);
+  },
+  Gingham(d, rnd, bg, fg) {
+    const p = pick(rnd, [8, 16, 32]);
+    d.fill((x, y) => {
+      const n = (x % (2 * p) < p ? 1 : 0) + (y % (2 * p) < p ? 1 : 0);
+      return n === 2 ? fg : n === 1 ? mix(bg, fg, 0.5) : bg;
+    });
+  },
+  Check(d, rnd, bg, fg) {
+    const p = pick(rnd, [16, 32, 64, 128]);
+    d.fill((x, y) => ((x / p | 0) + (y / p | 0)) % 2 ? fg : bg);
+  },
+  "Polka dot"(d, rnd, bg, fg) {
+    const p = pick(rnd, [32, 64, 128]), r = p * (0.12 + rnd() * 0.18);
+    d.fill(() => bg);
+    for (let j = 0; j < SIZE2 / p; j++)
+      for (let i = 0; i < SIZE2 / p; i++) d.circle(i * p + p / 2 + (j % 2 ? p / 2 : 0), j * p + p / 2, r, fg);
+  },
+  Ditsy(d, rnd, bg, fg) {
+    const other = pick(rnd, COLOURS)[1];
+    d.fill(() => bg);
+    for (let n = 150 + Math.floor(rnd() * 250); n > 0; n--)
+      d.circle(rnd() * SIZE2, rnd() * SIZE2, 2 + rnd() * 3, rnd() < 0.7 ? fg : other);
+  },
+  Floral(d, rnd, bg, fg) {
+    const middle = pick(rnd, COLOURS)[1], leaf = pick(rnd, [10268552, 7043626, 3037754]);
+    d.fill(() => bg);
+    for (let n = 25 + Math.floor(rnd() * 45); n > 0; n--) {
+      const cx = rnd() * SIZE2, cy = rnd() * SIZE2, r = 5 + rnd() * 8, turn = rnd() * Math.PI;
+      d.circle(cx + Math.cos(turn) * r * 2.2, cy + Math.sin(turn) * r * 2.2, r * 0.55, leaf);
+      for (let k = 0; k < 5; k++) {
+        const a = turn + k * 2 * Math.PI / 5;
+        d.circle(cx + Math.cos(a) * r, cy + Math.sin(a) * r, r * 0.7, fg);
+      }
+      d.circle(cx, cy, r * 0.5, middle);
+    }
+  },
+  Plaid(d, rnd, bg, fg) {
+    const p = pick(rnd, [128, 256]);
+    const bands = [{ at: 0, w: p * (0.15 + rnd() * 0.2), c: fg }];
+    for (let n = 2 + Math.floor(rnd() * 3); n > 0; n--)
+      bands.push({ at: rnd() * p, w: p * (0.03 + rnd() * 0.12), c: rnd() < 0.5 ? fg : pick(rnd, COLOURS)[1] });
+    const inBand = (v, b) => (v - b.at + p) % p < b.w;
+    d.fill(() => bg);
+    for (const b of bands)
+      for (let y = 0; y < SIZE2; y++)
+        for (let x = 0; x < SIZE2; x++) {
+          if (inBand(x, b)) d.blend(x, y, b.c, 0.45);
+          if (inBand(y, b)) d.blend(x, y, b.c, 0.45);
+        }
+  },
+  Chevron(d, rnd, bg, fg) {
+    const p = pick(rnd, [32, 64, 128]), q = pick(rnd, [16, 32, 64]);
+    d.fill((x, y) => (y + Math.abs(x % p - p / 2)) % q < q / 2 ? fg : bg);
+  },
+  // a tone-on-tone blender: soft clouds of a lighter and a darker shade of one colour (like a batik)
+  Mottled(d, rnd, bg, fg) {
+    d.fill(() => fg);
+    for (let n = 160; n > 0; n--) {
+      const c = rnd() < 0.5 ? mix(fg, 16777215, 0.25) : mix(fg, 0, 0.2), cx = rnd() * SIZE2, cy = rnd() * SIZE2, r = 12 + rnd() * 40;
+      for (let y = Math.floor(cy - r); y <= cy + r; y++)
+        for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+          const t = 1 - Math.hypot(x - cx, y - cy) / r;
+          if (t > 0) d.blend(x, y, c, t * t * 0.18);
+        }
+    }
+    d.grain(rnd, 10);
+  },
+  // the broken check of tweed jackets, woven the real way: a 2/2 twill whose lengthwise and crosswise threads both
+  // go four dark, four light (each "thread" here is k pixels wide)
+  Houndstooth(d, rnd, bg, fg) {
+    const k = pick(rnd, [2, 4, 8]);
+    d.fill((x, y) => {
+      const i = x / k | 0, j = y / k | 0, lengthwiseOnTop = (i + j) % 4 < 2;
+      return (lengthwiseOnTop ? i : j) % 8 < 4 ? fg : bg;
+    });
+  }
+};
+var KIND_NAMES = Object.keys(KINDS);
+var drawPattern = (kind, seed, bg, fg) => drawWith(kind, random(seed), bg, fg);
+function drawWith(kind, rnd, bg, fg) {
+  const d = canvas2();
+  KINDS[kind](d, rnd, bg, fg);
+  if (kind !== "Solid" && kind !== "Mottled") d.grain(rnd, 6);
+  return d.px;
+}
+var PARTS = [
+  { count: 500, seed: 2026, main: ALL_COLOURS, back: ALL_COLOURS },
+  // 1000 more, each with one of the new colours as its main colour (backgrounds from every colour)
+  { count: 1e3, seed: 2027, main: NEW_COLOURS, back: [...ALL_COLOURS, ...NEW_COLOURS] }
+];
+var COLLECTION_SIZE = PARTS.reduce((n, p) => n + p.count, 0);
+var COLLECTION_KINDS = [
+  "Solid",
+  "Mottled",
+  "Ditsy",
+  "Floral",
+  "Gingham",
+  "Polka dot",
+  "Stripe",
+  "Pinstripe",
+  "Check",
+  "Plaid",
+  "Bias stripe",
+  "Chevron",
+  "Houndstooth",
+  "Solid",
+  "Mottled",
+  "Ditsy",
+  "Floral"
+];
+var list = null;
+function collection() {
+  if (list) return list;
+  list = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const part of PARTS) {
+    const rnd = random(part.seed), end = list.length + part.count;
+    for (let n = 0; list.length < end && n < part.count * 20; n++) {
+      const kind = COLLECTION_KINDS[n % COLLECTION_KINDS.length];
+      const [fgName, fg] = pick(rnd, part.main);
+      const lighter = part.back.filter(([, c]) => lum(c) > lum(fg) + 60);
+      const darker = part.back.filter(([, c]) => lum(c) < lum(fg) - 60);
+      const plainBg = (kind === "Gingham" || kind === "Polka dot") && lum(fg) < 200 && rnd() < 0.7;
+      const [bgName, bg] = plainBg ? pick(rnd, WHITES) : pick(rnd, lighter.length ? lighter : darker);
+      const seed = Math.floor(rnd() * 2 ** 31);
+      const one = kind === "Solid" || kind === "Mottled";
+      const key = one ? `${kind} ${fgName}` : `${kind} ${fgName} ${bgName}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const Fg = fgName[0].toUpperCase() + fgName.slice(1), k = kind.toLowerCase();
+      const name = kind === "Solid" ? `${Fg} solid` : kind === "Mottled" ? `${Fg} mottled blender` : `${Fg} ${k} on ${bgName}`;
+      const cm = one ? 22 : Math.round((10 + rnd() * 25) * 2) / 2;
+      list.push({
+        id: "c" + list.length,
+        name,
+        cm,
+        kind,
+        seed,
+        bg: one ? fg : bg,
+        fg,
+        colours: [fgName, one ? fgName : bgName]
+      });
+    }
+  }
+  return list;
+}
+var drawCollectionFabric = (f) => drawPattern(f.kind, f.seed, f.bg, f.fg);
 
 // src/designer/fabric-library.js
 var fabricLib = [];
@@ -9713,6 +10023,16 @@ function initFabricLib() {
         print: !s.tint && !/linen/i.test(s.name)
       })
     );
+    for (const p of collection())
+      put({
+        id: p.id,
+        name: p.name,
+        cm: p.cm,
+        canvas: null,
+        collection: true,
+        pattern: p,
+        print: p.kind !== "Solid" && p.kind !== "Mottled"
+      });
     for (const r of fabrics.list()) addStoredFabric(r);
     await loadFabrics(fabricIdsIn(getSession("current"), isFabric2));
   })();
@@ -9725,6 +10045,31 @@ async function blobCanvas(blob) {
   bm.close?.();
   return c;
 }
+function patternCanvas(p) {
+  const rgb = drawCollectionFabric(p), c = document.createElement("canvas");
+  c.width = c.height = SIZE2;
+  const g = c.getContext("2d"), img = g.createImageData(SIZE2, SIZE2);
+  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
+    img.data[j] = rgb[i];
+    img.data[j + 1] = rgb[i + 1];
+    img.data[j + 2] = rgb[i + 2];
+    img.data[j + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+var THUMB = 64;
+var thumbs = /* @__PURE__ */ new Map();
+function tileSource(f) {
+  if (f.canvas) return [f.canvas, Math.min(f.canvas.width, f.canvas.height, 360)];
+  if (!thumbs.has(f.id)) {
+    const big = patternCanvas(f.pattern), t = document.createElement("canvas");
+    t.width = t.height = THUMB;
+    t.getContext("2d").drawImage(big, 0, 0, 360, 360, 0, 0, THUMB, THUMB);
+    thumbs.set(f.id, t);
+  }
+  return [thumbs.get(f.id), THUMB];
+}
 function addStoredFabric(r) {
   if (!byId.has(r.id)) put({ id: r.id, name: r.name, cm: r.cm, canvas: null, blob: r.blob, added: r.createdAt || 0 });
 }
@@ -9736,7 +10081,7 @@ async function loadFabrics(ids) {
   for (const id of ids) {
     const fab = byId.get(id);
     if (!fab || fab.canvas) continue;
-    fab.loading ??= blobCanvas(fab.blob).then(
+    fab.loading ??= (fab.pattern ? Promise.resolve().then(() => patternCanvas(fab.pattern)) : blobCanvas(fab.blob)).then(
       (c) => {
         fab.canvas = c;
       },
@@ -9800,12 +10145,12 @@ function setFabricPalette(ids) {
   } catch (e) {
   }
 }
-async function addFabric(canvas2, meta) {
+async function addFabric(canvas3, meta) {
   const blob = await new Promise(
-    (resolve, reject) => canvas2.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
+    (resolve, reject) => canvas3.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
   );
   const { id } = await fabrics.add(blob, meta);
-  if (!byId.has(id)) put({ id, name: meta.name, canvas: canvas2, cm: meta.cm, blob, added: Date.now() });
+  if (!byId.has(id)) put({ id, name: meta.name, canvas: canvas3, cm: meta.cm, blob, added: Date.now() });
   noteRecent(id);
   const palette = fabricPalette();
   if (palette && !palette.includes(id)) setFabricPalette([...palette, id]);
@@ -9830,8 +10175,8 @@ function fabricTile(f, pressed, mark) {
   } else {
     pic = document.createElement("canvas");
     pic.width = pic.height = 64;
-    const k = Math.min(f.canvas.width, f.canvas.height, 360);
-    pic.getContext("2d").drawImage(f.canvas, 0, 0, k, k, 0, 0, 64, 64);
+    const [src, k] = tileSource(f);
+    pic.getContext("2d").drawImage(src, 0, 0, k, k, 0, 0, 64, 64);
   }
   const s = document.createElement("span");
   s.textContent = f.name;
@@ -9865,7 +10210,7 @@ function fabricTile(f, pressed, mark) {
 }
 function defaultPalette() {
   const listed = listedFabrics();
-  const newest = listed.filter((f) => !f.basic).sort((a, b) => (b.added || 0) - (a.added || 0)).map((f) => f.id);
+  const newest = listed.filter((f) => !f.basic && !f.collection).sort((a, b) => (b.added || 0) - (a.added || 0)).map((f) => f.id);
   return shortList({ basics: listed.filter((f) => f.basic).map((f) => f.id), recent: recentFabrics(), newest });
 }
 function shortListFabrics(selected) {
@@ -10059,7 +10404,14 @@ var lib = { source: (
   /** @type {HTMLElement | null} */
   null
 ), selected: null, group: "all", shown: PAGE };
-var GROUPS = { all: "All", quilt: "In this quilt", recent: "Recent", basic: "Basics", mine: "My photos" };
+var GROUPS = {
+  all: "All",
+  quilt: "In this quilt",
+  recent: "Recent",
+  basic: "Basics",
+  collection: "Collection",
+  mine: "My photos"
+};
 function openLibrary(box2) {
   lib.source = box2;
   lib.selected = /** @type {HTMLElement | null} */
@@ -10312,7 +10664,7 @@ function shareAmounts(amounts, changed) {
 var MAX = 3;
 var SHOWN = 60;
 var WEAK = 0.35;
-var SIZE2 = 220;
+var SIZE3 = 220;
 var finder = {
   source: (
     /** @type {HTMLElement | null} */
@@ -10336,7 +10688,7 @@ try {
 }
 function keepColours() {
   const out = {};
-  for (const f of listedFabrics()) if (f.blob && colours.has(f.id)) out[f.id] = colours.get(f.id);
+  for (const f of listedFabrics()) if ((f.blob || f.collection) && colours.has(f.id)) out[f.id] = colours.get(f.id);
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(out));
   } catch (e) {
@@ -10352,8 +10704,8 @@ async function measure(f) {
       g.drawImage(bm, 0, 0);
       bm.close?.();
     } else {
-      const k = Math.min(f.canvas.width, f.canvas.height, 360);
-      g.drawImage(f.canvas, 0, 0, k, k, 0, 0, N2, N2);
+      const [src, k] = tileSource(f);
+      g.drawImage(src, 0, 0, k, k, 0, 0, N2, N2);
     }
     return fabricColours(g.getImageData(0, 0, N2, N2).data);
   } catch (e) {
@@ -10373,7 +10725,7 @@ function measureAll() {
       }
       await new Promise((r) => setTimeout(r, 0));
     }
-    if (todo.some((f) => f.blob)) keepColours();
+    if (todo.some((f) => f.blob || f.collection)) keepColours();
     measuring = null;
   })();
 }
@@ -10401,12 +10753,12 @@ function drawWheel() {
   const cv = (
     /** @type {HTMLCanvasElement} */
     $("colfind-canvas")
-  ), g = cv.getContext("2d"), img = g.createImageData(SIZE2, SIZE2), R2 = SIZE2 / 2;
-  for (let y = 0; y < SIZE2; y++)
-    for (let x = 0; x < SIZE2; x++) {
+  ), g = cv.getContext("2d"), img = g.createImageData(SIZE3, SIZE3), R2 = SIZE3 / 2;
+  for (let y = 0; y < SIZE3; y++)
+    for (let x = 0; x < SIZE3; x++) {
       const dx = x + 0.5 - R2, dy = y + 0.5 - R2, r = Math.hypot(dx, dy) / R2;
       if (r > 1) continue;
-      const [cr, cg, cb] = hslToRgb(Math.atan2(dy, dx) * 180 / Math.PI + 360, r, l), i = (y * SIZE2 + x) * 4;
+      const [cr, cg, cb] = hslToRgb(Math.atan2(dy, dx) * 180 / Math.PI + 360, r, l), i = (y * SIZE3 + x) * 4;
       img.data[i] = cr;
       img.data[i + 1] = cg;
       img.data[i + 2] = cb;
@@ -11103,10 +11455,10 @@ function paintTiles(d, ids, fid) {
   const set = new Set([...ids].filter((i) => i >= 0 && i < tileCount(m) && m.fabrics[i] !== fid));
   return set.size ? { ...d, mosaic: { ...m, fabrics: m.fabrics.map((f, i) => set.has(i) ? fid : f) } } : d;
 }
-function paintEach(d, list) {
+function paintEach(d, list2) {
   const m = d.mosaic;
   if (!m) return d;
-  const set = new Map(list.filter(([i, f]) => i >= 0 && i < m.fabrics.length && m.fabrics[i] !== f));
+  const set = new Map(list2.filter(([i, f]) => i >= 0 && i < m.fabrics.length && m.fabrics[i] !== f));
   return set.size ? { ...d, mosaic: { ...m, fabrics: m.fabrics.map((f, i) => set.get(i) ?? f) } } : d;
 }
 setMosaic.mirror = setMosaicShape.mirror = resizeMosaic.mirror = setMosaicMm.mirror = paintTiles.mirror = paintEach.mirror = false;
@@ -12682,18 +13034,18 @@ function fitOptions() {
       }
   }
   out.sort((a, b) => a.err - b.err);
-  const cur = out.find((o) => o.current), list = [];
-  if (cur) list.push(cur);
+  const cur = out.find((o) => o.current), list2 = [];
+  if (cur) list2.push(cur);
   for (const o of out) {
-    if (list.length >= 4) break;
-    if (!list.includes(o) && !list.some((x) => x.B === o.B)) list.push(o);
+    if (list2.length >= 4) break;
+    if (!list2.includes(o) && !list2.some((x) => x.B === o.B)) list2.push(o);
   }
   if (design) {
     const c = Math.max(1, Math.round((T.W - BT - S * (e - 1)) / (design.blockMm + S))), B = Math.max(50, Math.round((T.W - BT - S * (c - 1 + e)) / c / 5) * 5), r = Math.max(1, Math.round((T.L - BT - S * (e - 1)) / (B + S)));
-    if (!list.some((o) => o.B === B && o.c === c && o.r === r))
-      list.push({ B, c, r, ...size(c, r, B), err: 0, exact: true });
+    if (!list2.some((o) => o.B === B && o.c === c && o.r === r))
+      list2.push({ B, c, r, ...size(c, r, B), err: 0, exact: true });
   }
-  return list;
+  return list2;
 }
 function renderFitSuggestions() {
   const box2 = $("fit-list");
@@ -13661,13 +14013,13 @@ var CG = /* @__PURE__ */ (() => {
         rows.get(k).pieces++;
         pc.rowKey = k;
       }
-      const list = [...rows.values()].sort(
+      const list2 = [...rows.values()].sort(
         (a, b) => a.letter.localeCompare(b.letter) || b.cut[0] - a.cut[0] || b.cut[1] - a.cut[1] || a.kind.localeCompare(b.kind) || String(b.cut).localeCompare(String(a.cut))
       );
       const nForm = {};
-      for (const r of list) r.form = nForm[r.letter] = (nForm[r.letter] || 0) + 1;
+      for (const r of list2) r.form = nForm[r.letter] = (nForm[r.letter] || 0) + 1;
       for (const pc of pieces) pc.form = rows.get(pc.rowKey).form;
-      blocks.push({ ...g, label: g.label || opts.label(g.block.pattern), pieces, list });
+      blocks.push({ ...g, label: g.label || opts.label(g.block.pattern), pieces, list: list2 });
     }
     const fabrics2 = /* @__PURE__ */ new Map();
     for (const b of blocks)
@@ -13815,31 +14167,31 @@ function cgRowHover(div, makeTest) {
     tr.addEventListener("mouseleave", () => lightFabric(null));
   }
 }
-function cgCardBehaviour(div, key, pick, hint) {
-  const list = div.querySelector(".cg-list"), cv = div.querySelector("canvas");
+function cgCardBehaviour(div, key, pick2, hint) {
+  const list2 = div.querySelector(".cg-list"), cv = div.querySelector("canvas");
   div.dataset.key = String(key);
   if (cgOpen.has(key)) {
     div.classList.add("open");
-    list.style.maxHeight = "none";
+    list2.style.maxHeight = "none";
   }
   const toggle = () => {
     const open = !div.classList.contains("open");
-    list.style.maxHeight = list.scrollHeight + "px";
+    list2.style.maxHeight = list2.scrollHeight + "px";
     if (!open) {
-      list.offsetHeight;
-      list.style.maxHeight = "0px";
+      list2.offsetHeight;
+      list2.style.maxHeight = "0px";
     }
     div.classList.toggle("open", open);
     if (open) {
       cgOpen.add(key);
-      list.addEventListener(
+      list2.addEventListener(
         "transitionend",
         () => {
-          if (div.classList.contains("open")) list.style.maxHeight = "none";
+          if (div.classList.contains("open")) list2.style.maxHeight = "none";
         },
         { once: true }
       );
-      setTimeout(() => list.scrollIntoView({ behavior: "smooth", block: "nearest" }), 280);
+      setTimeout(() => list2.scrollIntoView({ behavior: "smooth", block: "nearest" }), 280);
     } else cgOpen.delete(key);
     cv.setAttribute("aria-expanded", String(open));
   };
@@ -13850,7 +14202,7 @@ function cgCardBehaviour(div, key, pick, hint) {
   };
   const onDbl = () => {
     clearTimeout(clickT);
-    pick();
+    pick2();
   };
   for (const el of [cv, div.querySelector("h3")]) {
     el.addEventListener("click", onClick);
@@ -14028,7 +14380,7 @@ function renderCut() {
       draw();
       cgRedraws.push(draw);
     }
-    const pick = () => {
+    const pick2 = () => {
       if (b.mosaic) return;
       setCgHi(i);
       drawCutQuilt(P);
@@ -14037,7 +14389,7 @@ function renderCut() {
     cgCardBehaviour(
       div,
       i,
-      pick,
+      pick2,
       "Click to show or hide the cutting list \xB7 double-click to find this block in the whole quilt"
     );
     cgRowHover(div, (tr) => {
@@ -14286,8 +14638,8 @@ function drawCornerBlockEditor(cb, mm) {
     g.lineWidth = 2.5;
     g.stroke();
   }
-  const names = partsOf(cb.pattern).map((p) => p.name), pick = [...cbSel];
-  $("sash-cb-info").textContent = !pick.length ? `${PATTERNS[cb.pattern].label} \xB7 click a part to choose its fabric` : pick.length === 1 ? `Selected: ${names[pick[0]]} \xB7 ${fabricById(cb.fabrics[pick[0]]).name}` : `${pick.length} parts selected`;
+  const names = partsOf(cb.pattern).map((p) => p.name), pick2 = [...cbSel];
+  $("sash-cb-info").textContent = !pick2.length ? `${PATTERNS[cb.pattern].label} \xB7 click a part to choose its fabric` : pick2.length === 1 ? `Selected: ${names[pick2[0]]} \xB7 ${fabricById(cb.fabrics[pick2[0]]).name}` : `${pick2.length} parts selected`;
 }
 function renderSashUI() {
   if (!design || !$("sash-card")) return;
@@ -14422,8 +14774,8 @@ function renderBorderUI() {
       b.append(borderSketch(k, null), sp);
       types.appendChild(b);
     }
-  const list = $("brd-list");
-  list.innerHTML = "";
+  const list2 = $("brd-list");
+  list2.innerHTML = "";
   const bs = design.borders || [];
   bs.forEach((b, i) => {
     const t = BORDER_TYPES[b.type];
@@ -14488,7 +14840,7 @@ function renderBorderUI() {
     row.lastChild.style.width = "100%";
     row.lastChild.style.height = "auto";
     row.lastChild.style.borderRadius = "3px";
-    list.appendChild(row);
+    list2.appendChild(row);
   });
   const pb = $("brd-palbox");
   if (brdActive && bs[brdActive.i]) {
@@ -15133,15 +15485,15 @@ function openMine(id) {
 function renderMine() {
   const grid = $("mine-grid"), q = ($("mine-q").value || "").trim().toLowerCase(), sort = $("mine-sort").value;
   const all = designs.list(), key = sort === "created" ? "createdAt" : "updatedAt";
-  const list = all.filter((m) => !q || m.name.toLowerCase().includes(q));
-  list.sort(sort === "name" ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[key] - a[key]);
+  const list2 = all.filter((m) => !q || m.name.toLowerCase().includes(q));
+  list2.sort(sort === "name" ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[key] - a[key]);
   grid.innerHTML = "";
-  $("mine-empty").hidden = all.length > 0 && list.length > 0;
-  if (all.length && !list.length) $("mine-empty").textContent = "No designs match your search.";
+  $("mine-empty").hidden = all.length > 0 && list2.length > 0;
+  if (all.length && !list2.length) $("mine-empty").textContent = "No designs match your search.";
   else
     $("mine-empty").innerHTML = "No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.";
   const when = (t) => new Date(t).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
-  for (const m of list) {
+  for (const m of list2) {
     const r = readDesign(m.design);
     if (!r) continue;
     const d = r.design;
@@ -15527,8 +15879,8 @@ function tlUI() {
   sl.max = Math.max(0, n - 1);
   sl.value = tl.i;
   $("tl-pos").textContent = `${tl.i + 1} / ${n} \xB7 ${tl.steps[tl.i] ? tl.steps[tl.i].label : ""}`;
-  const list = $("tl-list");
-  list.innerHTML = "";
+  const list2 = $("tl-list");
+  list2.innerHTML = "";
   const now = Date.now(), ago = (t) => {
     const s = Math.round((now - t) / 1e3);
     return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -15546,10 +15898,10 @@ function tlUI() {
     lab2.textContent = st.label;
     b.append(tlThumb(st), num2, lab2);
     b.addEventListener("click", () => tlGo(k));
-    list.appendChild(b);
+    list2.appendChild(b);
   });
-  const cur = list.children[tl.i];
-  if (cur) list.scrollLeft = cur.offsetLeft - list.clientWidth / 2 + cur.offsetWidth / 2;
+  const cur = list2.children[tl.i];
+  if (cur) list2.scrollLeft = cur.offsetLeft - list2.clientWidth / 2 + cur.offsetWidth / 2;
 }
 function initTimeline() {
   $("tl-undo").addEventListener("click", () => tlGo(tl.i - 1));

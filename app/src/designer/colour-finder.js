@@ -5,7 +5,7 @@
 import './fabric-picker.js'; // load order: runs after designer/fabric-picker
 import { design } from '../core/store.js';
 import { $, sideRoller } from '../core/dom.js';
-import { isFabric, listedFabrics } from './fabric-library.js';
+import { isFabric, listedFabrics, tileSource } from './fabric-library.js';
 import { fabricTile, setColourButton, useFabricIn } from './fabric-picker.js';
 import { fabricIdsIn } from '../core/fabric-picks.js';
 import { colourMatch, fabricColours, hslToRgb, lab, rgbToHsl, shareAmounts } from '../core/colour-match.js';
@@ -24,7 +24,8 @@ const finder = {
 };
 
 // ---- each fabric's main colours, measured once from a small copy of its picture. Photos are kept per device (their
-// id is a fingerprint of the photo, so it never changes); the basics are quick to measure again at each start.
+// id is a fingerprint of the photo, so it never changes), and so are the collection's (each always looks the
+// same); the basics are quick to measure again at each start.
 const CACHE_KEY = 'quilt-fabric-colours.v1';
 /** @type {Map<string, { rgb: number[], share: number }[]>} */
 const colours = new Map();
@@ -34,7 +35,7 @@ try {
 } catch (e) {}
 function keepColours() {
   const out = {};
-  for (const f of listedFabrics()) if (f.blob && colours.has(f.id)) out[f.id] = colours.get(f.id);
+  for (const f of listedFabrics()) if ((f.blob || f.collection) && colours.has(f.id)) out[f.id] = colours.get(f.id);
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(out));
   } catch (e) {}
@@ -52,8 +53,8 @@ async function measure(f) {
       g.drawImage(bm, 0, 0);
       bm.close?.();
     } else {
-      const k = Math.min(f.canvas.width, f.canvas.height, 360);
-      g.drawImage(f.canvas, 0, 0, k, k, 0, 0, N, N);
+      const [src, k] = tileSource(f);
+      g.drawImage(src, 0, 0, k, k, 0, 0, N, N);
     }
     return fabricColours(g.getImageData(0, 0, N, N).data);
   } catch (e) {
@@ -77,7 +78,7 @@ function measureAll() {
       }
       await new Promise(r => setTimeout(r, 0)); // lets the page answer clicks in between
     }
-    if (todo.some(f => f.blob)) keepColours();
+    if (todo.some(f => f.blob || f.collection)) keepColours();
     measuring = null;
   })());
 }

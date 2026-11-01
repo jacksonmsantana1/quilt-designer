@@ -60,12 +60,15 @@ test('colours picked on the wheel rank the fabrics; one clicked goes on the sele
   await expect(dlg).toBeVisible();
   await expect(dlg.locator('#colfind-results .fab')).toHaveCount(0); // nothing picked yet
 
-  // green: the all-green photo first, the half-green one next, the red one faded
+  // green: the all-green photo first, the half-green one next, the red one faded (or not among the best 60: the
+  // collection has plenty of greens). All the colours read first (the collection's 1500 take a while).
   await clickWheel(page, 120);
   await expect(dlg.locator('.colfind-dot')).toHaveCount(1);
+  await expect(dlg.locator('#colfind-status')).toHaveText(/^Best match first/, { timeout: 90_000 });
   await expect(dlg.locator('#colfind-results .fab').first()).toHaveText('All green');
   await expect(dlg.locator('#colfind-results .fab').nth(1)).toHaveText('Green and red');
-  await expect(dlg.locator('#colfind-results .fab', { hasText: 'All red' })).toHaveClass(/weak/);
+  const red = dlg.locator('#colfind-results .fab', { hasText: 'All red' });
+  if (await red.count()) await expect(red).toHaveClass(/weak/);
   await expect(dlg.locator('#colfind-picks input')).toBeDisabled(); // one colour is all of it
 
   // and red, as much of each: the half-and-half photo first; no percentages anywhere
@@ -81,7 +84,9 @@ test('colours picked on the wheel rank the fabrics; one clicked goes on the sele
   await expect
     .poll(async () => {
       const names = await dlg.locator('#colfind-results .fab').allTextContents();
-      return names.indexOf('All red') < names.indexOf('All green');
+      const red = names.indexOf('All red'),
+        green = names.indexOf('All green');
+      return red >= 0 && (green < 0 || red < green);
     })
     .toBe(true);
 

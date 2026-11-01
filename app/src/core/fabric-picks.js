@@ -62,10 +62,11 @@ export function wordsMatcher(query) {
 
 /**
  * The fabric library's search: every word typed must be in the name (any case, accents ignored), within the
- * chosen group. Basics come first, then photos newest first; the "recent" group keeps its own order.
- * @template {{ id: string, name: string, basic?: boolean, added?: number }} F
+ * chosen group. Basics come first, then photos newest first, then the collection in its order; the "recent" group
+ * keeps its own order.
+ * @template {{ id: string, name: string, basic?: boolean, collection?: boolean, added?: number }} F
  * @param {F[]} fabrics
- * @param {{ query?: string, group?: 'all' | 'quilt' | 'recent' | 'basic' | 'mine',
+ * @param {{ query?: string, group?: 'all' | 'quilt' | 'recent' | 'basic' | 'collection' | 'mine',
  *   inQuilt?: Set<string>, recent?: string[] }} o
  * @returns {F[]}
  */
@@ -80,11 +81,13 @@ export function findFabrics(fabrics, { query = '', group = 'all', inQuilt = new 
     all: () => true,
     quilt: f => inQuilt.has(f.id),
     basic: f => !!f.basic,
-    mine: f => !f.basic,
+    collection: f => !!f.collection,
+    mine: f => !f.basic && !f.collection,
   }[group];
+  const rank = f => (f.basic ? 0 : f.collection ? 2 : 1);
   return fabrics
     .filter(f => inGroup(f) && named(f))
-    .sort((a, b) => (a.basic === b.basic ? (a.basic ? 0 : (b.added || 0) - (a.added || 0)) : a.basic ? -1 : 1));
+    .sort((a, b) => rank(a) - rank(b) || (rank(a) === 1 ? (b.added || 0) - (a.added || 0) : 0));
 }
 
 // ---- the palette: the fabrics a person keeps in the short lists, in their order (removed with ×, added from the
