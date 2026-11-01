@@ -53,6 +53,19 @@ const setPattern = (d, ids, key, roles) =>
     ...(b.span > 1 ? { span: b.span } : {}),
   }));
 
+/**
+ * Keeps a drawn block in the quilt under its key (or gives it a new name), so the quilt carries it wherever it goes.
+ * @param {Design} d @param {string} key @param {import('@quilt/shared/types.js').DrawnBlock} def
+ */
+function keepDrawn(d, key, def) {
+  const old = d.drawn?.[key];
+  if (old && old.label === def.label && old.n === def.n && old.rows === def.rows) return d;
+  return { ...d, drawn: { ...(d.drawn || {}), [key]: def } };
+}
+
+/** Gives blocks a drawn pattern, kept in the quilt. @param {Design} d @param {Iterable<number>} ids @param {string} key @param {import('@quilt/shared/types.js').DrawnBlock} def @param {string[]} roles */
+const useDrawn = (d, ids, key, def, roles) => setPattern(keepDrawn(d, key, def), ids, key, roles);
+
 /** Copies a block into others; each keeps its own size. @param {Design} d @param {Block} src @param {Iterable<number>} ids */
 const copyBlock = (d, src, ids) =>
   mapBlocks(d, ids, b => {
@@ -269,6 +282,8 @@ resize.merge = setBlockMm.merge = setSashing.merge = updateBorder.merge = true;
 resizeMosaic.merge = setMosaicMm.merge = paintTiles.merge = paintEach.merge = true;
 
 export {
+  keepDrawn,
+  useDrawn,
   copyBlock,
   flipBlocks,
   mapBlocks,

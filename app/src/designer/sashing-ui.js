@@ -1,5 +1,5 @@
 // Sashing panel.
-import '../cutting/page.js'; // load order: runs after cutting/page
+import './block-drawer.js'; // load order: runs after designer/block-drawer
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $, themeColour } from '../core/dom.js';

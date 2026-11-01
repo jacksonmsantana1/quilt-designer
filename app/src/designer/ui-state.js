@@ -18,6 +18,10 @@ export const setShowToolsPanel = f => (showToolsPanel = f);
 export let hideTools = () => {};
 /** @param {() => void} f */
 export const setHideTools = f => (hideTools = f);
+/** @type {() => void} opens the block editor (designer/block-drawer.js sets it; the block library calls it) */
+export let openBlockDrawer = () => {};
+/** @param {() => void} f */
+export const setOpenBlockDrawer = f => (openBlockDrawer = f);
 /** @type {{ t: number, hit: number } | null} the last tap on a part (for double taps) */
 export let partTap = null;
 /** @param {{ t: number, hit: number } | null} v */

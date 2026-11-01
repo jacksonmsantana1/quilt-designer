@@ -11,10 +11,13 @@ import { ROLE_COLOURS } from '@quilt/shared/design.js';
 import { pathPoly } from '@quilt/shared/geometry.js';
 import { shortList, withRecent } from '../core/fabric-picks.js';
 import { findBlocks, patternsIn } from '../core/block-picks.js';
+import { DRAWN_FAMILY, readDrawn } from '@quilt/shared/drawn-blocks.js';
+import { designs } from '../storage/repo.js';
+import { openBlockDrawer } from './ui-state.js';
 
 const PAGE = 60; // tiles the library shows at a time
 // the blocks the list always shows: every block from before the library (people know where they are)
-const STARTERS = Object.keys(PATTERNS).filter(k => !(k in GRID_BLOCKS));
+const STARTERS = Object.keys(PATTERNS).filter(k => !(k in GRID_BLOCKS) && !PATTERNS[k].drawn);
 
 // ---- recently picked blocks, per device
 const RECENT_KEY = 'quilt-recent-blocks.v1';
@@ -96,10 +99,25 @@ function drawPatternList() {
 // ---- the block library window
 const lib = { group: 'all', shown: PAGE };
 // the families in the order a quilter would look through them (any other comes after)
-const FAMILIES = ['Basics', 'Four patch', 'Nine patch', 'Stars', 'Strips and logs', 'Larger grids', 'Your drawings'];
+const FAMILIES = [
+  DRAWN_FAMILY,
+  'Basics',
+  'Four patch',
+  'Nine patch',
+  'Stars',
+  'Strips and logs',
+  'Larger grids',
+  'Your drawings',
+];
 const ALL = () => Object.entries(PATTERNS).map(([key, p]) => ({ key, label: p.label, family: p.family }));
 
+/** Makes the blocks drawn in every saved quilt known, so "My blocks" shows them all (sync brings other devices'). */
+function gatherDrawn() {
+  for (const m of designs.list()) if (m.design?.drawn) readDrawn(m.design.drawn);
+}
+
 function openBlockLibrary() {
+  gatherDrawn();
   lib.group = 'all';
   lib.shown = PAGE;
   $('blklib-q').value = '';
@@ -138,6 +156,8 @@ function drawBlockLibrary() {
   const found = findBlocks(all, { query, group: lib.group, inQuilt, recent });
   const grid = $('blklib-grid');
   grid.innerHTML = '';
+  // the editor's tile comes first where a drawn block could be listed
+  if (!query.trim() && (lib.group === 'all' || lib.group === DRAWN_FAMILY)) grid.appendChild(drawTile());
   for (const b of found.slice(0, lib.shown)) {
     const t = patternTile(b.key);
     t.setAttribute('aria-pressed', String(b.key === cur));
@@ -146,8 +166,20 @@ function drawBlockLibrary() {
   const left = found.length - lib.shown;
   $('blklib-more').hidden = left <= 0;
   $('blklib-more').textContent = `Show more (${left} more)`;
-  $('blklib-none').hidden = found.length > 0;
+  $('blklib-none').hidden = found.length > 0 || lib.group === DRAWN_FAMILY;
   $('blklib-none').textContent = query.trim() ? `No blocks match “${query.trim()}”.` : 'No blocks here yet.';
+}
+
+/** The tile that opens the block editor. */
+function drawTile() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'pat pat-draw';
+  b.id = 'blklib-draw';
+  b.dataset.draw = '';
+  b.title = 'Draw your own block on a grid';
+  b.innerHTML = '<b aria-hidden="true">✎</b><span>Draw a block</span>';
+  return b;
 }
 
 /**
@@ -190,7 +222,10 @@ function initBlockLibrary() {
   });
   $('blklib-grid').addEventListener('click', e => {
     const b = /** @type {HTMLElement} */ (e.target).closest('button.pat');
-    if (b?.dataset.p) pickFromLibrary(b.dataset.p);
+    if (b && 'draw' in b.dataset) {
+      $('blklib').close();
+      openBlockDrawer();
+    } else if (b?.dataset.p) pickFromLibrary(b.dataset.p);
   });
   $('blklib-more').addEventListener('click', () => {
     lib.shown += PAGE;
@@ -199,4 +234,4 @@ function initBlockLibrary() {
 }
 initBlockLibrary();
 
-export { drawPatternList, openBlockLibrary };
+export { drawPatternList, noteRecentBlock, openBlockLibrary, patternTile };

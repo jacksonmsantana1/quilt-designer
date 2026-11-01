@@ -619,6 +619,27 @@
   .fabs.fablib-grid .fab { flex: none; }
   /* the block library: the fabric library's window, with block tiles */
   .pats.fablib-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  /* the block library's "Draw a block" tile and the block editor */
+  .pats .pat.pat-draw { border: 2px dashed var(--stitch); background: var(--accent-soft); color: var(--accent); }
+  .pats .pat.pat-draw b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 2rem; font-weight: 400; }
+  .drawblk { width: min(860px, calc(100vw - 32px)); }
+  .drawblk-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; margin-top: 12px; align-items: start; }
+  .drawblk-paper canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 6px; background: var(--panel); box-shadow: 0 0 0 1px var(--line); touch-action: none; }
+  .drawblk-side { display: flex; flex-direction: column; gap: 10px; font-size: .82rem; }
+  .drawblk-side .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .drawblk-side .lbl { font-weight: 700; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); width: 100%; }
+  #drawblk-tools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  #drawblk-tools button { padding: 5px 0; font-size: 1rem; line-height: 1; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  #drawblk-tools button.wide { grid-column: span 2; font-size: .78rem; }
+  #drawblk-tools button[aria-pressed="true"], .drawblk-role[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  #drawblk-roles { display: flex; gap: 6px; }
+  .drawblk-role { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; padding: 0; }
+  #drawblk-preview { width: 140px; height: 140px; border-radius: 4px; box-shadow: 0 0 0 1px var(--line); }
+  #drawblk-cut ul { margin: 4px 0 0; padding: 0; list-style: none; }
+  #drawblk-cut li { margin: 3px 0; line-height: 1.35; }
+  .drawblk-sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; box-shadow: 0 0 0 1px var(--line); }
+  #drawblk-name { width: 100%; }
+  @media (max-width: 720px) { .drawblk-body { grid-template-columns: 1fr; } }
   .fablib-more { display: block; margin: 10px auto 0; }
   .fablib-foot { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--line); }
   .bmm { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
@@ -1332,6 +1353,42 @@
   <div class="pats fablib-grid" id="blklib-grid" aria-label="Blocks: click one to use it"></div>
   <p class="fine" id="blklib-none" hidden></p>
   <button class="btn sm fablib-more" type="button" id="blklib-more" hidden></button>
+</dialog>
+<dialog class="dz-dialog drawblk" id="drawblk" aria-labelledby="drawblk-title">
+  <div class="dlg-head"><h2 id="drawblk-title">Draw a block</h2><button class="btn sm dlg-x" type="button" id="drawblk-x" aria-label="Close">×</button></div>
+  <div class="drawblk-body">
+    <div class="drawblk-paper"><canvas id="drawblk-canvas" width="480" height="480" role="img" aria-label="The block being drawn: click a cell to give it the shape and fabric in hand"></canvas></div>
+    <div class="drawblk-side">
+      <div class="row"><span class="lbl">Grid</span>
+        <select id="drawblk-n" aria-label="Cells per side"><option value="2">2 × 2</option><option value="3">3 × 3</option><option value="4" selected>4 × 4</option><option value="5">5 × 5</option><option value="6">6 × 6</option><option value="7">7 × 7</option><option value="8">8 × 8</option></select>
+        <button class="btn sm" type="button" id="drawblk-from">Start from selected</button>
+        <button class="btn sm" type="button" id="drawblk-clear">Clear</button>
+      </div>
+      <div><span class="lbl">Shape</span>
+        <div id="drawblk-tools" role="group" aria-label="Shape">
+          <button type="button" data-tool="s" title="Square: one fabric" aria-label="Square">■</button>
+          <button type="button" data-tool="/" title="Half-square triangle, cut along /" aria-label="Triangle cut along /">◩</button>
+          <button type="button" data-tool="\" title="Half-square triangle, cut along \" aria-label="Triangle cut along \">◪</button>
+          <button type="button" data-tool="q" title="Hourglass: four quarter-square triangles" aria-label="Hourglass">⧖</button>
+          <button type="button" data-tool="^" title="Flying goose pointing up" aria-label="Goose pointing up">▲</button>
+          <button type="button" data-tool="v" title="Flying goose pointing down" aria-label="Goose pointing down">▼</button>
+          <button type="button" data-tool="<" title="Flying goose pointing left" aria-label="Goose pointing left">◀</button>
+          <button type="button" data-tool=">" title="Flying goose pointing right" aria-label="Goose pointing right">▶</button>
+          <button type="button" data-tool="join" class="wide" title="Drag over cells to join them into one bigger square or rectangle">Join</button>
+          <button type="button" data-tool="split" class="wide" title="Click a joined piece to split it back into cells">Split</button>
+        </div>
+      </div>
+      <div><span class="lbl">Fabric</span><div id="drawblk-roles" role="group" aria-label="Fabric"></div></div>
+      <div class="row"><span class="lbl">Symmetry</span>
+        <select id="drawblk-sym" aria-label="Symmetry"><option value="off">Off</option><option value="mirror">Mirror four ways</option><option value="turn">Turn four ways</option></select>
+        <button class="btn sm" type="button" id="drawblk-undo">Undo</button>
+      </div>
+      <div><label class="lbl" for="drawblk-name">Name</label><input id="drawblk-name" maxlength="60" autocomplete="off"></div>
+      <div class="row"><button class="btn sm" type="button" id="drawblk-keep">Save to My blocks</button><button class="btn primary" type="button" id="drawblk-use">Use in the quilt</button></div>
+      <div class="row"><span class="lbl">Repeated</span><canvas id="drawblk-preview" width="280" height="280" role="img" aria-label="The block repeated 2 × 2"></canvas></div>
+      <div id="drawblk-cut"></div>
+    </div>
+  </div>
 </dialog>
 <dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
   <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>
@@ -7318,11 +7375,11 @@ function turnedFrame(d, W, H) {
     const j = i - big, c = j % (d.cols - 1), r = Math.floor(j / (d.cols - 1));
     return [c + r + 1, r - c];
   };
-  const place = (u0, v0, w, h) => {
+  const place2 = (u0, v0, w, h) => {
     const u = u0 + w / 2, v = v0 + h / 2, cx = (bt + m + (u - v) / Math.SQRT2) * kx, cy = (bt + (u + v) / Math.SQRT2) * ky;
     return { x: cx - w * kx / 2, y: cy - h * ky / 2, w: w * kx, h: h * ky, turn: Math.PI / 4 };
   };
-  return { s, p, m, cell, place };
+  return { s, p, m, cell, place: place2 };
 }
 var turnPoint = (P) => {
   if (!P.turn) return (p) => p;
@@ -7646,7 +7703,7 @@ function pathPolyInto(g, poly) {
 }
 
 // ../shared/src/design.js
-var FORMAT_VERSION = 7;
+var FORMAT_VERSION = 8;
 var ROLE_COUNT = 6;
 var ROLE_DEFAULT = ["b0", "b1", "b3", "b5", "b8", "b10"];
 var ROLE_COLOURS = ["#efe5cf", "#2f466f", "#c79a45", "#7d8f70", "#b26a5f", "#4a2c22"];
@@ -7681,6 +7738,73 @@ function rolesOf(b) {
   return roles;
 }
 
+// ../shared/src/drawn-blocks.js
+var DRAWN_FAMILY = "My blocks";
+var MAX_N = 12;
+var MAX_DRAWN = 200;
+var MAX_LABEL = 60;
+var tidyRows = (rows) => rows.trim().split("\n").map((l) => l.trim().split(/\s+/).join(" ")).join("\n");
+function fnv(s, start) {
+  let h = start;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+  return h;
+}
+function drawnKey(def) {
+  const s = `${def.n}|${tidyRows(def.rows)}`;
+  const a = fnv(s, 2166136261), b = fnv(s, 84696351);
+  return "my" + a.toString(16).padStart(8, "0") + (b >>> 16).toString(16).padStart(4, "0");
+}
+function checkDrawn(def) {
+  if (!def || typeof def !== "object" || typeof def.rows !== "string" || def.rows.length > 4e3) return null;
+  const n = def.n;
+  if (!Number.isInteger(n) || n < 1 || n > MAX_N) return null;
+  const rows = tidyRows(def.rows), lines = rows.split("\n");
+  if (lines.length !== n || lines.some((l) => l.split(" ").length !== n)) return null;
+  let parts;
+  try {
+    parts = gridParts({ n, rows });
+  } catch (e) {
+    return null;
+  }
+  const area2 = parts.reduce((sum, p) => {
+    let a = 0;
+    p.poly.forEach(([x0, y0], i) => {
+      const [x1, y1] = p.poly[(i + 1) % p.poly.length];
+      a += x0 * y1 - x1 * y0;
+    });
+    return sum + Math.abs(a) / 2;
+  }, 0);
+  if (Math.abs(area2 - 1) > 1e-6) return null;
+  const label = typeof def.label === "string" && def.label.trim() ? def.label.trim().slice(0, MAX_LABEL) : "My block";
+  return { label, n, rows };
+}
+function registerDrawn(key, def) {
+  const known = PATTERNS[key];
+  if (known && known.drawn) {
+    known.label = def.label;
+    known.def = def;
+    return;
+  }
+  if (known) return;
+  delete PCACHE[key];
+  PATTERNS[key] = { label: def.label, family: DRAWN_FAMILY, drawn: true, def, parts: () => gridParts(def) };
+}
+function readDrawn(raw) {
+  const drawn = {};
+  let lost = 0;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { drawn, lost: raw === void 0 ? 0 : 1 };
+  for (const [key, def] of Object.entries(raw)) {
+    const ok = Object.keys(drawn).length < MAX_DRAWN ? checkDrawn(def) : null;
+    if (!ok || drawnKey(ok) !== key) {
+      lost++;
+      continue;
+    }
+    drawn[key] = ok;
+    registerDrawn(key, ok);
+  }
+  return { drawn, lost };
+}
+
 // ../shared/src/format.js
 var MIGRATIONS = [
   // 0 → 1: designs saved before block sizes and backing fabrics existed
@@ -7703,7 +7827,9 @@ var MIGRATIONS = [
   // 5 → 6: square quilts on point can have a symmetry (sym); older saves on point have none
   (d) => ({ ...d, v: 6 }),
   // 6 → 7: a quilt can be a shape mosaic (mosaic) instead of blocks; older saves are blocks
-  (d) => ({ ...d, v: 7 })
+  (d) => ({ ...d, v: 7 }),
+  // 7 → 8: a quilt can carry blocks drawn in the block editor (drawn); older saves have none
+  (d) => ({ ...d, v: 8 })
 ];
 var LIMITS = {
   grid: [1, 20],
@@ -7725,6 +7851,11 @@ function check(d) {
   if (!isObj(d) || !num(d.cols) || !num(d.rows) || !Array.isArray(d.blocks)) return null;
   const problems = [];
   const count = {};
+  const drawn = readDrawn(d.drawn);
+  if (drawn.lost)
+    problems.push(
+      `${plural(drawn.lost, "drawn block")} could not be read and ${drawn.lost === 1 ? "was" : "were"} left out.`
+    );
   const note = (key, n2 = 1) => count[key] = (count[key] || 0) + n2;
   const cols = clamp(Math.round(d.cols), LIMITS.grid), rows = clamp(Math.round(d.rows), LIMITS.grid);
   if (cols !== d.cols || rows !== d.rows) problems.push(`The layout was changed to ${cols} \xD7 ${rows}.`);
@@ -7756,6 +7887,8 @@ function check(d) {
     );
   const out = { ...d, v: FORMAT_VERSION, cols, rows, blocks };
   if (!onPoint) delete out.setting;
+  if (Object.keys(drawn.drawn).length) out.drawn = drawn.drawn;
+  else delete out.drawn;
   if (d.settingFabric !== void 0 && !isFabric(d.settingFabric)) {
     delete out.settingFabric;
     problems.push("The fabric of the setting triangles was reset.");
@@ -11140,12 +11273,12 @@ function setFabricPalette(ids) {
   } catch (e) {
   }
 }
-async function addFabric(canvas3, meta) {
+async function addFabric(canvas4, meta) {
   const blob = await new Promise(
-    (resolve, reject) => canvas3.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
+    (resolve, reject) => canvas4.toBlob((b) => b ? resolve(b) : reject(new Error("no image")), "image/jpeg", 0.92)
   );
   const { id } = await fabrics.add(blob, meta);
-  if (!byId.has(id)) put({ id, name: meta.name, canvas: canvas3, cm: meta.cm, blob, added: Date.now() });
+  if (!byId.has(id)) put({ id, name: meta.name, canvas: canvas4, cm: meta.cm, blob, added: Date.now() });
   noteRecent(id);
   const palette = fabricPalette();
   if (palette && !palette.includes(id)) setFabricPalette([...palette, id]);
@@ -12032,9 +12165,31 @@ function findBlocks(blocks, { query = "", group = "all", inQuilt = /* @__PURE__ 
   return blocks.filter((b) => inGroup(b) && found(b));
 }
 
+// src/designer/ui-state.js
+var toolsPanel = null;
+var setToolsPanel = (v) => toolsPanel = v;
+var showTools = () => {
+};
+var setShowTools = (f) => showTools = f;
+var showToolsPanel = () => {
+};
+var setShowToolsPanel = (f) => showToolsPanel = f;
+var hideTools = () => {
+};
+var setHideTools = (f) => hideTools = f;
+var openBlockDrawer = () => {
+};
+var setOpenBlockDrawer = (f) => openBlockDrawer = f;
+var partTap = null;
+var setPartTap = (v) => partTap = v;
+var mosaicBrush = "b1";
+var setMosaicBrush = (v) => mosaicBrush = v;
+var mosaicTool = "one";
+var setMosaicTool = (v) => mosaicTool = v;
+
 // src/designer/block-picker.js
 var PAGE2 = 60;
-var STARTERS = Object.keys(PATTERNS).filter((k) => !(k in GRID_BLOCKS));
+var STARTERS = Object.keys(PATTERNS).filter((k) => !(k in GRID_BLOCKS) && !PATTERNS[k].drawn);
 var RECENT_KEY2 = "quilt-recent-blocks.v1";
 function recentBlocks() {
   try {
@@ -12102,9 +12257,22 @@ function drawPatternList() {
   sideRoller(box2, '.pat[aria-pressed="true"]');
 }
 var lib2 = { group: "all", shown: PAGE2 };
-var FAMILIES = ["Basics", "Four patch", "Nine patch", "Stars", "Strips and logs", "Larger grids", "Your drawings"];
+var FAMILIES = [
+  DRAWN_FAMILY,
+  "Basics",
+  "Four patch",
+  "Nine patch",
+  "Stars",
+  "Strips and logs",
+  "Larger grids",
+  "Your drawings"
+];
 var ALL = () => Object.entries(PATTERNS).map(([key, p]) => ({ key, label: p.label, family: p.family }));
+function gatherDrawn() {
+  for (const m of designs.list()) if (m.design?.drawn) readDrawn(m.design.drawn);
+}
 function openBlockLibrary() {
+  gatherDrawn();
   lib2.group = "all";
   lib2.shown = PAGE2;
   $("blklib-q").value = "";
@@ -12138,6 +12306,7 @@ function drawBlockLibrary() {
   const found = findBlocks(all, { query, group: lib2.group, inQuilt, recent });
   const grid = $("blklib-grid");
   grid.innerHTML = "";
+  if (!query.trim() && (lib2.group === "all" || lib2.group === DRAWN_FAMILY)) grid.appendChild(drawTile());
   for (const b of found.slice(0, lib2.shown)) {
     const t = patternTile(b.key);
     t.setAttribute("aria-pressed", String(b.key === cur));
@@ -12146,8 +12315,18 @@ function drawBlockLibrary() {
   const left = found.length - lib2.shown;
   $("blklib-more").hidden = left <= 0;
   $("blklib-more").textContent = `Show more (${left} more)`;
-  $("blklib-none").hidden = found.length > 0;
+  $("blklib-none").hidden = found.length > 0 || lib2.group === DRAWN_FAMILY;
   $("blklib-none").textContent = query.trim() ? `No blocks match \u201C${query.trim()}\u201D.` : "No blocks here yet.";
+}
+function drawTile() {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "pat pat-draw";
+  b.id = "blklib-draw";
+  b.dataset.draw = "";
+  b.title = "Draw your own block on a grid";
+  b.innerHTML = '<b aria-hidden="true">\u270E</b><span>Draw a block</span>';
+  return b;
 }
 function pickFromLibrary2(key) {
   $("blklib").close();
@@ -12188,7 +12367,10 @@ function initBlockLibrary() {
       /** @type {HTMLElement} */
       e.target.closest("button.pat")
     );
-    if (b?.dataset.p) pickFromLibrary2(b.dataset.p);
+    if (b && "draw" in b.dataset) {
+      $("blklib").close();
+      openBlockDrawer();
+    } else if (b?.dataset.p) pickFromLibrary2(b.dataset.p);
   });
   $("blklib-more").addEventListener("click", () => {
     lib2.shown += PAGE2;
@@ -12330,6 +12512,12 @@ var setPattern = (d, ids, key, roles) => mapBlocks(d, ids, (b) => ({
   ...b.flip ? { flip: true } : {},
   ...b.span > 1 ? { span: b.span } : {}
 }));
+function keepDrawn(d, key, def) {
+  const old = d.drawn?.[key];
+  if (old && old.label === def.label && old.n === def.n && old.rows === def.rows) return d;
+  return { ...d, drawn: { ...d.drawn || {}, [key]: def } };
+}
+var useDrawn = (d, ids, key, def, roles) => setPattern(keepDrawn(d, key, def), ids, key, roles);
 var copyBlock = (d, src, ids) => mapBlocks(d, ids, (b) => {
   const { span: _s, under: _u, ...copy } = clone(src);
   return b.span > 1 ? { ...copy, span: b.span } : copy;
@@ -13090,25 +13278,6 @@ function setFussy2(u, v) {
   });
   $("dz-fussy-clear").addEventListener("click", () => setFussy2(null));
 }
-
-// src/designer/ui-state.js
-var toolsPanel = null;
-var setToolsPanel = (v) => toolsPanel = v;
-var showTools = () => {
-};
-var setShowTools = (f) => showTools = f;
-var showToolsPanel = () => {
-};
-var setShowToolsPanel = (f) => showToolsPanel = f;
-var hideTools = () => {
-};
-var setHideTools = (f) => hideTools = f;
-var partTap = null;
-var setPartTap = (v) => partTap = v;
-var mosaicBrush = "b1";
-var setMosaicBrush = (v) => mosaicBrush = v;
-var mosaicTool = "one";
-var setMosaicTool = (v) => mosaicTool = v;
 
 // src/designer/parts-editor.js
 function drawPartsEditor() {
@@ -14246,13 +14415,13 @@ function drawQuiltingLines(g, W, H, kind) {
   } else if (kind === "meander") {
     let seed = 99;
     const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
-    const row = 30 * k, step = 18 * k;
+    const row = 30 * k, step2 = 18 * k;
     for (let y = row / 2; y < H + row; y += row) {
       g.beginPath();
-      g.moveTo(-step, y);
-      for (let x = -step; x < W + 2 * step; x += step) {
+      g.moveTo(-step2, y);
+      for (let x = -step2; x < W + 2 * step2; x += step2) {
         const cy = y + (rnd() - 0.5) * row * 1.4, ny = y + (rnd() - 0.5) * row * 0.5;
-        g.quadraticCurveTo(x + step / 2, cy, x + step, ny);
+        g.quadraticCurveTo(x + step2 / 2, cy, x + step2, ny);
       }
       g.stroke();
     }
@@ -15616,6 +15785,465 @@ $("cg-pop").addEventListener("close", () => {
   if (lastPlan) drawCutQuilt(lastPlan);
 });
 
+// src/core/cell-drawing.js
+var PARTS2 = { s: 1, "/": 2, "\\": 2, q: 4, "^": 2, v: 2, "<": 2, ">": 2 };
+var SHAPES = Object.keys(PARTS2);
+function blankDrawing(n, role = 0) {
+  const pieces = [];
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) pieces.push({ x, y, w: 1, h: 1, k: "s", r: [role] });
+  return { n, pieces };
+}
+function toRows(dr) {
+  const g = Array.from({ length: dr.n }, () => new Array(dr.n).fill("0"));
+  for (const p of dr.pieces) {
+    for (let j = 0; j < p.h; j++) for (let i = 0; i < p.w; i++) g[p.y + j][p.x + i] = i && j ? "+" : i ? "-" : "|";
+    const [a, b] = p.r;
+    g[p.y][p.x] = p.k === "s" ? `${a}` : p.k === "/" || p.k === "\\" ? `${a}${p.k}${b}` : p.k === "q" ? `q${p.r.join("")}` : `${p.k}${a}${b}`;
+  }
+  return g.map((row) => row.join(" ")).join("\n");
+}
+function fromRows(n, rows) {
+  const g = rows.trim().split("\n").map((l) => l.trim().split(/\s+/));
+  if (g.length !== n || g.some((r) => r.length !== n)) return null;
+  const taken = g.map((r) => r.map(() => false));
+  const pieces = [];
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) {
+      if (taken[y][x]) continue;
+      const t = g[y][x];
+      let m, k, r;
+      if (m = /^([0-5])$/.exec(t)) [k, r] = ["s", [+m[1]]];
+      else if (m = /^([0-5])([/\\])([0-5])$/.exec(t)) [k, r] = [m[2], [+m[1], +m[3]]];
+      else if (m = /^q([0-5])([0-5])([0-5])([0-5])$/.exec(t)) [k, r] = ["q", [+m[1], +m[2], +m[3], +m[4]]];
+      else if (m = /^([\^v<>])([0-5])([0-5])$/.exec(t)) [k, r] = [m[1], [+m[2], +m[3]]];
+      else return null;
+      let w = 1, h = 1;
+      while (x + w < n && g[y][x + w] === "-" && !taken[y][x + w]) w++;
+      while (y + h < n && g[y + h][x] === "|" && !taken[y + h][x]) h++;
+      for (let j = 0; j < h; j++)
+        for (let i = 0; i < w; i++) {
+          if (g[y + j][x + i] !== (i && j ? "+" : i ? "-" : j ? "|" : t)) return null;
+          taken[y + j][x + i] = true;
+        }
+      pieces.push({ x, y, w, h, k, r });
+    }
+  return { n, pieces };
+}
+var pieceAt = (dr, x, y) => dr.pieces.findIndex((p) => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h);
+function partAt(k, u, v) {
+  if (k === "/") return u + v < 1 ? 0 : 1;
+  if (k === "\\") return v > u ? 0 : 1;
+  if (k === "q") return v <= u && v <= 1 - u ? 0 : u >= v && u >= 1 - v ? 1 : v >= u && v >= 1 - u ? 2 : 3;
+  const inGoose = {
+    "^": v >= 2 * Math.abs(u - 0.5),
+    v: 1 - v >= 2 * Math.abs(u - 0.5),
+    "<": u >= 2 * Math.abs(v - 0.5),
+    ">": 1 - u >= 2 * Math.abs(v - 0.5)
+  }[k];
+  return inGoose === void 0 ? 0 : inGoose ? 0 : 1;
+}
+var LR = {
+  rect: (p, n) => ({ x: n - p.x - p.w, y: p.y, w: p.w, h: p.h }),
+  shape: (k, r) => k === "/" ? ["\\", [r[1], r[0]]] : k === "\\" ? ["/", [r[1], r[0]]] : k === "q" ? ["q", [r[0], r[3], r[2], r[1]]] : k === "<" ? [">", r] : k === ">" ? ["<", r] : [k, r]
+};
+var TB = {
+  rect: (p, n) => ({ x: p.x, y: n - p.y - p.h, w: p.w, h: p.h }),
+  shape: (k, r) => k === "/" ? ["\\", r] : k === "\\" ? ["/", r] : k === "q" ? ["q", [r[2], r[1], r[0], r[3]]] : k === "^" ? ["v", r] : k === "v" ? ["^", r] : [k, r]
+};
+var TURN = {
+  rect: (p, n) => ({ x: n - p.y - p.h, y: p.x, w: p.h, h: p.w }),
+  shape: (k, r) => k === "/" ? ["\\", [r[1], r[0]]] : k === "\\" ? ["/", r] : k === "q" ? ["q", [r[3], r[0], r[1], r[2]]] : k === "^" ? [">", r] : k === ">" ? ["v", r] : k === "v" ? ["<", r] : k === "<" ? ["^", r] : [k, r]
+};
+var chain = (ms) => ({
+  rect: (p, n) => ms.reduce((q, m) => ({ ...q, ...m.rect(q, n) }), p),
+  shape: (k, r) => ms.reduce(([kk, rr], m) => m.shape(kk, rr), [k, r])
+});
+var movesOf = (sym) => sym === "mirror" ? [LR, TB, chain([LR, TB])] : sym === "turn" ? [TURN, chain([TURN, TURN]), chain([TURN, TURN, TURN])] : [];
+var sameRect = (a, b) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+function place(dr, i, np, sym) {
+  const pieces = dr.pieces.slice();
+  pieces[i] = np;
+  for (const m of movesOf(sym)) {
+    const rect = m.rect(np, dr.n), j = pieces.findIndex((p) => sameRect(p, rect));
+    if (j < 0 || j === i) continue;
+    const [k, r] = m.shape(np.k, np.r);
+    pieces[j] = { ...rect, k, r: r.slice() };
+  }
+  return { n: dr.n, pieces };
+}
+function paint(dr, x, y, shape, role, sym = "off") {
+  const i = pieceAt(dr, x, y);
+  if (i < 0 || !(shape in PARTS2)) return dr;
+  const p = dr.pieces[i];
+  const r = p.k === shape ? p.r.slice() : new Array(PARTS2[shape]).fill(p.r[0]);
+  r[partAt(shape, (x - p.x) / p.w, (y - p.y) / p.h)] = role;
+  if (shape === p.k && r.every((v, k) => v === p.r[k])) return dr;
+  return place(dr, i, { ...p, k: shape, r }, sym);
+}
+function joinOne(dr, x0, y0, x1, y1) {
+  let a = { x0: Math.min(x0, x1), y0: Math.min(y0, y1), x1: Math.max(x0, x1) + 1, y1: Math.max(y0, y1) + 1 };
+  const cuts = (p) => p.x < a.x1 && p.x + p.w > a.x0 && p.y < a.y1 && p.y + p.h > a.y0;
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const p of dr.pieces)
+      if (cuts(p)) {
+        const b = {
+          x0: Math.min(a.x0, p.x),
+          y0: Math.min(a.y0, p.y),
+          x1: Math.max(a.x1, p.x + p.w),
+          y1: Math.max(a.y1, p.y + p.h)
+        };
+        if (b.x0 !== a.x0 || b.y0 !== a.y0 || b.x1 !== a.x1 || b.y1 !== a.y1) [a, grew] = [b, true];
+      }
+  }
+  const inside2 = dr.pieces.filter(cuts);
+  if (inside2.length < 2) return dr;
+  const first = inside2.find((p) => p.x === a.x0 && p.y === a.y0) || inside2[0];
+  return {
+    n: dr.n,
+    pieces: [
+      ...dr.pieces.filter((p) => !cuts(p)),
+      { x: a.x0, y: a.y0, w: a.x1 - a.x0, h: a.y1 - a.y0, k: "s", r: [first.r[0]] }
+    ]
+  };
+}
+function join(dr, x0, y0, x1, y1, sym = "off") {
+  let out = joinOne(dr, x0, y0, x1, y1);
+  if (out === dr) return dr;
+  for (const m of movesOf(sym)) {
+    const lo = m.rect(
+      { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0) + 1, h: Math.abs(y1 - y0) + 1, k: "s", r: [0] },
+      dr.n
+    );
+    out = joinOne(out, lo.x, lo.y, lo.x + lo.w - 1, lo.y + lo.h - 1);
+  }
+  return out;
+}
+function split(dr, x, y, sym = "off") {
+  const i = pieceAt(dr, x, y);
+  if (i < 0) return dr;
+  const p = dr.pieces[i];
+  if (p.w === 1 && p.h === 1) return dr;
+  const rects = [p, ...movesOf(sym).map((m) => m.rect(p, dr.n))];
+  const gone = dr.pieces.filter((q) => rects.some((r) => sameRect(q, r)));
+  const pieces = dr.pieces.filter((q) => !gone.includes(q));
+  for (const q of gone)
+    for (let j = 0; j < q.h; j++)
+      for (let k = 0; k < q.w; k++) pieces.push({ x: q.x + k, y: q.y + j, w: 1, h: 1, k: "s", r: [q.r[0]] });
+  return { n: dr.n, pieces };
+}
+var rolesUsed = (dr) => [...new Set(dr.pieces.flatMap((p) => p.r))].sort((a, b) => a - b);
+
+// src/designer/block-drawer.js
+var ROLE_NAMES = ["Background", "Main", "Accent", "Fabric 4", "Fabric 5", "Fabric 6"];
+var UNDO_MAX = 100;
+var ed = {
+  /** @type {Drawing} */
+  dr: blankDrawing(4),
+  tool: "/",
+  role: 1,
+  /** @type {DrawSym} */
+  sym: "off",
+  /** @type {Drawing[]} */
+  undo: [],
+  /** @type {{ x0: number, y0: number, x1: number, y1: number } | null} cells being joined */
+  drag: null,
+  /** @type {Drawing | null} the drawing before the stroke being painted */
+  strokeFrom: null
+};
+function drawingOf(key) {
+  const p = PATTERNS[key], def = p?.drawn ? p.def : GRID_BLOCKS[key];
+  if (!def || def.fourfold || def.extra) return null;
+  return fromRows(def.n, def.rows);
+}
+var focusKey = () => design.blocks[focusBlock].pattern;
+function step(next) {
+  if (next === ed.dr) return false;
+  ed.undo.push(ed.dr);
+  if (ed.undo.length > UNDO_MAX) ed.undo.shift();
+  ed.dr = next;
+  return true;
+}
+var canvas3 = () => (
+  /** @type {HTMLCanvasElement} */
+  $("drawblk-canvas")
+);
+function paintPieces(g, dr, ox, oy, S) {
+  const parts = gridParts({ n: dr.n, rows: toRows(dr) });
+  for (const part of parts) {
+    g.fillStyle = ROLE_COLOURS[part.role];
+    pathPoly(
+      g,
+      part.poly.map(([u, v]) => [ox + u * S, oy + v * S])
+    );
+    g.fill();
+  }
+  g.lineWidth = 1;
+  g.strokeStyle = "rgba(0,0,0,.35)";
+  for (const part of parts) {
+    pathPoly(
+      g,
+      part.poly.map(([u, v]) => [ox + u * S, oy + v * S])
+    );
+    g.stroke();
+  }
+}
+function drawEditor() {
+  const c = canvas3(), dpr = Math.min(window.devicePixelRatio || 1, 2), css2 = c.getBoundingClientRect().width || 420, px = Math.round(css2 * dpr);
+  if (c.width !== px) c.width = c.height = px;
+  const g = c.getContext("2d"), S = px, n = ed.dr.n, cell = S / n;
+  g.clearRect(0, 0, S, S);
+  paintPieces(g, ed.dr, 0, 0, S);
+  g.save();
+  g.setLineDash([3 * dpr, 4 * dpr]);
+  g.strokeStyle = "rgba(0,0,0,.22)";
+  g.lineWidth = dpr;
+  for (let k = 1; k < n; k++) {
+    g.beginPath();
+    g.moveTo(k * cell, 0);
+    g.lineTo(k * cell, S);
+    g.moveTo(0, k * cell);
+    g.lineTo(S, k * cell);
+    g.stroke();
+  }
+  g.restore();
+  g.lineWidth = 2 * dpr;
+  g.strokeStyle = themeColour("--ink", "#2b2620");
+  for (const p of ed.dr.pieces) g.strokeRect(p.x * cell, p.y * cell, p.w * cell, p.h * cell);
+  if (ed.drag) {
+    const { x0, y0, x1, y1 } = ed.drag;
+    g.fillStyle = "rgba(184,83,46,.25)";
+    g.strokeStyle = themeColour("--accent", "#b8532e");
+    g.lineWidth = 3 * dpr;
+    const x = Math.min(x0, x1), y = Math.min(y0, y1), w = Math.abs(x1 - x0) + 1, h = Math.abs(y1 - y0) + 1;
+    g.fillRect(x * cell, y * cell, w * cell, h * cell);
+    g.strokeRect(x * cell, y * cell, w * cell, h * cell);
+  }
+  drawPreview();
+  drawCutting();
+  $("drawblk-undo").disabled = !ed.undo.length;
+  $("drawblk-n").value = String(n);
+}
+function drawPreview() {
+  const c = (
+    /** @type {HTMLCanvasElement} */
+    $("drawblk-preview")
+  ), g = c.getContext("2d"), S = c.width / 2;
+  g.clearRect(0, 0, c.width, c.height);
+  for (let i = 0; i < 4; i++) paintPieces(g, ed.dr, i % 2 * S, Math.floor(i / 2) * S, S);
+}
+function drawCutting() {
+  const W = design.blockMm, seam = cutOpts.seam, cuts = /* @__PURE__ */ new Map();
+  for (const part of gridParts({ n: ed.dr.n, rows: toRows(ed.dr) })) {
+    const c = CG.classify(part.poly, W, W, seam), k = `${part.role}|${c.how}`;
+    if (!cuts.has(k)) cuts.set(k, { role: part.role, how: c.how, n: 0, yield: c.yield });
+    cuts.get(k).n++;
+  }
+  const box2 = $("drawblk-cut");
+  box2.innerHTML = "";
+  const head = document.createElement("p");
+  head.className = "fine";
+  head.textContent = `For one ${len(W)} block (${ed.dr.n} \xD7 ${ed.dr.n} cells of ${len(W / ed.dr.n)}), seam allowance included:`;
+  box2.appendChild(head);
+  const ul = document.createElement("ul");
+  for (const r of rolesUsed(ed.dr))
+    for (const c of [...cuts.values()].filter((c2) => c2.role === r)) {
+      const li = document.createElement("li"), sw = document.createElement("i");
+      sw.className = "drawblk-sw";
+      sw.style.background = ROLE_COLOURS[r];
+      const cutsNeeded = Math.ceil(c.n / c.yield);
+      li.append(
+        sw,
+        `${ROLE_NAMES[r]}: ${cutsNeeded} \xD7 ${c.how}${c.yield > 1 ? ` (${c.n} piece${c.n === 1 ? "" : "s"})` : ""}`
+      );
+      ul.appendChild(li);
+    }
+  box2.appendChild(ul);
+}
+function cellPoint(e) {
+  const r = canvas3().getBoundingClientRect(), n = ed.dr.n;
+  return {
+    x: Math.max(0, Math.min(n - 1e-6, (e.clientX - r.left) / r.width * n)),
+    y: Math.max(0, Math.min(n - 1e-6, (e.clientY - r.top) / r.height * n))
+  };
+}
+function onDown(e) {
+  const { x, y } = cellPoint(e);
+  canvas3().setPointerCapture(e.pointerId);
+  if (ed.tool === "join") ed.drag = { x0: Math.floor(x), y0: Math.floor(y), x1: Math.floor(x), y1: Math.floor(y) };
+  else if (ed.tool === "split") step(split(ed.dr, x, y, ed.sym));
+  else {
+    ed.strokeFrom = ed.dr;
+    ed.dr = paint(ed.dr, x, y, ed.tool, ed.role, ed.sym);
+  }
+  drawEditor();
+}
+function onMove(e) {
+  if (!ed.drag && !ed.strokeFrom) return;
+  const { x, y } = cellPoint(e);
+  if (ed.drag) ed.drag = { ...ed.drag, x1: Math.floor(x), y1: Math.floor(y) };
+  else {
+    const next = paint(ed.dr, x, y, ed.tool, ed.role, ed.sym);
+    if (next === ed.dr) return;
+    ed.dr = next;
+  }
+  drawEditor();
+}
+function onUp() {
+  if (ed.drag) {
+    const { x0, y0, x1, y1 } = ed.drag;
+    ed.drag = null;
+    step(join(ed.dr, x0, y0, x1, y1, ed.sym));
+    drawEditor();
+  }
+  if (ed.strokeFrom) {
+    const done = ed.dr;
+    ed.dr = ed.strokeFrom;
+    ed.strokeFrom = null;
+    step(done);
+    drawEditor();
+  }
+}
+function currentDef() {
+  const def = checkDrawn({ label: $("drawblk-name").value, n: ed.dr.n, rows: toRows(ed.dr) });
+  if (!def) notify("This drawing could not be made into a block.");
+  return def;
+}
+function useInQuilt() {
+  if (readOnly) return notify("This quilt is read-only here, so it can\u2019t be changed.");
+  const def = currentDef();
+  if (!def) return;
+  const key = drawnKey(def);
+  registerDrawn(key, def);
+  noteRecentBlock(key);
+  selParts.clear();
+  dispatch(useDrawn, selBlocks, key, def, rolesOf(design.blocks[focusBlock]));
+  $("drawblk").close();
+}
+function keepInMyBlocks() {
+  if (readOnly) return notify("This quilt is read-only here, so it can\u2019t be changed.");
+  const def = currentDef();
+  if (!def) return;
+  const key = drawnKey(def);
+  registerDrawn(key, def);
+  dispatch(keepDrawn, key, def);
+  notify(`\u201C${def.label}\u201D is in My blocks, in the block library.`);
+}
+function setTool(t) {
+  ed.tool = t;
+  for (const b of document.querySelectorAll("#drawblk-tools button"))
+    b.setAttribute("aria-pressed", String(
+      /** @type {HTMLElement} */
+      b.dataset.tool === t
+    ));
+  canvas3().style.cursor = t === "join" ? "cell" : "crosshair";
+}
+function setRole(r) {
+  ed.role = r;
+  for (const b of document.querySelectorAll("#drawblk-roles button"))
+    b.setAttribute("aria-pressed", String(+/** @type {HTMLElement} */
+    b.dataset.role === r));
+}
+function openDrawer() {
+  const key = focusKey(), mine = PATTERNS[key]?.drawn ? drawingOf(key) : null;
+  ed.dr = mine || blankDrawing(4);
+  ed.undo = [];
+  const count = Object.values(PATTERNS).filter((p) => p.drawn).length;
+  $("drawblk-name").value = mine ? PATTERNS[key].label : `My block ${count + 1}`;
+  const from = drawingOf(key);
+  $("drawblk-from").disabled = !from;
+  $("drawblk-from").title = from ? `Start again from \u201C${PATTERNS[key].label}\u201D, the selected block` : "The selected block can\u2019t be drawn on this grid";
+  const dlg = (
+    /** @type {HTMLDialogElement} */
+    $("drawblk")
+  );
+  if (!dlg.open) {
+    try {
+      dlg.showModal();
+    } catch (e) {
+      dlg.setAttribute("open", "");
+    }
+  }
+  drawEditor();
+}
+function initDrawer() {
+  const tools = $("drawblk-tools");
+  tools.addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (b?.dataset.tool) setTool(b.dataset.tool);
+  });
+  const roles = $("drawblk-roles");
+  ROLE_COLOURS.forEach((col, r) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "drawblk-role";
+    b.dataset.role = String(r);
+    b.title = ROLE_NAMES[r];
+    b.setAttribute("aria-label", ROLE_NAMES[r]);
+    b.style.background = col;
+    roles.appendChild(b);
+  });
+  roles.addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (b?.dataset.role) setRole(+b.dataset.role);
+  });
+  $("drawblk-sym").addEventListener("change", (e) => {
+    ed.sym = /** @type {DrawSym} */
+    /** @type {HTMLSelectElement} */
+    e.target.value;
+  });
+  $("drawblk-n").addEventListener("change", (e) => {
+    const n = +/** @type {HTMLSelectElement} */
+    e.target.value;
+    if (n !== ed.dr.n) step(blankDrawing(n));
+    drawEditor();
+  });
+  $("drawblk-clear").addEventListener("click", () => {
+    step(blankDrawing(ed.dr.n));
+    drawEditor();
+  });
+  $("drawblk-from").addEventListener("click", () => {
+    const from = drawingOf(focusKey());
+    if (from && step(from)) drawEditor();
+  });
+  $("drawblk-undo").addEventListener("click", () => {
+    if (!ed.undo.length) return;
+    ed.dr = ed.undo.pop();
+    drawEditor();
+  });
+  $("drawblk").addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && e.target.tagName !== "INPUT") {
+      e.preventDefault();
+      $("drawblk-undo").click();
+    }
+  });
+  $("drawblk-x").addEventListener("click", () => (
+    /** @type {HTMLDialogElement} */
+    $("drawblk").close()
+  ));
+  $("drawblk-use").addEventListener("click", useInQuilt);
+  $("drawblk-keep").addEventListener("click", keepInMyBlocks);
+  const c = canvas3();
+  c.addEventListener("pointerdown", onDown);
+  c.addEventListener("pointermove", onMove);
+  c.addEventListener("pointerup", onUp);
+  c.addEventListener("pointercancel", onUp);
+  addEventListener("resize", () => (
+    /** @type {HTMLDialogElement} */
+    $("drawblk").open && drawEditor()
+  ));
+  setTool(ed.tool);
+  setRole(ed.role);
+  setOpenBlockDrawer(openDrawer);
+}
+initDrawer();
+
 // src/designer/sashing-ui.js
 var cbSel = /* @__PURE__ */ new Set();
 function drawCornerPatterns(current, allowed) {
@@ -16934,30 +17562,30 @@ function photoMedallion() {
   const put2 = (c, r, pattern, roles, rot = 0, extra = {}) => {
     d.blocks[r * N2 + c] = { ...newBlock(pattern, roles), rot, ...extra };
   };
-  const chain = [WH, MO, MO], dark9 = [WH, CH, CH], gold9 = [WH, MU, MU];
+  const chain2 = [WH, MO, MO], dark9 = [WH, CH, CH], gold9 = [WH, MU, MU];
   const mintH = [WH, MI, MI], darkH = [WH, CH, CH];
-  put2(0, 0, "dnine", chain);
-  put2(1, 0, "nine", chain);
+  put2(0, 0, "dnine", chain2);
+  put2(1, 0, "nine", chain2);
   put2(2, 0, "hst", mintH, 0);
   put2(3, 0, "hst", darkH, 0);
   put2(4, 0, "sawstar", [WH, MU, FL]);
   put2(5, 0, "hst", mintH, 1);
   put2(6, 0, "hst", darkH, 1);
   put2(7, 0, "economy", [MI, TE, CH]);
-  put2(1, 1, "nine", chain);
-  put2(2, 1, "nine", chain);
+  put2(1, 1, "nine", chain2);
+  put2(2, 1, "nine", chain2);
   put2(3, 1, "hst", mintH, 0);
   put2(4, 1, "hst", darkH, 0);
   put2(5, 1, "hst", darkH, 1);
   put2(6, 1, "hst", mintH, 1);
   put2(7, 1, "economy", [MI, TE, CH]);
-  put2(2, 2, "nine", chain);
+  put2(2, 2, "nine", chain2);
   put2(3, 2, "nine", dark9);
   put2(4, 2, "nine", dark9);
   put2(5, 2, "sawstar", [WH, CH, TE]);
   put2(6, 2, "hst", mintH, 0);
   put2(7, 2, "economy", [MI, TE, CH]);
-  put2(3, 3, "nine", chain);
+  put2(3, 3, "nine", chain2);
   put2(4, 3, "hst", mintH, 0);
   put2(5, 3, "nine", gold9);
   put2(6, 3, "sawstar", [WH, CH, MO]);
@@ -17105,9 +17733,9 @@ function tlGo(to) {
   tl.restoring = false;
   tlUI();
 }
-function tlThumb(step) {
-  if (tl.thumbs.has(step.id)) return tl.thumbs.get(step.id);
-  const d = (readDesign(step.d) || readDesignOrDefault(null)).design, S = 82, c = document.createElement("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2);
+function tlThumb(step2) {
+  if (tl.thumbs.has(step2.id)) return tl.thumbs.get(step2.id);
+  const d = (readDesign(step2.d) || readDesignOrDefault(null)).design, S = 82, c = document.createElement("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2);
   const qq = quiltMm(d), w = qq.W >= qq.H ? S : Math.round(S * qq.W / qq.H), h = qq.W >= qq.H ? Math.round(S * qq.H / qq.W) : S;
   c.width = w * dpr;
   c.height = h * dpr;
@@ -17116,7 +17744,7 @@ function tlThumb(step) {
   const g = c.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawQuilt2(g, w, h, { design: d });
-  tl.thumbs.set(step.id, c);
+  tl.thumbs.set(step2.id, c);
   if (tl.thumbs.size > 140) tl.thumbs.delete(tl.thumbs.keys().next().value);
   return c;
 }
@@ -18302,7 +18930,7 @@ function hoverGeom() {
   const cv = $("dz-quilt"), w = parseFloat(cv.style.width) || cv.clientWidth, h = parseFloat(cv.style.height) || cv.clientHeight;
   return { w, h };
 }
-function partAt(bi, x, y) {
+function partAt2(bi, x, y) {
   const { w, h } = hoverGeom();
   return placedPolys(design.blocks[bi], blockPlace(design, bi, w, h)).findIndex((p) => pointInPoly(x, y, p));
 }
@@ -18527,7 +19155,7 @@ function initHover() {
       return;
     }
     hover.zone = null;
-    const part = partAt(bi, x, y);
+    const part = partAt2(bi, x, y);
     hover.x = x;
     hover.y = y;
     if (bi !== hover.bi) {
