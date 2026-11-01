@@ -34,7 +34,10 @@ export function registerAuth(app, config, pool, keys) {
   app.decorateRequest('user', null);
   app.addHook('onRequest', async (req, reply) => {
     if (!req.url.startsWith('/v1/')) return;
-    if (config.auth === 'none') return refuse(reply, 'Sign-in is not set up on this server yet.');
+    // a public address (the community's quilts): open to all, but whoever is signed in is still known
+    const open = !!(/** @type {any} */ (req.routeOptions?.config)?.public);
+    const no = msg => (open ? undefined : refuse(reply, msg));
+    if (config.auth === 'none') return no('Sign-in is not set up on this server yet.');
     const bearer = /^Bearer (\S+)$/i.exec(req.headers.authorization || '');
     if (bearer && keySet) {
       let claims;
@@ -46,17 +49,17 @@ export function registerAuth(app, config, pool, keys) {
           algorithms: ['RS256'],
         }));
       } catch (e) {
-        return refuse(reply, e?.code === 'ERR_JWT_EXPIRED' ? 'Your sign-in has expired.' : 'Please sign in again.');
+        return no(e?.code === 'ERR_JWT_EXPIRED' ? 'Your sign-in has expired.' : 'Please sign in again.');
       }
       if (typeof claims.sub !== 'string' || !claims.sub || claims.sub.startsWith('dev:'))
-        return refuse(reply, 'Please sign in again.');
+        return no('Please sign in again.');
       req.user = await userFor(claims.sub, typeof claims.email === 'string' ? claims.email : null);
       return;
     }
-    if (config.auth !== 'dev') return refuse(reply, 'Please sign in.');
+    if (config.auth !== 'dev') return no('Please sign in.');
     const name = req.headers['x-dev-user'];
     if (typeof name !== 'string' || !DEV_NAME.test(name))
-      return refuse(reply, 'Development login: send an X-Dev-User header (letters, digits, _ . -).');
+      return no('Development login: send an X-Dev-User header (letters, digits, _ . -).');
     req.user = await userFor('dev:' + name.toLowerCase(), null);
   });
 }

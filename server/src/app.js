@@ -7,6 +7,7 @@ import { ApiError } from './records.js';
 import { designRoutes } from './routes/designs.js';
 import { fabricRoutes } from './routes/fabrics.js';
 import { changeRoutes } from './routes/changes.js';
+import { communityRoutes } from './routes/community.js';
 
 /**
  * @param {{ config: import('./config.js').Config, pool: import('pg').Pool, store: import('./objects.js').ObjectStore, logger?: any, keys?: import('./auth.js').KeySet }} deps
@@ -46,5 +47,6 @@ export async function buildApp({ config, pool, store, logger = false, keys }) {
   designRoutes(app, pool);
   fabricRoutes(app, pool, store, config);
   changeRoutes(app, pool);
+  communityRoutes(app, pool, store);
   return app;
 }
