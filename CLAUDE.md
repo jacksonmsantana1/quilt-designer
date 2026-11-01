@@ -61,7 +61,9 @@ Everything must stay green: `npm run check` with zero lint warnings, and all bro
 - **Drawn blocks** (`shared/src/drawn-blocks.js`, editor `designer/block-drawer.js`, drawing model `core/cell-drawing.js`):
   a quilt carries the blocks drawn in the block editor in `design.drawn`, keyed `my` + a hash of the drawing (grid
   notation of `grid-blocks.js`); `readDesign` checks them and registers them as patterns (family "My blocks"). A
-  changed drawing is a new key; the library gathers My blocks from every saved quilt.
+  changed drawing is a new key; the library gathers My blocks from every saved quilt. Graph-paper blocks
+  (`core/paper-drawing.js`) have every cell "x" and their pieces in `extra`, found from the seam lines by
+  `shared/src/seam-faces.js`; the lines and fills are kept in `paper` to open them again.
 - **Storage** (`storage/repo.js`, `createRepo()`): IndexedDB stores designs, fabrics (photos as Blobs, id =
   `f` + sha-256), timelines (undo, device only), session. Read into memory at start; writes batched right after.
   Records have `rev` (local saves), `syncRev` (server rev it's based on), `dirty`, `deleted` markers.
@@ -107,9 +109,7 @@ on the internet (Chrome blocks pages from reaching a server on the person's own 
 popup may not open from inside claude.ai's frame: untested.
 
 **Known gaps / ideas**
-- Block editor, step 2 (agreed with the owner): graph paper with rulers, seam lines at any angle snapped to ½–⅛ of a
-  cell, pieces found from the lines (stored as `extra` polygons), "Open on graph paper" for cell blocks. Drawn blocks
-  can't be deleted from My blocks yet, and the editor can't start from the hand-coded blocks (Ohio star, nine patch…).
+- Block editor: drawn blocks can't be deleted from My blocks yet; drawing needs a pointer (no keyboard way).
 - The "Add fabric photos" button sits in a section that is always hidden, so people can't add their own fabrics
   (tests reach it through the code). Proposed: a "+ Add fabric" tile at the end of the fabric list (photo file).
   Not done yet: ask first. The webcam fabric feature was removed at the owner's request: don't bring it back.

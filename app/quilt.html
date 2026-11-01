@@ -622,7 +622,7 @@
   /* the block library's "Draw a block" tile and the block editor */
   .pats .pat.pat-draw { border: 2px dashed var(--stitch); background: var(--accent-soft); color: var(--accent); }
   .pats .pat.pat-draw b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 2rem; font-weight: 400; }
-  .drawblk { width: min(860px, calc(100vw - 32px)); }
+  .drawblk { width: min(860px, calc(100vw - 32px)); scrollbar-gutter: stable; } /* the grid keeps its size as the list below grows */
   .drawblk-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; margin-top: 12px; align-items: start; }
   .drawblk-paper canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 6px; background: var(--panel); box-shadow: 0 0 0 1px var(--line); touch-action: none; }
   .drawblk-side { display: flex; flex-direction: column; gap: 10px; font-size: .82rem; }
@@ -633,6 +633,13 @@
   #drawblk-tools button.wide { grid-column: span 2; font-size: .78rem; }
   #drawblk-tools button[aria-pressed="true"], .drawblk-role[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   #drawblk-roles { display: flex; gap: 6px; }
+  .drawblk-mode { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .drawblk-mode button { flex: 1; padding: 7px 0; border: 0; background: var(--panel); color: var(--ink); font: 600 .8rem var(--font-body); cursor: pointer; }
+  .drawblk-mode button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  #drawblk-ptools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  #drawblk-ptools button { padding: 6px 0; font-size: .78rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  #drawblk-ptools button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .drawblk-float { color: var(--madder); margin: 6px 0 0; }
   .drawblk-role { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; padding: 0; }
   #drawblk-preview { width: 140px; height: 140px; border-radius: 4px; box-shadow: 0 0 0 1px var(--line); }
   #drawblk-cut ul { margin: 4px 0 0; padding: 0; list-style: none; }
@@ -1359,12 +1366,16 @@
   <div class="drawblk-body">
     <div class="drawblk-paper"><canvas id="drawblk-canvas" width="480" height="480" role="img" aria-label="The block being drawn: click a cell to give it the shape and fabric in hand"></canvas></div>
     <div class="drawblk-side">
+      <div class="drawblk-mode" id="drawblk-mode" role="group" aria-label="Draw on">
+        <button type="button" data-mode="cells" title="A grid of cells: squares, triangles, hourglasses and geese">Cells</button>
+        <button type="button" data-mode="paper" title="Graph paper: seam lines at any angle, with rulers">Graph paper</button>
+      </div>
       <div class="row"><span class="lbl">Grid</span>
-        <select id="drawblk-n" aria-label="Cells per side"><option value="2">2 × 2</option><option value="3">3 × 3</option><option value="4" selected>4 × 4</option><option value="5">5 × 5</option><option value="6">6 × 6</option><option value="7">7 × 7</option><option value="8">8 × 8</option></select>
+        <select id="drawblk-n" aria-label="Squares per side"><option value="2">2 × 2</option><option value="3">3 × 3</option><option value="4" selected>4 × 4</option><option value="5">5 × 5</option><option value="6">6 × 6</option><option value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option><option value="10">10 × 10</option><option value="12">12 × 12</option></select>
         <button class="btn sm" type="button" id="drawblk-from">Start from selected</button>
         <button class="btn sm" type="button" id="drawblk-clear">Clear</button>
       </div>
-      <div><span class="lbl">Shape</span>
+      <div id="drawblk-cells-tools"><span class="lbl">Shape</span>
         <div id="drawblk-tools" role="group" aria-label="Shape">
           <button type="button" data-tool="s" title="Square: one fabric" aria-label="Square">■</button>
           <button type="button" data-tool="/" title="Half-square triangle, cut along /" aria-label="Triangle cut along /">◩</button>
@@ -1377,6 +1388,17 @@
           <button type="button" data-tool="join" class="wide" title="Drag over cells to join them into one bigger square or rectangle">Join</button>
           <button type="button" data-tool="split" class="wide" title="Click a joined piece to split it back into cells">Split</button>
         </div>
+      </div>
+      <div id="drawblk-paper-tools" hidden><span class="lbl">Tool</span>
+        <div id="drawblk-ptools" role="group" aria-label="Tool">
+          <button type="button" data-ptool="line" title="Drag from one grid point to another to draw a seam">Seam line</button>
+          <button type="button" data-ptool="fill" title="Click a piece to give it the fabric in hand">Fill</button>
+          <button type="button" data-ptool="erase" title="Click a seam line to take it away">Erase</button>
+        </div>
+        <div class="row" style="margin-top:6px"><label for="drawblk-snap">Points every</label>
+          <select id="drawblk-snap"><option value="2">½ square</option><option value="4" selected>¼ square</option><option value="8">⅛ square</option></select>
+        </div>
+        <p class="fine drawblk-float" id="drawblk-float" role="status" hidden>A shape floats free inside the block, so it isn’t a piece yet: draw a seam from it to another seam or to the edge.</p>
       </div>
       <div><span class="lbl">Fabric</span><div id="drawblk-roles" role="group" aria-label="Fabric"></div></div>
       <div class="row"><span class="lbl">Symmetry</span>
@@ -7536,9 +7558,9 @@ function joinRuns(pieces, ax) {
     lines.set(at, [...lines.get(at) || [], rc]);
   }
   const out = [];
-  for (const line of lines.values()) {
-    line.sort((a, b) => a[ax] - b[ax]);
-    let run2 = [line[0]];
+  for (const line2 of lines.values()) {
+    line2.sort((a, b) => a[ax] - b[ax]);
+    let run2 = [line2[0]];
     const flush2 = () => {
       const first = run2[0], last = run2[run2.length - 1], ext = last[ax] + last[len2] - first[ax];
       if (run2.length === 1) out.push(first);
@@ -7551,7 +7573,7 @@ function joinRuns(pieces, ax) {
           h: ax === "y" ? ext : first.h
         });
     };
-    for (const rc of line.slice(1)) {
+    for (const rc of line2.slice(1)) {
       const last = run2[run2.length - 1];
       if (rc[ax] <= last[ax] + last[len2] + 1e-6 * (last[len2] || 1)) run2.push(rc);
       else flush2(), run2 = [rc];
@@ -7743,6 +7765,8 @@ var DRAWN_FAMILY = "My blocks";
 var MAX_N = 12;
 var MAX_DRAWN = 200;
 var MAX_LABEL = 60;
+var MAX_PIECES = 400;
+var MAX_MARKS = 600;
 var tidyRows = (rows) => rows.trim().split("\n").map((l) => l.trim().split(/\s+/).join(" ")).join("\n");
 function fnv(s, start) {
   let h = start;
@@ -7750,7 +7774,9 @@ function fnv(s, start) {
   return h;
 }
 function drawnKey(def) {
-  const s = `${def.n}|${tidyRows(def.rows)}`;
+  let s = `${def.n}|${tidyRows(def.rows)}`;
+  if (def.extra?.length)
+    s += "|" + def.extra.map(([, r, f]) => `${r}:${f.map((v) => Math.round(v * 1e4)).join(",")}`).join(";");
   const a = fnv(s, 2166136261), b = fnv(s, 84696351);
   return "my" + a.toString(16).padStart(8, "0") + (b >>> 16).toString(16).padStart(4, "0");
 }
@@ -7760,23 +7786,42 @@ function checkDrawn(def) {
   if (!Number.isInteger(n) || n < 1 || n > MAX_N) return null;
   const rows = tidyRows(def.rows), lines = rows.split("\n");
   if (lines.length !== n || lines.some((l) => l.split(" ").length !== n)) return null;
+  const num3 = (v) => typeof v === "number" && Number.isFinite(v), within = (v) => num3(v) && v >= -1e-9 && v <= n + 1e-9;
+  let extra;
+  if (def.extra !== void 0) {
+    if (!Array.isArray(def.extra) || def.extra.length > MAX_PIECES) return null;
+    extra = [];
+    for (const piece of def.extra) {
+      if (!Array.isArray(piece) || piece.length !== 3) return null;
+      const [name, role, flat] = piece;
+      if (typeof name !== "string" || name.length > 80 || !Number.isInteger(role) || role < 0 || role > 5) return null;
+      if (!Array.isArray(flat) || flat.length < 6 || flat.length > 400 || flat.length % 2 || !flat.every(within))
+        return null;
+      extra.push([name, role, flat.slice()]);
+    }
+  }
   let parts;
   try {
-    parts = gridParts({ n, rows });
+    parts = gridParts(extra ? { n, rows, extra } : { n, rows });
   } catch (e) {
     return null;
   }
-  const area2 = parts.reduce((sum, p) => {
+  const area3 = parts.reduce((sum, p2) => {
     let a = 0;
-    p.poly.forEach(([x0, y0], i) => {
-      const [x1, y1] = p.poly[(i + 1) % p.poly.length];
+    p2.poly.forEach(([x0, y0], i) => {
+      const [x1, y1] = p2.poly[(i + 1) % p2.poly.length];
       a += x0 * y1 - x1 * y0;
     });
     return sum + Math.abs(a) / 2;
   }, 0);
-  if (Math.abs(area2 - 1) > 1e-6) return null;
+  if (Math.abs(area3 - 1) > 1e-6) return null;
   const label = typeof def.label === "string" && def.label.trim() ? def.label.trim().slice(0, MAX_LABEL) : "My block";
-  return { label, n, rows };
+  const out = { label, n, rows };
+  if (extra) out.extra = extra;
+  const p = def.paper, marks = (a, k) => Array.isArray(a) && a.length <= MAX_MARKS && a.every((m) => Array.isArray(m) && m.length === k);
+  if (extra && p && marks(p.lines, 4) && marks(p.fills, 3) && p.lines.every((l) => l.every(within)) && p.fills.every(([x, y, r]) => within(x) && within(y) && Number.isInteger(r) && r >= 0 && r <= 5))
+    out.paper = { lines: p.lines.map((l) => l.slice()), fills: p.fills.map((m) => m.slice()) };
+  return out;
 }
 function registerDrawn(key, def) {
   const known = PATTERNS[key];
@@ -10360,7 +10405,7 @@ function drawChart() {
   g.textAlign = "center";
   g.textBaseline = "top";
   for (let t = Math.floor(t0 / 2) * 2 + 2; t <= t1; t += 2) g.fillText(t + " s", X(t), padT + ph + 3);
-  const line = (key, color, mul = 1, dash = []) => {
+  const line2 = (key, color, mul = 1, dash = []) => {
     g.strokeStyle = color;
     g.lineWidth = 1.8;
     g.setLineDash(dash);
@@ -10379,9 +10424,9 @@ function drawChart() {
     g.stroke();
     g.setLineDash([]);
   };
-  line("dis", col("--muted"), 1, [4, 3]);
-  line("el", col("--madder"), 10);
-  line("ke", col("--accent"));
+  line2("dis", col("--muted"), 1, [4, 3]);
+  line2("el", col("--madder"), 10);
+  line2("ke", col("--accent"));
 }
 
 // src/sim/controls.js
@@ -10595,9 +10640,9 @@ function updateDropGuide(show2) {
   const bed = bedM(), y = ClothSim.surfaceTop(bed) + 0.03, L = Math.max(bed.w, bed.l), z = alongZ();
   const p = (dropPos == null ? defaultDropPos() : dropPos) / 1e3;
   const P = (a, b) => z ? new THREE10.Vector3(b, y, a) : new THREE10.Vector3(a, y, b);
-  const line = new THREE10.Line(new THREE10.BufferGeometry().setFromPoints([P(-L / 2, 0), P(L / 2, 0)]), guideMat);
-  line.computeLineDistances();
-  line.renderOrder = 999;
+  const line2 = new THREE10.Line(new THREE10.BufferGeometry().setFromPoints([P(-L / 2, 0), P(L / 2, 0)]), guideMat);
+  line2.computeLineDistances();
+  line2.renderOrder = 999;
   const qw = (quiltTurned ? quilt.l : quilt.w) / 2, ql = (quiltTurned ? quilt.w : quilt.l) / 2, cx = z ? 0 : p, cz = z ? p : isTableSim() ? 0 : 0;
   const rect = new THREE10.LineLoop(
     new THREE10.BufferGeometry().setFromPoints(
@@ -10613,7 +10658,7 @@ function updateDropGuide(show2) {
   rect.computeLineDistances();
   rect.renderOrder = 999;
   guideDot.position.set(z ? 0 : p, y + 1e-3, z ? p : 0);
-  dropGuide.add(line, rect, guideDot);
+  dropGuide.add(line2, rect, guideDot);
   clearTimeout(guideT);
   dropGuide.visible = !!show2;
   if (show2)
@@ -10777,13 +10822,13 @@ function fabricIdsIn(value, isFabric3) {
   walk(value);
   return out;
 }
-function shortList({ basics, selected = null, inQuilt = [], recent = [], newest = [], max = 10, fill = 5 }) {
+function shortList({ basics, selected = null, inQuilt = [], recent = [], newest = [], max = 10, fill: fill2 = 5 }) {
   const basic = new Set(basics), extra = [];
   const add = (id) => {
     if (id && !basic.has(id) && !extra.includes(id) && extra.length < max) extra.push(id);
   };
   [selected, ...inQuilt, ...recent].forEach(add);
-  for (const id of newest) if (extra.length < fill) add(id);
+  for (const id of newest) if (extra.length < fill2) add(id);
   return [...basics, ...extra];
 }
 var withRecent = (list2, id, max = 12) => [id, ...list2.filter((x) => x !== id)].slice(0, max);
@@ -12990,10 +13035,10 @@ function clampPan() {
   zoom.y = Math.max(0, Math.min(view.h * zoom.z - view.h, zoom.y));
 }
 function placeZoomed() {
-  const on = zoom.z > 1, inner = $("dz-quilt").parentElement;
-  inner.classList.toggle("zoomed", on);
-  inner.style.width = on ? view.w + "px" : "";
-  inner.style.height = on ? view.h + "px" : "";
+  const on = zoom.z > 1, inner2 = $("dz-quilt").parentElement;
+  inner2.classList.toggle("zoomed", on);
+  inner2.style.width = on ? view.w + "px" : "";
+  inner2.style.height = on ? view.h + "px" : "";
   for (const id of ["dz-quilt", "dz-hover"]) {
     const el = $(id);
     el.style.left = on ? -zoom.x + "px" : "";
@@ -13082,10 +13127,10 @@ function drawDesignerCanvas() {
   if (editing)
     for (const bi of selBlocks) {
       const P = blockPlace(design, bi, cw, ch), cx = P.x + P.w / 2, cy = P.y + P.h / 2, k = 1 - 3 / Math.max(P.w, 6);
-      const frame2 = blockOutline(P).map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]);
+      const frame3 = blockOutline(P).map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]);
       g.lineWidth = 3;
       g.strokeStyle = "#ffffff";
-      pathPoly(g, frame2);
+      pathPoly(g, frame3);
       g.stroke();
       g.lineWidth = 1.5;
       g.strokeStyle = bi === focusBlock ? themeColour("--mark", "#d2602f") : themeColour("--ink", "#2e211c");
@@ -13099,7 +13144,7 @@ function drawDesignerCanvas() {
     g.save();
     g.setLineDash([8, 6]);
     g.lineCap = "round";
-    const line = (a, b, c, d) => {
+    const line2 = (a, b, c, d) => {
       for (const [w, col] of [
         [4, "rgba(255,255,255,.85)"],
         [2, themeColour("--mark", "#d2602f")]
@@ -13112,11 +13157,11 @@ function drawDesignerCanvas() {
         g.stroke();
       }
     };
-    if (sy !== "tb") line(mx, y0, mx, y1);
-    if (sy !== "lr") line(x0, my, x1, my);
+    if (sy !== "tb") line2(mx, y0, mx, y1);
+    if (sy !== "lr") line2(x0, my, x1, my);
     if (sy === "kal") {
-      line(x0, y0, x1, y1);
-      line(x1, y0, x0, y1);
+      line2(x0, y0, x1, y1);
+      line2(x1, y0, x0, y1);
     }
     g.restore();
   }
@@ -15932,79 +15977,348 @@ function split(dr, x, y, sym = "off") {
       for (let k = 0; k < q.w; k++) pieces.push({ x: q.x + k, y: q.y + j, w: 1, h: 1, k: "s", r: [q.r[0]] });
   return { n: dr.n, pieces };
 }
-var rolesUsed = (dr) => [...new Set(dr.pieces.flatMap((p) => p.r))].sort((a, b) => a - b);
+
+// ../shared/src/seam-faces.js
+var EPS = 1e-9;
+var keyOf = (x, y) => `${Math.round(x * 1e6)},${Math.round(y * 1e6)}`;
+function area2(p) {
+  let a = 0;
+  p.forEach(([x0, y0], i) => {
+    const [x1, y1] = p[(i + 1) % p.length];
+    a += x0 * y1 - x1 * y0;
+  });
+  return a;
+}
+function meet(a, b, c, d) {
+  const rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1], den = rx * sy - ry * sx, qx = c[0] - a[0], qy = c[1] - a[1];
+  if (Math.abs(den) < EPS) {
+    if (Math.abs(qx * ry - qy * rx) > EPS) return [];
+    return [a, b, c, d].filter((p, i) => i < 2 ? onSegment(p, c, d) : onSegment(p, a, b));
+  }
+  const t = (qx * sy - qy * sx) / den, u = (qx * ry - qy * rx) / den;
+  if (t < -EPS || t > 1 + EPS || u < -EPS || u > 1 + EPS) return [];
+  return [[a[0] + t * rx, a[1] + t * ry]];
+}
+function onSegment(p, a, b) {
+  const rx = b[0] - a[0], ry = b[1] - a[1], len2 = rx * rx + ry * ry;
+  if (len2 < EPS) return Math.hypot(p[0] - a[0], p[1] - a[1]) < 1e-7;
+  const t = ((p[0] - a[0]) * rx + (p[1] - a[1]) * ry) / len2, dx = a[0] + t * rx - p[0], dy = a[1] + t * ry - p[1];
+  return t > -EPS && t < 1 + EPS && dx * dx + dy * dy < 1e-14;
+}
+function tidyPoly(p) {
+  const out = p.filter((q, i) => {
+    const a = p[(i + p.length - 1) % p.length], b = p[(i + 1) % p.length];
+    return Math.abs((q[0] - a[0]) * (b[1] - a[1]) - (q[1] - a[1]) * (b[0] - a[0])) > 1e-9;
+  });
+  return out.length >= 3 ? out : p;
+}
+function seamFaces(n, lines) {
+  const segs = [
+    [
+      [0, 0],
+      [n, 0]
+    ],
+    [
+      [n, 0],
+      [n, n]
+    ],
+    [
+      [n, n],
+      [0, n]
+    ],
+    [
+      [0, n],
+      [0, 0]
+    ]
+  ];
+  for (const [x1, y1, x2, y2] of lines) {
+    const c = (v) => Math.max(0, Math.min(n, v));
+    const a = [c(x1), c(y1)], b = [c(x2), c(y2)];
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) > 1e-6) segs.push([a, b]);
+  }
+  const pts = /* @__PURE__ */ new Map();
+  const point = (p) => {
+    const k = keyOf(p[0], p[1]);
+    if (!pts.has(k)) pts.set(k, [p[0], p[1]]);
+    return k;
+  };
+  const adj = /* @__PURE__ */ new Map();
+  const link = (a, b) => {
+    if (a === b) return;
+    if (!adj.has(a)) adj.set(a, /* @__PURE__ */ new Set());
+    if (!adj.has(b)) adj.set(b, /* @__PURE__ */ new Set());
+    adj.get(a).add(b);
+    adj.get(b).add(a);
+  };
+  segs.forEach(([a, b], i) => {
+    const cuts = [a, b];
+    segs.forEach(([c, d], j) => {
+      if (i !== j) cuts.push(...meet(a, b, c, d));
+    });
+    const dx = b[0] - a[0], dy = b[1] - a[1], len2 = dx * dx + dy * dy;
+    const keys = [
+      ...new Set(
+        cuts.map((p) => ({ p, t: ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2 })).sort((u, v) => u.t - v.t).map(({ p }) => point(p))
+      )
+    ];
+    for (let k = 1; k < keys.length; k++) link(keys[k - 1], keys[k]);
+  });
+  for (let trimmed = true; trimmed; ) {
+    trimmed = false;
+    for (const [k, nb] of adj)
+      if (nb.size < 2) {
+        for (const o of nb) adj.get(o).delete(k);
+        adj.delete(k);
+        trimmed = true;
+      }
+  }
+  const start = keyOf(0, 0), joined = /* @__PURE__ */ new Set([start]), todo = [start];
+  while (todo.length) for (const o of adj.get(todo.pop()) || []) if (!joined.has(o)) joined.add(o), todo.push(o);
+  const floating = [...adj.keys()].some((k) => !joined.has(k));
+  for (const k of [...adj.keys()]) if (!joined.has(k)) adj.delete(k);
+  const angle = (from, to) => {
+    const a = pts.get(from), b = pts.get(to);
+    return Math.atan2(b[1] - a[1], b[0] - a[0]);
+  };
+  const around = /* @__PURE__ */ new Map();
+  for (const [k, nb] of adj)
+    around.set(
+      k,
+      [...nb].sort((u, v) => angle(k, u) - angle(k, v))
+    );
+  const used = /* @__PURE__ */ new Set();
+  const pieces = [];
+  for (const [k0, nb] of around)
+    for (const k1 of nb) {
+      if (used.has(k0 + ">" + k1)) continue;
+      const ring = [];
+      let a = k0, b = k1;
+      while (!used.has(a + ">" + b)) {
+        used.add(a + ">" + b);
+        ring.push(pts.get(a));
+        const list2 = around.get(b), i = list2.indexOf(a);
+        [a, b] = [b, list2[(i + list2.length - 1) % list2.length]];
+      }
+      if (area2(ring) > EPS) pieces.push(tidyPoly(ring));
+    }
+  return { pieces, floating };
+}
+function insidePoly(x, y, poly) {
+  let inside2 = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside2 = !inside2;
+  }
+  return inside2;
+}
+
+// src/core/paper-drawing.js
+var blankPaper = (n) => ({ n, lines: [], fills: [] });
+function copiesOf(n, sym, x, y) {
+  if (sym === "mirror")
+    return [
+      [x, y],
+      [n - x, y],
+      [x, n - y],
+      [n - x, n - y]
+    ];
+  if (sym === "turn")
+    return [
+      [x, y],
+      [n - y, x],
+      [n - x, n - y],
+      [y, n - x]
+    ];
+  return [[x, y]];
+}
+var r6 = (v) => Math.round(v * 1e6) / 1e6;
+var lineKey = (l) => {
+  const [x1, y1, x2, y2] = l, a = `${r6(x1)},${r6(y1)}`, b = `${r6(x2)},${r6(y2)}`;
+  return a < b ? `${a} ${b}` : `${b} ${a}`;
+};
+function addLine(pp, x1, y1, x2, y2, sym = "off") {
+  if (Math.hypot(x2 - x1, y2 - y1) < 1e-9) return pp;
+  const have = new Set(pp.lines.map(lineKey)), a = copiesOf(pp.n, sym, x1, y1), b = copiesOf(pp.n, sym, x2, y2), lines = pp.lines.slice();
+  a.forEach(([ax, ay], i) => {
+    const l = [ax, ay, b[i][0], b[i][1]], k = lineKey(l);
+    if (!have.has(k)) have.add(k), lines.push(l);
+  });
+  return lines.length === pp.lines.length ? pp : { ...pp, lines };
+}
+function distance(px, py, l) {
+  const [x1, y1, x2, y2] = l, dx = x2 - x1, dy = y2 - y1, t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy || 1)));
+  return Math.hypot(x1 + t * dx - px, y1 + t * dy - py);
+}
+function eraseLine(pp, x, y, reach, sym = "off") {
+  let best = -1, bestD = reach;
+  pp.lines.forEach((l, i) => {
+    const d = distance(x, y, l);
+    if (d <= bestD) [best, bestD] = [i, d];
+  });
+  if (best < 0) return pp;
+  const [x1, y1, x2, y2] = pp.lines[best], a = copiesOf(pp.n, sym, x1, y1), b = copiesOf(pp.n, sym, x2, y2), gone = new Set(a.map(([ax, ay], i) => lineKey([ax, ay, b[i][0], b[i][1]])));
+  return { ...pp, lines: pp.lines.filter((l) => !gone.has(lineKey(l))) };
+}
+function paperPieces(pp) {
+  const { pieces, floating } = seamFaces(pp.n, pp.lines);
+  return {
+    floating,
+    pieces: pieces.map((poly) => {
+      let role = 0;
+      for (const [x, y, r] of pp.fills) if (insidePoly(x, y, poly)) role = r;
+      return { poly, role };
+    })
+  };
+}
+function fill(pp, x, y, role, sym = "off") {
+  const { pieces } = paperPieces(pp), at = (px, py) => pieces.findIndex((p) => insidePoly(px, py, p.poly)), marks = copiesOf(pp.n, sym, x, y).map(([px, py]) => [px, py, role]), hit = new Set(marks.map(([px, py]) => at(px, py)));
+  if ([...hit].every((i) => i < 0 || pieces[i].role === role)) return pp;
+  const kept = pp.fills.filter(([px, py]) => !hit.has(at(px, py)));
+  return { ...pp, fills: [...kept, ...marks] };
+}
+function inner(poly) {
+  let best = null, bestA = -1;
+  for (let i = 1; i + 1 < poly.length; i++) {
+    const [a, b, c] = [poly[0], poly[i], poly[i + 1]], ar = Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+    if (ar > bestA) [best, bestA] = [[(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3], ar];
+  }
+  return best;
+}
+function paperFromParts(n, parts) {
+  const onEdge = ([x1, y1, x2, y2]) => Math.abs(x1 - x2) < 1e-9 && (Math.abs(x1) < 1e-9 || Math.abs(x1 - n) < 1e-9) || Math.abs(y1 - y2) < 1e-9 && (Math.abs(y1) < 1e-9 || Math.abs(y1 - n) < 1e-9);
+  const seen = /* @__PURE__ */ new Set(), lines = [];
+  for (const { poly } of parts)
+    poly.forEach(([x, y], i) => {
+      const [x2, y2] = poly[(i + 1) % poly.length], l = [r6(x), r6(y), r6(x2), r6(y2)], k = lineKey(l);
+      if (!onEdge(l) && !seen.has(k)) seen.add(k), lines.push(l);
+    });
+  const fills = parts.filter((p) => p.role).map((p) => [...inner(p.poly).map(r6), p.role]);
+  return { n, lines, fills };
+}
+function pieceName(poly) {
+  const axis = poly.every(([x, y], i) => {
+    const [x2, y2] = poly[(i + 1) % poly.length];
+    return Math.abs(x - x2) < 1e-9 || Math.abs(y - y2) < 1e-9;
+  });
+  const xs = poly.map((p) => p[0]), ys = poly.map((p) => p[1]), square = Math.abs(Math.max(...xs) - Math.min(...xs) - (Math.max(...ys) - Math.min(...ys))) < 1e-9;
+  const kind = poly.length === 3 ? "Triangle" : poly.length === 4 && axis ? square ? "Square" : "Rectangle" : "Shape";
+  return `${kind} \xB7 ${placeName(poly)}`;
+}
+function paperDef(pp, label) {
+  const { pieces, floating } = paperPieces(pp);
+  if (floating || !pieces.length) return null;
+  const rows = Array.from({ length: pp.n }, () => new Array(pp.n).fill("x").join(" ")).join("\n");
+  const fills = [];
+  for (const p of pieces) {
+    const f = [...pp.fills].reverse().find(([x, y]) => insidePoly(x, y, p.poly));
+    if (f && f[2]) fills.push(f.slice());
+  }
+  return {
+    label,
+    n: pp.n,
+    rows,
+    extra: pieces.map((p) => [pieceName(p.poly), p.role, p.poly.flat().map(r6)]),
+    paper: { lines: pp.lines.map((l) => l.map(r6)), fills }
+  };
+}
 
 // src/designer/block-drawer.js
 var ROLE_NAMES = ["Background", "Main", "Accent", "Fabric 4", "Fabric 5", "Fabric 6"];
 var UNDO_MAX = 100;
+var RULER = 24;
 var ed = {
+  /** @type {'cells' | 'paper'} */
+  mode: "cells",
   /** @type {Drawing} */
   dr: blankDrawing(4),
+  /** @type {Paper} */
+  pp: blankPaper(4),
   tool: "/",
+  // cells: a shape, 'join' or 'split'
+  ptool: "line",
+  // graph paper: 'line', 'fill' or 'erase'
+  snap: 4,
+  // graph paper: points per cell side
   role: 1,
   /** @type {DrawSym} */
   sym: "off",
-  /** @type {Drawing[]} */
+  /** @type {Sheet[]} */
   undo: [],
-  /** @type {{ x0: number, y0: number, x1: number, y1: number } | null} cells being joined */
+  /** @type {{ x0: number, y0: number, x1: number, y1: number } | null} cells being joined, or a line being drawn */
   drag: null,
   /** @type {Drawing | null} the drawing before the stroke being painted */
-  strokeFrom: null
+  strokeFrom: null,
+  /** @type {{ x: number, y: number } | null} the graph-paper point under the pointer */
+  hover: null
 };
-function drawingOf(key) {
+var sheet = () => ({ mode: ed.mode, dr: ed.dr, pp: ed.pp });
+var nOf = () => ed.mode === "paper" ? ed.pp.n : ed.dr.n;
+function step(next) {
+  const was = sheet(), now = { ...was, ...next };
+  if (now.mode === was.mode && now.dr === was.dr && now.pp === was.pp) return false;
+  ed.undo.push(was);
+  if (ed.undo.length > UNDO_MAX) ed.undo.shift();
+  Object.assign(ed, now);
+  return true;
+}
+function cellsOf(key) {
   const p = PATTERNS[key], def = p?.drawn ? p.def : GRID_BLOCKS[key];
   if (!def || def.fourfold || def.extra) return null;
   return fromRows(def.n, def.rows);
 }
+function paperOf(key, n) {
+  const def = PATTERNS[key]?.drawn ? PATTERNS[key].def : null;
+  if (def?.paper) return { n: def.n, lines: def.paper.lines, fills: def.paper.fills };
+  const size = def ? def.n : GRID_BLOCKS[key] ? GRID_BLOCKS[key].n : n;
+  return paperFromParts(
+    size,
+    partsOf(key).map((p) => ({ role: p.role, poly: p.poly.map(([x, y]) => [x * size, y * size]) }))
+  );
+}
 var focusKey = () => design.blocks[focusBlock].pattern;
-function step(next) {
-  if (next === ed.dr) return false;
-  ed.undo.push(ed.dr);
-  if (ed.undo.length > UNDO_MAX) ed.undo.shift();
-  ed.dr = next;
-  return true;
+function currentParts() {
+  if (ed.mode === "cells") return gridParts({ n: ed.dr.n, rows: toRows(ed.dr) });
+  const n = ed.pp.n;
+  return paperPieces(ed.pp).pieces.map((p) => ({ role: p.role, poly: p.poly.map(([x, y]) => [x / n, y / n]) }));
 }
 var canvas3 = () => (
   /** @type {HTMLCanvasElement} */
   $("drawblk-canvas")
 );
-function paintPieces(g, dr, ox, oy, S) {
-  const parts = gridParts({ n: dr.n, rows: toRows(dr) });
+function frame() {
+  const c = canvas3(), dpr = c.width / (c.getBoundingClientRect().width || c.width), m = ed.mode === "paper" ? RULER * dpr : 0;
+  return { o: m, size: c.width - m, dpr };
+}
+function paintParts(g, parts, ox, oy, S, edge = "rgba(0,0,0,.35)") {
+  const at = (poly) => poly.map(([u, v]) => [ox + u * S, oy + v * S]);
   for (const part of parts) {
     g.fillStyle = ROLE_COLOURS[part.role];
-    pathPoly(
-      g,
-      part.poly.map(([u, v]) => [ox + u * S, oy + v * S])
-    );
+    pathPoly(g, at(part.poly));
     g.fill();
   }
   g.lineWidth = 1;
-  g.strokeStyle = "rgba(0,0,0,.35)";
+  g.strokeStyle = edge;
   for (const part of parts) {
-    pathPoly(
-      g,
-      part.poly.map(([u, v]) => [ox + u * S, oy + v * S])
-    );
+    pathPoly(g, at(part.poly));
     g.stroke();
   }
 }
-function drawEditor() {
-  const c = canvas3(), dpr = Math.min(window.devicePixelRatio || 1, 2), css2 = c.getBoundingClientRect().width || 420, px = Math.round(css2 * dpr);
-  if (c.width !== px) c.width = c.height = px;
-  const g = c.getContext("2d"), S = px, n = ed.dr.n, cell = S / n;
-  g.clearRect(0, 0, S, S);
-  paintPieces(g, ed.dr, 0, 0, S);
+function line(g, x1, y1, x2, y2) {
+  g.beginPath();
+  g.moveTo(x1, y1);
+  g.lineTo(x2, y2);
+  g.stroke();
+}
+function drawCells(g, o, S, dpr) {
+  const n = ed.dr.n, cell = S / n;
+  paintParts(g, currentParts(), o, o, S);
   g.save();
   g.setLineDash([3 * dpr, 4 * dpr]);
   g.strokeStyle = "rgba(0,0,0,.22)";
   g.lineWidth = dpr;
   for (let k = 1; k < n; k++) {
-    g.beginPath();
-    g.moveTo(k * cell, 0);
-    g.lineTo(k * cell, S);
-    g.moveTo(0, k * cell);
-    g.lineTo(S, k * cell);
-    g.stroke();
+    line(g, k * cell, 0, k * cell, S);
+    line(g, 0, k * cell, S, k * cell);
   }
   g.restore();
   g.lineWidth = 2 * dpr;
@@ -16019,22 +16333,120 @@ function drawEditor() {
     g.fillRect(x * cell, y * cell, w * cell, h * cell);
     g.strokeRect(x * cell, y * cell, w * cell, h * cell);
   }
+}
+function drawPaper(g, o, S, dpr) {
+  const n = ed.pp.n, cell = S / n, ink = themeColour("--ink", "#2b2620"), accent = themeColour("--accent", "#b8532e"), at = (v) => o + v * cell;
+  g.fillStyle = themeColour("--panel", "#fffaf2");
+  g.fillRect(0, 0, o, o + S);
+  g.fillRect(0, 0, o + S, o);
+  const { pieces, floating } = paperPieces(ed.pp);
+  paintParts(
+    g,
+    pieces.map((p) => ({ role: p.role, poly: p.poly.map(([x, y]) => [x / n, y / n]) })),
+    o,
+    o,
+    S,
+    "transparent"
+  );
+  g.lineWidth = dpr;
+  for (let k = 1; k < n * ed.snap; k++) {
+    g.strokeStyle = k % ed.snap ? "rgba(60,90,140,.13)" : "rgba(60,90,140,.35)";
+    line(g, at(k / ed.snap), o, at(k / ed.snap), o + S);
+    line(g, o, at(k / ed.snap), o + S, at(k / ed.snap));
+  }
+  g.save();
+  g.strokeStyle = ink;
+  g.globalAlpha = 0.45;
+  g.lineWidth = 1.5 * dpr;
+  g.setLineDash([5 * dpr, 4 * dpr]);
+  for (const [x1, y1, x2, y2] of ed.pp.lines) line(g, at(x1), at(y1), at(x2), at(y2));
+  g.restore();
+  g.strokeStyle = ink;
+  g.lineWidth = 2 * dpr;
+  g.lineJoin = "round";
+  for (const p of pieces) {
+    pathPoly(
+      g,
+      p.poly.map(([x, y]) => [at(x), at(y)])
+    );
+    g.stroke();
+  }
+  g.strokeRect(o, o, S, S);
+  const cellMm = design.blockMm / n;
+  g.fillStyle = ink;
+  g.strokeStyle = ink;
+  g.lineWidth = dpr;
+  g.font = `${10 * dpr}px monospace`;
+  for (let k = 0; k <= n * ed.snap; k++) {
+    const v = at(k / ed.snap), major = k % ed.snap === 0, t = (major ? 8 : k % (ed.snap / 2) === 0 ? 5 : 3) * dpr;
+    line(g, v, o - 2 * dpr, v, o - 2 * dpr - t);
+    line(g, o - 2 * dpr, v, o - 2 * dpr - t, v);
+    if (major && k) {
+      const label = num2(k / ed.snap * cellMm), p = Math.min(v, o + S - 14 * dpr);
+      g.textAlign = "center";
+      g.textBaseline = "top";
+      g.fillText(label, p, 1 * dpr);
+      g.save();
+      g.translate(1 * dpr, p);
+      g.rotate(-Math.PI / 2);
+      g.fillText(label, 0, 0);
+      g.restore();
+    }
+  }
+  g.textAlign = "left";
+  g.textBaseline = "top";
+  g.fillText(getUnit(), 2 * dpr, 2 * dpr);
+  if (ed.drag) {
+    const { x0, y0, x1, y1 } = ed.drag;
+    g.save();
+    g.strokeStyle = accent;
+    g.lineWidth = 3 * dpr;
+    g.setLineDash([6 * dpr, 4 * dpr]);
+    line(g, at(x0), at(y0), at(x1), at(y1));
+    g.restore();
+    g.fillStyle = accent;
+    g.font = `600 ${12 * dpr}px sans-serif`;
+    g.fillText(
+      len(Math.hypot(x1 - x0, y1 - y0) * cellMm),
+      Math.min(at(x1) + 8 * dpr, o + S - 80 * dpr),
+      Math.min(at(y1) + 8 * dpr, o + S - 16 * dpr)
+    );
+  }
+  if (ed.hover && ed.ptool === "line") {
+    g.fillStyle = accent;
+    g.beginPath();
+    g.arc(at(ed.hover.x), at(ed.hover.y), 4 * dpr, 0, 7);
+    g.fill();
+  }
+  $("drawblk-float").hidden = !floating;
+}
+function drawEditor() {
+  const c = canvas3(), dpr = Math.min(window.devicePixelRatio || 1, 2), css2 = c.getBoundingClientRect().width || 420, px = Math.round(css2 * dpr);
+  if (c.width !== px) c.width = c.height = px;
+  const g = c.getContext("2d"), { o, size } = frame();
+  g.clearRect(0, 0, c.width, c.height);
+  if (ed.mode === "paper") drawPaper(g, o, size, dpr);
+  else drawCells(g, o, size, dpr);
   drawPreview();
   drawCutting();
   $("drawblk-undo").disabled = !ed.undo.length;
-  $("drawblk-n").value = String(n);
+  $("drawblk-n").value = String(nOf());
+  press("#drawblk-mode button", "mode", ed.mode);
+  $("drawblk-cells-tools").hidden = ed.mode !== "cells";
+  $("drawblk-paper-tools").hidden = ed.mode !== "paper";
+  if (ed.mode !== "paper") $("drawblk-float").hidden = true;
 }
 function drawPreview() {
   const c = (
     /** @type {HTMLCanvasElement} */
     $("drawblk-preview")
-  ), g = c.getContext("2d"), S = c.width / 2;
+  ), g = c.getContext("2d"), S = c.width / 2, parts = currentParts();
   g.clearRect(0, 0, c.width, c.height);
-  for (let i = 0; i < 4; i++) paintPieces(g, ed.dr, i % 2 * S, Math.floor(i / 2) * S, S);
+  for (let i = 0; i < 4; i++) paintParts(g, parts, i % 2 * S, Math.floor(i / 2) * S, S);
 }
 function drawCutting() {
-  const W = design.blockMm, seam = cutOpts.seam, cuts = /* @__PURE__ */ new Map();
-  for (const part of gridParts({ n: ed.dr.n, rows: toRows(ed.dr) })) {
+  const W = design.blockMm, n = nOf(), seam = cutOpts.seam, parts = currentParts(), cuts = /* @__PURE__ */ new Map();
+  for (const part of parts) {
     const c = CG.classify(part.poly, W, W, seam), k = `${part.role}|${c.how}`;
     if (!cuts.has(k)) cuts.set(k, { role: part.role, how: c.how, n: 0, yield: c.yield });
     cuts.get(k).n++;
@@ -16043,10 +16455,10 @@ function drawCutting() {
   box2.innerHTML = "";
   const head = document.createElement("p");
   head.className = "fine";
-  head.textContent = `For one ${len(W)} block (${ed.dr.n} \xD7 ${ed.dr.n} cells of ${len(W / ed.dr.n)}), seam allowance included:`;
+  head.textContent = `For one ${len(W)} block (${n} \xD7 ${n} squares of ${len(W / n)}), seam allowance included:`;
   box2.appendChild(head);
   const ul = document.createElement("ul");
-  for (const r of rolesUsed(ed.dr))
+  for (const r of [...new Set(parts.map((p) => p.role))].sort((a, b) => a - b))
     for (const c of [...cuts.values()].filter((c2) => c2.role === r)) {
       const li = document.createElement("li"), sw = document.createElement("i");
       sw.className = "drawblk-sw";
@@ -16061,51 +16473,83 @@ function drawCutting() {
   box2.appendChild(ul);
 }
 function cellPoint(e) {
-  const r = canvas3().getBoundingClientRect(), n = ed.dr.n;
+  const r = canvas3().getBoundingClientRect(), { o, size, dpr } = frame(), n = nOf(), toCells = (v) => (v * dpr - o) / size * n;
   return {
-    x: Math.max(0, Math.min(n - 1e-6, (e.clientX - r.left) / r.width * n)),
-    y: Math.max(0, Math.min(n - 1e-6, (e.clientY - r.top) / r.height * n))
+    x: Math.max(0, Math.min(n - 1e-6, toCells(e.clientX - r.left))),
+    y: Math.max(0, Math.min(n - 1e-6, toCells(e.clientY - r.top)))
   };
 }
+function snapped({ x, y }) {
+  const s = ed.snap, n = nOf(), to = (v) => Math.max(0, Math.min(n, Math.round(v * s) / s));
+  return { x: to(x), y: to(y) };
+}
 function onDown(e) {
-  const { x, y } = cellPoint(e);
+  const p = cellPoint(e);
   canvas3().setPointerCapture(e.pointerId);
-  if (ed.tool === "join") ed.drag = { x0: Math.floor(x), y0: Math.floor(y), x1: Math.floor(x), y1: Math.floor(y) };
-  else if (ed.tool === "split") step(split(ed.dr, x, y, ed.sym));
+  if (ed.mode === "paper") {
+    if (ed.ptool === "line") {
+      const s = snapped(p);
+      ed.drag = { x0: s.x, y0: s.y, x1: s.x, y1: s.y };
+    } else if (ed.ptool === "fill") step({ pp: fill(ed.pp, p.x, p.y, ed.role, ed.sym) });
+    else {
+      const { size, dpr } = frame();
+      step({ pp: eraseLine(ed.pp, p.x, p.y, 12 * dpr / size * nOf(), ed.sym) });
+    }
+  } else if (ed.tool === "join")
+    ed.drag = { x0: Math.floor(p.x), y0: Math.floor(p.y), x1: Math.floor(p.x), y1: Math.floor(p.y) };
+  else if (ed.tool === "split") step({ dr: split(ed.dr, p.x, p.y, ed.sym) });
   else {
     ed.strokeFrom = ed.dr;
-    ed.dr = paint(ed.dr, x, y, ed.tool, ed.role, ed.sym);
+    ed.dr = paint(ed.dr, p.x, p.y, ed.tool, ed.role, ed.sym);
   }
   drawEditor();
 }
 function onMove(e) {
-  if (!ed.drag && !ed.strokeFrom) return;
-  const { x, y } = cellPoint(e);
-  if (ed.drag) ed.drag = { ...ed.drag, x1: Math.floor(x), y1: Math.floor(y) };
-  else {
-    const next = paint(ed.dr, x, y, ed.tool, ed.role, ed.sym);
+  const p = cellPoint(e);
+  if (ed.mode === "paper") {
+    const s = snapped(p), moved = !ed.hover || ed.hover.x !== s.x || ed.hover.y !== s.y;
+    ed.hover = s;
+    if (ed.drag) ed.drag = { ...ed.drag, x1: s.x, y1: s.y };
+    if (moved) drawEditor();
+    return;
+  }
+  if (ed.drag) ed.drag = { ...ed.drag, x1: Math.floor(p.x), y1: Math.floor(p.y) };
+  else if (ed.strokeFrom) {
+    const next = paint(ed.dr, p.x, p.y, ed.tool, ed.role, ed.sym);
     if (next === ed.dr) return;
     ed.dr = next;
-  }
+  } else return;
   drawEditor();
 }
 function onUp() {
   if (ed.drag) {
     const { x0, y0, x1, y1 } = ed.drag;
     ed.drag = null;
-    step(join(ed.dr, x0, y0, x1, y1, ed.sym));
+    if (ed.mode === "paper") step({ pp: addLine(ed.pp, x0, y0, x1, y1, ed.sym) });
+    else step({ dr: join(ed.dr, x0, y0, x1, y1, ed.sym) });
     drawEditor();
   }
   if (ed.strokeFrom) {
     const done = ed.dr;
     ed.dr = ed.strokeFrom;
     ed.strokeFrom = null;
-    step(done);
+    step({ dr: done });
     drawEditor();
   }
 }
 function currentDef() {
-  const def = checkDrawn({ label: $("drawblk-name").value, n: ed.dr.n, rows: toRows(ed.dr) });
+  const label = $("drawblk-name").value;
+  if (ed.mode === "paper") {
+    const raw = paperDef(ed.pp, label);
+    if (!raw) {
+      notify("A shape floats free inside the block: draw a seam from it to another seam or to the edge.");
+      return null;
+    }
+    const def2 = checkDrawn(raw);
+    if (!def2) notify("This drawing has too many pieces to be a block.");
+    return def2;
+  }
+  const def = checkDrawn({ label, n: ed.dr.n, rows: toRows(ed.dr) });
   if (!def) notify("This drawing could not be made into a block.");
   return def;
 }
@@ -16129,30 +16573,60 @@ function keepInMyBlocks() {
   dispatch(keepDrawn, key, def);
   notify(`\u201C${def.label}\u201D is in My blocks, in the block library.`);
 }
-function setTool(t) {
-  ed.tool = t;
-  for (const b of document.querySelectorAll("#drawblk-tools button"))
+function press(sel, attr, value) {
+  for (const b of document.querySelectorAll(sel))
     b.setAttribute("aria-pressed", String(
       /** @type {HTMLElement} */
-      b.dataset.tool === t
+      b.dataset[attr] === String(value)
     ));
+}
+function setTool(t) {
+  ed.tool = t;
+  press("#drawblk-tools button", "tool", t);
   canvas3().style.cursor = t === "join" ? "cell" : "crosshair";
 }
+function setPaperTool(t) {
+  ed.ptool = t;
+  press("#drawblk-ptools button", "ptool", t);
+  canvas3().style.cursor = t === "fill" ? "cell" : "crosshair";
+}
+var showTool = () => ed.mode === "paper" ? setPaperTool(ed.ptool) : setTool(ed.tool);
 function setRole(r) {
   ed.role = r;
-  for (const b of document.querySelectorAll("#drawblk-roles button"))
-    b.setAttribute("aria-pressed", String(+/** @type {HTMLElement} */
-    b.dataset.role === r));
+  press("#drawblk-roles button", "role", r);
+}
+var cellsToPaper = (dr) => paperFromParts(
+  dr.n,
+  gridParts({ n: dr.n, rows: toRows(dr) }).map((p) => ({
+    role: p.role,
+    poly: p.poly.map(([x, y]) => [x * dr.n, y * dr.n])
+  }))
+);
+function setMode(mode) {
+  if (mode === ed.mode) return;
+  const empty = !ed.pp.lines.length && !ed.pp.fills.length, untouched = toRows(ed.dr) === toRows(blankDrawing(ed.dr.n));
+  step({ mode, pp: mode === "paper" && empty ? untouched ? blankPaper(ed.dr.n) : cellsToPaper(ed.dr) : ed.pp });
+  showTool();
+  drawEditor();
 }
 function openDrawer() {
-  const key = focusKey(), mine = PATTERNS[key]?.drawn ? drawingOf(key) : null;
-  ed.dr = mine || blankDrawing(4);
+  const key = focusKey(), def = PATTERNS[key]?.drawn ? PATTERNS[key].def : null;
   ed.undo = [];
+  ed.drag = null;
+  ed.hover = null;
+  if (def?.extra) {
+    ed.mode = "paper";
+    ed.pp = paperOf(key, def.n);
+    ed.dr = blankDrawing(def.n);
+  } else {
+    ed.mode = "cells";
+    ed.dr = def && cellsOf(key) || blankDrawing(4);
+    ed.pp = blankPaper(ed.dr.n);
+  }
   const count = Object.values(PATTERNS).filter((p) => p.drawn).length;
-  $("drawblk-name").value = mine ? PATTERNS[key].label : `My block ${count + 1}`;
-  const from = drawingOf(key);
-  $("drawblk-from").disabled = !from;
-  $("drawblk-from").title = from ? `Start again from \u201C${PATTERNS[key].label}\u201D, the selected block` : "The selected block can\u2019t be drawn on this grid";
+  $("drawblk-name").value = def ? PATTERNS[key].label : `My block ${count + 1}`;
+  $("drawblk-from").title = `Start again from \u201C${PATTERNS[key].label}\u201D, the selected block`;
+  showTool();
   const dlg = (
     /** @type {HTMLDialogElement} */
     $("drawblk")
@@ -16166,14 +16640,37 @@ function openDrawer() {
   }
   drawEditor();
 }
+function startFromSelected() {
+  const key = focusKey(), cells = ed.mode === "cells" ? cellsOf(key) : null;
+  if (cells) step({ dr: cells });
+  else step({ mode: "paper", pp: paperOf(key, GRID_BLOCKS[key]?.n || PATTERNS[key]?.def?.n || ed.pp.n) });
+  showTool();
+  drawEditor();
+}
 function initDrawer() {
-  const tools = $("drawblk-tools");
-  tools.addEventListener("click", (e) => {
+  $("drawblk-tools").addEventListener("click", (e) => {
     const b = (
       /** @type {HTMLElement} */
       e.target.closest("button")
     );
     if (b?.dataset.tool) setTool(b.dataset.tool);
+  });
+  $("drawblk-ptools").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (b?.dataset.ptool) setPaperTool(b.dataset.ptool);
+  });
+  $("drawblk-mode").addEventListener("click", (e) => {
+    const b = (
+      /** @type {HTMLElement} */
+      e.target.closest("button")
+    );
+    if (b?.dataset.mode) setMode(
+      /** @type {'cells' | 'paper'} */
+      b.dataset.mode
+    );
   });
   const roles = $("drawblk-roles");
   ROLE_COLOURS.forEach((col, r) => {
@@ -16198,23 +16695,36 @@ function initDrawer() {
     /** @type {HTMLSelectElement} */
     e.target.value;
   });
+  $("drawblk-snap").addEventListener("change", (e) => {
+    ed.snap = +/** @type {HTMLSelectElement} */
+    e.target.value;
+    drawEditor();
+  });
   $("drawblk-n").addEventListener("change", (e) => {
     const n = +/** @type {HTMLSelectElement} */
     e.target.value;
-    if (n !== ed.dr.n) step(blankDrawing(n));
+    if (ed.mode === "paper") {
+      const k = n / ed.pp.n;
+      if (k !== 1)
+        step({
+          pp: {
+            n,
+            lines: ed.pp.lines.map((l) => l.map((v) => v * k)),
+            fills: ed.pp.fills.map(([x, y, r]) => [x * k, y * k, r])
+          }
+        });
+    } else if (n !== ed.dr.n) step({ dr: blankDrawing(n) });
     drawEditor();
   });
   $("drawblk-clear").addEventListener("click", () => {
-    step(blankDrawing(ed.dr.n));
+    step(ed.mode === "paper" ? { pp: blankPaper(ed.pp.n) } : { dr: blankDrawing(ed.dr.n) });
     drawEditor();
   });
-  $("drawblk-from").addEventListener("click", () => {
-    const from = drawingOf(focusKey());
-    if (from && step(from)) drawEditor();
-  });
+  $("drawblk-from").addEventListener("click", startFromSelected);
   $("drawblk-undo").addEventListener("click", () => {
     if (!ed.undo.length) return;
-    ed.dr = ed.undo.pop();
+    Object.assign(ed, ed.undo.pop());
+    showTool();
     drawEditor();
   });
   $("drawblk").addEventListener("keydown", (e) => {
@@ -16234,11 +16744,18 @@ function initDrawer() {
   c.addEventListener("pointermove", onMove);
   c.addEventListener("pointerup", onUp);
   c.addEventListener("pointercancel", onUp);
+  c.addEventListener("pointerleave", () => {
+    if (ed.hover && !ed.drag) {
+      ed.hover = null;
+      drawEditor();
+    }
+  });
   addEventListener("resize", () => (
     /** @type {HTMLDialogElement} */
     $("drawblk").open && drawEditor()
   ));
   setTool(ed.tool);
+  setPaperTool(ed.ptool);
   setRole(ed.role);
   setOpenBlockDrawer(openDrawer);
 }
@@ -19828,7 +20345,7 @@ function offsetPoly(p, d, limit = 2.5) {
       [c[0] + nx * d, c[1] + ny * d]
     ]);
   }
-  const meet = ([p1, p2], [p3, p4]) => {
+  const meet2 = ([p1, p2], [p3, p4]) => {
     const den = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0]);
     if (Math.abs(den) < 1e-9) return null;
     const t = ((p1[0] - p3[0]) * (p3[1] - p4[1]) - (p1[1] - p3[1]) * (p3[0] - p4[0])) / den;
@@ -19836,7 +20353,7 @@ function offsetPoly(p, d, limit = 2.5) {
   };
   const out = [];
   lines.forEach((l, i) => {
-    const m = lines[(i + lines.length - 1) % lines.length], v = p[i], q = meet(m, l);
+    const m = lines[(i + lines.length - 1) % lines.length], v = p[i], q = meet2(m, l);
     if (!q) {
       out.push(l[0]);
       return;
@@ -19848,7 +20365,7 @@ function offsetPoly(p, d, limit = 2.5) {
     }
     const ux = (q[0] - v[0]) / dist, uy = (q[1] - v[1]) / dist, c = [v[0] + ux * limit * d, v[1] + uy * limit * d];
     const cl = [c, [c[0] - uy, c[1] + ux]];
-    out.push(meet(m, cl) || c, meet(cl, l) || c);
+    out.push(meet2(m, cl) || c, meet2(cl, l) || c);
   });
   return out;
 }
@@ -19942,15 +20459,15 @@ function packTemplates(shapes) {
   };
   for (const it of items2) {
     let placed = false;
-    for (const sheet of sheets) {
+    for (const sheet2 of sheets) {
       let best = null;
       for (const v of [it, turn90(it)]) {
-        const w = v.w + g, h = v.h + g, pos = tryPlace(sheet.sky, Math.min(w, W), Math.min(h, H));
+        const w = v.w + g, h = v.h + g, pos = tryPlace(sheet2.sky, Math.min(w, W), Math.min(h, H));
         if (pos && (!best || pos.y + v.h < best.pos.y + best.v.h)) best = { v, pos };
       }
       if (best) {
-        sheet.items.push({ ...best.v, x: best.pos.x, y: best.pos.y });
-        sheet.sky = addSky(sheet.sky, best.pos.x, Math.min(best.v.w + g, W), best.pos.y + best.v.h + g);
+        sheet2.items.push({ ...best.v, x: best.pos.x, y: best.pos.y });
+        sheet2.sky = addSky(sheet2.sky, best.pos.x, Math.min(best.v.w + g, W), best.pos.y + best.v.h + g);
         placed = true;
         break;
       }
@@ -20112,16 +20629,16 @@ function pdfTemplateHeader(g, P, title, lines, page, pages) {
 }
 var realSizeNote = (P) => `Real size: print at 100 % / "actual size". Solid line = cutting line (${len(P.seam)} seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
 var mirrorNote = (t) => t.mirrored && t.plain ? `${[...t.ids.keys()].join("/")}: ${t.mirrored} of ${t.mirrored + t.plain} are mirror images, turn the template over to cut them.` : "";
-function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
+function pdfPackedPage(P, b, i, sheet2, sk, nsk, page, pages) {
   const [c, g] = pdfPageCanvas();
-  const notes = sheet.items.map((it) => mirrorNote(it.t)).filter(Boolean);
+  const notes = sheet2.items.map((it) => mirrorNote(it.t)).filter(Boolean);
   pdfTemplateHeader(
     g,
     P,
     b.mosaic ? "Templates \xB7 Mosaic" : `Templates \xB7 Block ${i + 1}`,
     [
       {
-        text: `${b.label} \xB7 ${sheet.items.map((it) => [...it.t.ids.entries()].map(([id, n]) => `${id} \xD7 ${n}`).join(", ")).join(" \xB7 ")}${nsk > 1 ? ` \xB7 sheet ${sk + 1} of ${nsk}` : ""}`
+        text: `${b.label} \xB7 ${sheet2.items.map((it) => [...it.t.ids.entries()].map(([id, n]) => `${id} \xD7 ${n}`).join(", ")).join(" \xB7 ")}${nsk > 1 ? ` \xB7 sheet ${sk + 1} of ${nsk}` : ""}`
       },
       { text: realSizeNote(P) },
       ...notes.slice(0, 2).map((n) => ({ text: n, color: "#8a3b1f", weight: 600 }))
@@ -20129,8 +20646,8 @@ function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
     page,
     pages
   );
-  for (const it of sheet.items) {
-    const ox = TPL.x + sheet.dx + it.x, oy = TPL.y + sheet.dy + it.y;
+  for (const it of sheet2.items) {
+    const ox = TPL.x + sheet2.dx + it.x, oy = TPL.y + sheet2.dy + it.y;
     drawTemplateShape(g, P, it, ox, oy, [ox, oy, it.w, it.h, 0, 0]);
   }
   return c;
@@ -20278,11 +20795,11 @@ $("cg-pdf").addEventListener("click", downloadCutPdf);
 
 // src/app/loop.js
 var lastT = performance.now();
-function frame(t) {
+function frame2(t) {
   const now = t || performance.now();
   if (state.page !== "sim") {
     lastT = now;
-    requestAnimationFrame(frame);
+    requestAnimationFrame(frame2);
     return;
   }
   const dt = Math.min(0.1, (now - lastT) / 1e3);
@@ -20306,7 +20823,7 @@ function frame(t) {
   stepAnalysis(dt);
   stepCamera(dt);
   if (!stepRender()) renderer.render(scene, activeCam);
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frame2);
 }
 
 // src/app/start.js
@@ -20319,7 +20836,7 @@ if (IS_PHONE) {
 }
 resize();
 startSim();
-requestAnimationFrame(frame);
+requestAnimationFrame(frame2);
 fitSimSide();
 if (location.hash === "#sim") showPage("sim");
 else if (location.hash === "#cut") showPage("cut");

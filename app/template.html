@@ -621,7 +621,7 @@
   /* the block library's "Draw a block" tile and the block editor */
   .pats .pat.pat-draw { border: 2px dashed var(--stitch); background: var(--accent-soft); color: var(--accent); }
   .pats .pat.pat-draw b { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 2rem; font-weight: 400; }
-  .drawblk { width: min(860px, calc(100vw - 32px)); }
+  .drawblk { width: min(860px, calc(100vw - 32px)); scrollbar-gutter: stable; } /* the grid keeps its size as the list below grows */
   .drawblk-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; margin-top: 12px; align-items: start; }
   .drawblk-paper canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 6px; background: var(--panel); box-shadow: 0 0 0 1px var(--line); touch-action: none; }
   .drawblk-side { display: flex; flex-direction: column; gap: 10px; font-size: .82rem; }
@@ -632,6 +632,13 @@
   #drawblk-tools button.wide { grid-column: span 2; font-size: .78rem; }
   #drawblk-tools button[aria-pressed="true"], .drawblk-role[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   #drawblk-roles { display: flex; gap: 6px; }
+  .drawblk-mode { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .drawblk-mode button { flex: 1; padding: 7px 0; border: 0; background: var(--panel); color: var(--ink); font: 600 .8rem var(--font-body); cursor: pointer; }
+  .drawblk-mode button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  #drawblk-ptools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  #drawblk-ptools button { padding: 6px 0; font-size: .78rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  #drawblk-ptools button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .drawblk-float { color: var(--madder); margin: 6px 0 0; }
   .drawblk-role { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; padding: 0; }
   #drawblk-preview { width: 140px; height: 140px; border-radius: 4px; box-shadow: 0 0 0 1px var(--line); }
   #drawblk-cut ul { margin: 4px 0 0; padding: 0; list-style: none; }
@@ -1358,12 +1365,16 @@
   <div class="drawblk-body">
     <div class="drawblk-paper"><canvas id="drawblk-canvas" width="480" height="480" role="img" aria-label="The block being drawn: click a cell to give it the shape and fabric in hand"></canvas></div>
     <div class="drawblk-side">
+      <div class="drawblk-mode" id="drawblk-mode" role="group" aria-label="Draw on">
+        <button type="button" data-mode="cells" title="A grid of cells: squares, triangles, hourglasses and geese">Cells</button>
+        <button type="button" data-mode="paper" title="Graph paper: seam lines at any angle, with rulers">Graph paper</button>
+      </div>
       <div class="row"><span class="lbl">Grid</span>
-        <select id="drawblk-n" aria-label="Cells per side"><option value="2">2 × 2</option><option value="3">3 × 3</option><option value="4" selected>4 × 4</option><option value="5">5 × 5</option><option value="6">6 × 6</option><option value="7">7 × 7</option><option value="8">8 × 8</option></select>
+        <select id="drawblk-n" aria-label="Squares per side"><option value="2">2 × 2</option><option value="3">3 × 3</option><option value="4" selected>4 × 4</option><option value="5">5 × 5</option><option value="6">6 × 6</option><option value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option><option value="10">10 × 10</option><option value="12">12 × 12</option></select>
         <button class="btn sm" type="button" id="drawblk-from">Start from selected</button>
         <button class="btn sm" type="button" id="drawblk-clear">Clear</button>
       </div>
-      <div><span class="lbl">Shape</span>
+      <div id="drawblk-cells-tools"><span class="lbl">Shape</span>
         <div id="drawblk-tools" role="group" aria-label="Shape">
           <button type="button" data-tool="s" title="Square: one fabric" aria-label="Square">■</button>
           <button type="button" data-tool="/" title="Half-square triangle, cut along /" aria-label="Triangle cut along /">◩</button>
@@ -1376,6 +1387,17 @@
           <button type="button" data-tool="join" class="wide" title="Drag over cells to join them into one bigger square or rectangle">Join</button>
           <button type="button" data-tool="split" class="wide" title="Click a joined piece to split it back into cells">Split</button>
         </div>
+      </div>
+      <div id="drawblk-paper-tools" hidden><span class="lbl">Tool</span>
+        <div id="drawblk-ptools" role="group" aria-label="Tool">
+          <button type="button" data-ptool="line" title="Drag from one grid point to another to draw a seam">Seam line</button>
+          <button type="button" data-ptool="fill" title="Click a piece to give it the fabric in hand">Fill</button>
+          <button type="button" data-ptool="erase" title="Click a seam line to take it away">Erase</button>
+        </div>
+        <div class="row" style="margin-top:6px"><label for="drawblk-snap">Points every</label>
+          <select id="drawblk-snap"><option value="2">½ square</option><option value="4" selected>¼ square</option><option value="8">⅛ square</option></select>
+        </div>
+        <p class="fine drawblk-float" id="drawblk-float" role="status" hidden>A shape floats free inside the block, so it isn’t a piece yet: draw a seam from it to another seam or to the edge.</p>
       </div>
       <div><span class="lbl">Fabric</span><div id="drawblk-roles" role="group" aria-label="Fabric"></div></div>
       <div class="row"><span class="lbl">Symmetry</span>

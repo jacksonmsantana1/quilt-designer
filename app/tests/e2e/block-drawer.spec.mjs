@@ -15,6 +15,17 @@ async function openDrawer(app, page) {
   await expect(page.locator('#blklib')).toBeHidden();
 }
 
+/** On graph paper: like onGrid, but the block starts after the rulers (24 pixels). */
+async function onPaper(page, n, x, y, x2, y2) {
+  const box = await page.locator('#drawblk-canvas').boundingBox(),
+    size = box.width - 24,
+    at = (cx, cy) => [box.x + 24 + (cx / n) * size, box.y + 24 + (cy / n) * size];
+  await page.mouse.move(...at(x, y));
+  await page.mouse.down();
+  if (x2 !== undefined) await page.mouse.move(...at(x2, y2), { steps: 6 });
+  await page.mouse.up();
+}
+
 /** Clicks the editor's grid at (x, y) in cells; drags to (x2, y2) when given. */
 async function onGrid(page, n, x, y, x2, y2) {
   const box = await page.locator('#drawblk-canvas').boundingBox(),
@@ -124,9 +135,12 @@ test('the editor opens on a drawn block to change it; undo, split and clear', as
 });
 
 test('start from a traditional block, and save to My blocks without using it', async ({ app, page }) => {
-  // the first block of a new quilt is an Ohio star, drawn by hand in the app's code: not on the editor's grid
+  // the first block of a new quilt is an Ohio star, drawn by hand in the app's code: not on a grid of cells, so
+  // the editor starts from it on graph paper
   await openDrawer(app, page);
-  await expect(page.locator('#drawblk-from')).toBeDisabled();
+  await page.locator('#drawblk-from').click();
+  await expect(page.locator('#drawblk-mode [data-mode="paper"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#drawblk-cut li')).not.toHaveCount(0);
   await page.locator('#drawblk-x').click();
   // a sixteen patch is written in the grid notation, so the editor can start from it
   await page.locator('#dz-patterns').hover();
@@ -136,8 +150,8 @@ test('start from a traditional block, and save to My blocks without using it', a
   await page.locator('#dz-patterns').hover();
   await page.locator('#fab-more-float').click();
   await page.locator('#blklib-draw').click();
-  await expect(page.locator('#drawblk-from')).toBeEnabled();
   await page.locator('#drawblk-from').click();
+  await expect(page.locator('#drawblk-mode [data-mode="cells"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#drawblk-n')).toHaveValue('4');
   await page.locator('#drawblk-roles [data-role="4"]').click();
   await page.locator('#drawblk-tools [data-tool="s"]').click();
@@ -149,4 +163,58 @@ test('start from a traditional block, and save to My blocks without using it', a
   const d = await app.current();
   expect(d.blocks[0].pattern).toBe(before); // the quilt's blocks are unchanged
   expect(Object.values(d.drawn).map(b => b.label)).toEqual(['Rose star']);
+});
+
+test('graph paper: seams at any angle, fills, a floating shape refused, and the block used in the quilt', async ({
+  app,
+  page,
+}) => {
+  await openDrawer(app, page);
+  await page.locator('#drawblk-mode [data-mode="paper"]').click();
+  await expect(page.locator('#drawblk-paper-tools')).toBeVisible();
+  await expect(page.locator('#drawblk-cells-tools')).toBeHidden();
+  // a square on point: one seam, turned four ways; the ends snap to the grid's points
+  await page.locator('#drawblk-sym').selectOption('turn');
+  await onPaper(page, 4, 1.97, 0.03, 3.98, 2.04);
+  await page.locator('#drawblk-ptools [data-ptool="fill"]').click();
+  await page.locator('#drawblk-roles [data-role="1"]').click();
+  await onPaper(page, 4, 2, 2);
+  await expect(page.locator('#drawblk-cut')).toContainText('Main: 1 ×');
+  // a square floating in the middle: not a piece, and the block can't be used until it is joined to the rest
+  await page.locator('#drawblk-ptools [data-ptool="line"]').click();
+  await onPaper(page, 4, 1.5, 1.5, 2.5, 1.5);
+  await expect(page.locator('#drawblk-float')).toBeVisible();
+  await page.locator('#drawblk-use').click();
+  await expect(page.locator('#notice')).toContainText('floats free');
+  await page.locator('#drawblk-undo').click();
+  await expect(page.locator('#drawblk-float')).toBeHidden();
+  // erase one seam, then put it back
+  await page.locator('#drawblk-sym').selectOption('off');
+  await page.locator('#drawblk-ptools [data-ptool="erase"]').click();
+  await onPaper(page, 4, 3, 1);
+  // the main piece now runs into the corner the seam cut off: an odd shape, cut from a template
+  await expect(page.locator('#drawblk-cut')).toContainText('Main: 1 × template piece');
+  await page.locator('#drawblk-undo').click();
+  await page.locator('#drawblk-name').fill('Diamond in a square');
+  await page.locator('#drawblk-use').click();
+  await expect(page.locator('#drawblk')).toBeHidden();
+
+  const d = await app.current(),
+    key = d.blocks[0].pattern,
+    def = d.drawn[key];
+  expect(def.label).toBe('Diamond in a square');
+  expect(def.rows).toBe(Array(4).fill('x x x x').join('\n'));
+  expect(def.extra).toHaveLength(5);
+  expect(def.extra.map(e => e[1]).sort()).toEqual([0, 0, 0, 0, 1]);
+  expect(def.paper.lines).toHaveLength(4);
+  expect(d.blocks[0].fabrics).toHaveLength(5);
+  // opening the editor on it again brings back the graph paper and its lines
+  await page.locator('#dz-patterns').hover();
+  await page.locator('#fab-more-float').click();
+  await page.locator('#blklib-draw').click();
+  await expect(page.locator('#drawblk-mode [data-mode="paper"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#drawblk-name')).toHaveValue('Diamond in a square');
+  await page.locator('#drawblk-x').click();
+  await page.locator('#tabs [data-page="cut"]').click();
+  await expect(page.locator('#page-cut')).toContainText('Diamond in a square');
 });
