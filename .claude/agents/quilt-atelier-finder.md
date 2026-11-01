@@ -41,6 +41,8 @@ articles about it, to read the contact details. Prefer the business's own page o
   `notes` and set `status` to "possibly closed".
 - `confidence`: "high" (own site or social page, recent), "medium" (directory or older page),
   "low" (only a passing mention).
+- If pages can't be opened (blocked by the network), you may take details from search-result excerpts of the
+  business's pages: say so in `notes` and rate the row no higher than "medium".
 - No duplicates: the same business in two cities is one row per physical shop.
 - Aim for breadth: try every state capital and the larger cities of the region you were given.
 

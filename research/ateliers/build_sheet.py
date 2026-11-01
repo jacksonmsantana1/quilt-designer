@@ -55,6 +55,7 @@ REGIONS = {
     'Sudeste': ['ES', 'MG', 'RJ', 'SP'],
     'Sul': ['PR', 'RS', 'SC'],
     'Online / nationwide': ['Online'],
+    'City not found': ['Unknown'],
 }
 
 FONT = 'Arial'
@@ -66,31 +67,51 @@ def plain(text):
     return re.sub(r'[^a-z0-9]', '', text.lower())
 
 
+# Words that say what kind of business it is, not which one: ignored when matching names
+GENERIC = re.compile(r'atelie[r]?|loja|tecidos|cursos?|escola|patchwork|quilting|quilt|artesanato|e(?=[a-z])|by|de|do|da')
+
+
+def core(name):
+    """The distinctive part of a name: 'Ateliê Ana Cosentino - Patchwork & Quilt' -> 'anacosentino'."""
+    words = re.findall(r'[a-z0-9]+', unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode().lower())
+    return ''.join(w for w in words if not GENERIC.fullmatch(w))
+
+
 def clean(row):
     out = {k: str(row.get(k, '') or '').strip() for k in KEYS}
     out['state'] = out['state'].upper() if len(out['state']) == 2 else out['state']
+    out['state'] = out['state'] or 'Unknown'
     return out
 
 
+def same_business(a, b):
+    if plain(a['name']) == plain(b['name']) and plain(a['city']) == plain(b['city']):
+        return True
+    if a['instagram'] and plain(a['instagram']) == plain(b['instagram']):
+        return True
+    if a['phone'] and re.sub(r'\D', '', a['phone']) == re.sub(r'\D', '', b['phone']):
+        return True
+    # An online-only or unplaced row and a row with a city: same business when the distinctive names match
+    if not a['city'] or not b['city']:
+        ca, cb = core(a['name']), core(b['name'])
+        return len(ca) >= 8 and len(cb) >= 8 and (ca in cb or cb in ca)
+    return False
+
+
 def merge(rows):
-    """Drop duplicates (same name + city, or same Instagram, or same phone), keeping the fuller record."""
+    """Drop duplicates, keeping the first record and filling its gaps from the later one.
+
+    Pass files with cities before online-only ones, so the merged record keeps its city."""
     kept = []
     for row in rows:
-        twin = None
-        for other in kept:
-            same_name = plain(row['name']) == plain(other['name']) and plain(row['city']) == plain(other['city'])
-            same_insta = row['instagram'] and plain(row['instagram']) == plain(other['instagram'])
-            same_phone = row['phone'] and re.sub(r'\D', '', row['phone']) == re.sub(r'\D', '', other['phone'])
-            if same_name or same_insta or same_phone:
-                twin = other
-                break
+        twin = next((other for other in kept if same_business(row, other)), None)
         if twin is None:
             kept.append(row)
         else:
             for k in KEYS:  # fill the gaps of the first record from the second
                 if not twin[k] and row[k]:
                     twin[k] = row[k]
-    return sorted(kept, key=lambda r: (r['state'] == 'Online', r['state'], plain(r['city']), plain(r['name'])))
+    return sorted(kept, key=lambda r: (r['state'] in ('Online', 'Unknown'), r['state'], plain(r['city']), plain(r['name'])))
 
 
 def link(value, key):
@@ -175,7 +196,10 @@ def write_xlsx(rows, path):
         ('Quilting ateliers in Brazil', True),
         (f'Collected from public web pages on {date.today().isoformat()} by the quilt-atelier-finder agent '
          '(.claude/agents/quilt-atelier-finder.md).', False),
-        ('Every phone, email and address was read on the page(s) in the Source column. Empty cell = not found.', False),
+        ('Every phone, email and address comes from the page(s) in the Source column; nothing was guessed. '
+         'Empty cell = not found.', False),
+        ('November 2026 run: the pages themselves could not be opened from the research environment, so details were '
+         'read from search-engine excerpts of those pages. Check before relying on them.', False),
         ('Contacts change: call or message before visiting. Rows marked "possibly closed" or confidence "low" '
          'need checking first.', False),
         ('Type: Ateliê (makes quilts), Escola (classes), Loja (sells fabric/notions), Quiltagem (longarm service), '
