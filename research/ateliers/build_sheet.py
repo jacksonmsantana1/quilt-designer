@@ -3,7 +3,8 @@
     python3 research/ateliers/build_sheet.py [result.json ...]
 
 With no arguments it rebuilds from research/ateliers/ateliers.json (the merged list kept in the repo).
-Writes ateliers.json, ateliers.csv and ateliers.xlsx next to this script.
+Writes ateliers.json, ateliers.csv, ateliers.xlsx and ateliers.html (a page to browse the list, made from
+page_template.html) next to this script.
 """
 
 import csv
@@ -220,6 +221,13 @@ def write_xlsx(rows, path):
     wb.save(path)
 
 
+def write_page(rows, path):
+    data = json.dumps(rows, ensure_ascii=False).replace('</', '<\\/')  # never close the <script> early
+    page = (HERE / 'page_template.html').read_text(encoding='utf-8')
+    page = page.replace('/*DATA*/[]', data, 1).replace('/*BUILT*/', date.today().strftime('%B %Y'), 1)
+    path.write_text(page, encoding='utf-8')
+
+
 def main(paths):
     sources = [Path(p) for p in paths] or [HERE / 'ateliers.json']
     rows = []
@@ -232,6 +240,7 @@ def main(paths):
         w.writerow([c[1] for c in COLUMNS])
         w.writerows([[r[k] for k in KEYS] for r in rows])
     write_xlsx(rows, HERE / 'ateliers.xlsx')
+    write_page(rows, HERE / 'ateliers.html')
     print(f'{len(rows)} ateliers -> {HERE / "ateliers.xlsx"}')
 
 

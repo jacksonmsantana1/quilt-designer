@@ -1,0 +1,405 @@
+<title>Brazil Quilting Ateliers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a quilt-border band over a directory: state strip, filters, then a grid of contact cards. */
+  :root {
+    --bg: #eef0f6;
+    --surface: #ffffff;
+    --ink: #1b2140;
+    --muted: #586082;
+    --line: #d6daea;
+    --indigo: #2b3c94;
+    --indigo-soft: #e2e6f8;
+    --saffron: #d3961c;
+    --good: #2e7a4e;
+    --good-soft: #e1f2e7;
+    --warn: #9a6410;
+    --warn-soft: #fbefd6;
+    --bad: #a23a3a;
+    --bad-soft: #f8e3e3;
+    --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --body: 'Public Sans', 'Segoe UI', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10132a; --surface: #191d39; --ink: #e6e8f5; --muted: #a2a8c8; --line: #2c3258;
+      --indigo: #93a4ff; --indigo-soft: #262d5c; --saffron: #efb54a;
+      --good: #7fd3a0; --good-soft: #1d3a2b; --warn: #f0c46c; --warn-soft: #3d311a; --bad: #f19a9a; --bad-soft: #452326;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10132a; --surface: #191d39; --ink: #e6e8f5; --muted: #a2a8c8; --line: #2c3258;
+    --indigo: #93a4ff; --indigo-soft: #262d5c; --saffron: #efb54a;
+    --good: #7fd3a0; --good-soft: #1d3a2b; --warn: #f0c46c; --warn-soft: #3d311a; --bad: #f19a9a; --bad-soft: #452326;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+  a { color: var(--indigo); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--saffron); outline-offset: 2px; }
+
+  .wrap {
+    max-width: 1240px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  /* A sawtooth border of half-square triangles, the most common patchwork unit */
+  .hst { height: 20px; background: linear-gradient(45deg, var(--indigo) 50%, var(--saffron) 50%) 0 0 / 20px 20px; }
+
+  header { padding-block: 28px 8px; display: grid; gap: 10px; }
+  .eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font: 800 clamp(30px, 5vw, 50px)/1.05 var(--display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+  .lede { margin: 0; max-width: 68ch; color: var(--muted); }
+  .lede strong { color: var(--ink); font-weight: 600; }
+  .caveat {
+    margin: 6px 0 0; max-width: 80ch; font-size: 13.5px; color: var(--warn);
+    background: var(--warn-soft); border-radius: 6px; padding: 8px 12px;
+  }
+
+  /* Count of ateliers per state, grouped by region; each is a filter button */
+  .states { display: flex; flex-wrap: wrap; gap: 14px 22px; padding-block: 18px 6px; }
+  .region { display: grid; gap: 6px; }
+  .region h2 { font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .region div { display: flex; flex-wrap: wrap; gap: 6px; }
+  .st {
+    font: 500 13px/1 var(--mono); border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 999px; padding: 6px 10px; cursor: pointer; display: inline-flex; gap: 6px; align-items: baseline;
+  }
+  .st b { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .st[aria-pressed="true"] { background: var(--indigo); border-color: var(--indigo); color: var(--surface); }
+  .st[aria-pressed="true"] b { color: var(--surface); }
+
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+    padding-block: 14px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 12px;
+  }
+  .filters input[type="search"], .filters select {
+    font: inherit; font-size: 14px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px;
+  }
+  .filters input[type="search"] { flex: 1 1 240px; min-width: 0; }
+  .types { display: flex; flex-wrap: wrap; gap: 6px; }
+  .type-btn {
+    font: inherit; font-size: 13px; border: 1px solid var(--line); background: transparent; color: var(--ink);
+    border-radius: 6px; padding: 5px 9px; cursor: pointer;
+  }
+  .type-btn[aria-pressed="true"] { background: var(--indigo-soft); border-color: var(--indigo); color: var(--indigo); }
+  .checks { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; color: var(--muted); }
+  .checks label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .checks input { accent-color: var(--indigo); }
+
+  .bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding-block: 14px; }
+  .count { font: 500 13px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .link-btn { font: inherit; font-size: 13px; background: none; border: 0; color: var(--indigo); cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 14px; padding-bottom: 32px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  }
+  .card.closed { opacity: .72; }
+  .top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font-size: 11.5px; font-weight: 600; color: var(--indigo); background: var(--indigo-soft); border-radius: 4px; padding: 2px 7px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+  .pill { font: 500 11px/1.6 var(--mono); border-radius: 999px; padding: 0 8px; white-space: nowrap; }
+  .pill.high { color: var(--good); background: var(--good-soft); }
+  .pill.medium { color: var(--warn); background: var(--warn-soft); }
+  .pill.low, .pill.closed { color: var(--bad); background: var(--bad-soft); }
+  .card h3 { font: 600 19px/1.2 var(--display); margin: 0; text-wrap: balance; overflow-wrap: anywhere; }
+  .place { color: var(--muted); font-size: 13.5px; margin-top: -4px; }
+  .place .uf { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+
+  dl { margin: 0; display: grid; grid-template-columns: 78px 1fr; gap: 5px 10px; font-size: 13.5px; }
+  dt { color: var(--muted); font-size: 12px; padding-top: 1px; }
+  dd { margin: 0; min-width: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+  .mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .copy {
+    font: 500 11px/1 var(--body); color: var(--muted); background: none; border: 1px solid var(--line);
+    border-radius: 4px; padding: 3px 6px; cursor: pointer;
+  }
+  .copy:hover { color: var(--indigo); border-color: var(--indigo); }
+  .services { margin: 0; font-size: 13.5px; color: var(--muted); }
+  details { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: auto; }
+  summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+  details p { margin: 6px 0; }
+  details ul { margin: 4px 0 0; padding-left: 18px; }
+  details li { overflow-wrap: anywhere; }
+
+  .empty { grid-column: 1 / -1; text-align: center; padding: 48px 16px; color: var(--muted); }
+  .empty h3 { font: 600 20px var(--display); color: var(--ink); margin: 0 0 6px; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 18px 32px; font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+  footer p { margin: 0; max-width: 90ch; }
+  footer code { font-family: var(--mono); font-size: 12px; }
+
+  @media (max-width: 480px) {
+    dl { grid-template-columns: 66px 1fr; }
+    .states { gap: 12px 16px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .card { transition: border-color .15s; }
+    .card:hover { border-color: var(--indigo); }
+  }
+</style>
+
+<div class="hst" aria-hidden="true"></div>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Patchwork &amp; quilting · Brasil · <span id="stamp"></span></span>
+    <h1>Quilting ateliers in Brazil</h1>
+    <p class="lede" id="lede"></p>
+    <p class="caveat">Details were read from search-engine previews of each business's own pages, because the pages
+      themselves couldn't be opened during research. Phone numbers and addresses change: call or message before you visit.</p>
+  </header>
+
+  <nav class="states" id="states" aria-label="Filter by state"></nav>
+
+  <section class="filters" aria-label="Filters">
+    <input type="search" id="q" placeholder="Search name, city, services…" aria-label="Search">
+    <div class="types" id="types" role="group" aria-label="Type of business"></div>
+    <select id="sort" aria-label="Sort">
+      <option value="place">Sort: state and city</option>
+      <option value="name">Sort: name</option>
+      <option value="conf">Sort: most reliable first</option>
+    </select>
+    <div class="checks">
+      <label><input type="checkbox" id="f-phone"> Has phone</label>
+      <label><input type="checkbox" id="f-email"> Has email</label>
+      <label><input type="checkbox" id="f-low"> Hide low confidence</label>
+      <label><input type="checkbox" id="f-closed"> Hide possibly closed</label>
+    </div>
+  </section>
+
+  <div class="bar">
+    <span class="count" id="count" aria-live="polite"></span>
+    <button class="link-btn" id="reset" type="button">Clear filters</button>
+  </div>
+
+  <main class="grid" id="grid"></main>
+
+  <footer>
+    <p><strong>Types:</strong> Ateliê makes quilts and patchwork pieces · Classes teaches patchwork and quilting ·
+      Fabric shop sells patchwork cottons and notions · Longarm quilting quilts tops for other people ·
+      Guild / festival is a group, association or show.</p>
+    <p><strong>Confidence:</strong> high = the business's own site or social page, recent · medium = a directory or
+      older page · low = only a passing mention. Empty fields mean nothing was found, not that the business lacks it.</p>
+    <p>Made from <code>research/ateliers/ateliers.json</code> in the quilt-designer repository, collected by the
+      quilt-atelier-finder agent. The same list is in <code>ateliers.xlsx</code>.</p>
+  </footer>
+</div>
+<div class="hst" aria-hidden="true"></div>
+
+<script>
+  const DATA = /*DATA*/[];
+  const BUILT = '/*BUILT*/';
+
+  const REGIONS = [
+    ['Sudeste', ['SP', 'RJ', 'MG', 'ES']],
+    ['Sul', ['PR', 'SC', 'RS']],
+    ['Centro-Oeste', ['DF', 'GO', 'MT', 'MS']],
+    ['Nordeste', ['BA', 'PE', 'CE', 'PB', 'RN', 'AL', 'SE', 'PI', 'MA']],
+    ['Norte', ['PA', 'AM', 'TO', 'RO', 'AC', 'AP', 'RR']],
+    ['Elsewhere', ['Online', 'Unknown']],
+  ];
+  const STATE_LABEL = { Online: 'Online only', Unknown: 'City not found' };
+  const TYPES = [
+    ['Ateliê', 'Ateliê'],
+    ['Escola', 'Classes'],
+    ['Loja', 'Fabric shop'],
+    ['Quiltagem', 'Longarm quilting'],
+    ['Grupo', 'Guild / festival'],
+  ];
+  const TYPE_LABEL = Object.fromEntries(TYPES);
+  const CONF_RANK = { high: 0, medium: 1, low: 2 };
+
+  const state = { uf: '', types: new Set(), q: '', sort: 'place' };
+  const $ = (id) => document.getElementById(id);
+
+  function el(tag, attrs = {}, ...kids) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') n.className = v;
+      else if (k === 'text') n.textContent = v;
+      else n.setAttribute(k, v);
+    }
+    for (const kid of kids) if (kid != null) n.append(kid);
+    return n;
+  }
+  const plain = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const typesOf = (r) => r.type.split(';').map((t) => t.trim()).filter(Boolean);
+
+  DATA.forEach((r) => {
+    r._types = typesOf(r);
+    r._text = plain([r.name, r.city, r.neighborhood, r.services, r.notes, r.instagram].join(' '));
+  });
+
+  // Header numbers
+  const withPhone = DATA.filter((r) => r.phone || r.whatsapp).length;
+  const withEmail = DATA.filter((r) => r.email).length;
+  const states = new Set(DATA.map((r) => r.state).filter((s) => s.length === 2));
+  $('lede').innerHTML = '';
+  $('lede').append(
+    el('strong', { text: DATA.length + ' patchwork and quilting businesses' }),
+    ` in ${states.size} states: ateliês, schools, fabric shops and festivals. ${withPhone} list a phone or WhatsApp and ${withEmail} an email.`,
+  );
+  $('stamp').textContent = BUILT;
+
+  // State strip
+  const counts = {};
+  DATA.forEach((r) => (counts[r.state] = (counts[r.state] || 0) + 1));
+  for (const [region, ufs] of REGIONS) {
+    const present = ufs.filter((u) => counts[u]);
+    if (!present.length) continue;
+    const row = el('div');
+    for (const uf of present) {
+      const b = el('button', { class: 'st', type: 'button', 'aria-pressed': 'false', 'data-uf': uf, title: STATE_LABEL[uf] || uf },
+        STATE_LABEL[uf] || uf, el('b', { text: String(counts[uf]) }));
+      b.addEventListener('click', () => { state.uf = state.uf === uf ? '' : uf; render(); });
+      row.append(b);
+    }
+    $('states').append(el('div', { class: 'region' }, el('h2', { text: region }), row));
+  }
+
+  // Type toggles
+  for (const [key, label] of TYPES) {
+    const n = DATA.filter((r) => r._types.includes(key)).length;
+    if (!n) continue;
+    const b = el('button', { class: 'type-btn', type: 'button', 'aria-pressed': 'false', 'data-type': key }, `${label} · ${n}`);
+    b.addEventListener('click', () => { state.types.has(key) ? state.types.delete(key) : state.types.add(key); render(); });
+    $('types').append(b);
+  }
+
+  $('q').addEventListener('input', (e) => { state.q = plain(e.target.value.trim()); render(); });
+  $('sort').addEventListener('change', (e) => { state.sort = e.target.value; render(); });
+  for (const id of ['f-phone', 'f-email', 'f-low', 'f-closed']) $(id).addEventListener('change', render);
+  $('reset').addEventListener('click', resetFilters);
+
+  function resetFilters() {
+    state.uf = ''; state.types.clear(); state.q = ''; state.sort = 'place';
+    $('q').value = ''; $('sort').value = 'place';
+    for (const id of ['f-phone', 'f-email', 'f-low', 'f-closed']) $(id).checked = false;
+    render();
+  }
+
+  function copyButton(text) {
+    const b = el('button', { class: 'copy', type: 'button', 'aria-label': 'Copy ' + text }, 'Copy');
+    b.addEventListener('click', () => {
+      const done = () => { b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy'), 1400); };
+      const fallback = () => {
+        const span = b.previousElementSibling;
+        const range = document.createRange();
+        range.selectNodeContents(span);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        b.textContent = 'Selected';
+        setTimeout(() => (b.textContent = 'Copy'), 1400);
+      };
+      try { navigator.clipboard.writeText(text).then(done, fallback); } catch { fallback(); }
+    });
+    return b;
+  }
+
+  function ext(href, text) {
+    return el('a', { href, target: '_blank', rel: 'noopener noreferrer', text });
+  }
+  const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+
+  function card(r) {
+    const closed = r.status === 'possibly closed';
+    const c = el('article', { class: 'card' + (closed ? ' closed' : '') });
+
+    const chips = el('div', { class: 'chips' });
+    r._types.forEach((t) => chips.append(el('span', { class: 'chip', title: t, text: TYPE_LABEL[t] || t })));
+    const pills = el('div', { class: 'pills' });
+    if (closed) pills.append(el('span', { class: 'pill closed', text: 'possibly closed' }));
+    if (r.confidence) pills.append(el('span', { class: 'pill ' + r.confidence, title: 'How reliable the details are', text: r.confidence }));
+    c.append(el('div', { class: 'top' }, chips, pills));
+
+    c.append(el('h3', { text: r.name }));
+    const where = [r.neighborhood, r.city].filter(Boolean).join(', ');
+    const place = el('div', { class: 'place' });
+    if (where) place.append(where + ' · ');
+    place.append(el('span', { class: 'uf', text: STATE_LABEL[r.state] || r.state }));
+    c.append(place);
+
+    const dl = el('dl');
+    const row = (label, ...content) => { dl.append(el('dt', { text: label }), el('dd', {}, ...content)); };
+    if (r.phone) row('Phone', el('span', { class: 'mono', text: r.phone }), copyButton(r.phone));
+    if (r.whatsapp) {
+      const digits = r.whatsapp.replace(/\D/g, '');
+      row('WhatsApp', el('span', { class: 'mono', text: r.whatsapp }), digits.length >= 12 ? ext('https://wa.me/' + digits, 'Open chat') : null);
+    }
+    if (r.email) row('Email', el('span', { text: r.email }), copyButton(r.email));
+    if (r.address) {
+      const full = [r.address, r.cep && 'CEP ' + r.cep].filter(Boolean).join(' · ');
+      const q = encodeURIComponent([r.address, r.city, r.state].filter(Boolean).join(', '));
+      row('Address', el('span', { text: full }), ext('https://www.google.com/maps/search/?api=1&query=' + q, 'Map'));
+    }
+    if (r.hours) row('Hours', el('span', { text: r.hours }));
+    const links = [];
+    if (/^https?:\/\//.test(r.website)) links.push(ext(r.website, host(r.website)));
+    if (r.instagram.startsWith('@')) links.push(ext('https://www.instagram.com/' + r.instagram.slice(1), r.instagram));
+    if (/^https?:\/\//.test(r.facebook)) links.push(ext(r.facebook, 'Facebook'));
+    if (links.length) row('Online', ...links);
+    if (r.contact_person) row('Contact', el('span', { text: r.contact_person }));
+    if (dl.children.length) c.append(dl);
+    else c.append(el('p', { class: 'services', text: 'No phone, email or site found yet.' }));
+
+    if (r.services) c.append(el('p', { class: 'services', text: r.services }));
+
+    const sources = (r.source.match(/https?:\/\/[^\s;,]+/g) || []);
+    if (r.notes || sources.length) {
+      const d = el('details', {}, el('summary', { text: 'Notes and sources' }));
+      if (r.notes) d.append(el('p', { text: r.notes }));
+      if (sources.length) {
+        const ul = el('ul');
+        sources.forEach((s) => ul.append(el('li', {}, ext(s, host(s)))));
+        d.append(ul);
+      }
+      c.append(d);
+    }
+    return c;
+  }
+
+  const regionOrder = REGIONS.flatMap(([, u]) => u);
+  function render() {
+    const fPhone = $('f-phone').checked, fEmail = $('f-email').checked;
+    const fLow = $('f-low').checked, fClosed = $('f-closed').checked;
+    let rows = DATA.filter((r) =>
+      (!state.uf || r.state === state.uf) &&
+      (!state.types.size || r._types.some((t) => state.types.has(t))) &&
+      (!state.q || r._text.includes(state.q)) &&
+      (!fPhone || r.phone || r.whatsapp) &&
+      (!fEmail || r.email) &&
+      (!fLow || r.confidence !== 'low') &&
+      (!fClosed || r.status !== 'possibly closed'));
+
+    const byName = (a, b) => a.name.localeCompare(b.name, 'pt');
+    const byPlace = (a, b) => regionOrder.indexOf(a.state) - regionOrder.indexOf(b.state) || a.city.localeCompare(b.city, 'pt') || byName(a, b);
+    const byConf = (a, b) => (CONF_RANK[a.confidence] ?? 3) - (CONF_RANK[b.confidence] ?? 3) || byPlace(a, b);
+    rows = rows.slice().sort(state.sort === 'name' ? byName : state.sort === 'conf' ? byConf : byPlace);
+
+    document.querySelectorAll('.st').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.uf === state.uf)));
+    document.querySelectorAll('.type-btn').forEach((b) => b.setAttribute('aria-pressed', String(state.types.has(b.dataset.type))));
+    const filtered = rows.length !== DATA.length;
+    $('count').textContent = filtered ? `Showing ${rows.length} of ${DATA.length}` : `${DATA.length} businesses`;
+    $('reset').hidden = !filtered && state.sort === 'place';
+
+    const grid = $('grid');
+    grid.replaceChildren(...rows.map(card));
+    if (!rows.length) {
+      const btn = el('button', { class: 'link-btn', type: 'button' }, 'Clear filters');
+      btn.addEventListener('click', resetFilters);
+      grid.append(el('div', { class: 'empty' }, el('h3', { text: 'No ateliers match these filters' }),
+        el('p', {}, 'Try another state or fewer filters. ', btn)));
+    }
+  }
+  render();
+</script>
