@@ -136,6 +136,68 @@ function resample(img, { x0, y0, x1, y1 }) {
   return out;
 }
 
+/** The grey of a picture pixel (0 dark .. 255 light). @param {Picture} img */
+function grey(img, x, y) {
+  const c = img.channels || 3,
+    i = (Math.min(img.height - 1, Math.max(0, y)) * img.width + Math.min(img.width - 1, Math.max(0, x))) * c;
+  return c >= 3 ? 0.3 * img.data[i] + 0.59 * img.data[i + 1] + 0.11 * img.data[i + 2] : img.data[i];
+}
+
+// ---- printed texture
+/**
+ * How much the picture's grey varies inside each pixel of the S × S copy, measured at the picture's own size over a
+ * window twice as wide as the pixel (0 on a flat fabric, high on dots, hatching or crosshatch).
+ * @param {Picture} img @param {{ x0: number, y0: number, x1: number, y1: number }} box @returns {Float32Array}
+ */
+function textureMap(img, { x0, y0, x1, y1 }) {
+  const ix = (x1 - x0) * 0.012,
+    iy = (y1 - y0) * 0.012,
+    bx0 = x0 + ix,
+    by0 = y0 + iy,
+    sw = (x1 - x0 - 2 * ix) / S,
+    sh = (y1 - y0 - 2 * iy) / S,
+    out = new Float32Array(S * S);
+  for (let j = 0; j < S; j++)
+    for (let i = 0; i < S; i++) {
+      const xa = Math.floor(bx0 + (i - 0.5) * sw),
+        xb = Math.max(xa + 2, Math.floor(bx0 + (i + 1.5) * sw)),
+        ya = Math.floor(by0 + (j - 0.5) * sh),
+        yb = Math.max(ya + 2, Math.floor(by0 + (j + 1.5) * sh));
+      let sum = 0,
+        sum2 = 0,
+        k = 0;
+      for (let y = ya; y < yb; y++)
+        for (let x = xa; x < xb; x++) {
+          const g = grey(img, x, y);
+          sum += g;
+          sum2 += g * g;
+          k++;
+        }
+      out[j * S + i] = Math.sqrt(Math.max(0, sum2 / k - (sum / k) ** 2));
+    }
+  return out;
+}
+
+/** The mean texture over the inside of one region of a piece (away from its outline and its own seams), or null. */
+function regionTexture(T, p, n, r) {
+  const sh = SHAPES[p.kind],
+    size = S / n;
+  let sum = 0,
+    k = 0;
+  for (let y = Math.ceil(p.y * size); y < (p.y + p.h) * size; y++)
+    for (let x = Math.ceil(p.x * size); x < (p.x + p.w) * size; x++) {
+      const cu = (x + 0.5) / size - p.x,
+        cv = (y + 0.5) / size - p.y;
+      if (cu % 1 < 0.12 || cu % 1 > 0.88 || cv % 1 < 0.12 || cv % 1 > 0.88) continue;
+      const u = cu / p.w,
+        v = cv / p.h;
+      if (sh.near(u, v) < 0.1 / Math.max(p.w, p.h) || sh.region(u, v) !== r) continue;
+      sum += T[y * S + x];
+      k++;
+    }
+  return k ? sum / k : null;
+}
+
 // ---- seams
 /** How strongly the colour changes at each pixel (0 on flat colour). */
 function edges(L) {
@@ -383,11 +445,107 @@ function seamAlong(e, n, ax, ay, bx, by) {
   return line >= 12 && line > beside * 1.8 + 4;
 }
 
+// ---- printed lines at full resolution
+
+/**
+ * Where the printed grid lines really are, and whether a line is printed between two neighbouring cells, measured on
+ * the picture at its own size (the S × S copy used elsewhere is too small: thin lines fade there). A seam is a ridge:
+ * along the middle of the line the picture is darker than it is on both sides, by a clear step, nearly all the way.
+ * The lowest grey in a thin strip is compared with the same on either side, so printed texture (dots, hatching,
+ * crosshatch) is not taken for a line. The grid lines are found first, from the ridges themselves, as the drawings'
+ * lines are not evenly spaced. Returns a test for a segment one cell long, along a grid line (cell units).
+ * @param {Picture} img @param {{ x0: number, y0: number, x1: number, y1: number }} box @param {number} n
+ * @returns {(ax: number, ay: number, bx: number, by: number) => boolean}
+ */
+function seamTester(img, box, n) {
+  const ix = (box.x1 - box.x0) * 0.012,
+    iy = (box.y1 - box.y0) * 0.012,
+    X0 = box.x0 + ix,
+    Y0 = box.y0 + iy,
+    cw = (box.x1 - box.x0 - 2 * ix) / n,
+    ch = (box.y1 - box.y0 - 2 * iy) / n;
+  const near = Math.max(1, Math.round(Math.min(cw, ch) * 0.05)), // half the strip a line can sit in
+    side = Math.min(cw, ch) * 0.25; // how far inside a cell its own colour is measured
+  // the lines, from how much darker than its surroundings each column (row) of the block is, on average
+  const ridge = (x, y, vertical) => {
+    const g = (d, o) => (vertical ? grey(img, x + d, y + o) : grey(img, x + o, y + d));
+    return Math.max(0, (g(-near * 2, 0) + g(near * 2, 0)) / 2 - g(0, 0));
+  };
+  const profile = (vertical, from, len, across) => {
+    const out = new Array(len).fill(0);
+    for (let a = 0; a < len; a++) {
+      let sum = 0,
+        k = 0;
+      for (let t = 0; t < across; t += 2) {
+        sum += vertical
+          ? ridge(Math.round(from.x + a), Math.round(from.y + t), true)
+          : ridge(Math.round(from.x + t), Math.round(from.y + a), false);
+        k++;
+      }
+      out[a] = sum / k;
+    }
+    return out;
+  };
+  const snap = (prof, a0, step) => {
+    const pos = [];
+    for (let k = 0; k <= n; k++) {
+      const e = a0 + k * step,
+        w = Math.max(2, Math.round(step * 0.2));
+      let best = Math.round(e),
+        bv = -1;
+      for (let a = Math.round(e) - w; a <= Math.round(e) + w; a++) {
+        const v = (prof[a] || 0) + (prof[a - 1] || 0) + (prof[a + 1] || 0);
+        if (v > bv) {
+          bv = v;
+          best = a;
+        }
+      }
+      pos.push(k === 0 || k === n ? e : best);
+    }
+    return pos;
+  };
+  const w = Math.round(n * cw),
+    h = Math.round(n * ch);
+  // profiles are indexed from the block's own corner, then moved back
+  const px_ = profile(true, { x: X0, y: Y0 }, w + 1, h),
+    py_ = profile(false, { x: X0, y: Y0 }, h + 1, w);
+  const LX = snap(px_, 0, cw).map(v => X0 + v),
+    LY = snap(py_, 0, ch).map(v => Y0 + v);
+  /** the lowest grey in a strip 2 * near + 1 wide, centred on (x, y), across the line */
+  const low = (x, y, vertical) => {
+    let m = 255;
+    for (let d = -near; d <= near; d++)
+      m = Math.min(
+        m,
+        vertical ? grey(img, Math.round(x + d), Math.round(y)) : grey(img, Math.round(x), Math.round(y + d)),
+      );
+    return m;
+  };
+  return (ax, ay, bx, by) => {
+    const vertical = ax === bx;
+    const i = vertical ? ax : Math.min(ax, bx),
+      j = vertical ? Math.min(ay, by) : ay;
+    if (i < 0 || j < 0 || i > n || j > n) return false;
+    let hits = 0,
+      total = 0;
+    for (let t = 0.15; t <= 0.851; t += 0.05) {
+      const x = vertical ? LX[i] : LX[i] + t * (LX[i + 1] - LX[i]),
+        y = vertical ? LY[j] + t * (LY[j + 1] - LY[j]) : LY[j];
+      const line = low(x, y, vertical),
+        a = vertical ? low(x - side, y, true) : low(x, y - side, false),
+        b = vertical ? low(x + side, y, true) : low(x, y + side, false);
+      if (line <= Math.min(a, b) - 20) hits++;
+      total++;
+    }
+    return hits >= total * 0.7;
+  };
+}
+
 /**
  * Joins cells into the bigger pieces the picture shows: four cells that make one large half-square triangle, and
  * neighbouring plain cells of one fabric (into rectangles), wherever no seam is printed between them.
  */
-function joinPieces(ps, e, n) {
+function joinPieces(ps, n, seam) {
   const at = new Array(n * n).fill(null);
   for (const p of ps) if (p.w === 1 && p.h === 1) at[p.y * n + p.x] = p;
   const cell = (x, y) => (x < n && y < n ? at[y * n + x] : null);
@@ -404,10 +562,10 @@ function joinPieces(ps, e, n) {
       const [tl, tr, bl, br] = [cell(i, j), cell(i + 1, j), cell(i, j + 1), cell(i + 1, j + 1)];
       if (![tl, tr, bl, br].every(c => c && !used.has(c))) continue;
       const midSeams = () =>
-        seamAlong(e, n, i + 1, j, i + 1, j + 1) ||
-        seamAlong(e, n, i + 1, j + 1, i + 1, j + 2) ||
-        seamAlong(e, n, i, j + 1, i + 1, j + 1) ||
-        seamAlong(e, n, i + 1, j + 1, i + 2, j + 1);
+        seam(i + 1, j, i + 1, j + 1) ||
+        seam(i + 1, j + 1, i + 1, j + 2) ||
+        seam(i, j + 1, i + 1, j + 1) ||
+        seam(i + 1, j + 1, i + 2, j + 1);
       if (tr.kind === '/' && same(bl, '/', tr.clusters)) {
         const [a, b] = tr.clusters;
         if (same(tl, 'plain', [a]) && same(br, 'plain', [b]) && !midSeams())
@@ -430,14 +588,11 @@ function joinPieces(ps, e, n) {
       const c = p.clusters[0];
       let w = 1,
         h = 1;
-      while (free(i + w, j, c) && !seamAlong(e, n, i + w, j, i + w, j + 1)) w++;
+      while (free(i + w, j, c) && !seam(i + w, j, i + w, j + 1)) w++;
       for (;;) {
         let ok = true;
         for (let x = i; x < i + w && ok; x++)
-          ok =
-            !!free(x, j + h, c) &&
-            !seamAlong(e, n, x, j + h, x + 1, j + h) &&
-            (x === i || !seamAlong(e, n, x, j + h, x, j + h + 1));
+          ok = !!free(x, j + h, c) && !seam(x, j + h, x + 1, j + h) && (x === i || !seam(x, j + h, x, j + h + 1));
         if (!ok) break;
         h++;
       }
@@ -529,13 +684,31 @@ function readBlock(img) {
   }
   const top = Math.max(...tries.map(t => t.explained));
   const { n, ps: cells } = tries.find(t => t.explained >= top - 0.015);
-  const ps = joinPieces(cells, e, n);
+  // a printed line is looked for at full size first (thin lines fade in the small copy), then in the small copy
+  const fullSeam = seamTester(img, box, n);
+  const joined = joinPieces(cells, n, (ax, ay, bx, by) => fullSeam(ax, ay, bx, by) || seamAlong(e, n, ax, ay, bx, by));
+  // printed texture: a piece filled with dots, hatching or crosshatch is another fabric than a flat one of the same
+  // average colour (the second half of `all` is the textured copy of each fabric); what counts as texture is judged
+  // against the picture's own grain (a grainy photo has some everywhere, and so splits nothing)
+  const K = centres.length,
+    all = [...centres, ...centres],
+    T = textureMap(img, box),
+    levels = joined.map(p => p.clusters.map((_, r) => regionTexture(T, p, n, r)));
+  const known = levels
+    .flat()
+    .filter(v => v != null)
+    .sort((a, b) => a - b);
+  const cut = Math.max(14, (known.length ? known[Math.floor(known.length * 0.3)] : 0) * 3);
+  const ps = joined.map((p, i) => ({
+    ...p,
+    clusters: p.clusters.map((c, r) => (levels[i][r] != null && levels[i][r] > cut ? c + K : c)),
+  }));
   // colour roles by area in the answer: the largest is the background
-  const area = centres.map(() => 0);
+  const area = all.map(() => 0);
   for (const p of ps) for (const l of p.clusters) area[l] += (p.w * p.h) / p.clusters.length;
-  const byArea = centres.map((_, i) => i).sort((a, b) => area[b] - area[a]);
-  const role = centres.map(() => 0);
-  byArea.forEach((ci, rank) => (role[ci] = rank)); // at most 6 fabrics are found: roles 0 to 5
+  const byArea = all.map((_, i) => i).sort((a, b) => area[b] - area[a]);
+  const role = all.map(() => 0);
+  byArea.forEach((ci, rank) => (role[ci] = Math.min(5, rank))); // roles 0 to 5
   // the notation: each piece's token at its top-left cell, "-", "|" and "+" over the rest of it
   const grid = Array.from({ length: n }, () => new Array(n).fill(''));
   for (const p of ps) {
@@ -570,7 +743,7 @@ function readBlock(img) {
       if (e[y * S + x] > 25) continue;
       const ci = Math.min(n - 1, Math.floor(x / size)),
         cj = Math.min(n - 1, Math.floor(y / size)),
-        ok = clusterAt(pieceAt[cj * n + ci], x, y, size) === labels[y * S + x] ? 1 : 0;
+        ok = clusterAt(pieceAt[cj * n + ci], x, y, size) % K === labels[y * S + x] ? 1 : 0;
       agree += ok;
       counted++;
       cellMatch[cj * n + ci][0] += ok;
@@ -579,7 +752,7 @@ function readBlock(img) {
   return {
     n,
     rows,
-    fabrics: centres.map(labToRgb),
+    fabrics: all.map(labToRgb),
     role,
     match: counted ? agree / counted : 0,
     cells: cellMatch.map(([a, t]) => (t ? a / t : 0)),

@@ -22,3 +22,6 @@ server/.data/
 
 # the block review sheet (node shared/tools/block-sheet.mjs)
 /block-sheet.html
+
+# review pages made by shared/tools/drawing-review.mjs (they hold the pictures)
+/drawing-review*.html
