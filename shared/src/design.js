@@ -4,7 +4,7 @@ import { partsOf } from './patterns.js';
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Block} Block */
 
 /** Version of the saved design format (see core/format.js). */
-const FORMAT_VERSION = 7;
+const FORMAT_VERSION = 8;
 
 // A block's parts have colour roles 0 to 5: 0 background, 1 main, 2 accent, then 3, 4 and 5 for blocks with more
 // fabrics (most use only the first three). Designs keep a fabric per part, not roles: roles only pick the fabrics a

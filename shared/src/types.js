@@ -73,6 +73,15 @@
  * @property {Border[]} [borders]
  * @property {SymmetryMode} [sym]
  * @property {QuiltingKind} [quilting]
+ * @property {Record<string, DrawnBlock>} [drawn]  blocks drawn in the block editor, by pattern key (drawn-blocks.js)
+ */
+
+/**
+ * A block someone drew: the grid notation of grid-blocks.js, n × n cells.
+ * @typedef {object} DrawnBlock
+ * @property {string} label   its name
+ * @property {number} n       cells per side
+ * @property {string} rows    one line per row, one token per cell
  */
 
 /** Orientation of a block. @typedef {{ rot: number, flip: boolean }} Orientation */

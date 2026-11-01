@@ -8,6 +8,7 @@ import { PATTERNS, partsOf } from './patterns.js';
 import { BORDER_TYPES, normalizeSpans } from './geometry.js';
 import { FORMAT_VERSION, ROLE_DEFAULT, defaultDesign } from './design.js';
 import { MOSAIC_SHAPES, tileCount } from './mosaic.js';
+import { readDrawn } from './drawn-blocks.js';
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Block} Block */
 
 /**
@@ -37,6 +38,8 @@ const MIGRATIONS = [
   d => ({ ...d, v: 6 }),
   // 6 → 7: a quilt can be a shape mosaic (mosaic) instead of blocks; older saves are blocks
   d => ({ ...d, v: 7 }),
+  // 7 → 8: a quilt can carry blocks drawn in the block editor (drawn); older saves have none
+  d => ({ ...d, v: 8 }),
 ];
 
 /** @type {Record<string, [number, number]>} */
@@ -68,6 +71,12 @@ function check(d) {
   if (!isObj(d) || !num(d.cols) || !num(d.rows) || !Array.isArray(d.blocks)) return null;
   const problems = [];
   const count = {};
+  // the quilt's own drawn blocks first: they become patterns its blocks can use
+  const drawn = readDrawn(d.drawn);
+  if (drawn.lost)
+    problems.push(
+      `${plural(drawn.lost, 'drawn block')} could not be read and ${drawn.lost === 1 ? 'was' : 'were'} left out.`,
+    );
   const note = (key, n = 1) => (count[key] = (count[key] || 0) + n);
   const cols = clamp(Math.round(d.cols), LIMITS.grid),
     rows = clamp(Math.round(d.rows), LIMITS.grid);
@@ -107,6 +116,8 @@ function check(d) {
   /** @type {Design} */
   const out = { ...d, v: FORMAT_VERSION, cols, rows, blocks };
   if (!onPoint) delete out.setting;
+  if (Object.keys(drawn.drawn).length) out.drawn = drawn.drawn;
+  else delete out.drawn;
   if (d.settingFabric !== undefined && !isFabric(d.settingFabric)) {
     delete out.settingFabric;
     problems.push('The fabric of the setting triangles was reset.');
