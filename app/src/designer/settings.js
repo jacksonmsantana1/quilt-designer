@@ -48,14 +48,16 @@ function openSym(open) {
     row = $('sym-row');
   if (!wrap) return;
   if (open) {
-    row.classList.remove('lefty');
+    row.classList.remove('lefty', 'parked');
     const r = row.getBoundingClientRect(),
       b = $('rail-sym').getBoundingClientRect();
     // no room on the right: the window's edge, or the side panel (it would cover the choices)
     const side = $('dz-side'),
       limit = side && !side.hidden ? side.getBoundingClientRect().left : innerWidth - 4;
     if (b.right + 8 + r.width > limit) row.classList.add('lefty');
-  }
+  } else
+    // once faded out, tuck it back over the quilt (hidden, it would still stretch a narrow page sideways)
+    setTimeout(() => wrap.classList.contains('open') || row.classList.add('parked'), 200);
   wrap.classList.toggle('open', open);
   $('rail-sym').setAttribute('aria-expanded', String(open));
 }
