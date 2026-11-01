@@ -37,20 +37,25 @@ class StopSync extends Error {
 }
 
 /**
- * @param {{ repo: Repo, fetch?: typeof fetch, onRemote?: (e: RemoteEvent) => void, onStatus?: (s: SyncStatus) => void }} deps
+ * @param {{ repo: Repo, fetch?: typeof fetch, onRemote?: (e: RemoteEvent) => void, onStatus?: (s: SyncStatus) => void, getToken?: () => Promise<string> }} deps
+ *   getToken: a fresh sign-in token for the server (storage/auth0.js), for accounts signed in with Auth0
  */
 function createSync({
   repo,
   fetch: fetchFn = (...a) => globalThis.fetch(...a),
   onRemote = () => {},
   onStatus = () => {},
+  getToken = () => Promise.reject(new Error('no sign-in')),
 }) {
   /** @type {SyncStatus} */
   let status = { state: 'off', pending: 0 };
   let running = null,
     again = false;
 
-  /** @returns {{ url: string, user: string, since: number, at?: number } | null} */
+  /**
+   * The server and who is signed in: an Auth0 account (auth0 = its id, who = the email to show) or, in development,
+   * a name (user). @returns {{ url: string, user?: string, auth0?: string, who?: string, since: number, at?: number } | null}
+   */
   const config = () => repo.getSession(SESSION_KEY) || null;
   const pendingCount = () => repo.designs.dirty().length + repo.fabrics.dirty().length;
   const setStatus = s => {
@@ -59,9 +64,9 @@ function createSync({
   };
 
   /**
-   * Turns sync on with a server address and (for now) the development login name, or off with null.
-   * A different server or account starts afresh: everything here is sent to it.
-   * @param {{ url: string, user: string } | null} c
+   * Turns sync on with a server address and an account (signed in with Auth0, or a development name), or off with
+   * null. A different server or account starts afresh: everything here is sent to it.
+   * @param {{ url: string, user?: string, auth0?: string, who?: string } | null} c
    */
   function configure(c) {
     const old = config();
@@ -71,23 +76,30 @@ function createSync({
       return;
     }
     const url = c.url.trim().replace(/\/+$/, ''),
-      user = c.user.trim();
-    if (!old || old.url !== url || old.user !== user) {
+      who = c.auth0 ? { auth0: c.auth0, who: c.who || c.auth0 } : { user: (c.user || '').trim() },
+      same = old && old.url === url && old.user === who.user && old.auth0 === who.auth0;
+    if (!same) {
       repo.designs.resetSync();
       repo.fabrics.resetSync();
-      repo.setSession(SESSION_KEY, { url, user, since: 0 });
-    }
+      repo.setSession(SESSION_KEY, { url, ...who, since: 0 });
+    } else if (who.who && old.who !== who.who) repo.setSession(SESSION_KEY, { ...old, who: who.who });
     setStatus({ state: 'ok', message: '' });
   }
 
   /** One API call: { status, body }. Network failures and 401 stop the sync. */
   async function api(method, path, body) {
     const c = /** @type {NonNullable<ReturnType<typeof config>>} */ (config());
-    let r;
+    let r, login;
+    if (c.auth0) {
+      // a fresh token each time (the Auth0 library keeps it and renews it); none means signed out on this device
+      const token = await getToken().catch(() => null);
+      if (!token) throw new StopSync('login', 'Please sign in again.');
+      login = { authorization: `Bearer ${token}` };
+    } else login = { 'x-dev-user': c.user };
     try {
       r = await fetchFn(c.url + path, {
         method,
-        headers: { 'x-dev-user': c.user, ...(body ? { 'content-type': 'application/json' } : {}) },
+        headers: { ...login, ...(body ? { 'content-type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (e) {

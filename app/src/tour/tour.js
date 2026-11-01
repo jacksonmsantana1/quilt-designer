@@ -407,11 +407,13 @@ document.addEventListener(
   },
   true,
 );
-// first visit: offer the tour once the designer is ready
-setTimeout(() => {
+// first visit: offer the tour once the designer is ready, and once the welcome page (mine/account.js) is closed
+function offerTour() {
+  if ($('welcome') && !$('welcome').hidden) return setTimeout(offerTour, 700);
   let seen = null;
   try {
     seen = localStorage.getItem(TOUR_KEY);
   } catch (e) {}
   if (!seen && !IS_PHONE && state.page === 'design') tourBegin();
-}, 1200);
+}
+setTimeout(offerTour, 1200);

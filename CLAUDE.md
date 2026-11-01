@@ -76,8 +76,13 @@ Everything must stay green: `npm run check` with zero lint warnings, and all bro
 - Photos: signed upload link to a fresh `uploads/...` key, then `done` re-hashes and copies to `fabrics/...`.
   Storage: S3/R2/SeaweedFS (`objects.js s3Store`), or `STORAGE=local` (folder served by the API, dev only).
   Docker compose runs SeaweedFS (port 8333) because MinIO stopped publishing its images.
-- Login: **development stand-in only** (`X-Dev-User` header). Production refuses `AUTH_MODE=dev` and
-  `STORAGE=local`. Migration 001 has not been deployed anywhere yet, so it can still be edited; after the first
+- Login: **Auth0** (the owner's choice; tenant `dev-5op4uervqyekvlsx.us.auth0.com`, API identifier
+  `https://api.quilt-designer`). The app (`storage/auth0.js`) loads Auth0's library from the CDN only on sign-in,
+  signs in in a popup, keeps refresh tokens in localStorage, and the sync sends `Authorization: Bearer`; the
+  server (`auth.js`, jose) checks issuer, audience, RS256 signature and expiry, and maps `sub` to users.auth_sub.
+  Tests never reach Auth0: they sign tokens with their own key (`buildApp({ keys })`), and the browser tests
+  serve a stand-in for the library. `AUTH_MODE=dev` also takes the `X-Dev-User` header (tests, the `seed` user).
+  Production refuses `AUTH_MODE=dev` and `STORAGE=local`. Migration 001 has not been deployed anywhere yet, so it can still be edited; after the first
   deployment, add new migration files instead.
 - `npm run smoke -w @quilt/server` checks a running server end to end.
 
@@ -87,11 +92,11 @@ Done, in order: module split → tooling and tests → pure edits through dispat
 per edit → versioned format → IndexedDB → coverage and more tests → server (steps 1–4, 6) → app sync (step 7).
 
 **Next: step 8, going live.** Deploy the API (one Node instance on Fly or Render), managed PostgreSQL with
-backups (Neon, Supabase or Render), Cloudflare R2 for photos behind a CDN, error logging, and a **real login**
-(hosted provider such as Clerk / Auth0 / Supabase Auth; the server verifies the provider's token via JWKS and
-maps `sub` to users.auth_sub). The owner hasn't chosen the provider or host yet: ask. The published page on
-claude.ai can only sync once the API is on https on the internet (Chrome blocks pages from reaching a server on
-the person's own computer).
+backups (Neon, Supabase or Render), Cloudflare R2 for photos behind a CDN, error logging. Login is done (Auth0,
+above); going live needs the app's real address added in Auth0 (Allowed Callback / Logout URLs, Web Origins).
+The owner hasn't chosen the host yet: ask. The published page on claude.ai can only sync once the API is on https
+on the internet (Chrome blocks pages from reaching a server on the person's own computer), and Auth0's sign-in
+popup may not open from inside claude.ai's frame: untested.
 
 **Known gaps / ideas**
 - The "Add fabric photos" button sits in a section that is always hidden, so people can't add their own fabrics

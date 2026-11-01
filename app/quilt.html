@@ -3,7 +3,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600&family=Karla:wght@400;700&display=swap">
 <style>
   /* the hidden attribute always wins over layout rules (the page must not depend on its host for this) */
   [hidden] { display: none !important; }
@@ -44,7 +44,80 @@
     padding-right: max(16px, env(safe-area-inset-right, 0px));
     padding-block: 16px 28px;
   }
-  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 6px 18px; margin-bottom: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 6px 18px; margin-bottom: 14px; position: relative; }
+  /* the account corner: Sign in, or a round button with the person's initial that opens Sign out */
+  .acct { position: absolute; right: 0; top: 4px; z-index: 60; }
+  .acct-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); font: 600 1.1rem var(--font-body); cursor: pointer; box-shadow: 0 2px 8px rgba(20,25,40,.18); }
+  .acct-btn:focus-visible { outline: 3px solid var(--madder); outline-offset: 2px; }
+  .acct-menu { position: absolute; right: 0; top: 52px; width: 260px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 10px 30px rgba(20,25,40,.18); display: grid; gap: 10px; text-align: left; }
+  .acct-who { display: grid; gap: 2px; overflow-wrap: anywhere; }
+  .acct-menu p { margin: 0; }
+  .acct-menu .btn { justify-self: start; }
+  /* the first page (mine/account.js): shown at start when nobody is signed in on this device. Its own warm palette,
+     from the owner's sketch: cream, rust, sage and mustard, stitched (dashed) edges, a patchwork strip between parts */
+  .welcome {
+    --w-bg: oklch(0.97 0.015 80); --w-card: oklch(0.99 0.01 80); --w-ink: oklch(0.25 0.03 40); --w-muted: oklch(0.45 0.03 40);
+    --w-rust: oklch(0.58 0.13 40); --w-sage: oklch(0.72 0.06 140); --w-mustard: oklch(0.8 0.13 85); --w-on-rust: oklch(0.98 0.01 80);
+    --w-stitch: 2px dashed oklch(0.58 0.13 40 / .55);
+    position: fixed; inset: 0; z-index: 200; overflow-y: auto; background: var(--w-bg); color: var(--w-ink);
+    font: 400 1rem/1.55 "Karla", var(--font-body); scroll-behavior: smooth;
+  }
+  .welcome[hidden] { display: none; }
+  .welcome h2, .welcome h3, .w-hero h1, .w-logo b, .w-step b { font-family: "Fraunces", Georgia, serif; font-weight: 600; letter-spacing: -.01em; }
+  .w-wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+  .w-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 16px; }
+  .w-logo { display: flex; align-items: center; gap: 10px; font-size: 1.45rem; }
+  .w-logo svg { width: 32px; height: 32px; border-radius: 4px; }
+  .w-top nav { display: flex; gap: 8px; }
+  .w-btn { font: 700 1rem "Karla", var(--font-body); padding: 12px 20px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: transform .12s ease, box-shadow .12s ease; }
+  .w-btn:hover { transform: translateY(-1px); }
+  .w-btn:focus-visible { outline: 3px solid var(--w-mustard); outline-offset: 2px; }
+  .w-btn.rust { background: var(--w-rust); color: var(--w-on-rust); box-shadow: 0 6px 16px oklch(0.58 0.13 40 / .3); }
+  .w-btn.stitched { background: transparent; color: var(--w-ink); border: var(--w-stitch); }
+  .w-btn.mustard { background: var(--w-mustard); color: var(--w-ink); }
+  .w-btn.light { background: transparent; color: var(--w-on-rust); border: 2px dashed oklch(0.98 0.01 80 / .6); }
+  .w-btn.sm { padding: 9px 16px; font-size: .95rem; }
+  .w-strip { height: 24px; background:
+      linear-gradient(45deg, var(--w-sage) 25%, transparent 25%, transparent 75%, var(--w-sage) 75%),
+      linear-gradient(45deg, var(--w-mustard) 25%, var(--w-rust) 25%, var(--w-rust) 75%, var(--w-mustard) 75%);
+    background-size: 40px 40px; opacity: .9; }
+  .w-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; padding-block: 56px; }
+  .w-kicker { color: var(--w-rust); font-weight: 700; font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 12px; }
+  .w-hero h1 { font-size: clamp(2.4rem, 6vw, 3.9rem); line-height: 1.05; margin: 0 0 20px; }
+  .w-hero h1 em { color: var(--w-rust); }
+  .w-hero p.w-lead { font-size: 1.1rem; color: var(--w-muted); max-width: 46ch; margin: 0 0 28px; }
+  .w-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .w-art { border: var(--w-stitch); border-radius: 12px; padding: 12px; }
+  .w-art svg { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .w-section { padding-block: 64px; }
+  .w-section h2 { text-align: center; font-size: clamp(1.8rem, 4vw, 2.3rem); margin: 0 0 36px; }
+  .w-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .w-card { background: var(--w-card); border: var(--w-stitch); border-radius: 8px; padding: 20px; }
+  .w-card i { display: block; width: 32px; height: 32px; border-radius: 3px; margin-bottom: 18px; }
+  .w-card h3 { font-size: 1.2rem; margin: 0 0 8px; }
+  .w-card p { margin: 0; color: var(--w-muted); }
+  .w-band { background: oklch(0.72 0.06 140 / .3); }
+  .w-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; list-style: none; margin: 0; padding: 0; text-align: center; }
+  .w-step b { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto 14px; border-radius: 50%; background: var(--w-rust); color: var(--w-on-rust); font-size: 1.05rem; }
+  .w-start { background: var(--w-rust); color: var(--w-on-rust); border-radius: 14px; padding: 56px 24px; text-align: center; margin-block: 56px 28px; }
+  .w-start h2 { margin: 0 0 12px; }
+  .w-start p { margin: 0 auto 24px; max-width: 44ch; opacity: .92; }
+  .w-start .w-actions { justify-content: center; }
+  .w-skip { margin-top: 22px; border: 0; background: none; color: var(--w-on-rust); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px; }
+  .w-start small { display: block; opacity: .8; margin-top: 4px; }
+  .w-err { position: sticky; bottom: 16px; width: fit-content; max-width: calc(100% - 32px); margin: 0 auto; padding: 10px 16px; border-radius: 8px; background: var(--w-ink); color: var(--w-bg); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+  .w-err[hidden] { display: none; }
+  .w-foot { text-align: center; color: var(--w-muted); font-size: .9rem; padding-block: 18px 32px; margin: 0; }
+  @media (max-width: 860px) {
+    .w-hero { grid-template-columns: 1fr; padding-block: 36px; }
+    .w-cards, .w-steps { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 520px) {
+    .w-cards { grid-template-columns: 1fr; }
+    .w-top nav .w-btn.rust { display: none; } /* Start your first quilt is just below: Sign in stays for returning quilters */
+  }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn { transition: none; } }
   h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
   header p { margin: 0; color: var(--muted); max-width: 72ch; flex-basis: 100%; }
   .bench { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
@@ -216,7 +289,6 @@
   .sym-opt:hover svg { border-color: #2f466f; }
   .sym-opt[aria-pressed="true"] svg { background: #e0592a; border-color: #e0592a; color: #fff; }
   .sym-opt:disabled { opacity: .4; cursor: not-allowed; }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   @media (prefers-reduced-motion: reduce) { .sym-row { transition: none; } }
   .flipper.flipped .sym-wrap { visibility: hidden; }
   .rail-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -319,6 +391,9 @@
   .sync-form { margin-top: 10px; display: grid; gap: 8px; }
   .sync-form label { display: grid; gap: 3px; font-size: .9rem; }
   .sync-form input { width: 100%; }
+  .sync-form .sync-dev input { width: auto; flex: 1; min-width: 140px; }
+  .sync-dev summary { cursor: pointer; }
+  .sync-err { margin: 0; color: #c8462b; }
   .save-prev { display: flex; justify-content: center; margin-top: 8px; }
   .save-prev canvas { max-width: 100%; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
   /* design timeline */
@@ -619,6 +694,9 @@
     body { font-size: 15px; }
     h1 { font-size: 1.35rem; }
     header { gap: 8px 12px; }
+    /* below the tabs (no room beside them), its menu centred under the button */
+    .acct { position: relative; right: auto; top: auto; order: 2; }
+    .acct-menu { right: auto; left: 50%; transform: translateX(-50%); width: min(260px, calc(100vw - 32px)); }
     header p { font-size: .88rem; }
     .stage { aspect-ratio: auto; display: flex; flex-direction: column; overflow: visible; background: transparent; }
     .stage canvas { aspect-ratio: 4 / 5; height: auto; border-radius: 8px 8px 0 0; background: var(--stage); }
@@ -664,8 +742,77 @@
     <button type="button" role="tab" data-page="mine" aria-selected="false">My designs</button>
   </nav>
   <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: a short exercise to make and change a three-block quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <div class="acct" id="acct">
+    <button class="btn sm" type="button" id="acct-signin">Sign in</button>
+    <button class="acct-btn" type="button" id="acct-btn" aria-haspopup="true" aria-expanded="false" aria-controls="acct-menu" hidden><span id="acct-initial" aria-hidden="true"></span></button>
+    <div class="acct-menu" id="acct-menu" hidden>
+      <div class="acct-who"><span class="fine">Signed in as</span> <b id="acct-email"></b></div>
+      <p class="fine" id="acct-sync"></p>
+      <button class="btn sm" type="button" id="acct-signout">Sign out</button>
+    </div>
+  </div>
   <p id="intro" hidden>A 2.29 m quilt meeting a queen bed. Every motion comes from the physics: gravity, fabric elasticity and bending, air drag, and Coulomb friction, in SI units.</p>
 </header>
+
+<div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
+  <div class="w-wrap w-top">
+    <div class="w-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="16" height="16" fill="oklch(0.58 0.13 40)"/><rect x="16" width="16" height="16" fill="oklch(0.8 0.13 85)"/><rect y="16" width="16" height="16" fill="oklch(0.72 0.06 140)"/><rect x="16" y="16" width="16" height="16" fill="oklch(0.58 0.13 40)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/></svg><b>Quilt designer</b></div>
+    <nav aria-label="Account">
+      <button class="w-btn stitched sm" type="button" id="welcome-signin" data-auth="signin">Sign in</button>
+      <button class="w-btn rust sm" type="button" data-auth="signup">Get started</button>
+    </nav>
+  </div>
+  <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-wrap w-hero">
+    <div>
+      <p class="w-kicker">For quilters, by quilters</p>
+      <h1 id="welcome-title">Every stitch, <em>beautifully</em> planned.</h1>
+      <p class="w-lead">Design your quilt block by block, get its cutting guide and real-size templates, and see it draped on a bed, all in one cozy place.</p>
+      <div class="w-actions">
+        <button class="w-btn rust" type="button" id="welcome-signup" data-auth="signup">Start your first quilt</button>
+        <button class="w-btn stitched" type="button" id="welcome-features">See features</button>
+      </div>
+    </div>
+    <div class="w-art" id="welcome-art" aria-hidden="true"></div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-wrap w-section" id="welcome-feats" aria-labelledby="welcome-feats-title">
+    <h2 id="welcome-feats-title">Your sewing room, organized</h2>
+    <div class="w-cards">
+      <div class="w-card"><i style="background:var(--w-rust)"></i><h3>Block designer</h3><p>Pick blocks, swap fabrics part by part, mirror them, and see the whole quilt as you go.</p></div>
+      <div class="w-card"><i style="background:var(--w-sage)"></i><h3>Cutting guide</h3><p>Every piece to cut, with seam allowances, and an A4 PDF with real-size templates.</p></div>
+      <div class="w-card"><i style="background:var(--w-mustard)"></i><h3>Your own fabrics</h3><p>Use photos of the fabrics on your shelf, at their real size, in your designs.</p></div>
+      <div class="w-card"><i style="background:var(--w-rust)"></i><h3>See it on a bed</h3><p>Drape the finished quilt over a bed or a table in 3D before you cut a thing.</p></div>
+    </div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-band" aria-labelledby="welcome-steps-title">
+    <div class="w-wrap w-section">
+      <h2 id="welcome-steps-title">From idea to heirloom</h2>
+      <ol class="w-steps">
+        <li class="w-step"><b>1</b>Pick your blocks and layout, straight or on point</li>
+        <li class="w-step"><b>2</b>Choose fabrics for every part</li>
+        <li class="w-step"><b>3</b>Get the cutting guide and templates</li>
+        <li class="w-step"><b>4</b>See it on a bed, and keep it on all your devices</li>
+      </ol>
+    </div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-wrap" aria-labelledby="welcome-start-title">
+    <div class="w-start" id="welcome-start">
+      <h2 id="welcome-start-title">Ready to piece it together?</h2>
+      <p>With a free account, your designs and fabric photos follow you to your other devices.</p>
+      <div class="w-actions">
+        <button class="w-btn mustard" type="button" data-auth="signup">Create free account</button>
+        <button class="w-btn light" type="button" data-auth="signin">Sign in</button>
+      </div>
+      <button class="w-skip" type="button" id="welcome-skip">Continue without an account</button>
+      <small>Your designs are then kept in this browser only.</small>
+    </div>
+  </section>
+  <p class="w-foot">Made with thread &amp; love.</p>
+  <p class="w-err" id="welcome-err" role="alert" hidden></p>
+</div>
 
 <section id="page-sim" hidden>
 <button type="button" class="sim-close" id="sim-close" title="Close the simulation and go back to the Quilt designer (Esc)" aria-label="Close the simulation">✕</button>
@@ -1079,14 +1226,21 @@
       <button class="btn sm" type="button" id="sync-setup">Set up sync</button>
     </div>
     <form class="sync-form" id="sync-form" hidden>
-      <p class="fine" style="margin:0 0 8px">Your saved designs and fabric photos follow you to your other devices through a quilt server.</p>
+      <p class="fine" style="margin:0 0 8px">Your saved designs and fabric photos follow you to your other devices through a quilt server. Sign in with the same account on each.</p>
       <label><span>Server address</span> <input type="url" id="sync-url" placeholder="http://localhost:8787" required></label>
-      <label><span>Your name <span class="fine">(development sign-in)</span></span> <input type="text" id="sync-user" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{0,39}" maxlength="40" required></label>
       <div class="sync-row">
-        <button class="btn primary sm" type="submit" id="sync-connect">Connect</button>
-        <button class="btn sm" type="button" id="sync-off" hidden>Turn sync off</button>
+        <button class="btn primary sm" type="button" id="sync-signin">Sign in</button>
+        <button class="btn sm" type="button" id="sync-off" hidden>Sign out</button>
         <button class="btn sm" type="button" id="sync-cancel">Cancel</button>
       </div>
+      <p class="fine sync-err" id="sync-err" role="alert" hidden></p>
+      <details class="sync-dev">
+        <summary class="fine">Development sign-in (by name)</summary>
+        <div class="sync-row" style="margin-top:6px">
+          <input type="text" id="sync-user" aria-label="Your name (development sign-in)" placeholder="your name" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{0,39}" maxlength="40">
+          <button class="btn sm" type="submit" id="sync-connect">Connect</button>
+        </div>
+      </details>
     </form>
   </div>
 </section>
@@ -15521,14 +15675,16 @@ document.addEventListener(
   },
   true
 );
-setTimeout(() => {
+function offerTour() {
+  if ($("welcome") && !$("welcome").hidden) return setTimeout(offerTour, 700);
   let seen = null;
   try {
     seen = localStorage.getItem(TOUR_KEY);
   } catch (e) {
   }
   if (!seen && !IS_PHONE && state.page === "design") tourBegin();
-}, 1200);
+}
+setTimeout(offerTour, 1200);
 
 // src/mine/my-designs.js
 setMineCur(getSession("mineCur") || null);
@@ -16154,7 +16310,8 @@ function createSync({
   onRemote = () => {
   },
   onStatus = () => {
-  }
+  },
+  getToken = () => Promise.reject(new Error("no sign-in"))
 }) {
   let status = { state: "off", pending: 0 };
   let running = null, again = false;
@@ -16171,12 +16328,12 @@ function createSync({
       setStatus({ state: "off", message: "" });
       return;
     }
-    const url = c.url.trim().replace(/\/+$/, ""), user = c.user.trim();
-    if (!old || old.url !== url || old.user !== user) {
+    const url = c.url.trim().replace(/\/+$/, ""), who = c.auth0 ? { auth0: c.auth0, who: c.who || c.auth0 } : { user: (c.user || "").trim() }, same = old && old.url === url && old.user === who.user && old.auth0 === who.auth0;
+    if (!same) {
       repo2.designs.resetSync();
       repo2.fabrics.resetSync();
-      repo2.setSession(SESSION_KEY, { url, user, since: 0 });
-    }
+      repo2.setSession(SESSION_KEY, { url, ...who, since: 0 });
+    } else if (who.who && old.who !== who.who) repo2.setSession(SESSION_KEY, { ...old, who: who.who });
     setStatus({ state: "ok", message: "" });
   }
   async function api(method, path, body) {
@@ -16184,11 +16341,16 @@ function createSync({
       /** @type {NonNullable<ReturnType<typeof config>>} */
       config()
     );
-    let r;
+    let r, login;
+    if (c.auth0) {
+      const token = await getToken().catch(() => null);
+      if (!token) throw new StopSync("login", "Please sign in again.");
+      login = { authorization: `Bearer ${token}` };
+    } else login = { "x-dev-user": c.user };
     try {
       r = await fetchFn(c.url + path, {
         method,
-        headers: { "x-dev-user": c.user, ...body ? { "content-type": "application/json" } : {} },
+        headers: { ...login, ...body ? { "content-type": "application/json" } : {} },
         body: body ? JSON.stringify(body) : void 0
       });
     } catch (e) {
@@ -16367,12 +16529,61 @@ function createSync({
   return { configure, config, syncNow, status: () => status };
 }
 
+// src/storage/auth0.js
+var AUTH0 = {
+  domain: "dev-5op4uervqyekvlsx.us.auth0.com",
+  clientId: "vGWifaVUu8nN9WOlNzVMxfA0TAK2FdlT",
+  audience: "https://api.quilt-designer"
+};
+var LIBRARY = "https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2.28.4/dist/auth0-spa-js.production.esm.js";
+var client = null;
+function auth0Client() {
+  client ||= import(
+    /* not bundled: loaded from the CDN */
+    LIBRARY
+  ).then(
+    (m) => m.createAuth0Client({
+      domain: AUTH0.domain,
+      clientId: AUTH0.clientId,
+      cacheLocation: "localstorage",
+      useRefreshTokens: true,
+      authorizationParams: { audience: AUTH0.audience, redirect_uri: location.origin }
+    })
+  ).catch((e) => {
+    client = null;
+    throw e;
+  });
+  return client;
+}
+async function signIn({ signup = false } = {}) {
+  const w = 420, h = 640, popup = window.open(
+    "",
+    "auth0:authorize:popup",
+    `width=${w},height=${h},left=${Math.round(screenX + (outerWidth - w) / 2)},top=${Math.round(screenY + (outerHeight - h) / 2)}`
+  );
+  try {
+    const c = await auth0Client();
+    await c.loginWithPopup(signup ? { authorizationParams: { screen_hint: "signup" } } : {}, { popup });
+    const u = await c.getUser();
+    return { sub: u.sub, who: u.email || u.name || u.sub };
+  } catch (e) {
+    popup?.close();
+    throw e;
+  }
+}
+var signInToken = async () => (await auth0Client()).getTokenSilently();
+async function signOut() {
+  const c = await auth0Client().catch(() => null);
+  if (c) await c.logout({ openUrl: false });
+}
+
 // src/mine/sync-ui.js
 var AFTER_CHANGE_MS = 2500;
 var EVERY_MS = 6e4;
 var before = null;
 var arrived = [];
-var sync = createSync({ repo, onRemote: (e) => arrived.push(e), onStatus: showStatus });
+var watchers = [];
+var sync = createSync({ repo, onRemote: (e) => arrived.push(e), onStatus: showStatus, getToken: signInToken });
 var time = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 function showStatus(s) {
   const c = sync?.config?.();
@@ -16383,12 +16594,36 @@ function showStatus(s) {
     syncing: "Syncing\u2026",
     ok: s.at ? `Synced at ${time(s.at)}${waiting}` : `Connected${waiting}`,
     offline: `Can't reach the server: changes wait here and go when it's back${waiting}.`,
-    login: `Signed out: ${s.message || "connect again"}`,
+    login: `Signed out: ${s.message || "sign in again"}`,
     error: s.message || "Something went wrong."
   }[s.state];
-  $("sync-state").textContent = c && s.state !== "off" ? `${text} (${c.user} at ${new URL(c.url).host})` : text;
-  $("sync-now").hidden = !c;
-  $("sync-setup").textContent = c ? "Change" : "Set up sync";
+  $("sync-state").textContent = c && s.state !== "off" ? `${text} (${c.who || c.user} at ${new URL(c.url).host})` : text;
+  $("sync-now").hidden = !c || s.state === "login";
+  $("sync-setup").textContent = !c ? "Sign in to sync" : s.state === "login" ? "Sign in" : "Account";
+  for (const fn of watchers) fn(c, s);
+}
+var DEFAULT_SERVER = "http://localhost:8787";
+function onAccount(fn) {
+  watchers.push(fn);
+  fn(sync.config(), sync.status());
+}
+async function signInAndSync({ url, signup = false } = {}) {
+  let who;
+  try {
+    who = await signIn({ signup });
+  } catch (e) {
+    const closed = /popup|cancel/i.test(`${e?.error || ""} ${e?.message || ""}`);
+    return closed ? "Sign-in was closed before it finished." : `Couldn't sign in: ${e?.message || e}`;
+  }
+  sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
+  run();
+  return "";
+}
+async function signOutAndStop() {
+  const was = sync.config();
+  sync.configure(null);
+  if (was?.auth0) await signOut().catch(() => {
+  });
 }
 async function run() {
   if (!sync.config()) return;
@@ -16439,23 +16674,38 @@ var soon2 = (ms = AFTER_CHANGE_MS) => {
   if (sync.config()) timer2 = setTimeout(run, ms);
 };
 function initSyncUI() {
-  const form = $("sync-form");
+  const form = $("sync-form"), err = $("sync-err");
+  const say = (msg) => {
+    err.textContent = msg;
+    err.hidden = !msg;
+  };
   const openForm = () => {
     const c = sync.config();
-    $("sync-url").value = c?.url || "http://localhost:8787";
+    $("sync-url").value = c?.url || DEFAULT_SERVER;
     $("sync-user").value = c?.user || "";
     $("sync-off").hidden = !c;
+    $("sync-off").textContent = c?.auth0 ? "Sign out" : "Turn sync off";
+    $("sync-signin").textContent = c?.auth0 ? "Sign in again" : "Sign in";
+    say("");
     form.hidden = false;
-    $("sync-user").focus();
+    $("sync-signin").focus();
   };
   $("sync-setup").addEventListener("click", () => form.hidden ? openForm() : form.hidden = true);
   $("sync-cancel").addEventListener("click", () => form.hidden = true);
   $("sync-off").addEventListener("click", () => {
-    sync.configure(null);
     form.hidden = true;
+    signOutAndStop();
+  });
+  $("sync-signin").addEventListener("click", async () => {
+    if (!$("sync-url").reportValidity()) return;
+    say("");
+    const msg = await signInAndSync({ url: $("sync-url").value });
+    say(msg);
+    if (!msg) form.hidden = true;
   });
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (!$("sync-user").value.trim()) return $("sync-user").focus();
     sync.configure({ url: $("sync-url").value, user: $("sync-user").value });
     form.hidden = true;
     run();
@@ -16471,6 +16721,135 @@ function initSyncUI() {
   }
 }
 initSyncUI();
+
+// src/mine/account.js
+var SKIP_KEY = "quilt-welcome.v1";
+var skipped = () => {
+  try {
+    return localStorage.getItem(SKIP_KEY) === "skip";
+  } catch (e) {
+    return false;
+  }
+};
+var rememberSkip = (skip) => {
+  try {
+    if (skip) localStorage.setItem(SKIP_KEY, "skip");
+    else localStorage.removeItem(SKIP_KEY);
+  } catch (e) {
+  }
+};
+var welcomeSays = (msg) => {
+  $("welcome-err").textContent = msg;
+  $("welcome-err").hidden = !msg;
+};
+function patchworkArt(cols = 8, rows = 6, s = 100) {
+  const C = [
+    "oklch(0.58 0.13 40)",
+    // rust
+    "oklch(0.72 0.06 140)",
+    // sage
+    "oklch(0.8 0.13 85)",
+    // mustard
+    "oklch(0.94 0.03 80)",
+    // cream
+    "oklch(0.48 0.11 35)",
+    // deep rust
+    "oklch(0.62 0.07 145)"
+    // deep sage
+  ];
+  let seed = 7;
+  const next = (n) => (seed = (seed * 9301 + 49297) % 233280, Math.floor(seed / 233280 * n));
+  let out = "";
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const x = c * s, y = r * s, a = C[next(C.length)], b = next(3) ? C[3] : C[next(C.length)];
+      out += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="${b}"/>`;
+      if (next(4)) {
+        const pts = [
+          [x, y, x + s, y, x, y + s],
+          [x, y, x + s, y, x + s, y + s],
+          [x + s, y, x + s, y + s, x, y + s],
+          [x, y, x + s, y + s, x, y + s]
+        ][next(4)];
+        out += `<polygon points="${pts.join(" ")}" fill="${a}"/>`;
+      }
+    }
+  for (let c = 1; c < cols; c++)
+    out += `<path d="M${c * s} 0V${rows * s}" stroke="oklch(0.25 0.03 40 / .25)" stroke-width="1.5"/>`;
+  for (let r = 1; r < rows; r++)
+    out += `<path d="M0 ${r * s}H${cols * s}" stroke="oklch(0.25 0.03 40 / .25)" stroke-width="1.5"/>`;
+  out += `<rect x="8" y="8" width="${cols * s - 16}" height="${rows * s - 16}" fill="none" stroke="oklch(0.98 0.01 80 / .7)" stroke-width="2" stroke-dasharray="7 6"/>`;
+  return `<svg viewBox="0 0 ${cols * s} ${rows * s}" role="img" aria-label="A patchwork quilt">${out}</svg>`;
+}
+function showWelcome(on) {
+  $("welcome").hidden = !on;
+  if (!on) return;
+  if (!$("welcome-art").firstChild) $("welcome-art").innerHTML = patchworkArt();
+  welcomeSays("");
+  openMenu(false);
+  $("welcome").scrollTop = 0;
+  $("welcome-signin").focus();
+}
+async function welcomeSignIn(signup) {
+  welcomeSays("");
+  const msg = await signInAndSync({ signup });
+  if (msg) welcomeSays(msg);
+  else showWelcome(false);
+}
+function openMenu(open) {
+  $("acct-menu").hidden = !open;
+  $("acct-btn").setAttribute("aria-expanded", String(open));
+}
+function initAccount() {
+  for (const b of $("welcome").querySelectorAll("[data-auth]"))
+    b.addEventListener("click", () => welcomeSignIn(
+      /** @type {HTMLElement} */
+      b.dataset.auth === "signup"
+    ));
+  $("welcome-features").addEventListener("click", () => $("welcome-feats").scrollIntoView({ block: "start" }));
+  $("welcome-skip").addEventListener("click", () => {
+    rememberSkip(true);
+    showWelcome(false);
+  });
+  let account = null;
+  onAccount((c, s) => {
+    account = c;
+    const expired = !!c && s.state === "login";
+    $("acct-btn").hidden = !c || expired;
+    $("acct-signin").hidden = !!c && !expired;
+    $("acct-signin").textContent = expired ? "Sign in again" : "Sign in";
+    if (!c || expired) openMenu(false);
+    if (!c) return;
+    const who = c.who || c.user || "";
+    $("acct-initial").textContent = (who.trim()[0] || "?").toUpperCase();
+    $("acct-btn").setAttribute("aria-label", `Account: ${who}`);
+    $("acct-btn").title = who;
+    $("acct-email").textContent = who;
+    $("acct-sync").textContent = s.state === "offline" ? "Can't reach the server: changes wait here." : "Your designs and fabric photos sync to your other devices.";
+  });
+  $("acct-signin").addEventListener("click", () => account ? signInAndSync() : showWelcome(true));
+  $("acct-btn").addEventListener("click", () => openMenu($("acct-menu").hidden));
+  $("acct-signout").addEventListener("click", async () => {
+    openMenu(false);
+    await signOutAndStop();
+    rememberSkip(false);
+    showWelcome(true);
+  });
+  document.addEventListener("click", (e) => {
+    if (!$("acct-menu").hidden && !$("acct").contains(
+      /** @type {Node} */
+      e.target
+    )) openMenu(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("acct-menu").hidden) {
+      openMenu(false);
+      $("acct-btn").focus();
+    }
+  });
+  if (!account?.auth0 && !skipped()) showWelcome(true);
+}
+initAccount();
 
 // src/sim/panels.js
 (function initStageControls() {

@@ -205,3 +205,52 @@ test('two syncs asked at once run one after the other', async () => {
   await phone.sync.syncNow();
   assert.deepEqual(names(phone.repo), ['Q']); // sent once
 });
+
+// ---- signed in with Auth0: the sync sends the library's token instead of a name
+
+/** a device whose requests are only recorded (answered with an empty change list) */
+async function recorder(getToken) {
+  const repo = createRepo();
+  await repo.openStorage({ db: memoryDb(), legacy: null });
+  const sent = [];
+  const fetch = async (url, init = {}) => {
+    sent.push(init.headers || {});
+    return new Response(JSON.stringify({ changes: [], since: 0, more: false }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  const sync = createSync({ repo, fetch, getToken });
+  sync.configure({ url: 'http://api.test', auth0: 'auth0|ana', who: 'ana@example.com' });
+  return { repo, sync, sent };
+}
+
+test('signed in with Auth0: each request carries a fresh token, and no name', async () => {
+  let n = 0;
+  const { sync, sent } = await recorder(async () => `token-${++n}`);
+  assert.equal((await sync.syncNow()).state, 'ok');
+  assert.ok(sent.length >= 1);
+  assert.deepEqual(
+    sent.map(h => h.authorization),
+    sent.map((_, i) => `Bearer token-${i + 1}`),
+  );
+  assert.ok(sent.every(h => !('x-dev-user' in h)));
+  assert.equal(sync.config().who, 'ana@example.com');
+});
+
+test('signed out on this device (no token): sync stops and asks to sign in again, nothing is sent', async () => {
+  const { sync, sent } = await recorder(() => Promise.reject(new Error('login_required')));
+  const s = await sync.syncNow();
+  assert.deepEqual([s.state, s.message], ['login', 'Please sign in again.']);
+  assert.equal(sent.length, 0);
+});
+
+test('another account on the same server starts afresh; the same account signing in again does not', async () => {
+  const { repo, sync } = await recorder(async () => 't');
+  await sync.syncNow();
+  repo.setSession('sync', { ...sync.config(), since: 42 });
+  sync.configure({ url: 'http://api.test/', auth0: 'auth0|ana', who: 'ana@new-mail.com' });
+  assert.deepEqual([sync.config().since, sync.config().who], [42, 'ana@new-mail.com']);
+  sync.configure({ url: 'http://api.test', auth0: 'auth0|bea', who: 'bea@example.com' });
+  assert.equal(sync.config().since, 0);
+});

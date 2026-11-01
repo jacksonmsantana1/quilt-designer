@@ -27,9 +27,11 @@ const pageHtml = () =>
 export const test = base.extend({
   // set `firstVisit: true` in a test file to see the guided tour start by itself
   firstVisit: [false, { option: true }],
+  // set `welcome: true` to see the welcome page (sign in, or carry on without an account) at start
+  welcome: [false, { option: true }],
   // where the page is served: http://localhost/ is a secure context (Web Crypto), http://x/ is not
   origin: ['http://x', { option: true }],
-  app: async ({ page, firstVisit, origin }, use) => {
+  app: async ({ page, firstVisit, welcome, origin }, use) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     if (COVERAGE) await page.coverage.startJSCoverage({ resetOnNavigation: false });
@@ -39,6 +41,12 @@ export const test = base.extend({
         localStorage.setItem('quilt-freeze.v1', '1');
       } catch (e) {}
     });
+    if (!welcome)
+      await page.addInitScript(() => {
+        try {
+          localStorage.setItem('quilt-welcome.v1', 'skip');
+        } catch (e) {}
+      });
     if (!firstVisit)
       await page.addInitScript(() => {
         try {

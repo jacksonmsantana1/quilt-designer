@@ -5,6 +5,7 @@ import '../timeline/timeline.js'; // load order: runs after timeline/timeline
 import { $ } from '../core/dom.js';
 import { design, mineCur, setMineCur } from '../core/store.js';
 import { createSync } from '../storage/sync.js';
+import { signIn, signInToken, signOut } from '../storage/auth0.js';
 import { onChange, repo } from '../storage/repo.js';
 import { notify } from '../ui/notice.js';
 import { openDesign } from '../designer/dispatch.js';
@@ -21,7 +22,9 @@ let before = null;
 /** @type {import('../storage/sync.js').RemoteEvent[]} */
 let arrived = [];
 
-const sync = createSync({ repo, onRemote: e => arrived.push(e), onStatus: showStatus });
+/** what wants to know when the account or sync state changes (onAccount) @type {((c: any, s: import('../storage/sync.js').SyncStatus) => void)[]} */
+const watchers = [];
+const sync = createSync({ repo, onRemote: e => arrived.push(e), onStatus: showStatus, getToken: signInToken });
 
 const time = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 /** @param {import('../storage/sync.js').SyncStatus} s */
@@ -34,12 +37,45 @@ function showStatus(s) {
     syncing: 'Syncing…',
     ok: s.at ? `Synced at ${time(s.at)}${waiting}` : `Connected${waiting}`,
     offline: `Can't reach the server: changes wait here and go when it's back${waiting}.`,
-    login: `Signed out: ${s.message || 'connect again'}`,
+    login: `Signed out: ${s.message || 'sign in again'}`,
     error: s.message || 'Something went wrong.',
   }[s.state];
-  $('sync-state').textContent = c && s.state !== 'off' ? `${text} (${c.user} at ${new URL(c.url).host})` : text;
-  $('sync-now').hidden = !c;
-  $('sync-setup').textContent = c ? 'Change' : 'Set up sync';
+  $('sync-state').textContent =
+    c && s.state !== 'off' ? `${text} (${c.who || c.user} at ${new URL(c.url).host})` : text;
+  $('sync-now').hidden = !c || s.state === 'login';
+  $('sync-setup').textContent = !c ? 'Sign in to sync' : s.state === 'login' ? 'Sign in' : 'Account';
+  for (const fn of watchers) fn(c, s);
+}
+
+// ---- signing in and out, shared by the sync card, the welcome page and the account corner (mine/account.js)
+/** the quilt server signing in uses when none was set up on this device */
+const DEFAULT_SERVER = 'http://localhost:8787';
+/** Calls fn now and whenever the account or sync state changes. @param {(typeof watchers)[number]} fn */
+function onAccount(fn) {
+  watchers.push(fn);
+  fn(sync.config(), sync.status());
+}
+/**
+ * Signs in with Auth0 (from a click: its window opens at once) and syncs with the server. Resolves with an error
+ * to show, or '' when signed in. @param {{ url?: string, signup?: boolean }} [o] @returns {Promise<string>}
+ */
+async function signInAndSync({ url, signup = false } = {}) {
+  let who;
+  try {
+    who = await signIn({ signup });
+  } catch (e) {
+    const closed = /popup|cancel/i.test(`${e?.error || ''} ${e?.message || ''}`);
+    return closed ? 'Sign-in was closed before it finished.' : `Couldn't sign in: ${e?.message || e}`;
+  }
+  sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
+  run();
+  return '';
+}
+/** Signs out on this device: sync stops, the designs here stay. */
+async function signOutAndStop() {
+  const was = sync.config();
+  sync.configure(null);
+  if (was?.auth0) await signOut().catch(() => {});
 }
 
 async function run() {
@@ -99,23 +135,40 @@ const soon = (ms = AFTER_CHANGE_MS) => {
 };
 
 function initSyncUI() {
-  const form = $('sync-form');
+  const form = $('sync-form'),
+    err = $('sync-err');
+  const say = msg => {
+    err.textContent = msg;
+    err.hidden = !msg;
+  };
   const openForm = () => {
     const c = sync.config();
-    $('sync-url').value = c?.url || 'http://localhost:8787';
+    $('sync-url').value = c?.url || DEFAULT_SERVER;
     $('sync-user').value = c?.user || '';
     $('sync-off').hidden = !c;
+    $('sync-off').textContent = c?.auth0 ? 'Sign out' : 'Turn sync off';
+    $('sync-signin').textContent = c?.auth0 ? 'Sign in again' : 'Sign in';
+    say('');
     form.hidden = false;
-    $('sync-user').focus();
+    $('sync-signin').focus();
   };
   $('sync-setup').addEventListener('click', () => (form.hidden ? openForm() : (form.hidden = true)));
   $('sync-cancel').addEventListener('click', () => (form.hidden = true));
   $('sync-off').addEventListener('click', () => {
-    sync.configure(null);
     form.hidden = true;
+    signOutAndStop();
+  });
+  // Auth0's window opens straight from the click (browsers block windows opened later)
+  $('sync-signin').addEventListener('click', async () => {
+    if (!$('sync-url').reportValidity()) return;
+    say('');
+    const msg = await signInAndSync({ url: $('sync-url').value });
+    say(msg);
+    if (!msg) form.hidden = true;
   });
   form.addEventListener('submit', e => {
     e.preventDefault();
+    if (!$('sync-user').value.trim()) return $('sync-user').focus();
     sync.configure({ url: $('sync-url').value, user: $('sync-user').value });
     form.hidden = true;
     run();
@@ -132,4 +185,4 @@ function initSyncUI() {
 }
 initSyncUI();
 
-export { run as syncNow };
+export { run as syncNow, onAccount, signInAndSync, signOutAndStop };
