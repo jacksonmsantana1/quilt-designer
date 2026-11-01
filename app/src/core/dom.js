@@ -27,4 +27,14 @@ function sideRoller(box, chosen) {
   if (on && box.clientWidth) box.scrollLeft = Math.max(0, on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2);
 }
 
-export { $, esc, sideRoller };
+/**
+ * A colour of the page's theme (a --custom property such as --mark), for what is drawn on canvases, so it follows
+ * the page's colours and dark mode; the fallback outside a page (Node) or when the property is missing.
+ * @param {string} name @param {string} fallback
+ */
+function themeColour(name, fallback) {
+  if (typeof document === 'undefined') return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
+export { $, esc, sideRoller, themeColour };

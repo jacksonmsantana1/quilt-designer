@@ -21,7 +21,7 @@ function borderSketch(type, fabs, w = 96, h = 34) {
   const g = c.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const b = { type, mm: h, fabrics: fabs },
-    cols = ['#2f466f', '#efe5cf', '#c79a45'];
+    cols = ['#b65a3c', '#f3e9d6', '#d9a845']; // rust, cream, mustard
   for (const pc of borderSidePieces(b, w)) {
     g.fillStyle = fabs ? fabricFill(g, fabricById(borderFab(b, pc.slot)), 6, 3) : cols[pc.slot];
     pathPoly(g, pc.poly);

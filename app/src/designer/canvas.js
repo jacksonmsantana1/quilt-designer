@@ -1,7 +1,7 @@
 // Drawing the quilt in the designer (front and back) and turning it over.
 import '../render/quilt-draw.js'; // load order: runs after render/quilt-draw
 import { design, focusBlock, selBlocks } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { dims, len } from '../core/units.js';
 import { fabricById } from './fabric-library.js';
 import {
@@ -164,7 +164,7 @@ function drawDesignerCanvas() {
       pathPoly(g, frame);
       g.stroke();
       g.lineWidth = 1.5;
-      g.strokeStyle = bi === focusBlock ? '#e0592a' : '#1b2233';
+      g.strokeStyle = bi === focusBlock ? themeColour('--mark', '#d2602f') : themeColour('--ink', '#2e211c');
       g.setLineDash(bi === focusBlock ? [] : [5, 4]);
       g.stroke();
       g.setLineDash([]);
@@ -185,7 +185,7 @@ function drawDesignerCanvas() {
     const line = (a, b, c, d) => {
       for (const [w, col] of [
         [4, 'rgba(255,255,255,.85)'],
-        [2, '#e0592a'],
+        [2, themeColour('--mark', '#d2602f')],
       ]) {
         g.lineWidth = w;
         g.strokeStyle = col;

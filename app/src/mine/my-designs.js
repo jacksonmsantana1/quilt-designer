@@ -1,7 +1,7 @@
 // My designs: saved quilts.
 import '../tour/tour.js'; // load order: runs after tour/tour
 import { design, mineCur, readOnly, setMineCur } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { dims } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { quiltMm } from '@quilt/shared/geometry.js';
@@ -180,8 +180,8 @@ function renderMine() {
           btn.dataset.armed = '1';
           btn.textContent = '✓';
           btn.title = 'Click again to delete';
-          btn.style.background = '#e0592a';
-          btn.style.color = '#fff';
+          btn.style.background = themeColour('--madder', '#a53a26');
+          btn.style.color = themeColour('--accent-ink', '#faf3e8');
           setTimeout(() => {
             if (btn.isConnected) {
               btn.dataset.armed = '';

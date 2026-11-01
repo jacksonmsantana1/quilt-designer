@@ -1,7 +1,7 @@
 // Block parts panel: the enlarged block, its parts, patterns and fabrics.
 import './fussy-cut.js'; // load order: runs after designer/fussy-cut
 import { activeFabric, design, focusBlock, selBlocks, selParts, setFocusBlock } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { inputRange, toInput } from '../core/units.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
@@ -43,13 +43,13 @@ function drawPartsEditor() {
   polys.forEach((poly, pi) => {
     pathPoly(g, poly);
     if (selParts.has(pi)) {
-      g.fillStyle = 'rgba(224,89,42,.28)';
+      g.fillStyle = 'rgba(214,98,52,.28)';
       g.fill();
       g.lineWidth = 3;
       g.strokeStyle = '#ffffff';
       g.stroke();
       g.lineWidth = 1.5;
-      g.strokeStyle = '#e0592a';
+      g.strokeStyle = themeColour('--mark', '#d2602f');
       g.stroke();
     } else {
       g.lineWidth = 1;

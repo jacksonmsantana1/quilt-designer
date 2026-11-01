@@ -150,7 +150,7 @@ function drawBordersExploded(g, W, gap, focus = -1) {
     g.beginPath();
     g.rect(x, y, w, h);
     if (t) g.rect(x + t, y + t, w - 2 * t, h - 2 * t);
-    g.fillStyle = 'rgba(236,239,244,.78)';
+    g.fillStyle = 'rgba(250,243,232,.78)';
     g.fill('evenodd');
   };
   let off = 0; // px from the outside edge

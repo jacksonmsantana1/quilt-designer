@@ -2,7 +2,7 @@
 import '../cutting/page.js'; // load order: runs after cutting/page
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { dims, fromInput, getUnit, inputRange, len, toInput } from '../core/units.js';
 import {
   CORNER_BLOCK_MIN_MM,
@@ -78,7 +78,7 @@ function drawCornerBlockEditor(cb, mm) {
     g.strokeStyle = '#ffffff';
     g.lineWidth = 5;
     g.stroke();
-    g.strokeStyle = '#e0592a';
+    g.strokeStyle = themeColour('--mark', '#d2602f');
     g.lineWidth = 2.5;
     g.stroke();
   }

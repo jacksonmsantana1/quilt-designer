@@ -2,7 +2,7 @@
 import '../app/pages.js'; // load order: runs after app/pages
 import { cgHi, fabHi } from '../render/hi-state.js';
 import { design } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { dims, len } from '../core/units.js';
 import { dimUnlessHi } from '../render/highlight.js';
 import { orientPoly, partsOf } from '@quilt/shared/patterns.js';
@@ -32,7 +32,7 @@ import { fabricFill, pieceFill } from '../render/fabric-fill.js';
 const cutOpts = { seam: 7.5, fabricWidth: 1500, selvage: 50, bindingWidth: 60 };
 function letterBadge(g, x, y, r, letter) {
   // a circle for one character, a pill for labels such as "A12"
-  g.font = `600 ${Math.round(r * 1.15)}px Georgia, "Times New Roman", serif`;
+  g.font = `600 ${Math.round(r * 1.15)}px Fraunces, Georgia, serif`;
   const w = Math.max(0, g.measureText(letter).width - r * 0.9);
   g.beginPath();
   g.arc(x - w / 2, y, r, Math.PI / 2, Math.PI * 1.5);
@@ -92,7 +92,7 @@ function drawBlockArt(g, b, P, num, W, H, turn = 0) {
   });
   if (fabHi) {
     g.lineWidth = 2.2 * k;
-    g.strokeStyle = '#e0592a';
+    g.strokeStyle = themeColour('--mark', '#d2602f');
     b.pieces.forEach((pc, i) => {
       if (fabHi({ t: 'piece', num, letter: pc.letter, form: pc.form, fabric: pc.fabric })) {
         pathPoly(g, polys[i]);
@@ -182,7 +182,7 @@ function drawSashPic(g, S, sashCuts, u) {
   const mini = sashMini(),
     H = sashPicH(S);
   drawQuilt(g, S, H, { seams: true, design: mini });
-  g.font = `600 ${11 * u}px Georgia, serif`;
+  g.font = `600 ${11 * u}px Fraunces, Georgia, serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   for (const rc of sashRects(mini, S, H)) {
@@ -252,7 +252,7 @@ function drawSettingPic(g, S, cuts, u) {
   const mini = settingMini(),
     H = settingPicH(S);
   drawQuilt(g, S, H, { seams: true, design: mini });
-  g.font = `600 ${11 * u}px Georgia, serif`;
+  g.font = `600 ${11 * u}px Fraunces, Georgia, serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   for (const sp of settingPieces(mini, S, H)) {
@@ -279,13 +279,13 @@ function dimOutsideRing(g, W, H, r) {
   g.rect(0, 0, W, H);
   g.rect(r.o, r.o, W - 2 * r.o, H - 2 * r.o);
   g.rect(r.o + r.t, r.o + r.t, W - 2 * (r.o + r.t), H - 2 * (r.o + r.t));
-  g.fillStyle = 'rgba(236,239,244,.72)';
+  g.fillStyle = 'rgba(250,243,232,.72)';
   g.fill('evenodd');
 }
 function outlineRing(g, W, H, r, lw = [6, 3.5]) {
   for (const [w, c] of [
     [lw[0], '#fff'],
-    [lw[1], '#e0592a'],
+    [lw[1], themeColour('--mark', '#d2602f')],
   ]) {
     g.lineWidth = w;
     g.strokeStyle = c;
@@ -356,12 +356,12 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
     g.beginPath();
     g.rect(0, 0, W, H);
     for (const r of rs) pathPolyInto(g, blockOutline(r)); // (turned on point)
-    g.fillStyle = 'rgba(236,239,244,.72)';
+    g.fillStyle = 'rgba(250,243,232,.72)';
     g.fill('evenodd');
     for (const r of rs)
       for (const [lw, c] of [
         [3, '#fff'],
-        [1.6, '#e0592a'],
+        [1.6, themeColour('--mark', '#d2602f')],
       ]) {
         g.lineWidth = lw;
         g.strokeStyle = c;
@@ -373,13 +373,13 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
     g.beginPath();
     g.rect(0, 0, W, H);
     for (const sp of ps) pathPolyInto(g, sp.poly);
-    g.fillStyle = 'rgba(236,239,244,.72)';
+    g.fillStyle = 'rgba(250,243,232,.72)';
     g.fill('evenodd');
     g.lineJoin = 'round';
     for (const sp of ps)
       for (const [lw, c] of [
         [3, '#fff'],
-        [1.6, '#e0592a'],
+        [1.6, themeColour('--mark', '#d2602f')],
       ]) {
         g.lineWidth = lw;
         g.strokeStyle = c;
@@ -498,7 +498,7 @@ function drawCutQuilt(P, into) {
       g.save();
       g.translate(x, y);
       if (rot) g.rotate(-Math.PI / 2);
-      g.font = `600 ${fs}px Georgia, serif`;
+      g.font = `600 ${fs}px Fraunces, Georgia, serif`;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
       const tw = g.measureText(t).width + 6 * u;
@@ -565,7 +565,7 @@ function drawCutQuilt(P, into) {
       g.strokeStyle = '#fff';
       g.strokeRect(x, y, w, h);
       g.lineWidth = wide ? 3.5 : 1.6;
-      g.strokeStyle = '#e0592a';
+      g.strokeStyle = themeColour('--mark', '#d2602f');
       g.strokeRect(x, y, w, h);
     };
     if (ring) {
@@ -576,7 +576,7 @@ function drawCutQuilt(P, into) {
       g.beginPath();
       g.rect(0, 0, W, H);
       for (const R of tgt) R.poly ? pathPolyInto(g, R.poly) : g.rect(R.x, R.y, R.w, R.h);
-      g.fillStyle = 'rgba(236,239,244,.72)';
+      g.fillStyle = 'rgba(250,243,232,.72)';
       g.fill('evenodd');
     }
     if (!ring)
@@ -584,7 +584,7 @@ function drawCutQuilt(P, into) {
         if (R.poly)
           for (const [lw, c] of [
             [6, '#fff'],
-            [3.5, '#e0592a'],
+            [3.5, themeColour('--mark', '#d2602f')],
           ]) {
             g.lineWidth = lw;
             g.strokeStyle = c;
@@ -604,7 +604,7 @@ function drawCutQuilt(P, into) {
   g.restore();
   // column and row numbers along the blocks
   g.fillStyle = '#6b665e';
-  g.font = `${12 * u}px system-ui, sans-serif`;
+  g.font = `${12 * u}px Karla, system-ui, sans-serif`;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   // (on point: the centre of each column and row of blocks)

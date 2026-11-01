@@ -1,7 +1,7 @@
 // Hover highlight on blocks, parts, sashing and borders, with the rotate and mirror buttons.
 import '../app/layout.js'; // load order: runs after app/layout
 import { design, selBlocks, setFocusBlock, setSelBlocks, setSelParts } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { len } from '../core/units.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
@@ -71,15 +71,15 @@ function zoneAt(x, y) {
   return null;
 }
 function hoverLabel(g, txt, W) {
-  g.font = '600 12px system-ui, sans-serif';
+  g.font = '700 12px Karla, system-ui, sans-serif';
   const tw = g.measureText(txt).width + 14;
   const lx = Math.min(Math.max(4, hover.x + 14), W - tw - 4),
     ly = Math.max(4, hover.y - 30);
-  g.fillStyle = 'rgba(25,28,36,.88)';
+  g.fillStyle = 'rgba(46,33,28,.9)'; // dark brown labels, cream text
   g.beginPath();
   g.roundRect ? g.roundRect(lx, ly, tw, 22, 6) : g.rect(lx, ly, tw, 22);
   g.fill();
-  g.fillStyle = '#fff';
+  g.fillStyle = '#faf3e8';
   g.textBaseline = 'middle';
   g.fillText(txt, lx + 7, ly + 11);
 }
@@ -102,7 +102,7 @@ function drawHover() {
     g.lineJoin = 'round';
     for (const [lw, c] of [
       [3, 'rgba(255,255,255,.95)'],
-      [1.5, '#e0592a'],
+      [1.5, themeColour('--mark', '#d2602f')],
     ]) {
       g.lineWidth = lw;
       g.strokeStyle = c;
@@ -132,7 +132,7 @@ function drawHover() {
     g.lineJoin = 'round';
     for (const [lw, c] of [
       [3, 'rgba(255,255,255,.95)'],
-      [1.5, '#e0592a'],
+      [1.5, themeColour('--mark', '#d2602f')],
     ]) {
       g.lineWidth = lw;
       g.strokeStyle = c;
@@ -217,7 +217,7 @@ function drawHover() {
     g.strokeStyle = 'rgba(255,255,255,.95)';
     g.stroke();
     g.lineWidth = 1.5;
-    g.strokeStyle = '#e0592a';
+    g.strokeStyle = themeColour('--mark', '#d2602f');
     g.stroke();
     return;
   }
@@ -229,7 +229,7 @@ function drawHover() {
   g.beginPath();
   pathPolyInto(g, outline);
   pathPolyInto(g, p);
-  g.fillStyle = 'rgba(20,24,34,.28)';
+  g.fillStyle = 'rgba(60,36,24,.28)';
   g.fill('evenodd');
   g.restore();
   pathPoly(g, p);
@@ -240,21 +240,21 @@ function drawHover() {
   g.strokeStyle = '#ffffff';
   g.stroke();
   g.lineWidth = 1.5;
-  g.strokeStyle = '#e0592a';
+  g.strokeStyle = themeColour('--mark', '#d2602f');
   g.stroke();
   // label: part name and fabric
   const b = design.blocks[hover.bi],
     txt = `${partsOf(b.pattern)[hover.part].name} · ${fabricById(b.fabrics[hover.part]).name}`;
-  g.font = '600 12px system-ui, sans-serif';
+  g.font = '700 12px Karla, system-ui, sans-serif';
   const tw = g.measureText(txt).width + 14;
   const W = parseFloat(cv.style.width),
     lx = Math.min(Math.max(4, hover.x + 14), W - tw - 4),
     ly = Math.max(4, hover.y - 30);
-  g.fillStyle = 'rgba(25,28,36,.88)';
+  g.fillStyle = 'rgba(46,33,28,.9)'; // dark brown labels, cream text
   g.beginPath();
   g.roundRect ? g.roundRect(lx, ly, tw, 22, 6) : g.rect(lx, ly, tw, 22);
   g.fill();
-  g.fillStyle = '#fff';
+  g.fillStyle = '#faf3e8';
   g.textBaseline = 'middle';
   g.fillText(txt, lx + 7, ly + 11);
 }

@@ -1,7 +1,7 @@
 // Fussy cut: choosing which part of a print shows in a piece.
 import './canvas.js'; // load order: runs after designer/canvas
 import { design, focusBlock, selBlocks, selParts } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { orientPoly, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
 import { blockSizeMm, pathPoly, pathPolyInto, polyCentre, spanOf } from '@quilt/shared/geometry.js';
@@ -54,7 +54,7 @@ function drawFussy() {
   for (const p of offs) {
     pathPoly(g, p);
     g.lineWidth = 2;
-    g.strokeStyle = '#e0592a';
+    g.strokeStyle = themeColour('--mark', '#d2602f');
     g.stroke();
   }
   g.restore();
