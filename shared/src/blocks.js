@@ -3461,6 +3461,202 @@ const GRID_BLOCKS = {
       1\0 1\0 1\0 1\0
       0/1 0/1 0/1 0/1`,
   },
+  twopatchquilt: {
+    label: 'Two patch quilt',
+    family: 'Stars',
+    n: 4,
+    // from a drawing (Brown 1136b): dotted (2) corners and middle, four white geese pointing in with scribble (1) round them
+    rows: String.raw`
+      2 v01 - 2
+      >01 2 2 <01
+      | 2 2 |
+      2 ^01 - 2`,
+  },
+  sawtoothedstar: {
+    label: 'Saw toothed star',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1136a): a scrap block of twelve different prints; white (0) corners, a pair of triangles top and bottom, squares between; the lower right square of the middle band is cut in two
+    rows: String.raw`
+      0 1\2 3/4 0
+      1\4 4 5 5/2
+      2/1 2 3 1\5
+      0 4/3 2\5 0`,
+  },
+  freetrade: {
+    label: 'Free trade',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1137), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0 1\0 0/1 0
+      0\1 0/1 0 1/0
+      0/1 0 1/0 1\0
+      0 1/0 0\1 0`,
+  },
+  ribbonstar: {
+    label: 'Ribbon star',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1138), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0 1\0 0/1 0
+      0\1 1/0 0\1 1/0
+      0/1 1\0 0/1 1\0
+      0 1/0 0\1 0`,
+  },
+  chisholmtrail: {
+    label: 'Chisholm trail',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1139), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      1/0 1\0 0/1 0\1
+      0\1 2 1\0 1/0
+      0/1 0\1 2 1\0
+      1\0 1/0 0\1 0/1`,
+  },
+  barbarafrietschie: {
+    label: 'Barbara Frietschie',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1140a), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0/0 1\0 0/2 0\0
+      0\2 0\1 0/1 1/0
+      0/1 1/0 1\0 2\0
+      0\0 2/0 0\1 0/0`,
+  },
+  coloradoquilt: {
+    label: 'The Colorado quilt',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1140b), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0/1 1\0 0/1 1\0
+      0\1 1\0 1/0 1/0
+      0/1 0/1 0\1 1\0
+      0\1 1/0 0\1 1/0`,
+  },
+  piecedstar: {
+    label: 'Pieced star',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1140c), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      1/0 1\0 0/1 0\1
+      0\1 0\1 0/1 1/0
+      0/1 1/0 1\0 1\0
+      1\0 1/0 0\1 0/1`,
+  },
+  annaschoice: {
+    label: "Anna's choice quilt",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1141a), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0\1 0\1 0/1 0/1
+      0\1 1\0 1/0 0/1
+      1/0 0/1 0\1 1\0
+      1/0 1/0 1\0 1\0`,
+  },
+  margaretschoice: {
+    label: "Margaret's choice",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1141b), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0\1 2\0 1/2 0/1
+      1\2 0\1 0/1 2/0
+      0/2 1/0 1\0 2\1
+      1/0 2/1 0\2 1\0`,
+  },
+  friendlyhand: {
+    label: 'Friendly hand',
+    family: 'Larger grids',
+    n: 8,
+    // from a drawing (Brown 1142a), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      1 0 1 1/0 0 1 0 0/1
+      0 1 1/0 0 1 0 0/1 1
+      1\0 0 0 0 0\1 1 1 1
+      1 1\0 0 0 0 0\1 1 1
+      0 1 0 0/1 1\1 0 1 1/0
+      1 0 0/1 1 0 1\1 1/0 0
+      0\1 1 1 1 1\0 0/0 0 0
+      0 0\1 1 1 1 1\0 0 0`,
+  },
+  milkywayii: {
+    label: 'Milky way II',
+    family: 'Larger grids',
+    n: 8,
+    // from a drawing (Brown 1142b), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      1 0 2 2/0 0 1\1 0 0/2
+      0 1 2/0 0 1 0 0/2 2
+      2\0 0 0 0 0\2 2 2 2
+      2 2\0 0 0 0 0\2 2 2
+      0 1 0 0/2 1 0 2 2/0
+      1 0 0/2 2 0 1 2/0 0
+      0\2 2 2 2 2\0 0 0 0
+      0 0\2 2 2 2 2\0 0 0`,
+  },
+  pinwheelsii: {
+    label: 'Pinwheels II',
+    family: 'Larger grids',
+    n: 8,
+    // from a drawing (Brown 1142c), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      1 0 2 2/0 0 1 0 0/2
+      0 1 2/0 0 1 0 0/2 2
+      2\0 0 0 0 0\2 2 0 0
+      2 2\0 0 0 0 0\2 0 0
+      0 1 0 0/2 1 0 2 2/0
+      1 0 0/2 2 0 1 2/0 0
+      0\2 2 0 0 2\0 0 0 0
+      0 0\2 0 0 2 2\0 0 0`,
+  },
+  statehouse: {
+    label: 'State house',
+    family: 'Larger grids',
+    n: 8,
+    // from a drawing (Brown 1143), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0 0/1 0 2 0 0/2 0 1
+      0/1 1 2 0 0/2 2 1 0
+      0 2 1 1/2 0 1/1 2 2/0
+      2 0 1/2 2 1 0 2/0 0
+      0 0/2 0 1 2 2/1 0 2
+      0/2 2 1 0 2/1 1 2 0
+      0 1 2 2/0 0 2 1 1/0
+      1 0 2/0 0 2 0 1/0 0`,
+  },
+  sunnylanes: {
+    label: 'Sunny lanes',
+    family: 'Larger grids',
+    n: 8,
+    // from a drawing (Brown 1144), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      1 3 2 2/0 0 0/2 1 3
+      3 1 2/0 0 0/2 2 3 1
+      2 2/0 1 3 1 3 2 2/0
+      2/0 0 3 1 3 1 2/0 0
+      0 0/2 1 3 1 3 0 0/2
+      0/2 2 3 1 3 1 0/2 2
+      1 3 2 2/0 0 0/2 1 3
+      3 1 2/0 0 0/2 2 3 1`,
+  },
+  ladyofthewhitehouse: {
+    label: 'Lady of the White House',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1145), read by the line-drawing reader and corrected by hand
+    rows: String.raw`
+      0 1 0 0
+      0 0\2 0/2 3
+      3 2/0 2\0 0
+      0 0 1 0`,
+  },
 };
 
 export { GRID_BLOCKS };
