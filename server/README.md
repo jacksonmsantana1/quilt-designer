@@ -33,10 +33,15 @@ in memory (`app.inject`). Photos go to an in-memory store; `config.test.js` chec
 
 ## Login
 
-Only the **stand-in login for development** for now: a request with `X-Dev-User: ana` is user "ana" (made on
-first use). It is on by default in development and tests, and refused when `NODE_ENV=production`
-(`AUTH_MODE=dev` there stops the server from starting; without it every `/v1` request is 401). A real login
-provider will replace it with a check of the provider's signed token.
+**Auth0.** The app signs people in with Auth0 and sends `Authorization: Bearer <token>`. The server checks the
+token against Auth0's public keys (`AUTH0_DOMAIN`): issued by that tenant, for this API (`AUTH0_AUDIENCE`),
+RS256-signed, not expired. The token's `sub` is the user (made on first use). With `AUTH0_DOMAIN` set, `auth0` is
+the production default; without it, every `/v1` request is 401.
+
+The **stand-in login for development** stays: with `AUTH_MODE=dev` (the default in development and tests), a
+request with `X-Dev-User: ana` is user "ana", and Auth0 tokens work too. It is refused when
+`NODE_ENV=production` (`AUTH_MODE=dev` there stops the server from starting). The tests never reach Auth0: they
+sign their own tokens with a test key (`buildApp({ keys })`, see `test/auth0.test.js`).
 
 ## API
 

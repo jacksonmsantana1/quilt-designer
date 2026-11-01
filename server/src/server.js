@@ -19,6 +19,8 @@ if (config.auth === 'dev')
   app.log.warn(
     'Development login is on: any request with an X-Dev-User header is that user. Never use this in production.',
   );
+if (config.auth0) app.log.info(`Sign-in with Auth0 (${config.auth0.domain}) for ${config.auth0.audience}.`);
+else if (config.auth === 'none') app.log.warn('Sign-in is not set up (AUTH0_DOMAIN): every /v1 request is refused.');
 if (config.storage === 'local') app.log.warn(`Photos are kept in ${config.localDir} (development storage).`);
 await app.listen({ port: config.port, host: '0.0.0.0' });
 

@@ -23,7 +23,7 @@ test('production refuses the stand-in login and defaults to none', () => {
 test('missing or bad settings stop the start with a clear message', () => {
   assert.throws(() => loadConfig({}), /DATABASE_URL is not set/);
   assert.throws(() => loadConfig({ ...DB, NODE_ENV: 'staging' }), /NODE_ENV must be/);
-  assert.throws(() => loadConfig({ ...DB, AUTH_MODE: 'open' }), /AUTH_MODE must be/);
+  assert.throws(() => loadConfig({ ...DB, AUTH_MODE: 'open' }), /AUTH_MODE must be dev, auth0 or none/);
 });
 
 test('with login off, every /v1 request is 401 (health still answers)', async () => {

@@ -13,8 +13,9 @@ const ADMIN_URL = process.env.TEST_DATABASE_URL || 'postgres://postgres@localhos
 /**
  * @param {Record<string, string>} [env] extra settings
  * @param {(config: any) => any} [makeStore] photo storage (in memory by default)
+ * @param {import('../src/auth.js').KeySet} [keys] what Auth0 tokens are checked with (see auth0.test.js)
  */
-export async function setup(env = {}, makeStore = () => memoryStore()) {
+export async function setup(env = {}, makeStore = () => memoryStore(), keys) {
   const name = `quilt_test_${process.pid}_${Math.random().toString(36).slice(2, 8)}`;
   const admin = new pg.Client({ connectionString: ADMIN_URL });
   await admin.connect();
@@ -25,7 +26,7 @@ export async function setup(env = {}, makeStore = () => memoryStore()) {
   const pool = createPool(config.databaseUrl);
   await migrate(pool);
   const store = makeStore(config);
-  const app = await buildApp({ config, pool, store });
+  const app = await buildApp({ config, pool, store, keys });
   after(async () => {
     await app.close();
     await pool.end();
@@ -37,5 +38,10 @@ export async function setup(env = {}, makeStore = () => memoryStore()) {
     const r = await app.inject({ method, url, payload, headers: user ? { 'x-dev-user': user } : {} });
     return { status: r.statusCode, body: r.body ? JSON.parse(r.body) : null };
   };
-  return { app, pool, store, config, as };
+  /** a request with a sign-in token (Authorization: Bearer), returning { status, body } */
+  const withToken = token => async (method, url, payload) => {
+    const r = await app.inject({ method, url, payload, headers: { authorization: `Bearer ${token}` } });
+    return { status: r.statusCode, body: r.body ? JSON.parse(r.body) : null };
+  };
+  return { app, pool, store, config, as, withToken };
 }
