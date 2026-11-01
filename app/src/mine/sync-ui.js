@@ -75,6 +75,8 @@ async function signInAndSync({ url, signup = false } = {}) {
 async function signOutAndStop() {
   const was = sync.config();
   sync.configure(null);
+  // signing out of Auth0 leaves the page for a moment: what's waiting to be saved here goes first
+  await repo.flush();
   if (was?.auth0) await signOut().catch(() => {});
 }
 

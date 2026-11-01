@@ -172,7 +172,7 @@ async function standInAuth0(page, sub, email) {
           if (!localStorage.getItem('stand-in-auth0')) throw Object.assign(new Error('Login required'), { error: 'login_required' });
           return ${JSON.stringify(token)};
         },
-        async logout() { localStorage.removeItem('stand-in-auth0'); },
+        async logout(o) { window.__auth0Logout = o; localStorage.removeItem('stand-in-auth0'); },
       };
     }`;
   await page.route('**/@auth0/auth0-spa-js@*/**', r => r.fulfill({ body: lib, contentType: 'text/javascript' }));
@@ -299,6 +299,9 @@ test.describe('welcome page', () => {
     await page.locator('#acct-btn').click();
     await page.locator('#acct-signout').click();
     await expect(page.locator('#welcome')).toBeVisible();
+    // signed out at Auth0 too (so it doesn't sign Ana straight back in), coming back to this page
+    const back = await page.evaluate(() => location.origin + location.pathname);
+    expect(await page.evaluate(() => window.__auth0Logout)).toEqual({ logoutParams: { returnTo: back } });
     await expect(page.locator('#acct-btn')).toBeHidden();
     expect(await page.evaluate(() => localStorage.getItem('stand-in-auth0'))).toBeNull();
     expect(await app.storage(s => s.designs.list().map(d => d.name))).toContain('Ana quilt');

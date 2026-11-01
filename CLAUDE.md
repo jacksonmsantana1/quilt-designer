@@ -93,7 +93,8 @@ per edit → versioned format → IndexedDB → coverage and more tests → serv
 
 **Next: step 8, going live.** Deploy the API (one Node instance on Fly or Render), managed PostgreSQL with
 backups (Neon, Supabase or Render), Cloudflare R2 for photos behind a CDN, error logging. Login is done (Auth0,
-above); going live needs the app's real address added in Auth0 (Allowed Callback / Logout URLs, Web Origins).
+above); going live needs the app's real address added in Auth0 (Allowed Callback URLs and Web Origins: the
+origin; Allowed Logout URLs: the page itself, since Sign out goes through Auth0's logout and comes back to it).
 The owner hasn't chosen the host yet: ask. The published page on claude.ai can only sync once the API is on https
 on the internet (Chrome blocks pages from reaching a server on the person's own computer), and Auth0's sign-in
 popup may not open from inside claude.ai's frame: untested.

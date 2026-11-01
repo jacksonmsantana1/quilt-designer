@@ -60,10 +60,15 @@ async function signIn({ signup = false } = {}) {
 /** A token for the quilt server (renewed by the library when needed); fails when signed out on this device. */
 const signInToken = async () => (await auth0Client()).getTokenSilently();
 
-/** Signs out on this device (the account stays; the designs here stay too). */
+/**
+ * Signs out, at Auth0 too: the page goes through Auth0's logout and comes back here, so Auth0 doesn't remember the
+ * person (otherwise the next Sign in, or Create an account, would sign them straight back in without a form). The
+ * account stays, and so do the designs on this device. This page's address must be among the Allowed Logout URLs
+ * of the app in Auth0.
+ */
 async function signOut() {
   const c = await auth0Client().catch(() => null);
-  if (c) await c.logout({ openUrl: false });
+  if (c) await c.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
 }
 
 export { AUTH0, signIn, signInToken, signOut };

@@ -129,8 +129,8 @@ function initAccount() {
   $('acct-btn').addEventListener('click', () => openMenu($('acct-menu').hidden));
   $('acct-signout').addEventListener('click', async () => {
     openMenu(false);
+    rememberSkip(false); // before Auth0's logout takes the page away: it comes back to the first page
     await signOutAndStop();
-    rememberSkip(false);
     showWelcome(true);
   });
   document.addEventListener('click', e => {
