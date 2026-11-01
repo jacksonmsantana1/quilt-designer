@@ -3013,6 +3013,174 @@ const GRID_BLOCKS = {
       ['Field · lower left', 0, [1, 3, 3, 5, 1, 5]],
     ],
   },
+  scotsplaid: {
+    label: "Scot's plaid",
+    family: 'Four patch',
+    n: 4,
+    // from a picture: light (1) frame along the top and left, mid grey (2) bars, a white (0) diagonal and corner
+    rows: String.raw`
+      0 1 1 1
+      1 0 2 2
+      1 2 0 0
+      1 2 0 0`,
+  },
+  autumntints: {
+    label: 'Autumn tints',
+    family: 'Four patch',
+    n: 4,
+    // from a picture: two large mid grey (2) squares, and two four-patches of white (0), light (1) and dark (3)
+    rows: String.raw`
+      2 - 0 3
+      | + 1 0
+      0 1 2 -
+      3 0 | +`,
+  },
+  sixteenplaid: {
+    label: 'Sixteen-patch plaid',
+    family: 'Larger grids',
+    n: 8,
+    // from a picture: large mid grey (2) and light (1) corners, white bars, and a diagonal of squares in four greys
+    rows: String.raw`
+      2 - 0 2 0 0 1 -
+      | + | 0 2 | | +
+      0 - 2 3 0 1 0 -
+      2 0 3 2 1 0 2 0
+      0 2 0 1 2 3 0 2
+      0 - 1 0 3 2 0 -
+      1 - 0 2 0 0 2 -
+      | + | 0 2 | | +`,
+  },
+  fourh: {
+    label: 'Four-H',
+    family: 'Larger grids',
+    n: 6,
+    // from a picture: four turns of two light grey (1) bars round a white (0) and grey square
+    rows: String.raw`
+      1 0 1 1 - -
+      | 1 | 0 1 0
+      | 0 | 1 - -
+      1 - - 1 0 1
+      0 1 0 | 1 |
+      1 - - | 0 |`,
+  },
+  flyfoot1: {
+    label: 'Flyfoot I',
+    family: 'Larger grids',
+    n: 8,
+    // from a picture: large white (0) squares, a light (1) ring round a dark (3) centre, mid grey (2) edges
+    rows: String.raw`
+      2 0 0 - 2 2 2 2
+      2 0 | + 1 1 0 0
+      2 1 1 1 1 1 0 -
+      2 1 1 3 3 1 | +
+      0 - 1 3 3 1 1 2
+      | + 1 1 1 1 1 2
+      0 0 1 1 0 - 0 2
+      2 2 2 2 | + 0 2`,
+  },
+  whitehousesteps: {
+    label: 'White House steps',
+    family: 'Larger grids',
+    n: 8,
+    // from a picture: grey (1) and white (0) squares in rings round a white centre
+    rows: String.raw`
+      1 1 1 1 1 1 1 1
+      1 0 0 0 0 0 0 1
+      1 0 1 1 1 1 0 1
+      1 0 1 0 0 1 0 1
+      1 0 1 0 0 1 0 1
+      1 0 1 1 1 1 0 1
+      1 0 0 0 0 0 0 1
+      1 1 1 1 1 1 1 1`,
+  },
+  balkanpuzzle: {
+    label: 'Balkan puzzle',
+    family: 'Other',
+    n: 4,
+    // from a drawing (Brown 1211): a pinwheel of dotted (1) and white corners round a white diamond, four striped (2) bands
+    rows: String.raw`
+      1\0 0/2 0\1 1/0
+      1/0 2/0 0\2 2\0
+      0\2 2\0 0/2 0/1
+      0/1 1\0 2/0 0\1`,
+  },
+  blockade: {
+    label: 'Blockade',
+    family: 'Other',
+    n: 4,
+    // from a drawing (Brown 1212, also A four corner puzzle): black (1) and striped (2) corners, a white ring, black and striped in the middle
+    rows: String.raw`
+      1\2 2/0 0\1 1/2
+      1/0 0/2 1\0 0\2
+      2\0 0\1 2/0 0/1
+      2/1 1\0 0/2 2\1`,
+  },
+  hazydaisy: {
+    label: 'Hazy daisy',
+    family: 'Larger grids',
+    n: 8,
+    // from a drawing (Brown 1213): four hourglasses of black (1) and white (0), a dotted (2) square on point in the point of each black triangle
+    rows: String.raw`
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x`,
+    extra: [
+      ['Daisy 1 · top triangle', 1, [0, 0, 4, 0, 2.75, 1.25, 2, 0.5, 1.25, 1.25]],
+      ['Daisy 1 · top dotted square', 2, [2, 2, 1.25, 1.25, 2, 0.5, 2.75, 1.25]],
+      ['Daisy 1 · right white triangle', 0, [4, 0, 4, 4, 2, 2]],
+      ['Daisy 1 · bottom triangle', 1, [0, 4, 4, 4, 2.75, 2.75, 2, 3.5, 1.25, 2.75]],
+      ['Daisy 1 · bottom dotted square', 2, [2, 2, 1.25, 2.75, 2, 3.5, 2.75, 2.75]],
+      ['Daisy 1 · left white triangle', 0, [0, 0, 0, 4, 2, 2]],
+      ['Daisy 2 · top white triangle', 0, [4, 0, 8, 0, 6, 2]],
+      ['Daisy 2 · right triangle', 1, [8, 0, 8, 4, 6.75, 2.75, 7.5, 2, 6.75, 1.25]],
+      ['Daisy 2 · right dotted square', 2, [6, 2, 6.75, 1.25, 7.5, 2, 6.75, 2.75]],
+      ['Daisy 2 · bottom white triangle', 0, [4, 4, 8, 4, 6, 2]],
+      ['Daisy 2 · left triangle', 1, [4, 0, 4, 4, 5.25, 2.75, 4.5, 2, 5.25, 1.25]],
+      ['Daisy 2 · left dotted square', 2, [6, 2, 5.25, 1.25, 4.5, 2, 5.25, 2.75]],
+      ['Daisy 3 · top white triangle', 0, [0, 4, 4, 4, 2, 6]],
+      ['Daisy 3 · right triangle', 1, [4, 4, 4, 8, 2.75, 6.75, 3.5, 6, 2.75, 5.25]],
+      ['Daisy 3 · right dotted square', 2, [2, 6, 2.75, 5.25, 3.5, 6, 2.75, 6.75]],
+      ['Daisy 3 · bottom white triangle', 0, [0, 8, 4, 8, 2, 6]],
+      ['Daisy 3 · left triangle', 1, [0, 4, 0, 8, 1.25, 6.75, 0.5, 6, 1.25, 5.25]],
+      ['Daisy 3 · left dotted square', 2, [2, 6, 1.25, 5.25, 0.5, 6, 1.25, 6.75]],
+      ['Daisy 4 · top triangle', 1, [4, 4, 8, 4, 6.75, 5.25, 6, 4.5, 5.25, 5.25]],
+      ['Daisy 4 · top dotted square', 2, [6, 6, 5.25, 5.25, 6, 4.5, 6.75, 5.25]],
+      ['Daisy 4 · right white triangle', 0, [8, 4, 8, 8, 6, 6]],
+      ['Daisy 4 · bottom triangle', 1, [4, 8, 8, 8, 6.75, 6.75, 6, 7.5, 5.25, 6.75]],
+      ['Daisy 4 · bottom dotted square', 2, [6, 6, 5.25, 6.75, 6, 7.5, 6.75, 6.75]],
+      ['Daisy 4 · left white triangle', 0, [4, 4, 4, 8, 6, 6]],
+    ],
+  },
+  chineselanterns: {
+    label: 'Chinese lanterns',
+    family: 'Other',
+    n: 4,
+    // from a drawing (Brown 1215): a diamond cut into eight long triangles in four fabrics (stars 1, striped 2, dotted 3, sparse 4), white corners
+    rows: String.raw`
+      x x x x
+      x x x x
+      x x x x
+      x x x x`,
+    extra: [
+      ['Lantern · upper left, outer', 1, [2, 0, 0, 2, 1, 2]],
+      ['Lantern · upper left, inner', 2, [2, 0, 1, 2, 2, 2]],
+      ['Lantern · upper right, inner', 3, [2, 0, 2, 2, 3, 2]],
+      ['Lantern · upper right, outer', 4, [2, 0, 3, 2, 4, 2]],
+      ['Lantern · lower left, outer', 4, [0, 2, 1, 2, 2, 4]],
+      ['Lantern · lower left, inner', 3, [1, 2, 2, 2, 2, 4]],
+      ['Lantern · lower right, inner', 2, [2, 2, 3, 2, 2, 4]],
+      ['Lantern · lower right, outer', 1, [3, 2, 4, 2, 2, 4]],
+      ['Corner · upper left', 0, [0, 0, 2, 0, 0, 2]],
+      ['Corner · upper right', 0, [2, 0, 4, 0, 4, 2]],
+      ['Corner · lower left', 0, [0, 2, 0, 4, 2, 4]],
+      ['Corner · lower right', 0, [4, 2, 4, 4, 2, 4]],
+    ],
+  },
 };
 
 export { GRID_BLOCKS };
