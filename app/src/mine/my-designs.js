@@ -7,7 +7,7 @@ import { quiltMm } from '@quilt/shared/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
 import { showPage } from '../app/pages.js';
 import { tl, tlCopy, tlKeyFor, tlSave } from '../timeline/timeline.js';
-import { defaultDesign } from '@quilt/shared/design.js';
+import { newDesign } from '@quilt/shared/design.js';
 import { openDesign, replaceDesign } from '../designer/dispatch.js';
 import { readDesign } from '@quilt/shared/format.js';
 import { notify } from '../ui/notice.js';
@@ -207,13 +207,13 @@ function renderMine() {
 }
 function initMine() {
   $('dz-save').addEventListener('click', () => openSaveDialog(false));
-  // New design: always the same default quilt (5 × 5 Ohio star / nine patch, 458 mm); the timeline keeps the previous one
+  // New design: always the same start (three plain cream squares in a row, 300 mm); the timeline keeps the previous one
   $('dz-new').addEventListener('click', () => {
     setMineCur(null);
     mineSave();
     if ($('dz-dialog').open) $('dz-dialog').close();
     timelines.remove(tlKeyFor(null)); // a new design starts its own, empty timeline
-    replaceDesign(defaultDesign(), { timeline: null });
+    replaceDesign(newDesign(), { timeline: null });
   });
   $('mine-new').addEventListener('click', () => openSaveDialog(true));
   $('save-ok').addEventListener('click', () => doSave(false));

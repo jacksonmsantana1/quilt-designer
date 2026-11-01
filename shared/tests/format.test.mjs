@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
 import { FORMAT_VERSION, MIGRATIONS, readDesign, readDesignOrDefault } from '@quilt/shared/format.js';
-import { defaultDesign } from '@quilt/shared/design.js';
+import { defaultDesign, newDesign } from '@quilt/shared/design.js';
 import { cellCount, normalizeSpans } from '@quilt/shared/geometry.js';
 
 const DIR = new URL('./fixtures/designs/', import.meta.url);
@@ -164,4 +164,17 @@ test('the default design is current and needs no repairs', () => {
   assert.equal(r.from, FORMAT_VERSION);
   assert.deepEqual(r.problems, []);
   assert.deepEqual(r.design, defaultDesign());
+});
+
+test('a new design starts as three plain cream squares in a row, and is a valid current design', () => {
+  const d = newDesign();
+  assert.deepEqual([d.cols, d.rows, d.blockMm], [3, 1, 300]);
+  assert.deepEqual(
+    d.blocks.map(b => [b.pattern, b.fabrics]),
+    [0, 1, 2].map(() => ['plain', ['b0']]),
+  );
+  const r = readDesign(d);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, d);
+  assert.notEqual(newDesign().blocks[0], d.blocks[0], 'every call makes its own blocks');
 });

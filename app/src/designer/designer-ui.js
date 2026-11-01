@@ -73,7 +73,7 @@ import {
   setMosaicShape,
 } from '../core/edits.js';
 import { notify } from '../ui/notice.js';
-import { defaultDesign } from '@quilt/shared/design.js';
+import { newDesign } from '@quilt/shared/design.js';
 import { tilesForTool } from '@quilt/shared/mosaic.js';
 
 function initDesignerUI() {
@@ -576,7 +576,7 @@ function initDesignerUI() {
     setMineCur(null);
     setSession('mineCur', undefined);
     timelines.remove(tlKeyFor(null));
-    replaceDesign(defaultDesign(), { timeline: null });
+    replaceDesign(newDesign(), { timeline: null });
     $('dz-reset').dataset.armed = '';
     $('dz-reset').textContent = 'Start over';
   });

@@ -106,7 +106,10 @@ test('new design and undo', async ({ app, page }) => {
   await page.locator('[data-step="c:-1"]').click();
   await page.waitForTimeout(1500);
   await page.locator('#dz-new').click();
-  expect((await app.current()).cols).toBe(5);
+  // every new design starts the same: three plain cream squares in a row, 300 mm
+  const d = await app.current();
+  expect([d.cols, d.rows, d.blockMm]).toEqual([3, 1, 300]);
+  expect(d.blocks.map(b => b.pattern + ':' + b.fabrics)).toEqual(['plain:b0', 'plain:b0', 'plain:b0']);
 });
 
 test('one timeline step per edit; a held stepper is one step; undo puts it back', async ({ app, page }) => {

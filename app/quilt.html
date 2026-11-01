@@ -6771,6 +6771,16 @@ function defaultDesign() {
       d.blocks.push((r + c) % 2 === 0 ? newBlock("ohio", ["b0", "b1", "b3"]) : newBlock("nine", ["b0", "b4", "b3"]));
   return d;
 }
+function newDesign() {
+  return {
+    v: FORMAT_VERSION,
+    cols: 3,
+    rows: 1,
+    blockMm: 300,
+    backFabric: "b0",
+    blocks: [0, 1, 2].map(() => newBlock("plain", ["b0"]))
+  };
+}
 function rolesOf(b) {
   const roles = [...ROLE_DEFAULT], seen = new Array(ROLE_COUNT).fill(false);
   partsOf(b.pattern).forEach((p, i) => {
@@ -12779,7 +12789,7 @@ function initDesignerUI() {
     setMineCur(null);
     setSession("mineCur", void 0);
     timelines.remove(tlKeyFor(null));
-    replaceDesign(defaultDesign(), { timeline: null });
+    replaceDesign(newDesign(), { timeline: null });
     $("dz-reset").dataset.armed = "";
     $("dz-reset").textContent = "Start over";
   });
@@ -15587,7 +15597,7 @@ function initMine() {
     mineSave();
     if ($("dz-dialog").open) $("dz-dialog").close();
     timelines.remove(tlKeyFor(null));
-    replaceDesign(defaultDesign(), { timeline: null });
+    replaceDesign(newDesign(), { timeline: null });
   });
   $("mine-new").addEventListener("click", () => openSaveDialog(true));
   $("save-ok").addEventListener("click", () => doSave(false));

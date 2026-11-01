@@ -30,6 +30,21 @@ function defaultDesign() {
   return d;
 }
 
+/**
+ * What the New design button starts from: three plain cream squares in a row (3 × 1, 300 mm blocks, 900 × 300 mm), ready
+ * to be given a pattern, fabrics, sashing and borders. @returns {Design}
+ */
+function newDesign() {
+  return {
+    v: FORMAT_VERSION,
+    cols: 3,
+    rows: 1,
+    blockMm: 300,
+    backFabric: 'b0',
+    blocks: [0, 1, 2].map(() => newBlock('plain', ['b0'])),
+  };
+}
+
 /** The fabric of each colour role in a block (the first part of each role), for carrying colours to a new pattern. @param {Block} b @returns {string[]} */
 function rolesOf(b) {
   const roles = [...ROLE_DEFAULT],
@@ -43,4 +58,4 @@ function rolesOf(b) {
   return roles;
 }
 
-export { FORMAT_VERSION, ROLE_COLOURS, ROLE_COUNT, ROLE_DEFAULT, defaultDesign, newBlock, rolesOf };
+export { FORMAT_VERSION, ROLE_COLOURS, ROLE_COUNT, ROLE_DEFAULT, defaultDesign, newBlock, newDesign, rolesOf };
