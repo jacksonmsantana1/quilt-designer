@@ -3181,6 +3181,286 @@ const GRID_BLOCKS = {
       ['Corner · lower right', 0, [4, 2, 4, 4, 2, 4]],
     ],
   },
+  tamspatch: {
+    label: "Tam's patch",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1117): two large squares (1), a white (0) and a small (2) square in a pinwheel
+    rows: String.raw`
+      0 - 1 -
+      0 2 | +
+      1 - 2 0
+      | + 0 -`,
+  },
+  swastika: {
+    label: 'Swastika',
+    family: 'Other',
+    n: 10,
+    // from a drawing (Brown 1118): four arms turned about a small centre square (3), each a striped (2) strip, a dotted (1) and a white (0) block
+    rows: String.raw`
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x`,
+    extra: [
+      ['Arm 1 · strip', 2, [0, 0, 1, 0, 1, 5, 0, 5]],
+      ['Arm 1 · dotted block', 1, [1, 0, 5, 0, 5, 2.5, 1, 2.5]],
+      ['Arm 1 · white block', 0, [1, 2.5, 5, 2.5, 5, 4, 4, 4, 4, 5, 1, 5]],
+      ['Arm 2 · strip', 2, [10, 0, 10, 1, 5, 1, 5, 0]],
+      ['Arm 2 · dotted block', 1, [10, 1, 10, 5, 7.5, 5, 7.5, 1]],
+      ['Arm 2 · white block', 0, [7.5, 1, 7.5, 5, 6, 5, 6, 4, 5, 4, 5, 1]],
+      ['Arm 3 · strip', 2, [10, 10, 9, 10, 9, 5, 10, 5]],
+      ['Arm 3 · dotted block', 1, [9, 10, 5, 10, 5, 7.5, 9, 7.5]],
+      ['Arm 3 · white block', 0, [9, 7.5, 5, 7.5, 5, 6, 6, 6, 6, 5, 9, 5]],
+      ['Arm 4 · strip', 2, [0, 10, 0, 9, 5, 9, 5, 10]],
+      ['Arm 4 · dotted block', 1, [0, 9, 0, 5, 2.5, 5, 2.5, 9]],
+      ['Arm 4 · white block', 0, [2.5, 9, 2.5, 5, 4, 5, 4, 6, 5, 6, 5, 9]],
+      ['Centre square', 3, [4, 4, 6, 4, 6, 6, 4, 6]],
+    ],
+  },
+  onedozennapkins: {
+    label: 'One dozen napkins',
+    family: 'Larger grids',
+    n: 21,
+    // from a drawing (Brown 1119): a white square crossed by two triple strips each way, black (1) and white (0), woven where they cross
+    rows: String.raw`
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +`,
+  },
+  pinwheel2: {
+    label: 'Pinwheel II',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1121): dotted (1) and striped (2) squares round a white (0) middle, with dotted triangles
+    rows: String.raw`
+      1 1/0 2 1
+      2 0 0 0\1
+      1\0 0 0 2
+      1 2 0/1 1`,
+  },
+  anvil: {
+    label: 'The anvil',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1122): dotted (1) corners and dotted triangles along the edges, a white (0) middle
+    rows: String.raw`
+      1 0/1 0/1 1
+      0/1 0 0 1/0
+      0/1 0 0 1/0
+      1 1/0 1/0 1`,
+  },
+  crockettcabin: {
+    label: 'Crockett cabin quilt',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1123a): one fabric (1) in squares and triangles on white (0)
+    rows: String.raw`
+      1 0 0/1 0
+      0 1 0 1/0
+      0/1 0 1 0
+      0 1/0 0 1`,
+  },
+  roadtooklahoma: {
+    label: 'Road to Oklahoma',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1123b): one fabric (1) in squares and triangles on white (0)
+    rows: String.raw`
+      1 0 0/1 1
+      0 1 0 1/0
+      0/1 0 1 0
+      1 1/0 0 1`,
+  },
+  arkansascrossroads: {
+    label: 'The Arkansas cross roads',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1123c): scribble (1), dotted (2) and striped (3) squares and triangles on white (0)
+    rows: String.raw`
+      1 2 3/0 0
+      2 1 0 0/3
+      3/0 0 1 2
+      0 0/3 2 1`,
+  },
+  wildduck: {
+    label: 'Wild duck',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1124): dotted (1) and striped (2) triangles in diagonal rows on white (0)
+    rows: String.raw`
+      0/1 0 0/1 2/0
+      0 2/1 1 2/0
+      0/1 1 2/1 0
+      2/0 2/0 0 2/0`,
+  },
+  nelsonsvictory: {
+    label: "Nelson's victory",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1125): scribble (1) corners, plus (2) squares and triangles in a pinwheel in the middle, white (0)
+    rows: String.raw`
+      1 2 0 1
+      0 0\2 0/2 2
+      2 2/0 2\0 0
+      1 0 2 1`,
+  },
+  windmill: {
+    label: 'Windmill',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1126): a pinwheel of triangles (1) in the middle and a triangle in each corner, on white (0)
+    rows: String.raw`
+      0/1 0 0 1\0
+      0 1\0 1/0 0
+      0 0/1 0\1 0
+      0\1 0 0 1/0`,
+  },
+  xquartet: {
+    label: 'X quartet',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1127): dotted (1) corners and a pinwheel of triangles (2) in the middle, white (0)
+    rows: String.raw`
+      1 0/2 0 1
+      0 2\0 2/0 2\0
+      0\2 0/2 0\2 0
+      1 0 2/0 1`,
+  },
+  clayschoice: {
+    label: "Clay's choice",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1128a): dotted (1) corners, a pinwheel of scribble (2) triangles with dotted triangles between, white (0)
+    rows: String.raw`
+      1 2\0 0 1
+      0 1\2 1/2 2/0
+      0/2 2/1 2\1 0
+      1 0 0\2 1`,
+  },
+  blocksandpinwheels: {
+    label: 'Blocks and pinwheels',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1128b): dotted (1) corners and a pinwheel of scribble (2) triangles on white (0)
+    rows: String.raw`
+      1 2\0 0 1
+      0 0\2 0/2 2/0
+      0/2 2/0 2\0 0
+      1 0 0\2 1`,
+  },
+  yearsfavorite: {
+    label: "Year's favorite",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1129a): striped (1) triangles in two long diagonal rows on white (0)
+    rows: String.raw`
+      0\1 0 0/1 0/1
+      0\1 0\1 0/1 0
+      0 1/0 1\0 1\0
+      1/0 1/0 0 1\0`,
+  },
+  pinwheels: {
+    label: 'Pinwheels',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1129b): dotted (1) and striped (2) triangles and squares turning about the middle, white (0)
+    rows: String.raw`
+      0\1 0\2 2 0/1
+      2 1\0 1/0 0/2
+      2/0 0/1 0\1 2
+      1/0 2 2\0 1\0`,
+  },
+  roosevelt: {
+    label: "Mr. Roosevelt's necktie",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1129.5): a dotted (1) diamond in the middle with four dotted squares round it, white (0)
+    rows: String.raw`
+      0 1 0 0
+      1 1/1 1\0 0
+      0 0\1 1/1 1
+      0 0 1 0`,
+  },
+  yankeepuzzle: {
+    label: 'Yankee puzzle',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1130a): dotted (1) triangles in diagonal rows on white (0)
+    rows: String.raw`
+      0/1 1\0 1\0 1\0
+      0/1 0\1 0/1 1/0
+      0/1 1/0 1\0 1/0
+      0\1 0\1 0\1 1/0`,
+  },
+  flyfoot: {
+    label: 'Flyfoot',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1130b): dotted (1) triangles turning about the middle, white (0)
+    rows: String.raw`
+      1/0 0\1 1\0 0\1
+      0/1 1\0 1/0 0/1
+      1/0 0/1 0\1 1/0
+      1\0 0\1 1\0 0/1`,
+  },
+  ladieswreath: {
+    label: "Ladies' wreath",
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1131): striped (1) triangles in a wreath on white (0)
+    rows: String.raw`
+      0/1 0/1 0 1\0
+      0/1 0/1 0\1 0
+      0 1\0 1/0 1/0
+      0\1 0 1/0 1/0`,
+  },
+  mosaic17: {
+    label: 'Mosaic #17',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1132): sixteen half-square triangles, dotted (1) on white (0), all the same way
+    rows: String.raw`
+      1/0 1/0 1/0 1/0
+      1/0 1/0 1/0 1/0
+      1/0 1/0 1/0 1/0
+      1/0 1/0 1/0 1/0`,
+  },
+  hopscotch: {
+    label: 'Hopscotch',
+    family: 'Four patch',
+    n: 4,
+    // from a drawing (Brown 1133): rows of half-square triangles, dotted (1) on white (0), turned every other row
+    rows: String.raw`
+      1\0 1\0 1\0 1\0
+      0/1 0/1 0/1 0/1
+      1\0 1\0 1\0 1\0
+      0/1 0/1 0/1 0/1`,
+  },
 };
 
 export { GRID_BLOCKS };
