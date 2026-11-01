@@ -208,4 +208,4 @@ function gridParts(def) {
   }));
 }
 
-export { gridParts, parseGrid };
+export { gridParts, parseGrid, placeName };

@@ -81,7 +81,10 @@
  * @typedef {object} DrawnBlock
  * @property {string} label   its name
  * @property {number} n       cells per side
- * @property {string} rows    one line per row, one token per cell
+ * @property {string} rows    one line per row, one token per cell ("x" for cells covered by `extra`)
+ * @property {[string, number, number[]][]} [extra]  graph paper: the pieces, [name, role, [x, y, x, y, …] in cells]
+ * @property {{ lines: number[][], fills: number[][] }} [paper]  graph paper: the seam lines [x1, y1, x2, y2] and the
+ *                                                     fills [x, y, role] it was drawn with, for opening it again
  */
 
 /** Orientation of a block. @typedef {{ rot: number, flip: boolean }} Orientation */
