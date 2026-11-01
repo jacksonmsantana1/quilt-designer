@@ -3,6 +3,7 @@ import './sashing-ui.js'; // load order: runs after designer/sashing-ui
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
+import { fromInput, getUnit, inputRange, toInput } from '../core/units.js';
 import { fabricById, onFabricsLoaded } from './fabric-library.js';
 import { BORDER_TYPES, borderFab, borderSidePieces, pathPoly } from '@quilt/shared/geometry.js';
 import { drawPaletteInto } from './parts-editor.js';
@@ -74,16 +75,14 @@ function renderBorderUI() {
     for (const [k, tt] of Object.entries(BORDER_TYPES)) sel.add(new Option(tt.label, k, false, k === b.type));
     const mm = document.createElement('input');
     mm.type = 'number';
-    mm.min = 10;
-    mm.max = 400;
-    mm.step = 1;
-    mm.value = b.mm;
+    Object.assign(mm, inputRange(10, 400));
+    mm.value = String(toInput(b.mm));
     mm.dataset.a = 'mm';
-    mm.title = 'Width (mm)';
+    mm.title = `Width (${getUnit() === 'in' ? 'inches' : 'mm'})`;
     const unit = document.createElement('span');
     unit.className = 'fine';
     unit.style.margin = 0;
-    unit.textContent = 'mm';
+    unit.textContent = getUnit();
     const mk = (a, txt, title, dis) => {
       const x = document.createElement('button');
       x.type = 'button';
@@ -169,7 +168,7 @@ function initBorderUI() {
     const i = +row.dataset.i;
     if (e.target.dataset.a === 'type') borderEdit(updateBorder, i, { type: e.target.value });
     if (e.target.dataset.a === 'mm') {
-      const v = Math.max(10, Math.min(400, Math.round(+e.target.value || 0)));
+      const v = Math.max(10, Math.min(400, fromInput(+e.target.value || 0)));
       borderEdit(updateBorder, i, { mm: v });
     }
   });

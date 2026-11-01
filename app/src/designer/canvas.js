@@ -2,6 +2,7 @@
 import '../render/quilt-draw.js'; // load order: runs after render/quilt-draw
 import { design, focusBlock, selBlocks } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { dims, len } from '../core/units.js';
 import { fabricById } from './fabric-library.js';
 import {
   blockOutline,
@@ -207,10 +208,10 @@ function drawDesignerCanvas() {
   // a mosaic has no blocks: its shapes instead of the block size
   $('dz-bsize').hidden = !!design.mosaic;
   const mos = design.mosaic
-    ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides`
+    ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${len(design.mosaic.mm)} sides`
     : '';
   $('dz-size-b').textContent =
-    `${mos}${sz.mm && !design.mosaic ? ` · ${sz.mm} mm sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${borderTotal(design)} mm)` : ''} · finished quilt ${Math.round(qmm.W)} × ${Math.round(qmm.H)} mm`;
+    `${mos}${sz.mm && !design.mosaic ? ` · ${len(sz.mm)} sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${len(borderTotal(design))})` : ''} · finished quilt ${dims([qmm.W, qmm.H])}`;
   drawBackCanvas(view.w, view.h, dpr0);
   const hv = $('dz-hover');
   hv.style.width = cw + 'px';

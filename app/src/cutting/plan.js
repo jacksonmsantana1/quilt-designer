@@ -12,11 +12,13 @@ import { quiltMm, settingPieces } from '@quilt/shared/geometry.js';
 //                          on the diagonal: 4 triangles per square
 // Cut sizes round UP to the whole millimetre. Fabric is cut in strips across the
 // width of fabric (WOF) and the strips are sub-cut.
+import { buyLen, dims, len } from '../core/units.js';
+
 const CG = (() => {
   const upmm = x => Math.ceil(x - 1e-6);
-  const mm = x => `${Math.round(x)} mm`;
+  const mm = len;
   const close = (a, b) => Math.abs(a - b) < 1e-6;
-  const metres = x => `${(Math.ceil(x / 50 - 1e-6) * 0.05).toFixed(2)} m`; // rounded up to 5 cm
+  const metres = buyLen; // metres rounded up to 5 cm, or yards rounded up to an eighth
 
   function classify(poly, W, H, s) {
     const p = poly.map(([u, v]) => [u * W, v * H]);
@@ -36,7 +38,7 @@ const CG = (() => {
         kind: 'rect',
         cut: [Math.max(w, h), Math.min(w, h)],
         yield: 1,
-        how: `rectangle ${Math.min(w, h)} × ${Math.max(w, h)} mm`,
+        how: `rectangle ${dims([Math.min(w, h), Math.max(w, h)])}`,
       };
     }
     if (p.length === 3) {
@@ -74,7 +76,7 @@ const CG = (() => {
           kind: 'diamond',
           cut: [long, flats],
           yield: 1,
-          how: `diamond template (${angle}°), finished side ${mm(side)}; cut from a strip ${flats} mm wide`,
+          how: `diamond template (${angle}°), finished side ${mm(side)}; cut from a strip ${len(flats)} wide`,
         };
       }
     }
@@ -89,7 +91,7 @@ const CG = (() => {
           kind: 'hex',
           cut: [points, flats],
           yield: 1,
-          how: `hexagon template, finished side ${mm(side)}; cut ${flats} mm across the flats (${points} mm point to point)`,
+          how: `hexagon template, finished side ${mm(side)}; cut ${len(flats)} across the flats (${len(points)} point to point)`,
         };
       }
     }
@@ -107,14 +109,14 @@ const CG = (() => {
         kind: 'template',
         cut: [Math.max(w, h), Math.min(w, h), ...sides],
         yield: 1,
-        how: `triangle template, finished sides ${sides.join(' × ')} mm; add ${s} mm seam allowance all round (fits in ${Math.min(w, h)} × ${Math.max(w, h)} mm)`,
+        how: `triangle template, finished sides ${dims(sides)}; add ${len(s)} seam allowance all round (fits in ${dims([Math.min(w, h), Math.max(w, h)])})`,
       };
     }
     return {
       kind: 'template',
       cut: [Math.max(w, h), Math.min(w, h)],
       yield: 1,
-      how: `template piece in a ${Math.min(w, h)} × ${Math.max(w, h)} mm rectangle, ${s} mm seam allowance added`,
+      how: `template piece in a ${dims([Math.min(w, h), Math.max(w, h)])} rectangle, ${len(s)} seam allowance added`,
     };
   }
 
@@ -260,7 +262,10 @@ const CG = (() => {
         sashList.push({
           ...x,
           letter,
-          how: `${strips} strip${strips > 1 ? 's' : ''} ${width} mm × WOF, joined and cut to ${x.lens.map(l => upmm(l + 2 * s)).join(' + ')} mm`,
+          how: `${strips} strip${strips > 1 ? 's' : ''} ${len(width)} × WOF, joined and cut to ${dims(
+            x.lens.map(l => upmm(l + 2 * s)),
+            ' + ',
+          )}`,
           n: x.lens.length,
         });
         continue;
@@ -275,7 +280,7 @@ const CG = (() => {
           ch = upmm(x.h + 2 * s);
         kind = cw === ch ? 'square' : 'rect';
         cut = [Math.max(cw, ch), Math.min(cw, ch)];
-        how = kind === 'square' ? `square ${mm(cw)}` : `rectangle ${Math.min(cw, ch)} × ${Math.max(cw, ch)} mm`;
+        how = kind === 'square' ? `square ${mm(cw)}` : `rectangle ${dims([Math.min(cw, ch), Math.max(cw, ch)])}`;
       }
       const k = kind + '|' + cut.join('x');
       const c = f.cuts.get(k) || { kind, cut, yield: yld, how, pieces: 0 };
@@ -339,7 +344,7 @@ const CG = (() => {
     bf.small = false;
     for (const r of result) {
       const L = Math.ceil(r.length + 50); // 50 mm to straighten the edge
-      r.requirement = r.small ? `${Math.ceil(r.maxW)} × ${Math.ceil(r.length)} mm` : `${L} mm × WOF`;
+      r.requirement = r.small ? dims([Math.ceil(r.maxW), Math.ceil(r.length)]) : `${len(L)} × WOF`;
       r.buy = r.small ? '' : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));

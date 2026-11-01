@@ -1,6 +1,7 @@
 // Real-size templates for odd-shaped pieces, packed onto A4 sheets.
 import './pages.js'; // load order: runs after pdf/pages
 import { fabricById } from '../designer/fabric-library.js';
+import { getUnit, len } from '../core/units.js';
 import { pathPoly } from '@quilt/shared/geometry.js';
 import { A4, pdfPageCanvas, pdfText } from './pages.js';
 import { fabricFill } from '../render/fabric-fill.js';
@@ -420,11 +421,14 @@ function pdfTemplateHeader(g, P, title, lines, page, pages) {
     g.lineTo(bx + k * 10, by + (k % 5 ? 1.2 : 2));
   }
   g.stroke();
-  pdfText(g, 'check: 50 mm', bx + 25, by + 5.5, 3, { align: 'center', color: '#5a5650' });
+  pdfText(g, getUnit() === 'in' ? 'check: 50 mm (about 2 in)' : 'check: 50 mm', bx + 25, by + 5.5, 3, {
+    align: 'center',
+    color: '#5a5650',
+  });
   pdfText(g, `Page ${page} of ${pages}`, A4.w - M, A4.h - 6, 3.2, { align: 'right', color: '#8a857c' });
 }
 const realSizeNote = P =>
-  `Real size: print at 100 % / "actual size". Solid line = cutting line (${P.seam} mm seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
+  `Real size: print at 100 % / "actual size". Solid line = cutting line (${len(P.seam)} seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
 const mirrorNote = t =>
   t.mirrored && t.plain
     ? `${[...t.ids.keys()].join('/')}: ${t.mirrored} of ${t.mirrored + t.plain} are mirror images, turn the template over to cut them.`

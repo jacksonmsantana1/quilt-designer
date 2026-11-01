@@ -333,6 +333,16 @@
   .stepper input { -moz-appearance: textfield; appearance: textfield; }
   .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .stepper.mini .btn { padding: 1px 7px; min-height: 0; line-height: 1.3; }
+  /* the mm / in slide switch beside Layout: a real checkbox (role switch), drawn as a track and a knob */
+  .unit-sw { position: relative; display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none; }
+  .unit-sw input { position: absolute; opacity: 0; width: 100%; height: 100%; left: 0; top: 0; margin: 0; cursor: pointer; }
+  .unit-sw .u-track { position: relative; width: 38px; height: 22px; border-radius: 999px; background: var(--line); transition: background .15s; }
+  .unit-sw .u-track i { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .15s; }
+  .unit-sw input:checked + .u-track { background: var(--accent); }
+  .unit-sw input:checked + .u-track i { transform: translateX(16px); }
+  .unit-sw input:focus-visible + .u-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .unit-sw[data-unit="mm"] .u-mm, .unit-sw[data-unit="in"] .u-in { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) { .unit-sw .u-track, .unit-sw .u-track i { transition: none; } }
   .size-in { margin: 0 4px; width: 4.6em; padding: 2px 4px; font: inherit; font-weight: 600; color: var(--ink, #1d2230); border: 1px solid var(--line); border-radius: 6px; background: var(--panel); text-align: center; }
   .size-in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .tl-row { display: flex; justify-content: center; margin-top: 10px; transition: opacity .2s ease; }
@@ -663,17 +673,17 @@
   <div class="row sim-toolbar">
     <select id="bedsel" aria-label="Bed (mattress size)" title="Bed (mattress size)"></select>
     <span class="bmm" id="bed-custom" hidden>
-      <label class="sr" for="bed-w">Mattress width (mm)</label><span class="bmm-in"><input id="bed-w" type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
-      <label class="sr" for="bed-l">Mattress length (mm)</label><span class="bmm-in"><input id="bed-l" type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> mm</span>
+      <label class="sr" for="bed-w">Mattress width</label><span class="bmm-in"><input id="bed-w" type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
+      <label class="sr" for="bed-l">Mattress length</label><span class="bmm-in"><input id="bed-l" type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="table-custom" hidden>
-      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width (mm)" aria-label="Table width in mm"> ×</span>
-      <span class="bmm-in"><input id="tbl-l" type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length (mm)" aria-label="Table length in mm"> mm,</span>
-      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor (mm)"> mm</span>
+      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width" aria-label="Table width"> ×</span>
+      <span class="bmm-in"><input id="tbl-l" type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length" aria-label="Table length"> <span data-unit-name>mm</span>,</span>
+      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="couch-custom" hidden>
-      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm (mm)" aria-label="Couch width in mm"> ×</span>
-      <span class="bmm-in"><input id="cch-l" type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back (mm)" aria-label="Couch depth in mm"> mm,</span>
+      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm" aria-label="Couch width"> ×</span>
+      <span class="bmm-in"><input id="cch-l" type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back" aria-label="Couch depth"> <span data-unit-name>mm</span>,</span>
       <label for="cch-s">seats</label><span class="bmm-in"><input id="cch-s" type="number" min="1" max="5" step="1" inputmode="numeric" title="How many seat cushions (each at least 40 cm wide)"></span>
     </span>
     <button class="btn" id="saveimg3" type="button" title="Take a picture of the 3D view and save it as a PNG">Take picture</button>
@@ -869,7 +879,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
-      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
+      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><label class="unit-sw" id="unit-lbl" data-unit="mm" title="Show lengths in millimetres or in inches"><span class="u-mm">mm</span><input type="checkbox" role="switch" id="unit-sw" aria-label="Show lengths in inches"><span class="u-track" aria-hidden="true"><i></i></span><span class="u-in">in</span></label><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
         <div class="fabs backfabs" id="dz-backfabs"></div>
@@ -900,7 +910,7 @@
           </div>
         </div>
       </div>
-      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size in millimetres" title="Type a new block size and press Enter"> mm</span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
+      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size" title="Type a new block size and press Enter"> <span data-unit-name>mm</span></span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
       <div class="tl-row" id="tl-row" hidden>
           <span class="tl-btns" role="group" aria-label="Timeline">
             <button class="btn" type="button" id="tl-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
@@ -927,7 +937,7 @@
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
         <h2>Sashing</h2>
         <div class="row" style="align-items:center">
-          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> mm</span></label>
+          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> <span data-unit-name>mm</span></span></label>
           <span class="sash-presets" id="sash-presets"></span>
         </div>
         <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="sash-border"> Also around the outside (border)</label>
@@ -958,7 +968,7 @@
         <p class="fine" style="margin:0 0 8px">One shape all over the quilt. Pick a fabric, then click a shape or drag over several to paint them. The arrows by Columns and Rows add more.</p>
         <div class="param"><label for="mos-shape">Shape</label><output></output><select id="mos-shape" title="The shape the whole quilt is made of"><option value="hex">Hexagons (flower garden)</option><option value="diamond">Diamonds (tumbling blocks)</option><option value="triangle">Triangles</option></select></div>
         <div class="fablib-groups mos-tools" id="mos-tools" role="group" aria-label="What a click paints"><button type="button" data-tool="one" aria-pressed="true" title="Paint one hexagon">One</button><button type="button" data-tool="rosette" aria-pressed="false" title="Paint a flower: the shape and the ones around it (with diamonds: the three of a cube)">Rosette</button><button type="button" data-tool="row" aria-pressed="false" title="Paint the whole row">Row</button><button type="button" data-tool="way" aria-pressed="false" title="Paint every shape lying the same way: every top, left or right of the cubes, or every triangle pointing up or down" hidden>Same way</button><button type="button" data-tool="random" aria-pressed="false" title="Each hexagon gets a fabric picked at random from the list below">Random</button></div>
-        <div class="param"><label for="mos-mm">Side of a shape</label><output>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape in millimetres"></div>
+        <div class="param"><label for="mos-mm">Side of a shape</label><output data-unit-name>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape"></div>
         <p class="fine" style="margin:10px 0 4px">Paint with</p>
         <div class="fabs" id="mos-fabs" aria-label="The fabric to paint with"></div>
         <p style="margin:10px 0 0"><button class="btn sm" type="button" id="mos-fill" title="Paint every hexagon: in the chosen fabric, or with Random, each in a fabric from the list">Fill all</button></p>
@@ -981,14 +991,14 @@
         <label for="fit-bed" class="sr">Mattress size</label>
         <select id="fit-bed" aria-label="Mattress size" style="width:100%"></select>
         <div class="two" id="fit-custom" hidden style="margin-top:8px">
-          <div><label for="fit-w">Mattress width (mm)</label><input id="fit-w" type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
-          <div><label for="fit-l">Mattress length (mm)</label><input id="fit-l" type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-w">Mattress width (<span data-unit-name>mm</span>)</label><input id="fit-w" type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-l">Mattress length (<span data-unit-name>mm</span>)</label><input id="fit-l" type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
         </div>
         <div class="two" style="margin-top:8px;align-items:end">
-          <div><label for="fit-drop">Drop (mm)</label><input id="fit-drop" type="number" min="0" max="800" step="10" inputmode="numeric"></div>
-          <label style="display:flex;gap:6px;align-items:center;padding-bottom:6px"><input type="checkbox" id="fit-tuck"> Pillow tuck (+250 mm)</label>
+          <div><label for="fit-drop">Drop (<span data-unit-name>mm</span>)</label><input id="fit-drop" type="number" min="0" max="800" step="10" inputmode="numeric"></div>
+          <label style="display:flex;gap:6px;align-items:center;padding-bottom:6px"><input type="checkbox" id="fit-tuck"> Pillow tuck (+<span id="tuck-len">250 mm</span>)</label>
         </div>
-        <p class="fine" style="margin:6px 0 0">Drop: about 250–300 mm covers the mattress, 450–550 mm the box spring too; floor length is the mattress-top height.</p>
+        <p class="fine" id="fit-hint" style="margin:6px 0 0">Drop: about 250–300 mm covers the mattress, 450–550 mm the box spring too; floor length is the mattress-top height.</p>
         <p class="fine" id="fit-target" style="margin:8px 0 6px"></p>
         <div class="fitlist" id="fit-list"></div>
         <p class="fine" id="fit-now" style="margin:8px 0 0"></p>
@@ -5513,7 +5523,7 @@ var PATTERNS = {
         for (let i = 0; i < k; i++) [du, dv] = [-dv, du];
         return [c[0] + du, c[1] + dv];
       };
-      const unit = (
+      const unit2 = (
         /** @type {[number, import('./types.js').Poly][]} */
         [
           [
@@ -5557,7 +5567,7 @@ var PATTERNS = {
         ["G", "J", "F", "G"]
       ];
       for (let k = 0; k < 4; k++)
-        unit.forEach(
+        unit2.forEach(
           ([role, poly], i) => out.push(
             P_(
               `Star point ${sides[k]} \xB7 ${letters[k][i]}`,
@@ -6584,7 +6594,7 @@ function sashOnPoint(d, W, H) {
   return rects.map((rc) => ({ ...f.place(rc.x, rc.y, rc.w, rc.h), kind: rc.kind }));
 }
 function joinRuns(pieces, ax) {
-  const len = ax === "x" ? "w" : "h", lines = /* @__PURE__ */ new Map();
+  const len2 = ax === "x" ? "w" : "h", lines = /* @__PURE__ */ new Map();
   for (const rc of pieces) {
     const at = ax === "x" ? rc.y : rc.x;
     lines.set(at, [...lines.get(at) || [], rc]);
@@ -6594,7 +6604,7 @@ function joinRuns(pieces, ax) {
     line.sort((a, b) => a[ax] - b[ax]);
     let run2 = [line[0]];
     const flush2 = () => {
-      const first = run2[0], last = run2[run2.length - 1], ext = last[ax] + last[len] - first[ax];
+      const first = run2[0], last = run2[run2.length - 1], ext = last[ax] + last[len2] - first[ax];
       if (run2.length === 1) out.push(first);
       else
         out.push({
@@ -6607,7 +6617,7 @@ function joinRuns(pieces, ax) {
     };
     for (const rc of line.slice(1)) {
       const last = run2[run2.length - 1];
-      if (rc[ax] <= last[ax] + last[len] + 1e-6 * (last[len] || 1)) run2.push(rc);
+      if (rc[ax] <= last[ax] + last[len2] + 1e-6 * (last[len2] || 1)) run2.push(rc);
       else flush2(), run2 = [rc];
     }
     flush2();
@@ -7125,8 +7135,8 @@ function createRepo() {
   let writing = Promise.resolve();
   let onError = () => {
   };
-  const listeners = /* @__PURE__ */ new Set();
-  const changed = (store, id) => listeners.forEach((f) => f(store, id));
+  const listeners2 = /* @__PURE__ */ new Set();
+  const changed = (store, id) => listeners2.forEach((f) => f(store, id));
   function queue(store, key, value) {
     pending.set(store + "\0" + key, [store, key, value]);
     if (!scheduled) {
@@ -7329,7 +7339,7 @@ function createRepo() {
     /** Whether changes are kept after a reload (false when IndexedDB couldn't be opened). */
     isPersistent: () => persistent,
     /** Calls f(store, id) after every change made on this device to a design or fabric (not ones from sync). */
-    onChange: (f) => void listeners.add(f),
+    onChange: (f) => void listeners2.add(f),
     getSession: getSession2,
     setSession: setSession2,
     designs: designs2,
@@ -9312,6 +9322,46 @@ function drawChart() {
 
 // src/sim/controls.js
 import * as THREE10 from "three";
+
+// src/core/units.js
+var MM_PER_IN = 25.4;
+var FRACTIONS = ["", "\u215B", "\xBC", "\u215C", "\xBD", "\u215D", "\xBE", "\u215E"];
+var unit = "mm";
+var listeners = [];
+var getUnit = () => unit;
+function setUnit(u) {
+  if (u !== "mm" && u !== "in") return;
+  if (u === unit) return;
+  unit = u;
+  listeners.forEach((fn) => fn());
+}
+var onUnitChange = (fn) => {
+  listeners.push(fn);
+};
+function inches(mm) {
+  const eighths = Math.round(mm / MM_PER_IN * 8), whole = Math.floor(eighths / 8), part = FRACTIONS[eighths % 8];
+  return part && whole === 0 ? part : `${whole}${part}`;
+}
+var num2 = (mm) => unit === "in" ? inches(mm) : String(Math.round(mm));
+var len = (mm) => `${num2(mm)} ${unit}`;
+function buyLen(mm) {
+  if (unit === "mm") return `${(Math.ceil(mm / 50 - 1e-6) * 0.05).toFixed(2)} m`;
+  const eighths = Math.ceil(mm / (MM_PER_IN * 4.5) - 1e-6), whole = Math.floor(eighths / 8), part = FRACTIONS[eighths % 8];
+  return `${part && whole === 0 ? part : whole + part} yd`;
+}
+var dims = (mms, sep = " \xD7 ") => `${mms.map(num2).join(sep)} ${unit}`;
+function toInput(mm) {
+  if (unit === "mm") return Math.round(mm);
+  const sixteenths = Math.round(mm / MM_PER_IN * 16);
+  if (Math.abs(sixteenths * (MM_PER_IN / 16) - mm) < 0.5) return sixteenths / 16;
+  return Math.round(mm / MM_PER_IN * 100) / 100;
+}
+var fromInput = (v) => unit === "in" ? Math.round(v * MM_PER_IN) : Math.round(v);
+function inputRange(minMm, maxMm) {
+  return unit === "in" ? { min: Math.ceil(minMm / MM_PER_IN * 8) / 8, max: Math.floor(maxMm / MM_PER_IN * 8) / 8, step: 0.125 } : { min: minMm, max: maxMm, step: 1 };
+}
+
+// src/sim/controls.js
 var toSlider = (p, v) => p.scale === "log" ? Math.log(v / p.min) / Math.log(p.max / p.min) * 1e3 : (v - p.min) / (p.max - p.min) * 1e3;
 var fromSlider = (p, s) => p.scale === "log" ? p.min * Math.pow(p.max / p.min, s / 1e3) : p.min + (p.max - p.min) * s / 1e3;
 var paramsBox = $("params");
@@ -9436,13 +9486,13 @@ var alongZ = () => bedState.l >= bedState.w;
 function dropMin() {
   const L = Math.max(bedState.w, bedState.l);
   if (!isBedSim() || !alongZ()) return -Math.round(L / 2);
-  const len = (quiltTurned ? quilt.w : quilt.l) * 1e3;
-  return Math.round(-bedState.l / 2 + 20 + len / 2);
+  const len2 = (quiltTurned ? quilt.w : quilt.l) * 1e3;
+  return Math.round(-bedState.l / 2 + 20 + len2 / 2);
 }
 function defaultDropPos() {
   if (!isBedSim() || !alongZ()) return 0;
-  const len = (quiltTurned ? quilt.w : quilt.l) * 1e3;
-  return Math.round(-bedState.l / 2 + 70 + len / 2);
+  const len2 = (quiltTurned ? quilt.w : quilt.l) * 1e3;
+  return Math.round(-bedState.l / 2 + 70 + len2 / 2);
 }
 var dropGuide = new THREE10.Group();
 dropGuide.visible = false;
@@ -9469,7 +9519,7 @@ var guideDot = new THREE10.Mesh(
 guideDot.rotation.x = -Math.PI / 2;
 guideDot.renderOrder = 1e3;
 var guideT = 0;
-function updateDropGuide(show) {
+function updateDropGuide(show2) {
   for (const o of [...dropGuide.children]) {
     dropGuide.remove(o);
     if (o !== guideDot) o.geometry.dispose();
@@ -9497,8 +9547,8 @@ function updateDropGuide(show) {
   guideDot.position.set(z ? 0 : p, y + 1e-3, z ? p : 0);
   dropGuide.add(line, rect, guideDot);
   clearTimeout(guideT);
-  dropGuide.visible = !!show;
-  if (show)
+  dropGuide.visible = !!show2;
+  if (show2)
     guideT = setTimeout(() => {
       dropGuide.visible = false;
     }, 2500);
@@ -9514,7 +9564,7 @@ function syncDropUI() {
   el.max = String(hi);
   el.step = "10";
   el.value = String(dropPos == null ? v : dropPos);
-  const far = (z) => Math.abs(z) < 5 ? "centre" : `${Math.abs(z)} mm toward the ${alongZ() ? z > 0 ? isTableSim() ? "near end" : "foot" : isTableSim() ? "far end" : "head" : z > 0 ? "right" : "left"}`;
+  const far = (z) => Math.abs(z) < 5 ? "centre" : `${len(Math.abs(z))} toward the ${alongZ() ? z > 0 ? isTableSim() ? "near end" : "foot" : isTableSim() ? "far end" : "head" : z > 0 ? "right" : "left"}`;
   $("drop-pos-v").textContent = dropPos == null ? `${far(v)} (usual spot)` : far(v);
 }
 $("drop-pos").addEventListener("input", (e) => {
@@ -11950,8 +12000,8 @@ function drawDesignerCanvas() {
   const sz = sashOf(design);
   const nb = bordersOf(design).length;
   $("dz-bsize").hidden = !!design.mosaic;
-  const mos = design.mosaic ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides` : "";
-  $("dz-size-b").textContent = `${mos}${sz.mm && !design.mosaic ? ` \xB7 ${sz.mm} mm sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${borderTotal(design)} mm)` : ""} \xB7 finished quilt ${Math.round(qmm.W)} \xD7 ${Math.round(qmm.H)} mm`;
+  const mos = design.mosaic ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${len(design.mosaic.mm)} sides` : "";
+  $("dz-size-b").textContent = `${mos}${sz.mm && !design.mosaic ? ` \xB7 ${len(sz.mm)} sashing${sz.border ? " with border" : ""}` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""} (${len(borderTotal(design))})` : ""} \xB7 finished quilt ${dims([qmm.W, qmm.H])}`;
   drawBackCanvas(view.w, view.h, dpr0);
   const hv = $("dz-hover");
   hv.style.width = cw + "px";
@@ -12189,14 +12239,16 @@ function renderDesigner() {
   $("dz-setting").value = design.mosaic ? "mosaic" : isOnPoint(design) ? "onpoint" : "straight";
   for (const id of ["rail-parts", "rail-sash", "sym-wrap"]) if ($(id)) $(id).hidden = !!design.mosaic;
   if (design.mosaic) {
-    if (document.activeElement !== $("mos-mm")) $("mos-mm").value = design.mosaic.mm;
+    Object.assign($("mos-mm"), inputRange(10, 200));
+    if (document.activeElement !== $("mos-mm")) $("mos-mm").value = String(toInput(design.mosaic.mm));
     $("mos-shape").value = design.mosaic.shape;
     $("mos-tools").querySelector('[data-tool="way"]').hidden = design.mosaic.shape === "hex";
     drawPaletteInto($("mos-fabs"), mosaicBrush);
   }
   drawPaletteInto($("set-fabs"), design.settingFabric || "b0");
   syncSymUI();
-  for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
+  Object.assign($("dz-bmm3"), inputRange(50, 1e3));
+  for (const id of ["dz-bmm3"]) if (document.activeElement !== $(id)) $(id).value = String(toInput(design.blockMm));
   $("dz-rot").textContent = `Rotate 90\xB0 (${design.blocks[focusBlock].rot * 90}\xB0)`;
   drawDesignerCanvas();
   drawPartsEditor();
@@ -12728,9 +12780,9 @@ function initDesignerUI() {
   });
   $("mos-shape").addEventListener("change", (e) => dispatch(setMosaicShape, e.target.value));
   $("mos-mm").addEventListener("change", (e) => {
-    const v = Math.round(+e.target.value);
+    const v = fromInput(+e.target.value);
     if (v >= 10 && v <= 200) dispatch(setMosaicMm, v);
-    else e.target.value = design.mosaic ? design.mosaic.mm : 50;
+    else e.target.value = String(toInput(design.mosaic ? design.mosaic.mm : 50));
   });
   $("set-fabs").addEventListener("click", (e) => {
     const b = e.target.closest("button.fab");
@@ -12761,9 +12813,9 @@ function initDesignerUI() {
   });
   const sizeChange = () => resizeTo(+$("dz-cols").value, +$("dz-rows").value);
   const blockSize = (e) => {
-    const v = Math.round(+e.target.value);
+    const v = fromInput(+e.target.value);
     if (!(v >= 50 && v <= 1e3)) {
-      e.target.value = design.blockMm;
+      e.target.value = String(toInput(design.blockMm));
       return;
     }
     dispatch(setBlockMm, v);
@@ -12919,7 +12971,7 @@ function syncSimulation() {
 
 // src/sim/bed.js
 function updateIntro() {
-  $("intro").textContent = `A ${quilt.w.toFixed(2)} \xD7 ${quilt.l.toFixed(2)} m quilt meeting a ${bedName()} (${isTableSim() ? `${bedState.w} \xD7 ${bedState.l} mm top, ${bedState.h} mm high` : isCouchSim() ? `${bedState.w} mm wide, ${bedState.l} mm deep` : `${bedState.w} \xD7 ${bedState.l} mm mattress`}). Every motion comes from the physics: gravity, fabric elasticity and bending, air drag, and Coulomb friction, in SI units.`;
+  $("intro").textContent = `A ${dims([quilt.w * 1e3, quilt.l * 1e3])} quilt meeting a ${bedName()} (${isTableSim() ? `${dims([bedState.w, bedState.l])} top, ${len(bedState.h)} high` : isCouchSim() ? `${len(bedState.w)} wide, ${len(bedState.l)} deep` : `${dims([bedState.w, bedState.l])} mattress`}). Every motion comes from the physics: gravity, fabric elasticity and bending, air drag, and Coulomb friction, in SI units.`;
 }
 function saveBed() {
   try {
@@ -12933,8 +12985,8 @@ function overhang() {
   return { side: Math.round((W - bedState.w) / 2), foot: Math.round(L - 70 - bedState.l) };
 }
 function updateFitReadout() {
-  const o = overhang(), say = (v) => v >= 0 ? `${v} mm` : `${-v} mm short`;
-  const t = isCouchSim() ? `Quilt ${Math.round(quilt.w * 1e3)} \xD7 ${Math.round(quilt.l * 1e3)} mm over a couch ${bedState.w} mm wide and ${bedState.l} mm deep.` : isTableSim() ? `Quilt ${Math.round(quilt.w * 1e3)} \xD7 ${Math.round(quilt.l * 1e3)} mm on a ${bedState.w} \xD7 ${bedState.l} mm table, ${bedState.h} mm high: hangs ${say(o.side)} over each side and ${say(o.foot)} over each end.` : `Quilt ${Math.round(quilt.w * 1e3)} \xD7 ${Math.round(quilt.l * 1e3)} mm on a ${bedState.w} \xD7 ${bedState.l} mm mattress: hangs ${say(o.side)} over each side and ${say(o.foot)} past the foot.`;
+  const o = overhang(), say = (v) => v >= 0 ? len(v) : `${len(-v)} short`;
+  const t = isCouchSim() ? `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} over a couch ${len(bedState.w)} wide and ${len(bedState.l)} deep.` : isTableSim() ? `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} on a ${dims([bedState.w, bedState.l])} table, ${len(bedState.h)} high: hangs ${say(o.side)} over each side and ${say(o.foot)} over each end.` : `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} on a ${dims([bedState.w, bedState.l])} mattress: hangs ${say(o.side)} over each side and ${say(o.foot)} past the foot.`;
   if ($("bed-fit")) $("bed-fit").textContent = t;
   if ($("fit-now")) $("fit-now").textContent = "In the simulation now: " + t.charAt(0).toLowerCase() + t.slice(1);
 }
@@ -12975,6 +13027,19 @@ function setBed(key, w, l, h, seats) {
   syncDropUI();
   restart();
 }
+var LEN_LIMITS = {
+  "bed-w": [500, 3e3],
+  "bed-l": [1e3, 3e3],
+  "tbl-w": [300, 3e3],
+  "tbl-l": [300, 4e3],
+  "tbl-h": [300, 1200],
+  "cch-w": [800, 3500],
+  "cch-l": [700, 1200],
+  "fit-w": [500, 3e3],
+  "fit-l": [1e3, 3e3],
+  "fit-drop": [0, 800]
+};
+var readLen = (id) => fromInput(+$(id).value);
 function syncBedUI() {
   const known = BEDS.some((b) => b.key === bedState.key), ck = isTableSim() ? "custom-table" : isCouchSim() ? "custom-couch" : "custom";
   for (const id of ["bedsel", "fit-bed"]) {
@@ -12984,14 +13049,14 @@ function syncBedUI() {
   for (const id of ["bed-custom", "fit-custom"]) if ($(id)) $(id).hidden = known || !isBedSim();
   if ($("table-custom")) {
     $("table-custom").hidden = known || !isTableSim();
-    $("tbl-w").value = bedState.w;
-    $("tbl-l").value = bedState.l;
-    $("tbl-h").value = bedState.h;
+    $("tbl-w").value = String(toInput(bedState.w));
+    $("tbl-l").value = String(toInput(bedState.l));
+    $("tbl-h").value = String(toInput(bedState.h));
   }
   if ($("couch-custom")) {
     $("couch-custom").hidden = known || !isCouchSim();
-    $("cch-w").value = bedState.w;
-    $("cch-l").value = bedState.l;
+    $("cch-w").value = String(toInput(bedState.w));
+    $("cch-l").value = String(toInput(bedState.l));
     $("cch-s").value = bedState.seats || 3;
   }
   for (const [w, l] of [
@@ -12999,10 +13064,11 @@ function syncBedUI() {
     ["fit-w", "fit-l"]
   ])
     if ($(w)) {
-      $(w).value = bedState.w;
-      $(l).value = bedState.l;
+      $(w).value = String(toInput(bedState.w));
+      $(l).value = String(toInput(bedState.l));
     }
-  if ($("fit-drop")) $("fit-drop").value = bedState.drop;
+  if ($("fit-drop")) $("fit-drop").value = String(toInput(bedState.drop));
+  for (const [id, [lo, hi]] of Object.entries(LEN_LIMITS)) if ($(id)) Object.assign($(id), inputRange(lo, hi));
   if ($("fit-tuck")) $("fit-tuck").checked = bedState.tuck;
 }
 function fillBedSelect(sel, withTables = true) {
@@ -13012,7 +13078,7 @@ function fillBedSelect(sel, withTables = true) {
     og.label = g === "Tables" || g === "Couches" ? g : `Beds \xB7 ${g}`;
     for (const b of BEDS.filter((x) => x.group === g))
       og.appendChild(
-        new Option(`${b.label} \xB7 ${b.w} \xD7 ${b.l} mm${b.kind === "table" ? ` \xB7 ${b.h} mm high` : ""}`, b.key)
+        new Option(`${b.label} \xB7 ${dims([b.w, b.l])}${b.kind === "table" ? ` \xB7 ${len(b.h)} high` : ""}`, b.key)
       );
     sel.appendChild(og);
   }
@@ -13061,15 +13127,15 @@ function renderFitSuggestions() {
   const box2 = $("fit-list");
   if (!box2 || !design) return;
   const T = fitTarget();
-  $("fit-target").textContent = `Target quilt: ${T.W} \xD7 ${T.L} mm (mattress ${bedState.w} \xD7 ${bedState.l} + ${bedState.drop} mm drop each side and at the foot${bedState.tuck ? ` + ${TUCK} mm pillow tuck` : ""}).`;
+  $("fit-target").textContent = `Target quilt: ${dims([T.W, T.L])} (mattress ${dims([bedState.w, bedState.l])} + ${len(bedState.drop)} drop each side and at the foot${bedState.tuck ? ` + ${len(TUCK)} pillow tuck` : ""}).`;
   box2.innerHTML = "";
   for (const o of fitOptions()) {
     const side = Math.round((o.W - bedState.w) / 2), foot = o.L - bedState.l - (bedState.tuck ? TUCK : 0);
     const isNow = design.cols === o.c && design.rows === o.r && design.blockMm === o.B;
     const row = document.createElement("div");
     row.className = "fitopt";
-    row.innerHTML = `<div><b>${o.c} \xD7 ${o.r} blocks of ${o.B} mm</b>${o.current ? ' <span class="tag">your block size</span>' : ""}${o.exact ? ' <span class="tag">resized blocks</span>' : ""}
-      <small>${o.W} \xD7 ${o.L} mm \xB7 drop ${side} mm at the sides, ${foot} mm at the foot</small></div>`;
+    row.innerHTML = `<div><b>${o.c} \xD7 ${o.r} blocks of ${len(o.B)}</b>${o.current ? ' <span class="tag">your block size</span>' : ""}${o.exact ? ' <span class="tag">resized blocks</span>' : ""}
+      <small>${dims([o.W, o.L])} \xB7 drop ${len(side)} at the sides, ${len(foot)} at the foot</small></div>`;
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn sm" + (isNow ? "" : " primary");
@@ -13109,13 +13175,13 @@ function initBedUI() {
     setBed(e.target.value);
   };
   const onTable = () => {
-    const w = +$("tbl-w").value, l = +$("tbl-l").value, h = +$("tbl-h").value;
+    const w = readLen("tbl-w"), l = readLen("tbl-l"), h = readLen("tbl-h");
     if (w >= 300 && w <= 3e3 && l >= 300 && l <= 4e3 && h >= 300 && h <= 1200) setBed("custom-table", w, l, h);
     else syncBedUI();
   };
   for (const id of ["tbl-w", "tbl-l", "tbl-h"]) $(id).addEventListener("change", onTable);
   const onCouch = () => {
-    const w = +$("cch-w").value, l = +$("cch-l").value, s = Math.round(+$("cch-s").value);
+    const w = readLen("cch-w"), l = readLen("cch-l"), s = Math.round(+$("cch-s").value);
     if (w >= 800 && w <= 3500 && l >= 700 && l <= 1200 && couchFits(w, s)) setBed("custom-couch", w, l, void 0, s);
     else syncBedUI();
   };
@@ -13123,7 +13189,7 @@ function initBedUI() {
   $("bedsel").addEventListener("change", onSel);
   $("fit-bed").addEventListener("change", onSel);
   const onCustom = (wi, li) => () => {
-    const w = +$(wi).value, l = +$(li).value;
+    const w = readLen(wi), l = readLen(li);
     if (w >= 500 && w <= 3e3 && l >= 1e3 && l <= 3e3) setBed("custom", w, l);
   };
   for (const [w, l] of [
@@ -13134,17 +13200,26 @@ function initBedUI() {
     $(l).addEventListener("change", onCustom(w, l));
   }
   $("fit-drop").addEventListener("change", (e) => {
-    const v = Math.round(+e.target.value);
+    const v = readLen("fit-drop");
     if (v >= 0 && v <= 800) {
       bedState.drop = v;
       saveBed();
       renderFitSuggestions();
-    } else e.target.value = bedState.drop;
+    } else e.target.value = String(toInput(bedState.drop));
   });
   $("fit-tuck").addEventListener("change", (e) => {
     bedState.tuck = e.target.checked;
     saveBed();
     renderFitSuggestions();
+  });
+  onUnitChange(() => {
+    fillBedSelect($("bedsel"));
+    fillBedSelect($("fit-bed"), false);
+    syncBedUI();
+    updateIntro();
+    updateFitReadout();
+    renderFitSuggestions();
+    syncDropUI();
   });
   syncBedUI();
   updateIntro();
@@ -13385,7 +13460,7 @@ function letterBadge(g, x, y, r, letter) {
   g.textBaseline = "middle";
   g.fillText(letter, x, y + 0.5);
 }
-function drawCutBlock(cv, b, P, num2) {
+function drawCutBlock(cv, b, P, num3) {
   const css2 = 300, dpr = Math.min(window.devicePixelRatio || 1, 2);
   const ar = P.blockH / P.blockW, W = css2, H = Math.round(css2 * ar);
   cv.width = W * dpr;
@@ -13395,9 +13470,9 @@ function drawCutBlock(cv, b, P, num2) {
   cv.style.aspectRatio = `${W} / ${H}`;
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawBlockArt(g, b, P, num2, W, H);
+  drawBlockArt(g, b, P, num3, W, H);
 }
-function drawBlockArt(g, b, P, num2, W, H, turn = 0) {
+function drawBlockArt(g, b, P, num3, W, H, turn = 0) {
   const k = W / 300, pxPerCm = W / ((b.size || P.blockW) / 10), co = Math.cos(turn), si = Math.sin(turn);
   const at = ([u, v]) => {
     const x = (u - 0.5) * W, y = (v - 0.5) * H;
@@ -13408,7 +13483,7 @@ function drawBlockArt(g, b, P, num2, W, H, turn = 0) {
     g.fillStyle = pieceFill(g, b.block, i, polys[i], pxPerCm, b.index * 31 + i, turn);
     pathPoly(g, polys[i]);
     g.fill();
-    dimUnlessHi(g, { t: "piece", num: num2, letter: pc.letter, form: pc.form, fabric: pc.fabric });
+    dimUnlessHi(g, { t: "piece", num: num3, letter: pc.letter, form: pc.form, fabric: pc.fabric });
   });
   g.lineWidth = 1.5 * k;
   g.strokeStyle = "#ffffff";
@@ -13421,7 +13496,7 @@ function drawBlockArt(g, b, P, num2, W, H, turn = 0) {
     g.lineWidth = 2.2 * k;
     g.strokeStyle = "#e0592a";
     b.pieces.forEach((pc, i) => {
-      if (fabHi({ t: "piece", num: num2, letter: pc.letter, form: pc.form, fabric: pc.fabric })) {
+      if (fabHi({ t: "piece", num: num3, letter: pc.letter, form: pc.form, fabric: pc.fabric })) {
         pathPoly(g, polys[i]);
         g.stroke();
       }
@@ -13437,7 +13512,7 @@ function drawBlockArt(g, b, P, num2, W, H, turn = 0) {
     const p = polys[i], xs = p.map((v) => v[0]), ys = p.map((v) => v[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
     const [cx, cy] = roomiestPoint(p, x0, y0, x1 - x0, y1 - y0, 0, 0), d = edgeRoom(p, cx, cy);
     const r = Math.max(5 * k, Math.min(14 * k, d * 0.8));
-    letterBadge(g, cx, cy, r, `${pc.letter}${num2}.${pc.form}`);
+    letterBadge(g, cx, cy, r, `${pc.letter}${num3}.${pc.form}`);
   });
 }
 function edgeRoom(p, x, y) {
@@ -13849,7 +13924,7 @@ function drawCutQuilt(P, into) {
   }
   if (into) return;
   const nHi = typeof cgHi === "number" && cgHi >= 0 ? P.blocks[cgHi].count : 0;
-  $("cg-quilt-meta").textContent = typeof cgHi === "string" ? `Showing the ${cgHi === "sash" ? "sashing" : cgHi === "setting" ? "setting triangles" : cgHi === "brd" ? "borders" : "border " + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : cgHi >= 0 ? `Showing ${P.blocks[cgHi].corner ? "the cornerstone blocks" : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${design.cols} \xD7 ${design.rows} blocks${isOnPoint(design) ? " on point" : ""}${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1${isOnPoint(design) ? ", T = setting triangles" : ""}). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
+  $("cg-quilt-meta").textContent = typeof cgHi === "string" ? `Showing the ${cgHi === "sash" ? "sashing" : cgHi === "setting" ? "setting triangles" : cgHi === "brd" ? "borders" : "border " + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.` : cgHi >= 0 ? `Showing ${P.blocks[cgHi].corner ? "the cornerstone blocks" : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.` : `${design.cols} \xD7 ${design.rows} blocks${isOnPoint(design) ? " on point" : ""}${s.mm ? ` \xB7 ${len(s.mm)} sashing` : ""}${bs.length ? ` \xB7 ${bs.length} border${bs.length > 1 ? "s" : ""}` : ""} \xB7 finished ${dims([P.quiltW, P.quiltH])} \xB7 each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1${isOnPoint(design) ? ", T = setting triangles" : ""}). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
   $("cg-quilt-meta").classList.toggle("cg-hi-on", cgHi !== -1);
   document.querySelectorAll(".cgblock").forEach((el) => el.classList.toggle("picked", el.dataset.key === String(cgHi)));
 }
@@ -13857,9 +13932,9 @@ function drawCutQuilt(P, into) {
 // src/cutting/plan.js
 var CG = /* @__PURE__ */ (() => {
   const upmm = (x) => Math.ceil(x - 1e-6);
-  const mm = (x) => `${Math.round(x)} mm`;
+  const mm = len;
   const close = (a, b) => Math.abs(a - b) < 1e-6;
-  const metres = (x) => `${(Math.ceil(x / 50 - 1e-6) * 0.05).toFixed(2)} m`;
+  const metres = buyLen;
   function classify(poly, W, H, s) {
     const p = poly.map(([u, v]) => [u * W, v * H]);
     if (p.length === 4 && p.every((a, i) => {
@@ -13873,7 +13948,7 @@ var CG = /* @__PURE__ */ (() => {
         kind: "rect",
         cut: [Math.max(w2, h2), Math.min(w2, h2)],
         yield: 1,
-        how: `rectangle ${Math.min(w2, h2)} \xD7 ${Math.max(w2, h2)} mm`
+        how: `rectangle ${dims([Math.min(w2, h2), Math.max(w2, h2)])}`
       };
     }
     if (p.length === 3) {
@@ -13900,7 +13975,7 @@ var CG = /* @__PURE__ */ (() => {
           kind: "diamond",
           cut: [long, flats],
           yield: 1,
-          how: `diamond template (${angle}\xB0), finished side ${mm(side)}; cut from a strip ${flats} mm wide`
+          how: `diamond template (${angle}\xB0), finished side ${mm(side)}; cut from a strip ${len(flats)} wide`
         };
       }
     }
@@ -13912,7 +13987,7 @@ var CG = /* @__PURE__ */ (() => {
           kind: "hex",
           cut: [points, flats],
           yield: 1,
-          how: `hexagon template, finished side ${mm(side)}; cut ${flats} mm across the flats (${points} mm point to point)`
+          how: `hexagon template, finished side ${mm(side)}; cut ${len(flats)} across the flats (${len(points)} point to point)`
         };
       }
     }
@@ -13924,14 +13999,14 @@ var CG = /* @__PURE__ */ (() => {
         kind: "template",
         cut: [Math.max(w, h), Math.min(w, h), ...sides],
         yield: 1,
-        how: `triangle template, finished sides ${sides.join(" \xD7 ")} mm; add ${s} mm seam allowance all round (fits in ${Math.min(w, h)} \xD7 ${Math.max(w, h)} mm)`
+        how: `triangle template, finished sides ${dims(sides)}; add ${len(s)} seam allowance all round (fits in ${dims([Math.min(w, h), Math.max(w, h)])})`
       };
     }
     return {
       kind: "template",
       cut: [Math.max(w, h), Math.min(w, h)],
       yield: 1,
-      how: `template piece in a ${Math.min(w, h)} \xD7 ${Math.max(w, h)} mm rectangle, ${s} mm seam allowance added`
+      how: `template piece in a ${dims([Math.min(w, h), Math.max(w, h)])} rectangle, ${len(s)} seam allowance added`
     };
   }
   function stripPlan(a, b, n, usable) {
@@ -14051,7 +14126,10 @@ var CG = /* @__PURE__ */ (() => {
         sashList.push({
           ...x,
           letter,
-          how: `${strips} strip${strips > 1 ? "s" : ""} ${width} mm \xD7 WOF, joined and cut to ${x.lens.map((l) => upmm(l + 2 * s)).join(" + ")} mm`,
+          how: `${strips} strip${strips > 1 ? "s" : ""} ${len(width)} \xD7 WOF, joined and cut to ${dims(
+            x.lens.map((l) => upmm(l + 2 * s)),
+            " + "
+          )}`,
           n: x.lens.length
         });
         continue;
@@ -14062,7 +14140,7 @@ var CG = /* @__PURE__ */ (() => {
         const cw = upmm(x.w + 2 * s), ch = upmm(x.h + 2 * s);
         kind = cw === ch ? "square" : "rect";
         cut = [Math.max(cw, ch), Math.min(cw, ch)];
-        how = kind === "square" ? `square ${mm(cw)}` : `rectangle ${Math.min(cw, ch)} \xD7 ${Math.max(cw, ch)} mm`;
+        how = kind === "square" ? `square ${mm(cw)}` : `rectangle ${dims([Math.min(cw, ch), Math.max(cw, ch)])}`;
       }
       const k = kind + "|" + cut.join("x");
       const c = f.cuts.get(k) || { kind, cut, yield: yld, how, pieces: 0 };
@@ -14107,7 +14185,7 @@ var CG = /* @__PURE__ */ (() => {
     bf.small = false;
     for (const r of result) {
       const L = Math.ceil(r.length + 50);
-      r.requirement = r.small ? `${Math.ceil(r.maxW)} \xD7 ${Math.ceil(r.length)} mm` : `${L} mm \xD7 WOF`;
+      r.requirement = r.small ? dims([Math.ceil(r.maxW), Math.ceil(r.length)]) : `${len(L)} \xD7 WOF`;
       r.buy = r.small ? "" : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));
@@ -14158,7 +14236,7 @@ var CG = /* @__PURE__ */ (() => {
 function openQuiltPop(P, i) {
   const d = $("cg-pop"), b = P.blocks[i];
   $("cg-pop-title").textContent = b.corner ? b.label : `Block ${i + 1} \xB7 ${b.label}`;
-  $("cg-pop-sub").textContent = `${b.count} in the quilt, marked in orange \xB7 ${design.cols} \xD7 ${design.rows} blocks, ${P.quiltW} \xD7 ${P.quiltH} mm`;
+  $("cg-pop-sub").textContent = `${b.count} in the quilt, marked in orange \xB7 ${design.cols} \xD7 ${design.rows} blocks, ${dims([P.quiltW, P.quiltH])}`;
   if (!d.open) {
     try {
       d.showModal();
@@ -14233,7 +14311,7 @@ function openPartPop(kind) {
   const d = $("cg-pop"), q = quiltMm(design), nb = bordersOf(design).length, s = sashOf(design);
   const bi = kind[0] === "b" && kind !== "brd" ? +kind.slice(1) : -1, b = bi >= 0 ? bordersOf(design)[bi] : null;
   $("cg-pop-title").textContent = kind === "sash" ? "Sashing" : kind === "setting" ? "Setting triangles" : b ? `Border ${bi + 1}` : nb > 1 ? `Borders (${nb})` : "Border";
-  $("cg-pop-sub").textContent = kind === "setting" ? `The triangles that fill the edges of the quilt on point, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : kind === "sash" ? `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : b ? `${BORDER_TYPES[b.type].label}, ${b.mm} mm all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm` : `${borderTotal(design)} mm all round, marked in orange \xB7 finished quilt ${Math.round(q.W)} \xD7 ${Math.round(q.H)} mm`;
+  $("cg-pop-sub").textContent = kind === "setting" ? `The triangles that fill the edges of the quilt on point, marked in orange \xB7 finished quilt ${dims([q.W, q.H])}` : kind === "sash" ? `${len(s.mm)} strips between the blocks${s.border ? " and around the outside" : ""}, marked in orange \xB7 finished quilt ${dims([q.W, q.H])}` : b ? `${BORDER_TYPES[b.type].label}, ${len(b.mm)} all round${nb > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === nb - 1 ? " \xB7 the outermost border" : "" : ""}, marked in orange \xB7 finished quilt ${dims([q.W, q.H])}` : `${len(borderTotal(design))} all round, marked in orange \xB7 finished quilt ${dims([q.W, q.H])}`;
   if (!d.open) {
     try {
       d.showModal();
@@ -14338,20 +14416,20 @@ function renderCut() {
   });
   setLastPlan(P);
   $("cg-facts").innerHTML = (mos ? [
-    ["Finished quilt", `${P.quiltW} \xD7 ${P.quiltH} mm`],
+    ["Finished quilt", dims([P.quiltW, P.quiltH])],
     [
       "Mosaic",
-      `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${design.mosaic.mm} mm sides`
+      `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${len(design.mosaic.mm)} sides`
     ]
   ] : [
-    ["Finished quilt", `${P.quiltW} \xD7 ${P.quiltH} mm`],
+    ["Finished quilt", dims([P.quiltW, P.quiltH])],
     [
       "Blocks",
       isOnPoint(design) ? `${design.cols} \xD7 ${design.rows} on point (${cellCount(design)} in all)` : `${design.cols} \xD7 ${design.rows}`
     ],
     [
       "Block",
-      `${P.blockW} \xD7 ${P.blockH} mm finished \xB7 ${P.blockW + 2 * P.seam} \xD7 ${P.blockH + 2 * P.seam} mm with seam allowance`
+      `${dims([P.blockW, P.blockH])} finished \xB7 ${dims([P.blockW + 2 * P.seam, P.blockH + 2 * P.seam])} with seam allowance`
     ],
     ["Distinct blocks", P.blocks.filter((b) => !b.corner).length]
   ]).map(([k, v]) => `<span>${k}: <b>${v}</b></span>`).join("");
@@ -14360,7 +14438,7 @@ function renderCut() {
   for (const r of P.fabrics) {
     const fab = fabricById(r.id), tr = document.createElement("tr");
     const notes = [];
-    if (r.binding) notes.push(`includes binding: ${r.binding.strips} strips ${r.binding.width} mm \xD7 WOF`);
+    if (r.binding) notes.push(`includes binding: ${r.binding.strips} strips ${len(r.binding.width)} \xD7 WOF`);
     tr.innerHTML = `<td class="sw"></td><td class="letter">${r.letter}<span class="fname">${esc(fab.name)}</span></td>
       <td class="req">${r.requirement}${r.buy ? `<small>buy \u2248 ${r.buy}</small>` : ""}${notes.length ? `<small>${notes.join(" \xB7 ")}</small>` : ""}</td>`;
     tr.querySelector(".sw").appendChild(swatchCanvas(fab));
@@ -14369,8 +14447,8 @@ function renderCut() {
   const backFab = fabricById(design.backFabric);
   tb.insertAdjacentHTML(
     "beforeend",
-    `<tr class="extra backrow"><td class="sw"></td><td class="letter small">Backing<span class="fname">${esc(backFab.name)}</span></td><td class="req">${P.backing.w} \xD7 ${P.backing.h} mm<small>${P.backing.widths} width${P.backing.widths > 1 ? "s" : ""} of fabric sewn together \xB7 buy \u2248 ${P.backing.buy}</small></td></tr>
-    <tr class="extra"><td></td><td class="letter small">Batting</td><td class="req">${P.backing.w} \xD7 ${P.backing.h} mm</td></tr>`
+    `<tr class="extra backrow"><td class="sw"></td><td class="letter small">Backing<span class="fname">${esc(backFab.name)}</span></td><td class="req">${dims([P.backing.w, P.backing.h])}<small>${P.backing.widths} width${P.backing.widths > 1 ? "s" : ""} of fabric sewn together \xB7 buy \u2248 ${P.backing.buy}</small></td></tr>
+    <tr class="extra"><td></td><td class="letter small">Batting</td><td class="req">${dims([P.backing.w, P.backing.h])}</td></tr>`
   );
   tb.querySelector(".backrow .sw").appendChild(swatchCanvas(backFab));
   const box2 = $("cg-blocks");
@@ -14381,7 +14459,7 @@ function renderCut() {
     const rows = b.list.map(
       (r) => `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil(r.pieces * b.count / r.yield)}</td></tr>`
     ).join("");
-    div.innerHTML = `<h3>${b.mosaic ? "Mosaic" : b.corner ? "Cornerstone block" : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` \xB7 large block, ${b.span} \xD7 ${b.span} cells (${b.size} mm)` : ""}${b.corner ? ` \xB7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ""}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list \xB7 double-click: see it in the quilt</span></div>
+    div.innerHTML = `<h3>${b.mosaic ? "Mosaic" : b.corner ? "Cornerstone block" : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` \xB7 large block, ${b.span} \xD7 ${b.span} cells (${len(b.size)})` : ""}${b.corner ? ` \xB7 ${len(b.size)}` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ""}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list \xB7 double-click: see it in the quilt</span></div>
       <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>Fabric</th><th>Cut</th><th>Per block</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     box2.appendChild(div);
     {
@@ -14419,7 +14497,7 @@ function renderCut() {
     const rows = sashCuts.map(
       (x) => `<tr data-k="${Object.keys(SASH_WHAT).find((k) => SASH_WHAT[k] === x.what)}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`
     ).join("");
-    div.innerHTML = `<h3>Sashing</h3><p class="meta">${sz2.mm} mm wide${isOnPoint(design) ? ", framing every block" : sz2.border ? ", also around the outside" : ""}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` + listOf("<th>ID</th><th>Cut</th><th>Total</th>", rows);
+    div.innerHTML = `<h3>Sashing</h3><p class="meta">${len(sz2.mm)} wide${isOnPoint(design) ? ", framing every block" : sz2.border ? ", also around the outside" : ""}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` + listOf("<th>ID</th><th>Cut</th><th>Total</th>", rows);
     box2.appendChild(div);
     const cv = div.querySelector("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 300;
     const drawSash = () => {
@@ -14511,7 +14589,7 @@ function renderCut() {
       return `<tr data-g="${bi}" data-fab="${x.fabric}" data-c="${/corner squares$/.test(x.what) ? 1 : 0}"><td class="l">${x.id}</td><td><b>${esc(x.what.replace(/^Border \d+ · /, ""))}</b><br>${x.how}</td><td class="n">${x.wof ? "\u2014" : n}</td></tr>`;
     }).join("");
     const where = bs2.length > 1 ? bi === 0 ? " \xB7 innermost" : bi === bs2.length - 1 ? " \xB7 outermost" : "" : "";
-    div.innerHTML = `<h3>Border ${bi + 1}</h3><p class="meta">${BORDER_TYPES[bd.type].label} \xB7 ${bd.mm} mm${where}</p><div class="cg-art"><canvas aria-label="The quilt with border ${bi + 1} lit up and its pieces labelled"></canvas>${hint}</div><p class="meta cg-brdleg">Pieces: <b>${cuts.map((x) => x.id).join(" \xB7 ")}</b></p>` + listOf("<th>ID</th><th>Cut</th><th>Total</th>", rows);
+    div.innerHTML = `<h3>Border ${bi + 1}</h3><p class="meta">${BORDER_TYPES[bd.type].label} \xB7 ${len(bd.mm)}${where}</p><div class="cg-art"><canvas aria-label="The quilt with border ${bi + 1} lit up and its pieces labelled"></canvas>${hint}</div><p class="meta cg-brdleg">Pieces: <b>${cuts.map((x) => x.id).join(" \xB7 ")}</b></p>` + listOf("<th>ID</th><th>Cut</th><th>Total</th>", rows);
     box2.appendChild(div);
     const cv = div.querySelector("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 300, GAP = bs2.length > 1 ? 7 : 0, H = explodedH(S, GAP);
     cv.width = S * dpr;
@@ -14546,14 +14624,14 @@ function renderCut() {
   if (cgHi === "sash" && !sashCuts.length || cgHi === "setting" && !setCuts.length || typeof cgHi === "string" && cgHi[0] === "b" && !brdCuts.some((x) => x.group === cgHi))
     setCgHi(-1);
   if (!mos) drawCutQuilt(P);
-  $("cg-note").textContent = `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, of which ${P.usable / 10} cm is usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre. Requirements add 50 mm to straighten the edge; "buy" rounds up to 5 cm.`;
+  $("cg-note").textContent = `WOF = width of fabric: ${getUnit() === "in" ? len(cutOpts.fabricWidth) : `${cutOpts.fabricWidth / 10} cm`}, of which ${getUnit() === "in" ? len(P.usable) : `${P.usable / 10} cm`} is usable after trimming the selvages. Cut sizes include a ${len(P.seam)} seam allowance and are rounded ${getUnit() === "in" ? "to the nearest \u215B inch" : "up to the whole millimetre"}. Requirements add ${len(50)} to straighten the edge; "buy" rounds up to ${getUnit() === "in" ? "\u215B yard" : "5 cm"}.`;
 }
 function mosaicForPlan(d) {
   const m = d.mosaic, { w, h } = mosaicMm(m), S = Math.max(w, h), ox = (S - w) / 2, oy = (S - h) / 2;
   return {
     size: S,
     fabrics: m.fabrics,
-    label: `${SHAPE_NAMES[m.shape][1][0].toUpperCase()}${SHAPE_NAMES[m.shape][1].slice(1)}, ${m.mm} mm sides`,
+    label: `${SHAPE_NAMES[m.shape][1][0].toUpperCase()}${SHAPE_NAMES[m.shape][1].slice(1)}, ${len(m.mm)} sides`,
     parts: mosaicTiles(m).map((t, i) => ({
       name: `Shape ${i + 1}`,
       role: 0,
@@ -14654,7 +14732,8 @@ function drawCornerBlockEditor(cb, mm) {
 function renderSashUI() {
   if (!design || !$("sash-card")) return;
   const s = sashOf(design), raw = design.sashing || {};
-  if (document.activeElement !== $("sash-mm")) $("sash-mm").value = s.mm;
+  Object.assign($("sash-mm"), inputRange(0, 200));
+  if (document.activeElement !== $("sash-mm")) $("sash-mm").value = String(toInput(s.mm));
   const onPoint = isOnPoint(design);
   $("sash-border").checked = onPoint || !!raw.border;
   $("sash-border").disabled = onPoint;
@@ -14663,10 +14742,10 @@ function renderSashUI() {
   $("sash-cs-box").hidden = !s.cornerstones;
   const box2 = $("sash-presets");
   box2.innerHTML = "";
-  for (const v of [0, 25, 38, 50, 64, 76]) {
+  for (const v of getUnit() === "in" ? [0, 25, 38, 51, 64, 76] : [0, 25, 38, 50, 64, 76]) {
     const b = document.createElement("button");
     b.type = "button";
-    b.textContent = v ? v + " mm" : "None";
+    b.textContent = v ? len(v) : "None";
     b.dataset.v = v;
     b.setAttribute("aria-pressed", String(s.mm === v));
     box2.appendChild(b);
@@ -14675,14 +14754,14 @@ function renderSashUI() {
   const wide = s.mm >= CORNER_BLOCK_MIN_MM, cb = s.cornerBlock;
   cbSel = cb ? new Set([...cbSel].filter((i) => i < cb.fabrics.length)) : /* @__PURE__ */ new Set();
   drawCornerPatterns(cb ? cb.pattern : "", wide);
-  $("sash-cb-note").textContent = wide ? "" : `Pieced cornerstones need sashing wider than ${CORNER_BLOCK_MIN_MM - 1} mm${raw.cornerBlock ? ": plain ones until then" : ""}.`;
+  $("sash-cb-note").textContent = wide ? "" : `Pieced cornerstones need sashing wider than ${len(CORNER_BLOCK_MIN_MM - 1)}${raw.cornerBlock ? ": plain ones until then" : ""}.`;
   $("sash-cb-edit").hidden = !cb;
   if (cb) drawCornerBlockEditor(cb, s.mm);
   $("sash-corner-lbl").textContent = !cb ? "Cornerstone fabric" : cbSel.size ? "Fabric for the selected parts" : "Fabric for every part (or click parts above first)";
   const picked = cb ? new Set((cbSel.size ? [...cbSel] : cb.fabrics.map((_, i) => i)).map((i) => cb.fabrics[i])) : null;
   drawPaletteInto($("sash-corner"), !cb ? raw.corner || raw.fabric || "b0" : picked.size === 1 ? [...picked][0] : null);
   const q = quiltMm(design);
-  $("sash-note").textContent = s.mm ? `Finished quilt with sashing: ${q.W} \xD7 ${q.H} mm. Click the sashing on the quilt to come back here.` : "Choose a width to add strips of fabric between the blocks.";
+  $("sash-note").textContent = s.mm ? `Finished quilt with sashing: ${dims([q.W, q.H])}. Click the sashing on the quilt to come back here.` : "Choose a width to add strips of fabric between the blocks.";
 }
 function setSash(patch) {
   dispatch(setSashing, patch);
@@ -14693,7 +14772,7 @@ function openSashing() {
 }
 function initSashUI() {
   $("sash-mm").addEventListener("change", (e) => {
-    const v = Math.max(0, Math.min(200, Math.round(+e.target.value || 0)));
+    const v = Math.max(0, Math.min(200, fromInput(+e.target.value || 0)));
     setSash({ mm: v });
   });
   $("sash-presets").addEventListener("click", (e) => {
@@ -14802,16 +14881,14 @@ function renderBorderUI() {
     for (const [k, tt] of Object.entries(BORDER_TYPES)) sel.add(new Option(tt.label, k, false, k === b.type));
     const mm = document.createElement("input");
     mm.type = "number";
-    mm.min = 10;
-    mm.max = 400;
-    mm.step = 1;
-    mm.value = b.mm;
+    Object.assign(mm, inputRange(10, 400));
+    mm.value = String(toInput(b.mm));
     mm.dataset.a = "mm";
-    mm.title = "Width (mm)";
-    const unit = document.createElement("span");
-    unit.className = "fine";
-    unit.style.margin = 0;
-    unit.textContent = "mm";
+    mm.title = `Width (${getUnit() === "in" ? "inches" : "mm"})`;
+    const unit2 = document.createElement("span");
+    unit2.className = "fine";
+    unit2.style.margin = 0;
+    unit2.textContent = getUnit();
     const mk = (a, txt, title, dis) => {
       const x = document.createElement("button");
       x.type = "button";
@@ -14827,7 +14904,7 @@ function renderBorderUI() {
       name,
       sel,
       mm,
-      unit,
+      unit2,
       mk("in", "\u2191", "Move inwards", i === 0),
       mk("out", "\u2193", "Move outwards", i === bs.length - 1),
       mk("del", "\xD7", "Remove this border")
@@ -14894,7 +14971,7 @@ function initBorderUI() {
     const i = +row.dataset.i;
     if (e.target.dataset.a === "type") borderEdit(updateBorder, i, { type: e.target.value });
     if (e.target.dataset.a === "mm") {
-      const v = Math.max(10, Math.min(400, Math.round(+e.target.value || 0)));
+      const v = Math.max(10, Math.min(400, fromInput(+e.target.value || 0)));
       borderEdit(updateBorder, i, { mm: v });
     }
   });
@@ -15031,6 +15108,47 @@ document.addEventListener("dblclick", (e) => {
   hideTools();
   if (!$("tl-panel").hidden && tl.showBar) tl.showBar(false);
   if (tl.hideRow) tl.hideRow();
+});
+
+// src/designer/units-ui.js
+var KEY = "quilt-unit.v1";
+try {
+  setUnit(localStorage.getItem(KEY) === "in" ? "in" : "mm");
+} catch (e) {
+}
+var SEAM_IN = { 6: "0.24 in", 6.4: "\xBC in (6.4 mm)", 7: "0.28 in", 7.5: "0.30 in", 10: "0.39 in" };
+function relabelCuttingOptions() {
+  const inches2 = getUnit() === "in";
+  for (const o of $("cg-seam").options) o.textContent = inches2 ? SEAM_IN[o.value] || len(+o.value) : `${o.value} mm`;
+  for (const o of $("cg-binding").options) o.textContent = len(+o.value);
+}
+function relabelHints() {
+  $("tuck-len").textContent = len(250);
+  $("fit-hint").textContent = `Drop: about ${len(250)}\u2013${len(300)} covers the mattress, ${len(450)}\u2013${len(550)} the box spring too; floor length is the mattress-top height.`;
+}
+function show() {
+  const inches2 = getUnit() === "in";
+  $("unit-sw").checked = inches2;
+  $("unit-lbl").dataset.unit = getUnit();
+  for (const el of document.querySelectorAll("[data-unit-name]")) el.textContent = getUnit();
+  relabelCuttingOptions();
+  relabelHints();
+}
+show();
+$("unit-sw").addEventListener("change", (e) => setUnit(
+  /** @type {HTMLInputElement} */
+  e.target.checked ? "in" : "mm"
+));
+onUnitChange(() => {
+  try {
+    localStorage.setItem(KEY, getUnit());
+  } catch (e) {
+  }
+  show();
+  if (!design) return;
+  renderDesigner();
+  if (state.page === "cut") renderCut();
+  else if (state.page === "mine") renderMine();
 });
 
 // src/tour/tour.js
@@ -15522,7 +15640,7 @@ function renderMine() {
     const nm = document.createElement("b");
     nm.textContent = m.name;
     const sm = document.createElement("small");
-    sm.textContent = `${d.cols} \xD7 ${d.rows} blocks \xB7 ${Math.round(quiltMm(d).W)} \xD7 ${Math.round(quiltMm(d).H)} mm \xB7 ${when(m.updatedAt)}`;
+    sm.textContent = `${d.cols} \xD7 ${d.rows} blocks \xB7 ${dims([quiltMm(d).W, quiltMm(d).H])} \xB7 ${when(m.updatedAt)}`;
     meta.append(nm, sm);
     pin.append(img, meta);
     grid.appendChild(pin);
@@ -15810,7 +15928,7 @@ function tlDescribe(a, b) {
   if (!a) return "Start";
   const plural2 = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   if (a.cols !== b.cols || a.rows !== b.rows) return `Layout ${b.cols} \xD7 ${b.rows}`;
-  if (a.blockMm !== b.blockMm) return `Block size ${b.blockMm} mm`;
+  if (a.blockMm !== b.blockMm) return `Block size ${len(b.blockMm)}`;
   if (a.backFabric !== b.backFabric) return `Backing: ${fabricById(b.backFabric).name}`;
   if (JSON.stringify(a.borders || []) !== JSON.stringify(b.borders || [])) {
     const na = bordersOf(a).length, nb = bordersOf(b).length;
@@ -15821,7 +15939,7 @@ function tlDescribe(a, b) {
   if (JSON.stringify(a.sashing || null) !== JSON.stringify(b.sashing || null)) {
     const p = sashOf(a), s = sashOf(b);
     if (!s.mm) return "No sashing";
-    if (p.mm !== s.mm) return `Sashing ${s.mm} mm`;
+    if (p.mm !== s.mm) return `Sashing ${len(s.mm)}`;
     if (p.border !== s.border) return s.border ? "Sashing border on" : "Sashing border off";
     if (p.fabric !== s.fabric) return `Sashing: ${fabricById(s.fabric).name}`;
     return `Cornerstones: ${fabricById(s.corner).name}`;
@@ -15900,13 +16018,13 @@ function tlUI() {
     b.type = "button";
     b.className = "tl-step" + (k === tl.i ? " cur" : "") + (k > tl.i ? " future" : "");
     b.title = `Step ${k + 1}: ${st.label} \xB7 ${ago(st.t)}`;
-    const num2 = document.createElement("span");
-    num2.className = "n";
-    num2.textContent = `${k + 1}`;
+    const num3 = document.createElement("span");
+    num3.className = "n";
+    num3.textContent = `${k + 1}`;
     const lab2 = document.createElement("span");
     lab2.className = "l";
     lab2.textContent = st.label;
-    b.append(tlThumb(st), num2, lab2);
+    b.append(tlThumb(st), num3, lab2);
     b.addEventListener("click", () => tlGo(k));
     list2.appendChild(b);
   });
@@ -16356,10 +16474,10 @@ initSyncUI();
 
 // src/sim/panels.js
 (function initStageControls() {
-  const stage = $("stage"), btn = $("stage-ctl"), KEY = "quilt-stage-ctl.v1";
+  const stage = $("stage"), btn = $("stage-ctl"), KEY2 = "quilt-stage-ctl.v1";
   let shown = false;
   try {
-    shown = localStorage.getItem(KEY) === "1";
+    shown = localStorage.getItem(KEY2) === "1";
   } catch (e) {
   }
   const set = (v) => {
@@ -16368,7 +16486,7 @@ initSyncUI();
     btn.textContent = v ? "Hide controls" : "Show controls";
     btn.setAttribute("aria-expanded", String(v));
     try {
-      localStorage.setItem(KEY, v ? "1" : "0");
+      localStorage.setItem(KEY2, v ? "1" : "0");
     } catch (e) {
     }
   };
@@ -16590,7 +16708,7 @@ function drawHover() {
     const s = sashOf(design), b2 = hover.zone === "brd" ? bordersOf(design)[hover.zi] : null;
     hoverLabel(
       g,
-      hover.zone === "setting" ? `${z.kind === "corner" ? "Corner triangle" : "Setting triangle"} \xB7 ${fabricById(design.settingFabric || "b0").name} \xB7 click to edit` : hover.zone === "brd" ? `Border ${hover.zi + 1} \xB7 ${BORDER_TYPES[b2.type].label} \xB7 ${b2.mm} mm \xB7 click to edit` : `${z.kind === "corner" ? "Cornerstone" : "Sashing"} \xB7 ${z.kind === "corner" && s.cornerBlock ? PATTERNS[s.cornerBlock.pattern].label : fabricById(z.kind === "corner" ? s.corner : s.fabric).name} \xB7 ${s.mm} mm \xB7 click to edit`,
+      hover.zone === "setting" ? `${z.kind === "corner" ? "Corner triangle" : "Setting triangle"} \xB7 ${fabricById(design.settingFabric || "b0").name} \xB7 click to edit` : hover.zone === "brd" ? `Border ${hover.zi + 1} \xB7 ${BORDER_TYPES[b2.type].label} \xB7 ${len(b2.mm)} \xB7 click to edit` : `${z.kind === "corner" ? "Cornerstone" : "Sashing"} \xB7 ${z.kind === "corner" && s.cornerBlock ? PATTERNS[s.cornerBlock.pattern].label : fabricById(z.kind === "corner" ? s.corner : s.fabric).name} \xB7 ${len(s.mm)} \xB7 click to edit`,
       W2
     );
     return;
@@ -16948,7 +17066,7 @@ function pdfHeader(g, P, title, sub, page, pages) {
   if (sub) pdfText(g, sub, M2, M2 + 14, 4.2, { color: "#5a5650" });
   pdfText(
     g,
-    `Quilt ${P.quiltW} \xD7 ${P.quiltH} mm \xB7 block ${P.blockW} \xD7 ${P.blockH} mm \xB7 seam ${P.seam} mm`,
+    `Quilt ${dims([P.quiltW, P.quiltH])} \xB7 block ${dims([P.blockW, P.blockH])} \xB7 seam ${len(P.seam)}`,
     A4.w - M2,
     M2 + 6,
     3.4,
@@ -17039,7 +17157,7 @@ function pdfFabricPage(P, pages) {
     pdfText(g, r.requirement, M2 + 75, y + 7.5, 4.4, { weight: 600 });
     const notes = [
       r.buy ? `buy \u2248 ${r.buy}` : "",
-      r.binding ? `includes binding: ${r.binding.strips} strips ${r.binding.width} mm \xD7 WOF` : ""
+      r.binding ? `includes binding: ${r.binding.strips} strips ${len(r.binding.width)} \xD7 WOF` : ""
     ].filter(Boolean).join(" \xB7 ");
     if (notes) pdfText(g, notes, M2 + 75, y + 13, 3.6, { color: "#5a5650" });
     y += rowH;
@@ -17048,7 +17166,7 @@ function pdfFabricPage(P, pages) {
   pdfText(g, "Backing", M2 + 40, y + 6, 4.6, { weight: 600 });
   pdfText(
     g,
-    `${P.backing.w} \xD7 ${P.backing.h} mm \xB7 ${P.backing.widths} width${P.backing.widths > 1 ? "s" : ""} of fabric \xB7 buy \u2248 ${P.backing.buy}`,
+    `${dims([P.backing.w, P.backing.h])} \xB7 ${P.backing.widths} width${P.backing.widths > 1 ? "s" : ""} of fabric \xB7 buy \u2248 ${P.backing.buy}`,
     M2 + 75,
     y + 6,
     4,
@@ -17056,7 +17174,7 @@ function pdfFabricPage(P, pages) {
   );
   y += 9;
   pdfText(g, "Batting", M2 + 40, y + 6, 4.6, { weight: 600 });
-  pdfText(g, `${P.backing.w} \xD7 ${P.backing.h} mm`, M2 + 75, y + 6, 4, {});
+  pdfText(g, dims([P.backing.w, P.backing.h]), M2 + 75, y + 6, 4, {});
   y += 9;
   for (const x of P.sashing || []) {
     if (y > A4.h - 70) break;
@@ -17086,7 +17204,7 @@ function pdfFabricPage(P, pages) {
   y += 3;
   for (const ln of pdfWrap(
     g,
-    `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, ${P.usable / 10} cm usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre.`,
+    `WOF = width of fabric: ${getUnit() === "in" ? len(cutOpts.fabricWidth) : `${cutOpts.fabricWidth / 10} cm`}, ${getUnit() === "in" ? len(P.usable) : `${P.usable / 10} cm`} usable after trimming the selvages. Cut sizes include a ${len(P.seam)} seam allowance and are rounded ${getUnit() === "in" ? "to the nearest \u215B inch" : "up to the whole millimetre"}.`,
     A4.w - 2 * M2,
     3.6
   )) {
@@ -17101,7 +17219,7 @@ function pdfQuiltPage(P, page, pages) {
     g,
     P,
     "Whole quilt",
-    `${design.cols} \xD7 ${design.rows} blocks${isOnPoint(design) ? " on point" : ""}${s.mm ? ` \xB7 ${s.mm} mm sashing` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""}` : ""} \xB7 every piece with its ID`,
+    `${design.cols} \xD7 ${design.rows} blocks${isOnPoint(design) ? " on point" : ""}${s.mm ? ` \xB7 ${len(s.mm)} sashing` : ""}${nb ? ` \xB7 ${nb} border${nb > 1 ? "s" : ""}` : ""} \xB7 every piece with its ID`,
     page,
     pages
   );
@@ -17132,7 +17250,7 @@ function pdfSashPage(P, page, pages) {
     g,
     P,
     "Sashing",
-    `${s.mm} mm strips between the blocks${s.border ? " and around the outside" : ""} \xB7 strips and cornerstones with their IDs`,
+    `${len(s.mm)} strips between the blocks${s.border ? " and around the outside" : ""} \xB7 strips and cornerstones with their IDs`,
     page,
     pages
   );
@@ -17209,7 +17327,7 @@ function pdfBorderPage(P, bi, page, pages) {
   const [c, g] = pdfPageCanvas(), M2 = 12, bs = bordersOf(design), bd = bs[bi], q = quiltMm(design);
   const cuts = (P.sashing || []).filter((x) => x.group === "b" + bi);
   const where = bs.length > 1 ? bi === 0 ? " \xB7 the innermost border" : bi === bs.length - 1 ? " \xB7 the outermost border" : "" : "";
-  pdfHeader(g, P, `Border ${bi + 1}`, `${BORDER_TYPES[bd.type].label} \xB7 ${bd.mm} mm all round${where}`, page, pages);
+  pdfHeader(g, P, `Border ${bi + 1}`, `${BORDER_TYPES[bd.type].label} \xB7 ${len(bd.mm)} all round${where}`, page, pages);
   const widths = [24, 118, 22, 22], rows = cuts.map((x) => [
     x.id,
     `${x.what.replace(/^Border \d+ · /, "")}: ${plainHow(x.how)}`,
@@ -17244,7 +17362,7 @@ function pdfBlockPage(P, b, i, page, pages) {
     g,
     P,
     b.mosaic ? "Mosaic" : b.corner ? "Cornerstone block" : `Block ${i + 1}`,
-    `${b.label}${b.span > 1 ? ` \xB7 large block, ${b.size} \xD7 ${b.size} mm` : ""}${b.corner ? ` \xB7 ${b.size} mm` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ""}`,
+    `${b.label}${b.span > 1 ? ` \xB7 large block, ${dims([b.size, b.size])}` : ""}${b.corner ? ` \xB7 ${len(b.size)}` : ""} \xB7 make ${b.count}${mirroredCount(b) ? ` \xB7 ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ""}`,
     page,
     pages
   );
@@ -17279,14 +17397,14 @@ var canvasJpeg = (c) => new Promise(
 );
 function buildPdf(pages) {
   const enc = new TextEncoder(), parts = [], offsets = [];
-  let len = 0;
+  let len2 = 0;
   const put2 = (x2) => {
     const u = typeof x2 === "string" ? enc.encode(x2) : x2;
     parts.push(u);
-    len += u.length;
+    len2 += u.length;
   };
   const obj = (n2, body) => {
-    offsets[n2] = len;
+    offsets[n2] = len2;
     put2(`${n2} 0 obj
 `);
     body();
@@ -17319,7 +17437,7 @@ stream
       put2("\nendstream");
     });
   });
-  const xref = len, count = 3 + n * 3;
+  const xref = len2, count = 3 + n * 3;
   let x = `xref
 0 ${count}
 0000000000 65535 f 
@@ -17671,10 +17789,13 @@ function pdfTemplateHeader(g, P, title, lines, page, pages) {
     g.lineTo(bx + k * 10, by + (k % 5 ? 1.2 : 2));
   }
   g.stroke();
-  pdfText(g, "check: 50 mm", bx + 25, by + 5.5, 3, { align: "center", color: "#5a5650" });
+  pdfText(g, getUnit() === "in" ? "check: 50 mm (about 2 in)" : "check: 50 mm", bx + 25, by + 5.5, 3, {
+    align: "center",
+    color: "#5a5650"
+  });
   pdfText(g, `Page ${page} of ${pages}`, A4.w - M2, A4.h - 6, 3.2, { align: "right", color: "#8a857c" });
 }
-var realSizeNote = (P) => `Real size: print at 100 % / "actual size". Solid line = cutting line (${P.seam} mm seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
+var realSizeNote = (P) => `Real size: print at 100 % / "actual size". Solid line = cutting line (${len(P.seam)} seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
 var mirrorNote = (t) => t.mirrored && t.plain ? `${[...t.ids.keys()].join("/")}: ${t.mirrored} of ${t.mirrored + t.plain} are mirror images, turn the template over to cut them.` : "";
 function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
   const [c, g] = pdfPageCanvas();

@@ -25,6 +25,7 @@ import {
   setMosaicTool,
 } from './ui-state.js';
 import { $ } from '../core/dom.js';
+import { fromInput, toInput } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
 import { addFabric } from './fabric-library.js';
@@ -514,9 +515,9 @@ function initDesignerUI() {
   });
   $('mos-shape').addEventListener('change', e => dispatch(setMosaicShape, e.target.value));
   $('mos-mm').addEventListener('change', e => {
-    const v = Math.round(+e.target.value);
+    const v = fromInput(+e.target.value);
     if (v >= 10 && v <= 200) dispatch(setMosaicMm, v);
-    else e.target.value = design.mosaic ? design.mosaic.mm : 50;
+    else e.target.value = String(toInput(design.mosaic ? design.mosaic.mm : 50));
   });
   $('set-fabs').addEventListener('click', e => {
     const b = e.target.closest('button.fab');
@@ -547,9 +548,9 @@ function initDesignerUI() {
   });
   const sizeChange = () => resizeTo(+$('dz-cols').value, +$('dz-rows').value);
   const blockSize = e => {
-    const v = Math.round(+e.target.value);
+    const v = fromInput(+e.target.value);
     if (!(v >= 50 && v <= 1000)) {
-      e.target.value = design.blockMm;
+      e.target.value = String(toInput(design.blockMm));
       return;
     }
     dispatch(setBlockMm, v);

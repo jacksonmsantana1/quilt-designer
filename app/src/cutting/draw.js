@@ -3,6 +3,7 @@ import '../app/pages.js'; // load order: runs after app/pages
 import { cgHi, fabHi } from '../render/hi-state.js';
 import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { dims, len } from '../core/units.js';
 import { dimUnlessHi } from '../render/highlight.js';
 import { orientPoly, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -623,7 +624,7 @@ function drawCutQuilt(P, into) {
       ? `Showing the ${cgHi === 'sash' ? 'sashing' : cgHi === 'setting' ? 'setting triangles' : cgHi === 'brd' ? 'borders' : 'border ' + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.`
       : cgHi >= 0
         ? `Showing ${P.blocks[cgHi].corner ? 'the cornerstone blocks' : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.`
-        : `${design.cols} × ${design.rows} blocks${isOnPoint(design) ? ' on point' : ''}${s.mm ? ` · ${s.mm} mm sashing` : ''}${bs.length ? ` · ${bs.length} border${bs.length > 1 ? 's' : ''}` : ''} · finished ${P.quiltW} × ${P.quiltH} mm · each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1${isOnPoint(design) ? ', T = setting triangles' : ''}). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
+        : `${design.cols} × ${design.rows} blocks${isOnPoint(design) ? ' on point' : ''}${s.mm ? ` · ${len(s.mm)} sashing` : ''}${bs.length ? ` · ${bs.length} border${bs.length > 1 ? 's' : ''}` : ''} · finished ${dims([P.quiltW, P.quiltH])} · each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1${isOnPoint(design) ? ', T = setting triangles' : ''}). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
   $('cg-quilt-meta').classList.toggle('cg-hi-on', cgHi !== -1);
   document.querySelectorAll('.cgblock').forEach(el => el.classList.toggle('picked', el.dataset.key === String(cgHi)));
 }

@@ -332,6 +332,16 @@
   .stepper input { -moz-appearance: textfield; appearance: textfield; }
   .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .stepper.mini .btn { padding: 1px 7px; min-height: 0; line-height: 1.3; }
+  /* the mm / in slide switch beside Layout: a real checkbox (role switch), drawn as a track and a knob */
+  .unit-sw { position: relative; display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none; }
+  .unit-sw input { position: absolute; opacity: 0; width: 100%; height: 100%; left: 0; top: 0; margin: 0; cursor: pointer; }
+  .unit-sw .u-track { position: relative; width: 38px; height: 22px; border-radius: 999px; background: var(--line); transition: background .15s; }
+  .unit-sw .u-track i { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .15s; }
+  .unit-sw input:checked + .u-track { background: var(--accent); }
+  .unit-sw input:checked + .u-track i { transform: translateX(16px); }
+  .unit-sw input:focus-visible + .u-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .unit-sw[data-unit="mm"] .u-mm, .unit-sw[data-unit="in"] .u-in { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) { .unit-sw .u-track, .unit-sw .u-track i { transition: none; } }
   .size-in { margin: 0 4px; width: 4.6em; padding: 2px 4px; font: inherit; font-weight: 600; color: var(--ink, #1d2230); border: 1px solid var(--line); border-radius: 6px; background: var(--panel); text-align: center; }
   .size-in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .tl-row { display: flex; justify-content: center; margin-top: 10px; transition: opacity .2s ease; }
@@ -662,17 +672,17 @@
   <div class="row sim-toolbar">
     <select id="bedsel" aria-label="Bed (mattress size)" title="Bed (mattress size)"></select>
     <span class="bmm" id="bed-custom" hidden>
-      <label class="sr" for="bed-w">Mattress width (mm)</label><span class="bmm-in"><input id="bed-w" type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
-      <label class="sr" for="bed-l">Mattress length (mm)</label><span class="bmm-in"><input id="bed-l" type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> mm</span>
+      <label class="sr" for="bed-w">Mattress width</label><span class="bmm-in"><input id="bed-w" type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
+      <label class="sr" for="bed-l">Mattress length</label><span class="bmm-in"><input id="bed-l" type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="table-custom" hidden>
-      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width (mm)" aria-label="Table width in mm"> ×</span>
-      <span class="bmm-in"><input id="tbl-l" type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length (mm)" aria-label="Table length in mm"> mm,</span>
-      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor (mm)"> mm</span>
+      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width" aria-label="Table width"> ×</span>
+      <span class="bmm-in"><input id="tbl-l" type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length" aria-label="Table length"> <span data-unit-name>mm</span>,</span>
+      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="couch-custom" hidden>
-      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm (mm)" aria-label="Couch width in mm"> ×</span>
-      <span class="bmm-in"><input id="cch-l" type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back (mm)" aria-label="Couch depth in mm"> mm,</span>
+      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm" aria-label="Couch width"> ×</span>
+      <span class="bmm-in"><input id="cch-l" type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back" aria-label="Couch depth"> <span data-unit-name>mm</span>,</span>
       <label for="cch-s">seats</label><span class="bmm-in"><input id="cch-s" type="number" min="1" max="5" step="1" inputmode="numeric" title="How many seat cushions (each at least 40 cm wide)"></span>
     </span>
     <button class="btn" id="saveimg3" type="button" title="Take a picture of the 3D view and save it as a PNG">Take picture</button>
@@ -868,7 +878,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
-      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><span class="sr" id="dz-sync" aria-live="polite"></span></p>
+      <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><label class="unit-sw" id="unit-lbl" data-unit="mm" title="Show lengths in millimetres or in inches"><span class="u-mm">mm</span><input type="checkbox" role="switch" id="unit-sw" aria-label="Show lengths in inches"><span class="u-track" aria-hidden="true"><i></i></span><span class="u-in">in</span></label><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
         <div class="fabs backfabs" id="dz-backfabs"></div>
@@ -899,7 +909,7 @@
           </div>
         </div>
       </div>
-      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size in millimetres" title="Type a new block size and press Enter"> mm</span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
+      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size" title="Type a new block size and press Enter"> <span data-unit-name>mm</span></span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
       <div class="tl-row" id="tl-row" hidden>
           <span class="tl-btns" role="group" aria-label="Timeline">
             <button class="btn" type="button" id="tl-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
@@ -926,7 +936,7 @@
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
         <h2>Sashing</h2>
         <div class="row" style="align-items:center">
-          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> mm</span></label>
+          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> <span data-unit-name>mm</span></span></label>
           <span class="sash-presets" id="sash-presets"></span>
         </div>
         <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="sash-border"> Also around the outside (border)</label>
@@ -957,7 +967,7 @@
         <p class="fine" style="margin:0 0 8px">One shape all over the quilt. Pick a fabric, then click a shape or drag over several to paint them. The arrows by Columns and Rows add more.</p>
         <div class="param"><label for="mos-shape">Shape</label><output></output><select id="mos-shape" title="The shape the whole quilt is made of"><option value="hex">Hexagons (flower garden)</option><option value="diamond">Diamonds (tumbling blocks)</option><option value="triangle">Triangles</option></select></div>
         <div class="fablib-groups mos-tools" id="mos-tools" role="group" aria-label="What a click paints"><button type="button" data-tool="one" aria-pressed="true" title="Paint one hexagon">One</button><button type="button" data-tool="rosette" aria-pressed="false" title="Paint a flower: the shape and the ones around it (with diamonds: the three of a cube)">Rosette</button><button type="button" data-tool="row" aria-pressed="false" title="Paint the whole row">Row</button><button type="button" data-tool="way" aria-pressed="false" title="Paint every shape lying the same way: every top, left or right of the cubes, or every triangle pointing up or down" hidden>Same way</button><button type="button" data-tool="random" aria-pressed="false" title="Each hexagon gets a fabric picked at random from the list below">Random</button></div>
-        <div class="param"><label for="mos-mm">Side of a shape</label><output>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape in millimetres"></div>
+        <div class="param"><label for="mos-mm">Side of a shape</label><output data-unit-name>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape"></div>
         <p class="fine" style="margin:10px 0 4px">Paint with</p>
         <div class="fabs" id="mos-fabs" aria-label="The fabric to paint with"></div>
         <p style="margin:10px 0 0"><button class="btn sm" type="button" id="mos-fill" title="Paint every hexagon: in the chosen fabric, or with Random, each in a fabric from the list">Fill all</button></p>
@@ -980,14 +990,14 @@
         <label for="fit-bed" class="sr">Mattress size</label>
         <select id="fit-bed" aria-label="Mattress size" style="width:100%"></select>
         <div class="two" id="fit-custom" hidden style="margin-top:8px">
-          <div><label for="fit-w">Mattress width (mm)</label><input id="fit-w" type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
-          <div><label for="fit-l">Mattress length (mm)</label><input id="fit-l" type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-w">Mattress width (<span data-unit-name>mm</span>)</label><input id="fit-w" type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-l">Mattress length (<span data-unit-name>mm</span>)</label><input id="fit-l" type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
         </div>
         <div class="two" style="margin-top:8px;align-items:end">
-          <div><label for="fit-drop">Drop (mm)</label><input id="fit-drop" type="number" min="0" max="800" step="10" inputmode="numeric"></div>
-          <label style="display:flex;gap:6px;align-items:center;padding-bottom:6px"><input type="checkbox" id="fit-tuck"> Pillow tuck (+250 mm)</label>
+          <div><label for="fit-drop">Drop (<span data-unit-name>mm</span>)</label><input id="fit-drop" type="number" min="0" max="800" step="10" inputmode="numeric"></div>
+          <label style="display:flex;gap:6px;align-items:center;padding-bottom:6px"><input type="checkbox" id="fit-tuck"> Pillow tuck (+<span id="tuck-len">250 mm</span>)</label>
         </div>
-        <p class="fine" style="margin:6px 0 0">Drop: about 250–300 mm covers the mattress, 450–550 mm the box spring too; floor length is the mattress-top height.</p>
+        <p class="fine" id="fit-hint" style="margin:6px 0 0">Drop: about 250–300 mm covers the mattress, 450–550 mm the box spring too; floor length is the mattress-top height.</p>
         <p class="fine" id="fit-target" style="margin:8px 0 6px"></p>
         <div class="fitlist" id="fit-list"></div>
         <p class="fine" id="fit-now" style="margin:8px 0 0"></p>

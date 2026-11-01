@@ -3,6 +3,7 @@ import '../cutting/page.js'; // load order: runs after cutting/page
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
+import { dims, fromInput, getUnit, inputRange, len, toInput } from '../core/units.js';
 import {
   CORNER_BLOCK_MIN_MM,
   CORNER_PATTERNS,
@@ -94,7 +95,8 @@ function renderSashUI() {
   if (!design || !$('sash-card')) return;
   const s = sashOf(design),
     raw = design.sashing || {};
-  if (document.activeElement !== $('sash-mm')) $('sash-mm').value = s.mm;
+  Object.assign($('sash-mm'), inputRange(0, 200));
+  if (document.activeElement !== $('sash-mm')) $('sash-mm').value = String(toInput(s.mm));
   // on point the sashing always frames every block (so the setting triangles stay simple triangles)
   const onPoint = isOnPoint(design);
   $('sash-border').checked = onPoint || !!raw.border;
@@ -104,10 +106,11 @@ function renderSashUI() {
   $('sash-cs-box').hidden = !s.cornerstones; // no cornerstones: no fabric to choose for them
   const box = $('sash-presets');
   box.innerHTML = '';
-  for (const v of [0, 25, 38, 50, 64, 76]) {
+  // the usual widths; in inches, the same ones as whole and half inches (2 in is 51 mm, not 50)
+  for (const v of getUnit() === 'in' ? [0, 25, 38, 51, 64, 76] : [0, 25, 38, 50, 64, 76]) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = v ? v + ' mm' : 'None';
+    b.textContent = v ? len(v) : 'None';
     b.dataset.v = v;
     b.setAttribute('aria-pressed', String(s.mm === v));
     box.appendChild(b);
@@ -120,7 +123,7 @@ function renderSashUI() {
   drawCornerPatterns(cb ? cb.pattern : '', wide);
   $('sash-cb-note').textContent = wide
     ? ''
-    : `Pieced cornerstones need sashing wider than ${CORNER_BLOCK_MIN_MM - 1} mm${raw.cornerBlock ? ': plain ones until then' : ''}.`;
+    : `Pieced cornerstones need sashing wider than ${len(CORNER_BLOCK_MIN_MM - 1)}${raw.cornerBlock ? ': plain ones until then' : ''}.`;
   $('sash-cb-edit').hidden = !cb;
   if (cb) drawCornerBlockEditor(cb, s.mm);
   $('sash-corner-lbl').textContent = !cb
@@ -132,7 +135,7 @@ function renderSashUI() {
   drawPaletteInto($('sash-corner'), !cb ? raw.corner || raw.fabric || 'b0' : picked.size === 1 ? [...picked][0] : null);
   const q = quiltMm(design);
   $('sash-note').textContent = s.mm
-    ? `Finished quilt with sashing: ${q.W} × ${q.H} mm. Click the sashing on the quilt to come back here.`
+    ? `Finished quilt with sashing: ${dims([q.W, q.H])}. Click the sashing on the quilt to come back here.`
     : 'Choose a width to add strips of fabric between the blocks.';
 }
 function setSash(patch) {
@@ -144,7 +147,7 @@ function openSashing() {
 }
 function initSashUI() {
   $('sash-mm').addEventListener('change', e => {
-    const v = Math.max(0, Math.min(200, Math.round(+e.target.value || 0)));
+    const v = Math.max(0, Math.min(200, fromInput(+e.target.value || 0)));
     setSash({ mm: v });
   });
   $('sash-presets').addEventListener('click', e => {

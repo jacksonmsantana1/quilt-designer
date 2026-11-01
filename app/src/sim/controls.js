@@ -12,6 +12,7 @@ import {
   setRenderT0,
 } from './sim-state.js';
 import { $ } from '../core/dom.js';
+import { len } from '../core/units.js';
 import { PARAMS, PRESETS, SUBSTEPS, bedM, bedState, isBedSim, isTableSim, quilt, state } from './config.js';
 import { dropPosM, send } from './worker-link.js';
 import { camera, canvas, renderer, scene, sun } from './renderer.js';
@@ -241,7 +242,7 @@ function syncDropUI() {
   const far = z =>
     Math.abs(z) < 5
       ? 'centre'
-      : `${Math.abs(z)} mm toward the ${alongZ() ? (z > 0 ? (isTableSim() ? 'near end' : 'foot') : isTableSim() ? 'far end' : 'head') : z > 0 ? 'right' : 'left'}`;
+      : `${len(Math.abs(z))} toward the ${alongZ() ? (z > 0 ? (isTableSim() ? 'near end' : 'foot') : isTableSim() ? 'far end' : 'head') : z > 0 ? 'right' : 'left'}`;
   $('drop-pos-v').textContent = dropPos == null ? `${far(v)} (usual spot)` : far(v);
 }
 $('drop-pos').addEventListener('input', e => {

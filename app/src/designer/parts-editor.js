@@ -2,6 +2,7 @@
 import './fussy-cut.js'; // load order: runs after designer/fussy-cut
 import { activeFabric, design, focusBlock, selBlocks, selParts, setFocusBlock } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { inputRange, toInput } from '../core/units.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
 import { drawShortList } from './fabric-picker.js';
@@ -97,7 +98,8 @@ function renderDesigner() {
   // the block tools would change the blocks under a mosaic, which don't show: they wait until it's blocks again
   for (const id of ['rail-parts', 'rail-sash', 'sym-wrap']) if ($(id)) $(id).hidden = !!design.mosaic;
   if (design.mosaic) {
-    if (document.activeElement !== $('mos-mm')) $('mos-mm').value = design.mosaic.mm;
+    Object.assign($('mos-mm'), inputRange(10, 200));
+    if (document.activeElement !== $('mos-mm')) $('mos-mm').value = String(toInput(design.mosaic.mm));
     $('mos-shape').value = design.mosaic.shape;
     // Same way: for diamonds and triangles (all hexagons lie the same way)
     $('mos-tools').querySelector('[data-tool="way"]').hidden = design.mosaic.shape === 'hex';
@@ -105,7 +107,8 @@ function renderDesigner() {
   }
   drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');
   syncSymUI();
-  for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
+  Object.assign($('dz-bmm3'), inputRange(50, 1000));
+  for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = String(toInput(design.blockMm));
   $('dz-rot').textContent = `Rotate 90° (${design.blocks[focusBlock].rot * 90}°)`;
   drawDesignerCanvas();
   drawPartsEditor();

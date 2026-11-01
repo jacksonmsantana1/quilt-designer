@@ -2,6 +2,7 @@
 import '../mine/samples.js'; // load order: runs after mine/samples
 import { design, mineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { len } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { PATTERNS } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -91,7 +92,7 @@ function tlDescribe(a, b) {
   if (!a) return 'Start';
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
   if (a.cols !== b.cols || a.rows !== b.rows) return `Layout ${b.cols} × ${b.rows}`;
-  if (a.blockMm !== b.blockMm) return `Block size ${b.blockMm} mm`;
+  if (a.blockMm !== b.blockMm) return `Block size ${len(b.blockMm)}`;
   if (a.backFabric !== b.backFabric) return `Backing: ${fabricById(b.backFabric).name}`;
   if (JSON.stringify(a.borders || []) !== JSON.stringify(b.borders || [])) {
     const na = bordersOf(a).length,
@@ -104,7 +105,7 @@ function tlDescribe(a, b) {
     const p = sashOf(a),
       s = sashOf(b);
     if (!s.mm) return 'No sashing';
-    if (p.mm !== s.mm) return `Sashing ${s.mm} mm`;
+    if (p.mm !== s.mm) return `Sashing ${len(s.mm)}`;
     if (p.border !== s.border) return s.border ? 'Sashing border on' : 'Sashing border off';
     if (p.fabric !== s.fabric) return `Sashing: ${fabricById(s.fabric).name}`;
     return `Cornerstones: ${fabricById(s.corner).name}`;

@@ -2,6 +2,7 @@
 import '../sim/save-image.js'; // load order: runs after sim/save-image
 import { cgHi, fabHi, setCgHi, setFabHi } from '../render/hi-state.js';
 import { design } from '../core/store.js';
+import { dims, getUnit, len } from '../core/units.js';
 import { fabricById } from '../designer/fabric-library.js';
 import { BORDER_TYPES, bordersOf, isOnPoint, quiltMm, sashOf } from '@quilt/shared/geometry.js';
 import { drawBordersExploded } from '../render/quilt-draw.js';
@@ -67,7 +68,7 @@ function pdfHeader(g, P, title, sub, page, pages) {
   if (sub) pdfText(g, sub, M, M + 14, 4.2, { color: '#5a5650' });
   pdfText(
     g,
-    `Quilt ${P.quiltW} × ${P.quiltH} mm · block ${P.blockW} × ${P.blockH} mm · seam ${P.seam} mm`,
+    `Quilt ${dims([P.quiltW, P.quiltH])} · block ${dims([P.blockW, P.blockH])} · seam ${len(P.seam)}`,
     A4.w - M,
     M + 6,
     3.4,
@@ -166,7 +167,7 @@ function pdfFabricPage(P, pages) {
     pdfText(g, r.requirement, M + 75, y + 7.5, 4.4, { weight: 600 });
     const notes = [
       r.buy ? `buy ≈ ${r.buy}` : '',
-      r.binding ? `includes binding: ${r.binding.strips} strips ${r.binding.width} mm × WOF` : '',
+      r.binding ? `includes binding: ${r.binding.strips} strips ${len(r.binding.width)} × WOF` : '',
     ]
       .filter(Boolean)
       .join(' · ');
@@ -177,7 +178,7 @@ function pdfFabricPage(P, pages) {
   pdfText(g, 'Backing', M + 40, y + 6, 4.6, { weight: 600 });
   pdfText(
     g,
-    `${P.backing.w} × ${P.backing.h} mm · ${P.backing.widths} width${P.backing.widths > 1 ? 's' : ''} of fabric · buy ≈ ${P.backing.buy}`,
+    `${dims([P.backing.w, P.backing.h])} · ${P.backing.widths} width${P.backing.widths > 1 ? 's' : ''} of fabric · buy ≈ ${P.backing.buy}`,
     M + 75,
     y + 6,
     4,
@@ -185,7 +186,7 @@ function pdfFabricPage(P, pages) {
   );
   y += 9;
   pdfText(g, 'Batting', M + 40, y + 6, 4.6, { weight: 600 });
-  pdfText(g, `${P.backing.w} × ${P.backing.h} mm`, M + 75, y + 6, 4, {});
+  pdfText(g, dims([P.backing.w, P.backing.h]), M + 75, y + 6, 4, {});
   y += 9;
   for (const x of P.sashing || []) {
     if (y > A4.h - 70) break;
@@ -215,7 +216,7 @@ function pdfFabricPage(P, pages) {
   y += 3;
   for (const ln of pdfWrap(
     g,
-    `WOF = width of fabric: ${cutOpts.fabricWidth / 10} cm, ${P.usable / 10} cm usable after trimming the selvages. Cut sizes include a ${P.seam} mm seam allowance and are rounded up to the whole millimetre.`,
+    `WOF = width of fabric: ${getUnit() === 'in' ? len(cutOpts.fabricWidth) : `${cutOpts.fabricWidth / 10} cm`}, ${getUnit() === 'in' ? len(P.usable) : `${P.usable / 10} cm`} usable after trimming the selvages. Cut sizes include a ${len(P.seam)} seam allowance and are rounded ${getUnit() === 'in' ? 'to the nearest ⅛ inch' : 'up to the whole millimetre'}.`,
     A4.w - 2 * M,
     3.6,
   )) {
@@ -233,7 +234,7 @@ function pdfQuiltPage(P, page, pages) {
     g,
     P,
     'Whole quilt',
-    `${design.cols} × ${design.rows} blocks${isOnPoint(design) ? ' on point' : ''}${s.mm ? ` · ${s.mm} mm sashing` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''}` : ''} · every piece with its ID`,
+    `${design.cols} × ${design.rows} blocks${isOnPoint(design) ? ' on point' : ''}${s.mm ? ` · ${len(s.mm)} sashing` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''}` : ''} · every piece with its ID`,
     page,
     pages,
   );
@@ -281,7 +282,7 @@ function pdfSashPage(P, page, pages) {
     g,
     P,
     'Sashing',
-    `${s.mm} mm strips between the blocks${s.border ? ' and around the outside' : ''} · strips and cornerstones with their IDs`,
+    `${len(s.mm)} strips between the blocks${s.border ? ' and around the outside' : ''} · strips and cornerstones with their IDs`,
     page,
     pages,
   );
@@ -375,7 +376,7 @@ function pdfBorderPage(P, bi, page, pages) {
   const cuts = (P.sashing || []).filter(x => x.group === 'b' + bi);
   const where =
     bs.length > 1 ? (bi === 0 ? ' · the innermost border' : bi === bs.length - 1 ? ' · the outermost border' : '') : '';
-  pdfHeader(g, P, `Border ${bi + 1}`, `${BORDER_TYPES[bd.type].label} · ${bd.mm} mm all round${where}`, page, pages);
+  pdfHeader(g, P, `Border ${bi + 1}`, `${BORDER_TYPES[bd.type].label} · ${len(bd.mm)} all round${where}`, page, pages);
   const widths = [24, 118, 22, 22],
     rows = cuts.map(x => [
       x.id,
@@ -415,7 +416,7 @@ function pdfBlockPage(P, b, i, page, pages) {
     g,
     P,
     b.mosaic ? 'Mosaic' : b.corner ? 'Cornerstone block' : `Block ${i + 1}`,
-    `${b.label}${b.span > 1 ? ` · large block, ${b.size} × ${b.size} mm` : ''}${b.corner ? ` · ${b.size} mm` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ''}`,
+    `${b.label}${b.span > 1 ? ` · large block, ${dims([b.size, b.size])}` : ''}${b.corner ? ` · ${len(b.size)}` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored: cut their odd-shaped pieces with the template turned over` : ''}`,
     page,
     pages,
   );

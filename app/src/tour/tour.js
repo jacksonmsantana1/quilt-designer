@@ -1,5 +1,5 @@
 // Guided tour for first-time users.
-import '../designer/settings.js'; // load order: runs after designer/settings
+import '../designer/units-ui.js'; // load order: runs after designer/units-ui
 import { design, focusBlock, mineCur, selBlocks, selParts, setMineCur } from '../core/store.js';
 import { hideTools, toolsPanel } from '../designer/ui-state.js';
 import { $ } from '../core/dom.js';

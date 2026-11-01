@@ -2,6 +2,7 @@
 import '../tour/tour.js'; // load order: runs after tour/tour
 import { design, mineCur, readOnly, setMineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { dims } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { quiltMm } from '@quilt/shared/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
@@ -135,7 +136,7 @@ function renderMine() {
     const nm = document.createElement('b');
     nm.textContent = m.name;
     const sm = document.createElement('small');
-    sm.textContent = `${d.cols} × ${d.rows} blocks · ${Math.round(quiltMm(d).W)} × ${Math.round(quiltMm(d).H)} mm · ${when(m.updatedAt)}`;
+    sm.textContent = `${d.cols} × ${d.rows} blocks · ${dims([quiltMm(d).W, quiltMm(d).H])} · ${when(m.updatedAt)}`;
     meta.append(nm, sm);
     pin.append(img, meta);
     grid.appendChild(pin);
