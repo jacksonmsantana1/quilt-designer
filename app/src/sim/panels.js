@@ -1,5 +1,5 @@
 // Show / hide panels of the Simulation page.
-import '../mine/account.js'; // load order: runs after mine/account
+import '../mine/community.js'; // load order: runs after mine/community
 import { $ } from '../core/dom.js';
 import { resize } from './camera.js';
 import { fitSimSide } from '../app/layout.js';

@@ -32,6 +32,7 @@ fitSimSide();
 if (location.hash === '#sim') showPage('sim');
 else if (location.hash === '#cut') showPage('cut');
 else if (location.hash === '#mine') showPage('mine');
+else if (location.hash === '#community') showPage('community');
 else showPage('design');
 (async () => {
   try {

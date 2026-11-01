@@ -27,6 +27,12 @@
 const SESSION_KEY = 'sync';
 const FABRIC_ID = /^f[0-9a-f]{24}$/;
 
+/**
+ * The account's key on this device (what records' `owner` holds): Auth0's id, or `dev:<name>` for the development
+ * sign-in. @param {{ auth0?: string, user?: string }} c @returns {string}
+ */
+const accountOf = c => c.auth0 || `dev:${(c.user || '').trim().toLowerCase()}`;
+
 /** A request failed in a way that stops this sync (offline, signed out, server down). */
 class StopSync extends Error {
   /** @param {SyncStatus['state']} state @param {string} message */
@@ -57,6 +63,13 @@ function createSync({
    * a name (user). @returns {{ url: string, user?: string, auth0?: string, who?: string, since: number, at?: number } | null}
    */
   const config = () => repo.getSession(SESSION_KEY) || null;
+  // set up before records had owners: what was synced belongs to that account (once)
+  if (config() && !repo.account()) {
+    const acc = accountOf(config());
+    repo.setAccount(acc);
+    repo.designs.claimSynced(acc);
+    repo.fabrics.claimSynced(acc);
+  }
   const pendingCount = () => repo.designs.dirty().length + repo.fabrics.dirty().length;
   const setStatus = s => {
     status = { ...status, ...s, pending: pendingCount() };
@@ -72,15 +85,22 @@ function createSync({
     const old = config();
     if (!c) {
       repo.setSession(SESSION_KEY, undefined);
+      repo.setAccount(null); // nobody's: only what was made here without an account is listed
       setStatus({ state: 'off', message: '' });
       return;
     }
     const url = c.url.trim().replace(/\/+$/, ''),
       who = c.auth0 ? { auth0: c.auth0, who: c.who || c.auth0 } : { user: (c.user || '').trim() },
       same = old && old.url === url && old.user === who.user && old.auth0 === who.auth0;
+    // whose designs are listed and synced from now on (storage/repo.js)
+    repo.setAccount(accountOf(who));
     if (!same) {
-      repo.designs.resetSync();
-      repo.fabrics.resetSync();
+      // another server: this account's designs here are all new to it. Another account on the same server: it
+      // only fetches its own (since 0); the other account's stay here, unsent
+      if (!old || old.url !== url) {
+        repo.designs.resetSync();
+        repo.fabrics.resetSync();
+      }
       repo.setSession(SESSION_KEY, { url, ...who, since: 0 });
     } else if (who.who && old.who !== who.who) repo.setSession(SESSION_KEY, { ...old, who: who.who });
     setStatus({ state: 'ok', message: '' });
@@ -292,7 +312,21 @@ function createSync({
     return running;
   }
 
-  return { configure, config, syncNow, status: () => status };
+  /**
+   * One call to the server as the signed-in account (mine/community.js): { status, body }; throws when offline,
+   * signed out or the server fails (the message says which). @param {string} method @param {string} path @param {any} [body]
+   */
+  async function request(method, path, body) {
+    if (!config()) throw new Error('Sign in first.');
+    try {
+      return await api(method, path, body);
+    } catch (e) {
+      if (e instanceof StopSync) setStatus({ state: e.state, message: e.message });
+      throw e;
+    }
+  }
+
+  return { configure, config, request, syncNow, status: () => status };
 }
 
 export { createSync };

@@ -181,18 +181,16 @@ test('a photo with the simple fingerprint (plain http page) stays on this device
   assert.equal(laptop.repo.fabrics.get('h0123456789abcdef').dirty, true);
 });
 
-test('signed out (bad login): the sync stops and says so; switching account sends everything again', async () => {
+test("signed out (bad login): the sync stops and says so; another account doesn't get the first one's designs", async () => {
   const laptop = await device('bad name!');
   laptop.repo.designs.save({ id: laptop.repo.designs.newId(), name: 'Mine', design: quilt() });
   assert.equal((await laptop.sync.syncNow()).state, 'login');
-  laptop.sync.configure({ url: 'http://api.test', user: 'u8' });
+  laptop.sync.configure({ url: 'http://api.test', user: 'u9' }); // another account: the design isn't its own
+  assert.equal(laptop.sync.status().pending, 0);
   assert.equal((await laptop.sync.syncNow()).state, 'ok');
-  laptop.sync.configure({ url: 'http://api.test', user: 'u9' }); // another account: everything is new to it
-  assert.equal(laptop.sync.status().pending, 1);
-  await laptop.sync.syncNow();
   const other = await device('u9');
   await other.sync.syncNow();
-  assert.deepEqual(names(other.repo), ['Mine']);
+  assert.deepEqual(names(other.repo), []);
 });
 
 test('two syncs asked at once run one after the other', async () => {
@@ -253,4 +251,72 @@ test('another account on the same server starts afresh; the same account signing
   assert.deepEqual([sync.config().since, sync.config().who], [42, 'ana@new-mail.com']);
   sync.configure({ url: 'http://api.test', auth0: 'auth0|bea', who: 'bea@example.com' });
   assert.equal(sync.config().since, 0);
+});
+
+// ---- one browser, several people: each account sees and syncs only its own designs
+
+/** what the server keeps for a (development) user: the names of their designs */
+async function serverNames(user) {
+  const r = await app.inject({ method: 'GET', url: '/v1/changes?since=0', headers: { 'x-dev-user': user } });
+  return JSON.parse(r.body)
+    .changes.filter(c => c.kind === 'design' && !c.deleted)
+    .map(c => c.name)
+    .sort();
+}
+async function sharedBrowser() {
+  const repo = createRepo();
+  await repo.openStorage({ db: memoryDb(), legacy: null });
+  const sync = createSync({ repo, fetch: fakeFetch });
+  return { repo, sync, as: user => sync.configure({ url: 'http://api.test/', user }) };
+}
+
+test("two people on one browser: neither sees nor uploads the other's designs", async () => {
+  const b = await sharedBrowser();
+  b.as('share1');
+  b.repo.designs.save({ id: b.repo.designs.newId(), name: 'Ann quilt', design: quilt() });
+  await b.sync.syncNow();
+  b.sync.configure(null); // signed out: Ann's quilt is out of sight
+  assert.deepEqual(names(b.repo), []);
+  b.as('share2');
+  assert.deepEqual(names(b.repo), []);
+  b.repo.designs.save({ id: b.repo.designs.newId(), name: 'Ben quilt', design: quilt() });
+  await b.sync.syncNow();
+  assert.deepEqual(await serverNames('share2'), ['Ben quilt']); // nothing of Ann's went to Ben's account
+  b.as('share1'); // Ann again: hers are back, Ben's are not
+  await b.sync.syncNow();
+  assert.deepEqual(names(b.repo), ['Ann quilt']);
+  assert.deepEqual(await serverNames('share1'), ['Ann quilt']);
+});
+
+test('designs made without an account stay local until the account takes them; the samples are never offered', async () => {
+  const b = await sharedBrowser();
+  b.repo.designs.save({ id: b.repo.designs.newId(), name: 'Made here', design: quilt() });
+  b.repo.designs.save({ id: 'qsample', name: 'Sample', design: quilt() });
+  b.repo.designs.markSample('qsample');
+  b.as('share3');
+  assert.deepEqual(names(b.repo), ['Made here', 'Sample']); // listed for the account too
+  assert.deepEqual(
+    b.repo.designs.strays().map(r => r.name),
+    ['Made here'],
+  );
+  await b.sync.syncNow();
+  assert.deepEqual(await serverNames('share3'), []); // not sent before the account takes them
+  assert.equal(b.repo.designs.adoptStrays(), 1);
+  await b.sync.syncNow();
+  assert.deepEqual(await serverNames('share3'), ['Made here']);
+  b.sync.configure(null);
+  assert.deepEqual(names(b.repo), ['Sample']); // now the account's: out of sight when signed out
+});
+
+test("set up before designs had owners: what was synced becomes that account's, what was not stays local", async () => {
+  const repo = createRepo();
+  await repo.openStorage({ db: memoryDb(), legacy: null });
+  repo.designs.save({ id: 'old1', name: 'Synced before', design: quilt() });
+  repo.designs.markSynced('old1', 1, 3); // on the server already (rev 3)
+  repo.designs.save({ id: 'old2', name: 'Never synced', design: quilt() });
+  repo.setSession('sync', { url: 'http://api.test', user: 'Share4', since: 0 }); // an older version's setting
+  createSync({ repo, fetch: fakeFetch });
+  assert.equal(repo.account(), 'dev:share4');
+  assert.equal(repo.designs.get('old1').owner, 'dev:share4');
+  assert.equal(repo.designs.get('old2').owner, undefined);
 });

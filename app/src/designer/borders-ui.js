@@ -78,6 +78,7 @@ function renderBorderUI() {
     Object.assign(mm, inputRange(10, 400));
     mm.value = String(toInput(b.mm));
     mm.dataset.a = 'mm';
+    mm.dataset.len = ''; // a length: whole inches and a fraction menu in inches (designer/units-ui.js)
     mm.title = `Width (${getUnit() === 'in' ? 'inches' : 'mm'})`;
     const unit = document.createElement('span');
     unit.className = 'fine';

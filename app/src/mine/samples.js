@@ -156,3 +156,6 @@ if (!getSession('photo-seeded')) {
   designs.save({ id: 'qphoto', name: 'Medallion from the photo', design: photoMedallion() });
   setSession('photo-seeded', true);
 }
+// they are the app's, not made by someone on this device: Sign in doesn't offer them to the account
+designs.markSample('qmedallion');
+designs.markSample('qphoto');

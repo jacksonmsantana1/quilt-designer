@@ -61,6 +61,9 @@ Everything must stay green: `npm run check` with zero lint warnings, and all bro
 - **Storage** (`storage/repo.js`, `createRepo()`): IndexedDB stores designs, fabrics (photos as Blobs, id =
   `f` + sha-256), timelines (undo, device only), session. Read into memory at start; writes batched right after.
   Records have `rev` (local saves), `syncRev` (server rev it's based on), `dirty`, `deleted` markers.
+  Records carry `owner` (the account: Auth0 sub or `dev:<name>`; none = made while signed out): only the signed-in
+  account's and owner-less ones are listed, only the account's own are synced; signing in offers the owner-less
+  ones (not the samples), signing out hides the account's and opens a new design.
   Small per-device preferences stay in localStorage.
 - **Sync** (`storage/sync.js` engine, `mine/sync-ui.js` card on My designs): push photos, push designs, pull
   `/v1/changes`. Conflict = server version keeps the id, this device's becomes "Name (this device)". Triggers:

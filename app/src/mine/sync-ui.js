@@ -68,16 +68,45 @@ async function signInAndSync({ url, signup = false } = {}) {
     return closed ? 'Sign-in was closed before it finished.' : `Couldn't sign in: ${e?.message || e}`;
   }
   sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
+  accountChanged();
   run();
   return '';
 }
-/** Signs out on this device: sync stops, the designs here stay. */
+/**
+ * Signs out on this device: sync stops; the account's designs stay here but out of sight (storage/repo.js) until
+ * it signs in again, and a new design is opened, so the next person doesn't find the last one's quilt open.
+ */
 async function signOutAndStop() {
   const was = sync.config();
+  if (was) $('dz-new').click(); // New design (mine/my-designs.js): the open quilt's timeline is kept with it
   sync.configure(null);
+  accountChanged();
   // signing out of Auth0 leaves the page for a moment: what's waiting to be saved here goes first
   await repo.flush();
   if (was?.auth0) await signOut().catch(() => {});
+}
+/** Another account (or none): My designs shows its designs; designs made here without one are offered to it. */
+function accountChanged() {
+  if (state.page === 'mine') renderMine();
+  if (!repo.account()) return;
+  const d = repo.designs.strays().length,
+    f = repo.fabrics.strays().length;
+  if (!d && !f) return;
+  const what = [d && `${d} design${d === 1 ? '' : 's'}`, f && `${f} fabric photo${f === 1 ? '' : 's'}`]
+    .filter(Boolean)
+    .join(' and ');
+  notify(`${what} made on this device without an account. Add ${d + f === 1 ? 'it' : 'them'} to your account?`, {
+    ms: 20000,
+    action: {
+      label: 'Add to my account',
+      run: () => {
+        repo.designs.adoptStrays();
+        repo.fabrics.adoptStrays();
+        if (state.page === 'mine') renderMine();
+        run();
+      },
+    },
+  });
 }
 
 async function run() {
@@ -172,6 +201,7 @@ function initSyncUI() {
     e.preventDefault();
     if (!$('sync-user').value.trim()) return $('sync-user').focus();
     sync.configure({ url: $('sync-url').value, user: $('sync-user').value });
+    accountChanged();
     form.hidden = true;
     run();
   });
@@ -187,4 +217,20 @@ function initSyncUI() {
 }
 initSyncUI();
 
-export { run as syncNow, onAccount, signInAndSync, signOutAndStop };
+// ---- the server, for the community (mine/community.js)
+/** Who is signed in for sync (null: nobody). */
+const signedIn = () => sync.config();
+/** A call as the signed-in account: { status, body }. @param {string} method @param {string} path @param {any} [body] */
+const serverCall = (method, path, body) => sync.request(method, path, body);
+/**
+ * A call anyone may make (the community's quilts): as the signed-in account when there is one (so its own are
+ * marked), otherwise without signing in, to the server set up here or the usual one. @param {string} path
+ * @returns {Promise<{ status: number, body: any }>}
+ */
+async function publicCall(path) {
+  if (sync.config()) return sync.request('GET', path);
+  const r = await fetch(DEFAULT_SERVER + path);
+  return { status: r.status, body: await r.json().catch(() => null) };
+}
+
+export { run as syncNow, onAccount, publicCall, serverCall, signedIn, signInAndSync, signOutAndStop };

@@ -3,7 +3,7 @@
 import './settings.js'; // load order: runs after designer/settings
 import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
-import { getUnit, len, onUnitChange, setUnit } from '../core/units.js';
+import { FRACTIONS, eighthsOf, getUnit, len, onUnitChange, setUnit } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { renderDesigner } from './parts-editor.js';
 import { renderCut } from '../cutting/page.js';
@@ -29,6 +29,74 @@ function relabelHints() {
     `Drop: about ${len(250)}–${len(300)} covers the mattress, ${len(450)}–${len(550)} the box spring too; floor length is the mattress-top height.`;
 }
 
+// ---- length boxes in inches: a whole number and a fraction menu (⅛ … ⅞), the way quilters measure, instead of
+// decimals. Every number box marked data-len gets a pair beside it; in inches the pair shows and the box hides. The
+// box keeps the full value (whole + fraction) and fires its own change event, so the code that reads it is the
+// same in both units; when that code writes the box, the pair follows.
+const VALUE = /** @type {PropertyDescriptor} */ (Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value'));
+/** @type {(() => void)[]} */
+const inchFields = [];
+/** @param {HTMLInputElement} box */
+function inchPair(box) {
+  if (box.dataset.inchPair) return;
+  box.dataset.inchPair = '1';
+  const name = box.getAttribute('aria-label') || box.title || 'Length';
+  const whole = document.createElement('input');
+  whole.type = 'number';
+  whole.className = `${box.className} inch-whole`.trim();
+  whole.inputMode = 'numeric';
+  whole.step = '1';
+  whole.min = '0';
+  whole.setAttribute('aria-label', `${name}: whole inches`);
+  const frac = document.createElement('select');
+  frac.className = 'inch-frac';
+  frac.setAttribute('aria-label', `${name}: fraction of an inch`);
+  FRACTIONS.forEach((f, i) => frac.add(new Option(f || '0', String(i))));
+  const pair = document.createElement('span');
+  pair.className = 'inch-pair';
+  pair.append(whole, frac);
+  box.after(pair);
+  const sync = () => {
+    const inches = getUnit() === 'in';
+    box.hidden = inches;
+    pair.hidden = !inches;
+    if (!inches) return;
+    const [w, e] = eighthsOf(+VALUE.get.call(box));
+    // not while the person is typing in it
+    if (document.activeElement !== whole) whole.value = String(w);
+    frac.value = String(e);
+    if (box.max) whole.max = String(Math.floor(+box.max));
+  };
+  // the code that fills the box (toInput) moves the pair too
+  Object.defineProperty(box, 'value', {
+    configurable: true,
+    get() {
+      return VALUE.get.call(this);
+    },
+    set(v) {
+      VALUE.set.call(this, v);
+      sync();
+    },
+  });
+  const send = () => {
+    VALUE.set.call(box, String((+whole.value || 0) + +frac.value / 8));
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  whole.addEventListener('change', send);
+  frac.addEventListener('change', send);
+  inchFields.push(sync);
+  sync();
+}
+for (const el of document.querySelectorAll('input[data-len]')) inchPair(/** @type {HTMLInputElement} */ (el));
+// boxes made later (a border's width, made when the border is added)
+new MutationObserver(recs => {
+  for (const r of recs)
+    for (const n of r.addedNodes)
+      if (n instanceof HTMLElement)
+        for (const el of n.matches('input[data-len]') ? [n] : n.querySelectorAll('input[data-len]'))
+          inchPair(/** @type {HTMLInputElement} */ (el));
+}).observe(document.body, { childList: true, subtree: true });
+
 function show() {
   const inches = getUnit() === 'in';
   /** @type {HTMLInputElement} */ ($('unit-sw')).checked = inches;
@@ -44,6 +112,7 @@ onUnitChange(() => {
     localStorage.setItem(KEY, getUnit());
   } catch (e) {}
   show();
+  inchFields.forEach(f => f()); // the pairs show or hide (their boxes are filled again just below)
   if (!design) return;
   renderDesigner();
   if (state.page === 'cut') renderCut();

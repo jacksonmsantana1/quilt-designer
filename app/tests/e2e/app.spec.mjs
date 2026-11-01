@@ -39,12 +39,12 @@ test('My designs has the sample quilts, and opening one loads it', async ({ app,
   await app.open('mine');
   const name = page.locator('#page-mine').getByText('Medallion from the photo', { exact: true });
   await expect(name).toBeVisible();
-  // that sample's own Open button: the two samples are saved together, so their order on the page can vary
+  // that sample's own ⋯ menu, Open: the two samples are saved together, so their order on the page can vary
   const card = page.locator('#page-mine article.pin', {
     has: page.getByText('Medallion from the photo', { exact: true }),
   });
-  await card.hover();
-  await card.locator('button.open').click();
+  await card.locator('.pin-more').click();
+  await page.locator('.pin-menu [data-a="open"]').click();
   await expect.poll(async () => (await app.current()).cols).toBe(15);
 });
 

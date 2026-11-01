@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   dims,
+  eighthsOf,
   fromInput,
   getUnit,
   inches,
@@ -60,4 +61,14 @@ test('number boxes in inches: a sixteenth shows as itself, other lengths to two 
   assert.equal(fromInput(toInput(458)), 458, 'what is shown reads back the same');
   assert.deepEqual(inputRange(10, 400), { min: 0.5, max: 15.625, step: 0.125 });
   setUnit('mm');
+});
+
+test('the inch boxes: whole inches and eighths, halves (from a sixteenth in the box) going down as when written', () => {
+  assert.deepEqual(eighthsOf(6.5), [6, 4]);
+  assert.deepEqual(eighthsOf(11.8125), [11, 6]); // 300 mm: written 11¾ in
+  assert.deepEqual(eighthsOf(11.9), [11, 7]);
+  assert.deepEqual(eighthsOf(2.99), [3, 0]);
+  assert.deepEqual(eighthsOf(0), [0, 0]);
+  assert.deepEqual(eighthsOf(NaN), [0, 0]);
+  assert.deepEqual(eighthsOf(-1), [0, 0]);
 });

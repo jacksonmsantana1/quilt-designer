@@ -24,6 +24,8 @@
     --mustard: oklch(0.8 0.13 85);
     --stitch: oklch(0.58 0.13 40 / .55);  /* the dashed "stitched" edges */
     --mark: oklch(0.62 0.17 40);          /* selections and guides drawn on the quilt */
+    --off: oklch(0.84 0.005 70);          /* a button that can't be pressed: grey */
+    --off-ink: oklch(0.42 0.005 70);
     --madder: oklch(0.5 0.15 30);         /* danger: delete, close */
     --held: oklch(0.6 0.12 70);
     --rest: oklch(0.5 0.08 145);
@@ -38,7 +40,7 @@
       --bg: oklch(0.2 0.02 40); --panel: oklch(0.25 0.02 40); --ink: oklch(0.93 0.02 80); --muted: oklch(0.74 0.03 70);
       --line: oklch(0.36 0.03 40); --accent: oklch(0.7 0.13 45); --accent-ink: oklch(0.2 0.02 40);
       --accent-soft: oklch(0.7 0.13 45 / .14); --sage: oklch(0.7 0.07 140); --sage-deep: oklch(0.72 0.08 145);
-      --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45);
+      --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45); --off: oklch(0.36 0.005 70); --off-ink: oklch(0.7 0.005 70);
       --madder: oklch(0.68 0.15 30); --held: oklch(0.78 0.12 75); --rest: oklch(0.74 0.1 145); --shade: 0, 0, 0;
       --stage: #1b1916; color-scheme: dark;
     }
@@ -47,7 +49,7 @@
     --bg: oklch(0.2 0.02 40); --panel: oklch(0.25 0.02 40); --ink: oklch(0.93 0.02 80); --muted: oklch(0.74 0.03 70);
     --line: oklch(0.36 0.03 40); --accent: oklch(0.7 0.13 45); --accent-ink: oklch(0.2 0.02 40);
     --accent-soft: oklch(0.7 0.13 45 / .14); --sage: oklch(0.7 0.07 140); --sage-deep: oklch(0.72 0.08 145);
-    --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45);
+    --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45); --off: oklch(0.36 0.005 70); --off-ink: oklch(0.7 0.005 70);
     --madder: oklch(0.68 0.15 30); --held: oklch(0.78 0.12 75); --rest: oklch(0.74 0.1 145); --shade: 0, 0, 0;
     --stage: #1b1916; color-scheme: dark;
   }
@@ -207,6 +209,8 @@
   button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   button.btn.primary { background: var(--accent); border: 2px solid var(--accent); color: var(--accent-ink); box-shadow: 0 4px 12px rgba(var(--shade),.18); }
   button.btn.primary:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); }
+  /* can't be pressed (e.g. Share on an unchanged copy): grey, flat, and the pointer says so */
+  button.btn:disabled, button.btn.primary:disabled { background: var(--off); border: 2px solid var(--off); color: var(--off-ink); box-shadow: none; cursor: not-allowed; transform: none; }
   select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
 
   dl.meas { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
@@ -396,11 +400,21 @@
   .pin:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(var(--shade),.18); }
   .pin .img { position: relative; cursor: pointer; background: oklch(0.93 0.025 75); padding: 14px; }
   .pin canvas { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
-  .pin .over { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: flex-end; gap: 6px; padding: 10px; background: linear-gradient(rgba(0,0,0,.35), transparent 45%); opacity: 0; transition: opacity .18s ease; }
-  .pin:hover .over, .pin:focus-within .over { opacity: 1; }
-  .pin .over .open { margin-right: auto; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 8px 16px; font: 600 .85rem var(--font-body); cursor: pointer; }
-  .pin .over .ic { background: oklch(0.99 0.01 80 / .94); color: oklch(0.25 0.03 40); border: 0; border-radius: 999px; width: 34px; height: 34px; font-size: .95rem; cursor: pointer; }
-  .pin .meta { padding: 10px 14px 12px; }
+  .pin .meta { padding: 10px 8px 12px 14px; display: flex; align-items: flex-start; gap: 6px; }
+  .pin .meta-text { flex: 1; min-width: 0; }
+  /* shared with the community (mine/community.js) */
+  .pin-tag { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; background: var(--sage); color: oklch(0.25 0.03 40); font: 700 .7rem var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
+  .com-intro { text-align: center; margin: 4px 0 14px; }
+  .pin .by { display: block; color: var(--muted); font-size: .8rem; }
+  .pin .com-copy { margin-top: 8px; }
+  .com-more { text-align: center; margin-top: 12px; }
+  /* the card's ⋯ (Open, Rename, Duplicate, Delete): always there, phones too */
+  .pin-more { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--stitch); background: var(--panel); color: var(--accent); font: 700 1.1rem/1 var(--font-body); cursor: pointer; display: grid; place-items: center; }
+  .pin-more:hover, .pin-more[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent); }
+  .pin-menu { position: fixed; z-index: 80; min-width: 160px; padding: 6px; display: grid; gap: 2px; background: var(--panel); border: 2px dashed var(--stitch); border-radius: 10px; box-shadow: 0 12px 30px rgba(var(--shade),.2); }
+  .pin-menu button { text-align: left; font: 600 .92rem var(--font-body); color: var(--ink); background: none; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+  .pin-menu button:hover, .pin-menu button:focus-visible { background: var(--accent-soft); outline: none; }
+  .pin-menu button.danger { color: var(--madder); }
   .pin .meta b { display: block; font-size: .95rem; }
   .pin .meta small { color: var(--muted); font-size: .76rem; }
   .pin.current { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(var(--shade),.08); }
@@ -448,6 +462,10 @@
   .unit-sw input:focus-visible + .u-track { outline: 2px solid var(--accent); outline-offset: 2px; }
   .unit-sw[data-unit="mm"] .u-mm, .unit-sw[data-unit="in"] .u-in { color: var(--ink); }
   @media (prefers-reduced-motion: reduce) { .unit-sw .u-track, .unit-sw .u-track i { transition: none; } }
+  /* a length in inches: whole inches and a fraction menu (designer/units-ui.js) */
+  .inch-pair { display: inline-flex; align-items: center; gap: 3px; }
+  .inch-pair .inch-whole { width: 3.6em; text-align: center; }
+  .inch-pair .inch-frac { padding: 4px 2px; min-width: 3.2em; }
   .size-in { margin: 0 4px; width: 4.6em; padding: 2px 4px; font: inherit; font-weight: 600; color: var(--ink, #1d2230); border: 1px solid var(--line); border-radius: 6px; background: var(--panel); text-align: center; }
   .size-in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .tl-row { display: flex; justify-content: center; margin-top: 10px; transition: opacity .2s ease; }
@@ -772,6 +790,7 @@
     <button type="button" role="tab" data-page="design" aria-selected="true">Quilt designer</button>
     <button type="button" role="tab" data-page="cut" aria-selected="false">Cutting guide</button>
     <button type="button" role="tab" data-page="mine" aria-selected="false">My designs</button>
+    <button type="button" role="tab" data-page="community" aria-selected="false">Community</button>
   </nav>
   <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: a short exercise to make and change a three-block quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   <div class="acct" id="acct">
@@ -853,17 +872,17 @@
   <div class="row sim-toolbar">
     <select id="bedsel" aria-label="Bed (mattress size)" title="Bed (mattress size)"></select>
     <span class="bmm" id="bed-custom" hidden>
-      <label class="sr" for="bed-w">Mattress width</label><span class="bmm-in"><input id="bed-w" type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
-      <label class="sr" for="bed-l">Mattress length</label><span class="bmm-in"><input id="bed-l" type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> <span data-unit-name>mm</span></span>
+      <label class="sr" for="bed-w">Mattress width</label><span class="bmm-in"><input id="bed-w" data-len type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
+      <label class="sr" for="bed-l">Mattress length</label><span class="bmm-in"><input id="bed-l" data-len type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="table-custom" hidden>
-      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width" aria-label="Table width"> ×</span>
-      <span class="bmm-in"><input id="tbl-l" type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length" aria-label="Table length"> <span data-unit-name>mm</span>,</span>
-      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor"> <span data-unit-name>mm</span></span>
+      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" data-len type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width" aria-label="Table width"> ×</span>
+      <span class="bmm-in"><input id="tbl-l" data-len type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length" aria-label="Table length"> <span data-unit-name>mm</span>,</span>
+      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" data-len type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="couch-custom" hidden>
-      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm" aria-label="Couch width"> ×</span>
-      <span class="bmm-in"><input id="cch-l" type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back" aria-label="Couch depth"> <span data-unit-name>mm</span>,</span>
+      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" data-len type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm" aria-label="Couch width"> ×</span>
+      <span class="bmm-in"><input id="cch-l" data-len type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back" aria-label="Couch depth"> <span data-unit-name>mm</span>,</span>
       <label for="cch-s">seats</label><span class="bmm-in"><input id="cch-s" type="number" min="1" max="5" step="1" inputmode="numeric" title="How many seat cushions (each at least 40 cm wide)"></span>
     </span>
     <button class="btn" id="saveimg3" type="button" title="Take a picture of the 3D view and save it as a PNG">Take picture</button>
@@ -1069,6 +1088,7 @@
           <div class="rail rail-left" role="toolbar" aria-label="File">
             <button type="button" class="rail-btn" id="dz-new" aria-label="New design" title="New design: start a new quilt from the default pattern, with its own timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 3v18h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v4h4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M9 9h3v3H9z M12 12h3v3h-3z" fill="currentColor" opacity=".55"/><path d="M18 15v6M15 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
             <button type="button" class="rail-btn rail-primary" id="dz-save" aria-label="Save" title="Save this quilt to My designs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h13l3 3v13H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 4v5h7V4" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.5" y="13" width="9" height="7" rx=".8" fill="currentColor" opacity=".6"/></svg></button>
+            <button type="button" class="rail-btn" id="dz-share" aria-label="Share with the community" title="Share this quilt with the community"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="18.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
           </div>
           <div class="rail" role="toolbar" aria-label="Design tools">
             <button type="button" class="rail-btn" id="rail-parts" aria-pressed="false" aria-label="Block parts" title="Block parts: pattern, pieces and fabrics"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18" stroke="currentColor" stroke-width="1"/><path d="M9 9l3 3 3-3v6l-3-3-3 3z" fill="currentColor"/><path d="M9 3l3 6 3-6M9 21l3-6 3 6M3 9l6 3-6 3M21 9l-6 3 6 3" fill="currentColor" opacity=".55"/></svg></button>
@@ -1090,7 +1110,7 @@
           </div>
         </div>
       </div>
-      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size" title="Type a new block size and press Enter"> <span data-unit-name>mm</span></span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
+      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" data-len class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size" title="Type a new block size and press Enter"> <span data-unit-name>mm</span></span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
       <div class="tl-row" id="tl-row" hidden>
           <span class="tl-btns" role="group" aria-label="Timeline">
             <button class="btn" type="button" id="tl-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
@@ -1117,7 +1137,7 @@
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
         <h2>Sashing</h2>
         <div class="row" style="align-items:center">
-          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> <span data-unit-name>mm</span></span></label>
+          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" data-len type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> <span data-unit-name>mm</span></span></label>
           <span class="sash-presets" id="sash-presets"></span>
         </div>
         <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="sash-border"> Also around the outside (border)</label>
@@ -1148,7 +1168,7 @@
         <p class="fine" style="margin:0 0 8px">One shape all over the quilt. Pick a fabric, then click a shape or drag over several to paint them. The arrows by Columns and Rows add more.</p>
         <div class="param"><label for="mos-shape">Shape</label><output></output><select id="mos-shape" title="The shape the whole quilt is made of"><option value="hex">Hexagons (flower garden)</option><option value="diamond">Diamonds (tumbling blocks)</option><option value="triangle">Triangles</option></select></div>
         <div class="fablib-groups mos-tools" id="mos-tools" role="group" aria-label="What a click paints"><button type="button" data-tool="one" aria-pressed="true" title="Paint one hexagon">One</button><button type="button" data-tool="rosette" aria-pressed="false" title="Paint a flower: the shape and the ones around it (with diamonds: the three of a cube)">Rosette</button><button type="button" data-tool="row" aria-pressed="false" title="Paint the whole row">Row</button><button type="button" data-tool="way" aria-pressed="false" title="Paint every shape lying the same way: every top, left or right of the cubes, or every triangle pointing up or down" hidden>Same way</button><button type="button" data-tool="random" aria-pressed="false" title="Each hexagon gets a fabric picked at random from the list below">Random</button></div>
-        <div class="param"><label for="mos-mm">Side of a shape</label><output data-unit-name>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape"></div>
+        <div class="param"><label for="mos-mm">Side of a shape</label><output data-unit-name>mm</output><input id="mos-mm" data-len type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape"></div>
         <p class="fine" style="margin:10px 0 4px">Paint with</p>
         <div class="fabs" id="mos-fabs" aria-label="The fabric to paint with"></div>
         <p style="margin:10px 0 0"><button class="btn sm" type="button" id="mos-fill" title="Paint every hexagon: in the chosen fabric, or with Random, each in a fabric from the list">Fill all</button></p>
@@ -1171,11 +1191,11 @@
         <label for="fit-bed" class="sr">Mattress size</label>
         <select id="fit-bed" aria-label="Mattress size" style="width:100%"></select>
         <div class="two" id="fit-custom" hidden style="margin-top:8px">
-          <div><label for="fit-w">Mattress width (<span data-unit-name>mm</span>)</label><input id="fit-w" type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
-          <div><label for="fit-l">Mattress length (<span data-unit-name>mm</span>)</label><input id="fit-l" type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-w">Mattress width (<span data-unit-name>mm</span>)</label><input id="fit-w" data-len type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-l">Mattress length (<span data-unit-name>mm</span>)</label><input id="fit-l" data-len type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
         </div>
         <div class="two" style="margin-top:8px;align-items:end">
-          <div><label for="fit-drop">Drop (<span data-unit-name>mm</span>)</label><input id="fit-drop" type="number" min="0" max="800" step="10" inputmode="numeric"></div>
+          <div><label for="fit-drop">Drop (<span data-unit-name>mm</span>)</label><input id="fit-drop" data-len type="number" min="0" max="800" step="10" inputmode="numeric"></div>
           <label style="display:flex;gap:6px;align-items:center;padding-bottom:6px"><input type="checkbox" id="fit-tuck"> Pillow tuck (+<span id="tuck-len">250 mm</span>)</label>
         </div>
         <p class="fine" id="fit-hint" style="margin:6px 0 0">Drop: about 250–300 mm covers the mattress, 450–550 mm the box spring too; floor length is the mattress-top height.</p>
@@ -1287,6 +1307,24 @@
     <button class="btn primary" type="button" id="save-ok">Save</button>
   </div>
 </dialog>
+<dialog class="dz-dialog" id="share-dlg" aria-labelledby="share-title">
+  <div class="dlg-head"><h2 id="share-title">Share with the community</h2><button class="btn sm dlg-x" type="button" id="share-x" aria-label="Close">×</button></div>
+  <div class="save-prev"><canvas id="share-cv" aria-hidden="true"></canvas></div>
+  <div id="share-form">
+    <label for="share-name" style="display:block;margin-top:10px">Quilt name</label>
+    <input type="text" id="share-name" maxlength="60" style="width:100%">
+    <label for="share-author" style="display:block;margin-top:10px">Your name, as others will see it</label>
+    <input type="text" id="share-author" maxlength="40" style="width:100%" placeholder="e.g. Jackson S." autocomplete="nickname">
+    <p class="fine" id="share-note" style="margin:10px 0 0">Anyone using the Quilt designer can see this quilt and copy it to their designs.</p>
+  </div>
+  <p class="fine" id="share-signin-note" style="margin:12px 0 0" hidden>Sign in to share your quilts with the community.</p>
+  <p class="fine sync-err" id="share-err" role="alert" hidden></p>
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button class="btn" type="button" id="share-stop" hidden>Stop sharing</button>
+    <button class="btn" type="button" id="share-cancel">Cancel</button>
+    <button class="btn primary" type="button" id="share-ok">Share with the community</button>
+  </div>
+</dialog>
 <dialog class="dz-dialog fablib" id="blklib" aria-labelledby="blklib-title">
   <div class="dlg-head"><h2 id="blklib-title">Block library</h2><button class="btn sm dlg-x" type="button" id="blklib-x" aria-label="Close">×</button></div>
   <input type="search" id="blklib-q" placeholder="Search: star, nine patch, log…" aria-label="Search blocks by name or family" autocomplete="off">
@@ -1326,6 +1364,16 @@
   <p class="fine" id="colfind-status"></p>
   <div class="fabs" id="colfind-results" aria-label="Fabrics, best match first: click one to use it"></div>
 </dialog>
+<section id="page-community" hidden>
+  <div class="mine-top">
+    <input type="search" id="com-q" placeholder="Search shared quilts and quilters" aria-label="Search shared quilts and quilters">
+    <button class="btn primary" type="button" id="com-share">Share current design</button>
+  </div>
+  <p class="fine com-intro">Quilts shared by quilters using the Quilt designer. <b>Copy to my designs</b> adds one to My designs, to change as you like.</p>
+  <div class="mine-grid" id="com-grid"></div>
+  <p class="fine mine-empty" id="com-empty" hidden></p>
+  <div class="com-more"><button class="btn" type="button" id="com-more" hidden>More quilts</button></div>
+</section>
 <section id="page-cut" hidden>
   <dialog class="dz-dialog cg-pop" id="cg-pop" aria-labelledby="cg-pop-title">
     <div class="dlg-head">
@@ -2227,9 +2275,9 @@ if (typeof module !== 'undefined') module.exports = ClothSim;
 </script>
 <script type="module">
 var __defProp = Object.defineProperty;
-var __export = (target2, all) => {
+var __export = (target3, all) => {
   for (var name in all)
-    __defProp(target2, name, { get: all[name], enumerable: true });
+    __defProp(target3, name, { get: all[name], enumerable: true });
 };
 
 // src/storage/repo.js
@@ -5308,6 +5356,454 @@ var GRID_BLOCKS = {
       ["Field \xB7 lower right", 0, [5, 3, 5, 5, 3, 5]],
       ["Field \xB7 lower left", 0, [1, 3, 3, 5, 1, 5]]
     ]
+  },
+  scotsplaid: {
+    label: "Scot's plaid",
+    family: "Four patch",
+    n: 4,
+    // from a picture: light (1) frame along the top and left, mid grey (2) bars, a white (0) diagonal and corner
+    rows: String.raw`
+      0 1 1 1
+      1 0 2 2
+      1 2 0 0
+      1 2 0 0`
+  },
+  autumntints: {
+    label: "Autumn tints",
+    family: "Four patch",
+    n: 4,
+    // from a picture: two large mid grey (2) squares, and two four-patches of white (0), light (1) and dark (3)
+    rows: String.raw`
+      2 - 0 3
+      | + 1 0
+      0 1 2 -
+      3 0 | +`
+  },
+  sixteenplaid: {
+    label: "Sixteen-patch plaid",
+    family: "Larger grids",
+    n: 8,
+    // from a picture: large mid grey (2) and light (1) corners, white bars, and a diagonal of squares in four greys
+    rows: String.raw`
+      2 - 0 2 0 0 1 -
+      | + | 0 2 | | +
+      0 - 2 3 0 1 0 -
+      2 0 3 2 1 0 2 0
+      0 2 0 1 2 3 0 2
+      0 - 1 0 3 2 0 -
+      1 - 0 2 0 0 2 -
+      | + | 0 2 | | +`
+  },
+  fourh: {
+    label: "Four-H",
+    family: "Larger grids",
+    n: 6,
+    // from a picture: four turns of two light grey (1) bars round a white (0) and grey square
+    rows: String.raw`
+      1 0 1 1 - -
+      | 1 | 0 1 0
+      | 0 | 1 - -
+      1 - - 1 0 1
+      0 1 0 | 1 |
+      1 - - | 0 |`
+  },
+  flyfoot1: {
+    label: "Flyfoot I",
+    family: "Larger grids",
+    n: 8,
+    // from a picture: large white (0) squares, a light (1) ring round a dark (3) centre, mid grey (2) edges
+    rows: String.raw`
+      2 0 0 - 2 2 2 2
+      2 0 | + 1 1 0 0
+      2 1 1 1 1 1 0 -
+      2 1 1 3 3 1 | +
+      0 - 1 3 3 1 1 2
+      | + 1 1 1 1 1 2
+      0 0 1 1 0 - 0 2
+      2 2 2 2 | + 0 2`
+  },
+  whitehousesteps: {
+    label: "White House steps",
+    family: "Larger grids",
+    n: 8,
+    // from a picture: grey (1) and white (0) squares in rings round a white centre
+    rows: String.raw`
+      1 1 1 1 1 1 1 1
+      1 0 0 0 0 0 0 1
+      1 0 1 1 1 1 0 1
+      1 0 1 0 0 1 0 1
+      1 0 1 0 0 1 0 1
+      1 0 1 1 1 1 0 1
+      1 0 0 0 0 0 0 1
+      1 1 1 1 1 1 1 1`
+  },
+  balkanpuzzle: {
+    label: "Balkan puzzle",
+    family: "Other",
+    n: 4,
+    // from a drawing (Brown 1211): a pinwheel of dotted (1) and white corners round a white diamond, four striped (2) bands
+    rows: String.raw`
+      1\0 0/2 0\1 1/0
+      1/0 2/0 0\2 2\0
+      0\2 2\0 0/2 0/1
+      0/1 1\0 2/0 0\1`
+  },
+  blockade: {
+    label: "Blockade",
+    family: "Other",
+    n: 4,
+    // from a drawing (Brown 1212, also A four corner puzzle): black (1) and striped (2) corners, a white ring, black and striped in the middle
+    rows: String.raw`
+      1\2 2/0 0\1 1/2
+      1/0 0/2 1\0 0\2
+      2\0 0\1 2/0 0/1
+      2/1 1\0 0/2 2\1`
+  },
+  hazydaisy: {
+    label: "Hazy daisy",
+    family: "Larger grids",
+    n: 8,
+    // from a drawing (Brown 1213): four hourglasses of black (1) and white (0), a dotted (2) square on point in the point of each black triangle
+    rows: String.raw`
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x
+      x x x x x x x x`,
+    extra: [
+      ["Daisy 1 \xB7 top triangle", 1, [0, 0, 4, 0, 2.75, 1.25, 2, 0.5, 1.25, 1.25]],
+      ["Daisy 1 \xB7 top dotted square", 2, [2, 2, 1.25, 1.25, 2, 0.5, 2.75, 1.25]],
+      ["Daisy 1 \xB7 right white triangle", 0, [4, 0, 4, 4, 2, 2]],
+      ["Daisy 1 \xB7 bottom triangle", 1, [0, 4, 4, 4, 2.75, 2.75, 2, 3.5, 1.25, 2.75]],
+      ["Daisy 1 \xB7 bottom dotted square", 2, [2, 2, 1.25, 2.75, 2, 3.5, 2.75, 2.75]],
+      ["Daisy 1 \xB7 left white triangle", 0, [0, 0, 0, 4, 2, 2]],
+      ["Daisy 2 \xB7 top white triangle", 0, [4, 0, 8, 0, 6, 2]],
+      ["Daisy 2 \xB7 right triangle", 1, [8, 0, 8, 4, 6.75, 2.75, 7.5, 2, 6.75, 1.25]],
+      ["Daisy 2 \xB7 right dotted square", 2, [6, 2, 6.75, 1.25, 7.5, 2, 6.75, 2.75]],
+      ["Daisy 2 \xB7 bottom white triangle", 0, [4, 4, 8, 4, 6, 2]],
+      ["Daisy 2 \xB7 left triangle", 1, [4, 0, 4, 4, 5.25, 2.75, 4.5, 2, 5.25, 1.25]],
+      ["Daisy 2 \xB7 left dotted square", 2, [6, 2, 5.25, 1.25, 4.5, 2, 5.25, 2.75]],
+      ["Daisy 3 \xB7 top white triangle", 0, [0, 4, 4, 4, 2, 6]],
+      ["Daisy 3 \xB7 right triangle", 1, [4, 4, 4, 8, 2.75, 6.75, 3.5, 6, 2.75, 5.25]],
+      ["Daisy 3 \xB7 right dotted square", 2, [2, 6, 2.75, 5.25, 3.5, 6, 2.75, 6.75]],
+      ["Daisy 3 \xB7 bottom white triangle", 0, [0, 8, 4, 8, 2, 6]],
+      ["Daisy 3 \xB7 left triangle", 1, [0, 4, 0, 8, 1.25, 6.75, 0.5, 6, 1.25, 5.25]],
+      ["Daisy 3 \xB7 left dotted square", 2, [2, 6, 1.25, 5.25, 0.5, 6, 1.25, 6.75]],
+      ["Daisy 4 \xB7 top triangle", 1, [4, 4, 8, 4, 6.75, 5.25, 6, 4.5, 5.25, 5.25]],
+      ["Daisy 4 \xB7 top dotted square", 2, [6, 6, 5.25, 5.25, 6, 4.5, 6.75, 5.25]],
+      ["Daisy 4 \xB7 right white triangle", 0, [8, 4, 8, 8, 6, 6]],
+      ["Daisy 4 \xB7 bottom triangle", 1, [4, 8, 8, 8, 6.75, 6.75, 6, 7.5, 5.25, 6.75]],
+      ["Daisy 4 \xB7 bottom dotted square", 2, [6, 6, 5.25, 6.75, 6, 7.5, 6.75, 6.75]],
+      ["Daisy 4 \xB7 left white triangle", 0, [4, 4, 4, 8, 6, 6]]
+    ]
+  },
+  chineselanterns: {
+    label: "Chinese lanterns",
+    family: "Other",
+    n: 4,
+    // from a drawing (Brown 1215): a diamond cut into eight long triangles in four fabrics (stars 1, striped 2, dotted 3, sparse 4), white corners
+    rows: String.raw`
+      x x x x
+      x x x x
+      x x x x
+      x x x x`,
+    extra: [
+      ["Lantern \xB7 upper left, outer", 1, [2, 0, 0, 2, 1, 2]],
+      ["Lantern \xB7 upper left, inner", 2, [2, 0, 1, 2, 2, 2]],
+      ["Lantern \xB7 upper right, inner", 3, [2, 0, 2, 2, 3, 2]],
+      ["Lantern \xB7 upper right, outer", 4, [2, 0, 3, 2, 4, 2]],
+      ["Lantern \xB7 lower left, outer", 4, [0, 2, 1, 2, 2, 4]],
+      ["Lantern \xB7 lower left, inner", 3, [1, 2, 2, 2, 2, 4]],
+      ["Lantern \xB7 lower right, inner", 2, [2, 2, 3, 2, 2, 4]],
+      ["Lantern \xB7 lower right, outer", 1, [3, 2, 4, 2, 2, 4]],
+      ["Corner \xB7 upper left", 0, [0, 0, 2, 0, 0, 2]],
+      ["Corner \xB7 upper right", 0, [2, 0, 4, 0, 4, 2]],
+      ["Corner \xB7 lower left", 0, [0, 2, 0, 4, 2, 4]],
+      ["Corner \xB7 lower right", 0, [4, 2, 4, 4, 2, 4]]
+    ]
+  },
+  tamspatch: {
+    label: "Tam's patch",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1117): two large squares (1), a white (0) and a small (2) square in a pinwheel
+    rows: String.raw`
+      0 - 1 -
+      0 2 | +
+      1 - 2 0
+      | + 0 -`
+  },
+  swastika: {
+    label: "Swastika",
+    family: "Other",
+    n: 10,
+    // from a drawing (Brown 1118): four arms turned about a small centre square (3), each a striped (2) strip, a dotted (1) and a white (0) block
+    rows: String.raw`
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x
+      x x x x x x x x x x`,
+    extra: [
+      ["Arm 1 \xB7 strip", 2, [0, 0, 1, 0, 1, 5, 0, 5]],
+      ["Arm 1 \xB7 dotted block", 1, [1, 0, 5, 0, 5, 2.5, 1, 2.5]],
+      ["Arm 1 \xB7 white block", 0, [1, 2.5, 5, 2.5, 5, 4, 4, 4, 4, 5, 1, 5]],
+      ["Arm 2 \xB7 strip", 2, [10, 0, 10, 1, 5, 1, 5, 0]],
+      ["Arm 2 \xB7 dotted block", 1, [10, 1, 10, 5, 7.5, 5, 7.5, 1]],
+      ["Arm 2 \xB7 white block", 0, [7.5, 1, 7.5, 5, 6, 5, 6, 4, 5, 4, 5, 1]],
+      ["Arm 3 \xB7 strip", 2, [10, 10, 9, 10, 9, 5, 10, 5]],
+      ["Arm 3 \xB7 dotted block", 1, [9, 10, 5, 10, 5, 7.5, 9, 7.5]],
+      ["Arm 3 \xB7 white block", 0, [9, 7.5, 5, 7.5, 5, 6, 6, 6, 6, 5, 9, 5]],
+      ["Arm 4 \xB7 strip", 2, [0, 10, 0, 9, 5, 9, 5, 10]],
+      ["Arm 4 \xB7 dotted block", 1, [0, 9, 0, 5, 2.5, 5, 2.5, 9]],
+      ["Arm 4 \xB7 white block", 0, [2.5, 9, 2.5, 5, 4, 5, 4, 6, 5, 6, 5, 9]],
+      ["Centre square", 3, [4, 4, 6, 4, 6, 6, 4, 6]]
+    ]
+  },
+  onedozennapkins: {
+    label: "One dozen napkins",
+    family: "Larger grids",
+    n: 21,
+    // from a drawing (Brown 1119): a white square crossed by two triple strips each way, black (1) and white (0), woven where they cross
+    rows: String.raw`
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      1 - - 0 1 0 1 - - - - - - - - 0 1 0 1 - -
+      0 - - 1 0 1 0 - - - - - - - - 1 0 1 0 - -
+      | + + | | | | + + + + + + + + | | | | + +
+      | + + | | | | + + + + + + + + | | | | + +`
+  },
+  pinwheel2: {
+    label: "Pinwheel II",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1121): dotted (1) and striped (2) squares round a white (0) middle, with dotted triangles
+    rows: String.raw`
+      1 1/0 2 1
+      2 0 0 0\1
+      1\0 0 0 2
+      1 2 0/1 1`
+  },
+  anvil: {
+    label: "The anvil",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1122): dotted (1) corners and dotted triangles along the edges, a white (0) middle
+    rows: String.raw`
+      1 0/1 0/1 1
+      0/1 0 0 1/0
+      0/1 0 0 1/0
+      1 1/0 1/0 1`
+  },
+  crockettcabin: {
+    label: "Crockett cabin quilt",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1123a): one fabric (1) in squares and triangles on white (0)
+    rows: String.raw`
+      1 0 0/1 0
+      0 1 0 1/0
+      0/1 0 1 0
+      0 1/0 0 1`
+  },
+  roadtooklahoma: {
+    label: "Road to Oklahoma",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1123b): one fabric (1) in squares and triangles on white (0)
+    rows: String.raw`
+      1 0 0/1 1
+      0 1 0 1/0
+      0/1 0 1 0
+      1 1/0 0 1`
+  },
+  arkansascrossroads: {
+    label: "The Arkansas cross roads",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1123c): scribble (1), dotted (2) and striped (3) squares and triangles on white (0)
+    rows: String.raw`
+      1 2 3/0 0
+      2 1 0 0/3
+      3/0 0 1 2
+      0 0/3 2 1`
+  },
+  wildduck: {
+    label: "Wild duck",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1124): dotted (1) and striped (2) triangles in diagonal rows on white (0)
+    rows: String.raw`
+      0/1 0 0/1 2/0
+      0 2/1 1 2/0
+      0/1 1 2/1 0
+      2/0 2/0 0 2/0`
+  },
+  nelsonsvictory: {
+    label: "Nelson's victory",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1125): scribble (1) corners, plus (2) squares and triangles in a pinwheel in the middle, white (0)
+    rows: String.raw`
+      1 2 0 1
+      0 0\2 0/2 2
+      2 2/0 2\0 0
+      1 0 2 1`
+  },
+  windmill: {
+    label: "Windmill",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1126): a pinwheel of triangles (1) in the middle and a triangle in each corner, on white (0)
+    rows: String.raw`
+      0/1 0 0 1\0
+      0 1\0 1/0 0
+      0 0/1 0\1 0
+      0\1 0 0 1/0`
+  },
+  xquartet: {
+    label: "X quartet",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1127): dotted (1) corners and a pinwheel of triangles (2) in the middle, white (0)
+    rows: String.raw`
+      1 0/2 0 1
+      0 2\0 2/0 2\0
+      0\2 0/2 0\2 0
+      1 0 2/0 1`
+  },
+  clayschoice: {
+    label: "Clay's choice",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1128a): dotted (1) corners, a pinwheel of scribble (2) triangles with dotted triangles between, white (0)
+    rows: String.raw`
+      1 2\0 0 1
+      0 1\2 1/2 2/0
+      0/2 2/1 2\1 0
+      1 0 0\2 1`
+  },
+  blocksandpinwheels: {
+    label: "Blocks and pinwheels",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1128b): dotted (1) corners and a pinwheel of scribble (2) triangles on white (0)
+    rows: String.raw`
+      1 2\0 0 1
+      0 0\2 0/2 2/0
+      0/2 2/0 2\0 0
+      1 0 0\2 1`
+  },
+  yearsfavorite: {
+    label: "Year's favorite",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1129a): striped (1) triangles in two long diagonal rows on white (0)
+    rows: String.raw`
+      0\1 0 0/1 0/1
+      0\1 0\1 0/1 0
+      0 1/0 1\0 1\0
+      1/0 1/0 0 1\0`
+  },
+  pinwheels: {
+    label: "Pinwheels",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1129b): dotted (1) and striped (2) triangles and squares turning about the middle, white (0)
+    rows: String.raw`
+      0\1 0\2 2 0/1
+      2 1\0 1/0 0/2
+      2/0 0/1 0\1 2
+      1/0 2 2\0 1\0`
+  },
+  roosevelt: {
+    label: "Mr. Roosevelt's necktie",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1129.5): a dotted (1) diamond in the middle with four dotted squares round it, white (0)
+    rows: String.raw`
+      0 1 0 0
+      1 1/1 1\0 0
+      0 0\1 1/1 1
+      0 0 1 0`
+  },
+  yankeepuzzle: {
+    label: "Yankee puzzle",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1130a): dotted (1) triangles in diagonal rows on white (0)
+    rows: String.raw`
+      0/1 1\0 1\0 1\0
+      0/1 0\1 0/1 1/0
+      0/1 1/0 1\0 1/0
+      0\1 0\1 0\1 1/0`
+  },
+  flyfoot: {
+    label: "Flyfoot",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1130b): dotted (1) triangles turning about the middle, white (0)
+    rows: String.raw`
+      1/0 0\1 1\0 0\1
+      0/1 1\0 1/0 0/1
+      1/0 0/1 0\1 1/0
+      1\0 0\1 1\0 0/1`
+  },
+  ladieswreath: {
+    label: "Ladies' wreath",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1131): striped (1) triangles in a wreath on white (0)
+    rows: String.raw`
+      0/1 0/1 0 1\0
+      0/1 0/1 0\1 0
+      0 1\0 1/0 1/0
+      0\1 0 1/0 1/0`
+  },
+  mosaic17: {
+    label: "Mosaic #17",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1132): sixteen half-square triangles, dotted (1) on white (0), all the same way
+    rows: String.raw`
+      1/0 1/0 1/0 1/0
+      1/0 1/0 1/0 1/0
+      1/0 1/0 1/0 1/0
+      1/0 1/0 1/0 1/0`
+  },
+  hopscotch: {
+    label: "Hopscotch",
+    family: "Four patch",
+    n: 4,
+    // from a drawing (Brown 1133): rows of half-square triangles, dotted (1) on white (0), turned every other row
+    rows: String.raw`
+      1\0 1\0 1\0 1\0
+      0/1 0/1 0/1 0/1
+      1\0 1\0 1\0 1\0
+      0/1 0/1 0/1 0/1`
   }
 };
 
@@ -7389,9 +7885,13 @@ function createRepo() {
     if (value === void 0) del("session", key);
     else put2("session", key, { key, value });
   }
+  const account = () => getSession2("account") || null;
+  const visible = (r) => !r.deleted && (r.owner == null || r.owner === account());
+  const mine = (r) => r.owner != null && r.owner === account();
+  const ownedNow = () => account() ? { owner: account() } : {};
   const syncSide = (store) => ({
-    /** records changed here since the last upload, deletion markers included */
-    dirty: () => [...cache2[store].values()].filter((r) => r.dirty),
+    /** the signed-in account's records changed here since the last upload, deletion markers included */
+    dirty: () => [...cache2[store].values()].filter((r) => r.dirty && mine(r)),
     /** the record, deleted or not */
     raw: (id) => cache2[store].get(id) || null,
     /**
@@ -7416,6 +7916,8 @@ function createRepo() {
         createdAt: rec.createdAt || now(),
         ...old,
         ...rec,
+        ...ownedNow(),
+        // it came from the signed-in account's space on the server
         rev: (old?.rev || 0) + 1,
         syncRev: rec.rev,
         deleted: false,
@@ -7424,21 +7926,43 @@ function createRepo() {
     },
     /** Removes a record outright (a deletion marker the server never needed to know about). @param {string} id */
     purge: (id) => cache2[store].has(id) && del(store, id),
-    /** Connecting to another server or account: everything here is new to it (deletion markers are dropped). */
+    /**
+     * Connecting the account to another server: its records here are all new to it (its deletion markers are
+     * dropped). Other accounts' records are not touched.
+     */
     resetSync() {
       for (const r of [...cache2[store].values()]) {
+        if (!mine(r)) continue;
         if (r.deleted) del(store, r.id);
         else put2(store, r.id, { ...r, syncRev: 0, dirty: true });
       }
+    },
+    /** The ones made here while nobody was signed in (not the samples): what Sign in offers to add to the account. */
+    strays: () => [...cache2[store].values()].filter((r) => !r.deleted && r.owner == null && !r.sample),
+    /** Adds those to the signed-in account: they are then synced. @returns {number} how many */
+    adoptStrays() {
+      const acc = account();
+      if (!acc) return 0;
+      const them = [...cache2[store].values()].filter((r) => !r.deleted && r.owner == null && !r.sample);
+      for (const r of them) put2(store, r.id, { ...r, owner: acc, syncRev: 0, dirty: true, rev: r.rev + 1 });
+      return them.length;
+    },
+    /**
+     * Records from before records had owners that were already on the server (synced): the account they were
+     * synced with. Run once, when the app starts with sync set up. @param {string} acc
+     */
+    claimSynced(acc) {
+      for (const r of [...cache2[store].values()])
+        if (r.owner == null && (r.syncRev || 0) > 0 && !r.sample) put2(store, r.id, { ...r, owner: acc });
     }
   });
   const designs2 = {
-    /** @returns {DesignRecord[]} the saved designs, not counting deleted ones */
-    list: () => [...cache2.designs.values()].filter((r) => !r.deleted),
-    /** @param {string} id @returns {DesignRecord | null} */
+    /** @returns {DesignRecord[]} the saved designs the signed-in account sees, not counting deleted ones */
+    list: () => [...cache2.designs.values()].filter(visible),
+    /** @param {string} id @returns {DesignRecord | null} (null for another account's) */
     get: (id) => {
       const r = cache2.designs.get(id);
-      return r && !r.deleted ? r : null;
+      return r && visible(r) ? r : null;
     },
     /**
      * Saves a new design or changes one: `rec` is merged into the record; the save counter goes up and the
@@ -7450,6 +7974,8 @@ function createRepo() {
         name: "",
         design: null,
         createdAt: t,
+        ...ownedNow(),
+        // a new one belongs to whoever is signed in; a changed one keeps its owner
         ...old && !old.deleted ? old : {},
         syncRev: old?.syncRev || 0,
         ...rec,
@@ -7462,6 +7988,14 @@ function createRepo() {
       changed("designs", next.id);
       return next;
     },
+    /**
+     * Marks one of the app's own sample designs (they are never offered to an account as "made on this device").
+     * Not a change of the design: nothing to sync. @param {string} id
+     */
+    markSample(id) {
+      const r = cache2.designs.get(id);
+      if (r && !r.sample) put2("designs", id, { ...r, sample: true });
+    },
     /** Deletes a design (kept as a marker until the server has the deletion). @param {string} id */
     remove(id) {
       const old = cache2.designs.get(id);
@@ -7473,9 +8007,9 @@ function createRepo() {
     ...syncSide("designs")
   };
   const fabrics2 = {
-    /** @returns {FabricRecord[]} */
-    list: () => [...cache2.fabrics.values()].filter((r) => !r.deleted).sort((a, b) => a.createdAt - b.createdAt),
-    /** @param {string} id @returns {FabricRecord | null} */
+    /** @returns {FabricRecord[]} the photos the signed-in account sees */
+    list: () => [...cache2.fabrics.values()].filter(visible).sort((a, b) => a.createdAt - b.createdAt),
+    /** @param {string} id @returns {FabricRecord | null} (any account's: a quilt that uses it still draws) */
     get: (id) => {
       const r = cache2.fabrics.get(id);
       return r && !r.deleted ? r : null;
@@ -7486,10 +8020,16 @@ function createRepo() {
      */
     async add(blob, meta) {
       const id = await blobHash(blob), old = cache2.fabrics.get(id);
-      if (old && !old.deleted) return { id, isNew: false };
+      if (old && !old.deleted && visible(old)) return { id, isNew: false };
+      if (old && !old.deleted) {
+        put2("fabrics", id, { ...old, owner: account() || void 0, syncRev: 0, dirty: true, rev: old.rev + 1 });
+        changed("fabrics", id);
+        return { id, isNew: true };
+      }
       const t = now();
       put2("fabrics", id, {
         id,
+        ...ownedNow(),
         name: meta.name,
         cm: meta.cm,
         blob,
@@ -7529,6 +8069,10 @@ function createRepo() {
     onChange: (f) => void listeners2.add(f),
     getSession: getSession2,
     setSession: setSession2,
+    /** The account signed in on this device (its records are listed and synced), or null. */
+    account,
+    /** @param {string | null} acc */
+    setAccount: (acc) => setSession2("account", acc || void 0),
     designs: designs2,
     fabrics: fabrics2,
     timelines: timelines2
@@ -9551,6 +10095,10 @@ var fromInput = (v) => unit === "in" ? Math.round(v * MM_PER_IN) : Math.round(v)
 function inputRange(minMm, maxMm) {
   return unit === "in" ? { min: Math.ceil(minMm / MM_PER_IN * 8) / 8, max: Math.floor(maxMm / MM_PER_IN * 8) / 8, step: 0.125 } : { min: minMm, max: maxMm, step: 1 };
 }
+function eighthsOf(v) {
+  const e = Math.max(0, Math.round((Number.isFinite(v) ? Math.max(0, v) : 0) * 8 - 1e-6));
+  return [Math.floor(e / 8), e % 8];
+}
 
 // src/sim/controls.js
 var toSlider = (p, v) => p.scale === "log" ? Math.log(v / p.min) / Math.log(p.max / p.min) * 1e3 : (v - p.min) / (p.max - p.min) * 1e3;
@@ -11052,16 +11600,16 @@ function drawPicks() {
     amount.dataset.i = String(i);
     amount.disabled = finder.picks.length === 1;
     amount.setAttribute("aria-label", `How much of colour ${i + 1}`);
-    const less = document.createElement("small"), more = document.createElement("small");
+    const less = document.createElement("small"), more2 = document.createElement("small");
     less.textContent = "less";
-    more.textContent = "more";
+    more2.textContent = "more";
     const x = document.createElement("button");
     x.type = "button";
     x.className = "btn sm colfind-x";
     x.dataset.i = String(i);
     x.textContent = "\xD7";
     x.setAttribute("aria-label", `Take colour ${i + 1} away`);
-    row.append(sw, less, amount, more, x);
+    row.append(sw, less, amount, more2, x);
     box2.append(row);
   });
   $("colfind-hint").textContent = finder.picks.length ? finder.picks.length < MAX ? "Click the wheel to add another colour; drag a dot to change it." : "Drag a dot to change its colour." : `Click the wheel to pick a colour (up to ${MAX}).`;
@@ -11344,15 +11892,15 @@ function drawPatternList() {
     box2.dataset.keys = keys.join();
     box2.innerHTML = "";
     for (const k of keys) box2.appendChild(patternTile(k));
-    const rest = Object.keys(PATTERNS).length - keys.length, more = document.createElement("button");
-    more.type = "button";
-    more.className = "fab-more-btn";
-    more.id = "dz-patterns-more";
-    more.title = `More blocks (${rest}): search all blocks by name or family`;
-    more.setAttribute("aria-label", `More blocks (${rest})`);
-    more.innerHTML = `<b aria-hidden="true">+</b><span aria-hidden="true">${rest}</span>`;
-    more.addEventListener("click", openBlockLibrary);
-    placeMoreButton(box2, more);
+    const rest = Object.keys(PATTERNS).length - keys.length, more2 = document.createElement("button");
+    more2.type = "button";
+    more2.className = "fab-more-btn";
+    more2.id = "dz-patterns-more";
+    more2.title = `More blocks (${rest}): search all blocks by name or family`;
+    more2.setAttribute("aria-label", `More blocks (${rest})`);
+    more2.innerHTML = `<b aria-hidden="true">+</b><span aria-hidden="true">${rest}</span>`;
+    more2.addEventListener("click", openBlockLibrary);
+    placeMoreButton(box2, more2);
   }
   for (const b of box2.querySelectorAll(".pat[data-p]")) b.setAttribute("aria-pressed", String(b.dataset.p === cur));
   sideRoller(box2, '.pat[aria-pressed="true"]');
@@ -12220,10 +12768,10 @@ function placeUnite(cw, ch) {
     right = Math.max(right, R2.x + R2.w);
     top = Math.min(top, R2.y);
   }
-  const u = uniteOf(design, selBlocks), [label, why] = "why" in u ? UNITE_WHY[u.why] : [`Unite ${u.k} \xD7 ${u.k}`, `Unite these ${u.k * u.k} cells into one large block`];
+  const u = uniteOf(design, selBlocks), [label, why2] = "why" in u ? UNITE_WHY[u.why] : [`Unite ${u.k} \xD7 ${u.k}`, `Unite these ${u.k * u.k} cells into one large block`];
   b.querySelector(".unite-label").textContent = label;
-  b.title = why;
-  b.setAttribute("aria-label", why);
+  b.title = why2;
+  b.setAttribute("aria-label", why2);
   b.classList.toggle("off", "why" in u);
   b.classList.toggle("lefty", right + 130 > cw);
   b.style.left = cv.offsetLeft + right + "px";
@@ -13176,8 +13724,8 @@ function overhang() {
   return { side: Math.round((W - bedState.w) / 2), foot: Math.round(L - 70 - bedState.l) };
 }
 function updateFitReadout() {
-  const o = overhang(), say = (v) => v >= 0 ? len(v) : `${len(-v)} short`;
-  const t = isCouchSim() ? `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} over a couch ${len(bedState.w)} wide and ${len(bedState.l)} deep.` : isTableSim() ? `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} on a ${dims([bedState.w, bedState.l])} table, ${len(bedState.h)} high: hangs ${say(o.side)} over each side and ${say(o.foot)} over each end.` : `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} on a ${dims([bedState.w, bedState.l])} mattress: hangs ${say(o.side)} over each side and ${say(o.foot)} past the foot.`;
+  const o = overhang(), say2 = (v) => v >= 0 ? len(v) : `${len(-v)} short`;
+  const t = isCouchSim() ? `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} over a couch ${len(bedState.w)} wide and ${len(bedState.l)} deep.` : isTableSim() ? `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} on a ${dims([bedState.w, bedState.l])} table, ${len(bedState.h)} high: hangs ${say2(o.side)} over each side and ${say2(o.foot)} over each end.` : `Quilt ${dims([quilt.w * 1e3, quilt.l * 1e3])} on a ${dims([bedState.w, bedState.l])} mattress: hangs ${say2(o.side)} over each side and ${say2(o.foot)} past the foot.`;
   if ($("bed-fit")) $("bed-fit").textContent = t;
   if ($("fit-now")) $("fit-now").textContent = "In the simulation now: " + t.charAt(0).toLowerCase() + t.slice(1);
 }
@@ -13558,6 +14106,13 @@ function softSeams(W, H, blur, bg, ink, lineWidth) {
   return c;
 }
 
+// src/mine/shared-state.js
+var sharedIds = /* @__PURE__ */ new Set();
+var setSharedIds = (ids) => {
+  sharedIds = new Set(ids);
+};
+var communityHooks = { share: null, unshare: null, render: null };
+
 // src/app/pages.js
 function showPage(p) {
   state.page = p;
@@ -13567,6 +14122,7 @@ function showPage(p) {
   $("page-design").hidden = p !== "design" && p !== "sim";
   $("page-cut").hidden = p !== "cut";
   $("page-mine").hidden = p !== "mine";
+  $("page-community").hidden = p !== "community";
   for (const b of $("tabs").children)
     b.setAttribute("aria-selected", String(b.dataset.page === (p === "sim" ? "design" : p)));
   if ($("tl-panel")) {
@@ -13607,6 +14163,7 @@ function showPage(p) {
       drawFabricPalette();
       renderDesigner();
     } else if (p === "mine") renderMine();
+    else if (p === "community") communityHooks.render?.();
     else renderCut();
   })();
 }
@@ -15075,6 +15632,7 @@ function renderBorderUI() {
     Object.assign(mm, inputRange(10, 400));
     mm.value = String(toInput(b.mm));
     mm.dataset.a = "mm";
+    mm.dataset.len = "";
     mm.title = `Width (${getUnit() === "in" ? "inches" : "mm"})`;
     const unit2 = document.createElement("span");
     unit2.className = "fine";
@@ -15317,6 +15875,73 @@ function relabelHints() {
   $("tuck-len").textContent = len(250);
   $("fit-hint").textContent = `Drop: about ${len(250)}\u2013${len(300)} covers the mattress, ${len(450)}\u2013${len(550)} the box spring too; floor length is the mattress-top height.`;
 }
+var VALUE = (
+  /** @type {PropertyDescriptor} */
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")
+);
+var inchFields = [];
+function inchPair(box2) {
+  if (box2.dataset.inchPair) return;
+  box2.dataset.inchPair = "1";
+  const name = box2.getAttribute("aria-label") || box2.title || "Length";
+  const whole = document.createElement("input");
+  whole.type = "number";
+  whole.className = `${box2.className} inch-whole`.trim();
+  whole.inputMode = "numeric";
+  whole.step = "1";
+  whole.min = "0";
+  whole.setAttribute("aria-label", `${name}: whole inches`);
+  const frac = document.createElement("select");
+  frac.className = "inch-frac";
+  frac.setAttribute("aria-label", `${name}: fraction of an inch`);
+  FRACTIONS.forEach((f, i) => frac.add(new Option(f || "0", String(i))));
+  const pair = document.createElement("span");
+  pair.className = "inch-pair";
+  pair.append(whole, frac);
+  box2.after(pair);
+  const sync2 = () => {
+    const inches2 = getUnit() === "in";
+    box2.hidden = inches2;
+    pair.hidden = !inches2;
+    if (!inches2) return;
+    const [w, e] = eighthsOf(+VALUE.get.call(box2));
+    if (document.activeElement !== whole) whole.value = String(w);
+    frac.value = String(e);
+    if (box2.max) whole.max = String(Math.floor(+box2.max));
+  };
+  Object.defineProperty(box2, "value", {
+    configurable: true,
+    get() {
+      return VALUE.get.call(this);
+    },
+    set(v) {
+      VALUE.set.call(this, v);
+      sync2();
+    }
+  });
+  const send2 = () => {
+    VALUE.set.call(box2, String((+whole.value || 0) + +frac.value / 8));
+    box2.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  whole.addEventListener("change", send2);
+  frac.addEventListener("change", send2);
+  inchFields.push(sync2);
+  sync2();
+}
+for (const el of document.querySelectorAll("input[data-len]")) inchPair(
+  /** @type {HTMLInputElement} */
+  el
+);
+new MutationObserver((recs) => {
+  for (const r of recs)
+    for (const n of r.addedNodes)
+      if (n instanceof HTMLElement)
+        for (const el of n.matches("input[data-len]") ? [n] : n.querySelectorAll("input[data-len]"))
+          inchPair(
+            /** @type {HTMLInputElement} */
+            el
+          );
+}).observe(document.body, { childList: true, subtree: true });
 function show() {
   const inches2 = getUnit() === "in";
   $("unit-sw").checked = inches2;
@@ -15336,6 +15961,7 @@ onUnitChange(() => {
   } catch (e) {
   }
   show();
+  inchFields.forEach((f) => f());
   if (!design) return;
   renderDesigner();
   if (state.page === "cut") renderCut();
@@ -15770,18 +16396,8 @@ function doSave(asNew) {
     $("save-dlg").close();
     return;
   }
-  const name = ($("save-name").value || "").trim() || `Quilt ${designs.list().length + 1}`;
-  const old = !asNew && !saveForceNew && mineCur && designs.get(mineCur);
-  const prev = mineCur;
-  const cur = designs.save({ id: old ? old.id : designs.newId(), name, design });
-  if (!old) {
-    tlCopy(void 0, cur.id);
-    if (!prev) timelines.remove(tlKeyFor(null));
-    tl.key = tlKeyFor(cur.id);
-  }
+  saveCurrent(($("save-name").value || "").trim(), asNew || saveForceNew);
   saveForceNew = false;
-  setMineCur(cur.id);
-  mineSave();
   $("save-dlg").close();
   const b = $("dz-save");
   b.classList.add("saved");
@@ -15790,6 +16406,20 @@ function doSave(asNew) {
     b.classList.remove("saved");
     b.title = "Save this quilt to My designs";
   }, 1600);
+}
+function saveCurrent(typed, asNew = false) {
+  const name = (typed || "").trim() || `Quilt ${designs.list().length + 1}`;
+  const old = !asNew && mineCur && designs.get(mineCur);
+  const prev = mineCur;
+  const cur = designs.save({ id: old ? old.id : designs.newId(), name, design });
+  if (!old) {
+    tlCopy(void 0, cur.id);
+    if (!prev) timelines.remove(tlKeyFor(null));
+    tl.key = tlKeyFor(cur.id);
+  }
+  setMineCur(cur.id);
+  mineSave();
+  return cur;
 }
 function openMine(id) {
   const m = designs.get(id);
@@ -15803,9 +16433,10 @@ function openMine(id) {
   openDesign(m.design, { timeline: id, what: `\u201C${m.name}\u201D` });
   showPage("design");
 }
+var askedFabrics = /* @__PURE__ */ new Set();
 function renderMine() {
   const grid = $("mine-grid"), q = ($("mine-q").value || "").trim().toLowerCase(), sort = $("mine-sort").value;
-  const all = designs.list(), key = sort === "created" ? "createdAt" : "updatedAt";
+  const all = designs.list().filter((m) => !pendingDelete.has(m.id)), key = sort === "created" ? "createdAt" : "updatedAt";
   const list2 = all.filter((m) => !q || m.name.toLowerCase().includes(q));
   list2.sort(sort === "name" ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[key] - a[key]);
   grid.innerHTML = "";
@@ -15814,6 +16445,12 @@ function renderMine() {
   else
     $("mine-empty").innerHTML = "No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.";
   const when = (t) => new Date(t).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+  const want = /* @__PURE__ */ new Set();
+  for (const m of list2) for (const id of fabricIdsIn(m.design, isFabric2)) if (!askedFabrics.has(id)) want.add(id);
+  if (want.size) {
+    want.forEach((id) => askedFabrics.add(id));
+    loadFabrics(want).then(() => state.page === "mine" && renderMine());
+  }
   for (const m of list2) {
     const r = readDesign(m.design);
     if (!r) continue;
@@ -15824,83 +16461,180 @@ function renderMine() {
     img.className = "img";
     img.title = "Open in the Quilt designer";
     img.appendChild(quiltPicture(d, 260));
-    const over = document.createElement("div");
-    over.className = "over";
-    over.innerHTML = '<button class="open" type="button">Open</button><button class="ic" type="button" data-a="rename" title="Rename" aria-label="Rename">\u270E</button><button class="ic" type="button" data-a="dup" title="Duplicate" aria-label="Duplicate">\u29C9</button><button class="ic" type="button" data-a="del" title="Delete" aria-label="Delete">\u{1F5D1}</button>';
-    img.appendChild(over);
     const meta = document.createElement("div");
     meta.className = "meta";
+    const text = document.createElement("div");
+    text.className = "meta-text";
     const nm = document.createElement("b");
     nm.textContent = m.name;
     const sm = document.createElement("small");
     sm.textContent = `${d.cols} \xD7 ${d.rows} blocks \xB7 ${dims([quiltMm(d).W, quiltMm(d).H])} \xB7 ${when(m.updatedAt)}`;
-    meta.append(nm, sm);
+    text.append(nm, sm);
+    if (sharedIds.has(m.id)) {
+      const tag = document.createElement("span");
+      tag.className = "pin-tag";
+      tag.textContent = "Shared";
+      tag.title = "Shared with the community";
+      text.appendChild(tag);
+    }
+    const more2 = document.createElement("button");
+    more2.type = "button";
+    more2.className = "pin-more";
+    more2.textContent = "\u22EF";
+    more2.setAttribute("aria-label", `More for \u201C${m.name}\u201D`);
+    more2.setAttribute("aria-haspopup", "menu");
+    more2.setAttribute("aria-expanded", "false");
+    more2.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cardMenu(more2, m, nm);
+    });
+    meta.append(text, more2);
     pin.append(img, meta);
     grid.appendChild(pin);
-    img.addEventListener("click", (e) => {
-      const a = e.target.closest("[data-a]")?.dataset.a;
-      if (!a) {
-        openMine(m.id);
-        return;
-      }
-      if (a === "rename") {
-        const inp = document.createElement("input");
-        inp.type = "text";
-        inp.value = m.name;
-        inp.maxLength = 60;
-        inp.style.width = "100%";
-        nm.replaceWith(inp);
-        inp.focus();
-        inp.select();
-        let ended = false;
-        const end = (keep) => {
-          if (ended) return;
-          ended = true;
-          const name = inp.value.trim();
-          if (keep && name && name !== m.name) designs.save({ id: m.id, name });
-          renderMine();
-        };
-        inp.addEventListener("keydown", (ev) => {
-          if (ev.key === "Enter") end(true);
-          if (ev.key === "Escape") end(false);
-        });
-        inp.addEventListener("blur", () => end(true));
-      } else if (a === "dup") {
-        const copy = designs.save({ id: designs.newId(), name: m.name + " (copy)", design: m.design });
-        tlCopy(m.id, copy.id);
-        renderMine();
-      } else if (a === "del") {
-        const btn = e.target.closest("[data-a]");
-        if (btn.dataset.armed !== "1") {
-          btn.dataset.armed = "1";
-          btn.textContent = "\u2713";
-          btn.title = "Click again to delete";
-          btn.style.background = themeColour("--madder", "#a53a26");
-          btn.style.color = themeColour("--accent-ink", "#faf3e8");
-          setTimeout(() => {
-            if (btn.isConnected) {
-              btn.dataset.armed = "";
-              btn.textContent = "\u{1F5D1}";
-              btn.style.background = "";
-              btn.style.color = "";
-            }
-          }, 2500);
-          return;
-        }
-        designs.remove(m.id);
-        timelines.remove(tlKeyFor(m.id));
-        if (mineCur === m.id) {
-          setMineCur(null);
-          tlCopy(void 0, null);
-          tl.key = tlKeyFor(null);
-          tlSave();
-        }
-        mineSave();
-        renderMine();
-      }
-    });
+    img.addEventListener("click", () => openMine(m.id));
   }
 }
+var menu = null;
+var menuFor = null;
+function closeCardMenu(focusBack = false) {
+  if (!menu) return;
+  menu.remove();
+  menu = null;
+  menuFor?.setAttribute("aria-expanded", "false");
+  if (focusBack) menuFor?.focus();
+  menuFor = null;
+}
+function cardMenu(btn, m, nm) {
+  const again = menuFor === btn;
+  closeCardMenu();
+  if (again) return;
+  menu = document.createElement("div");
+  menu.className = "pin-menu";
+  menu.setAttribute("role", "menu");
+  menu.setAttribute("aria-label", `\u201C${m.name}\u201D`);
+  const items2 = [
+    ["open", "Open"],
+    ["rename", "Rename"],
+    ["dup", "Duplicate"],
+    sharedIds.has(m.id) ? ["unshare", "Stop sharing"] : ["share", "Share with the community"],
+    ["del", "Delete"]
+  ];
+  for (const [a, label] of items2) {
+    const it = document.createElement("button");
+    it.type = "button";
+    it.setAttribute("role", "menuitem");
+    it.dataset.a = a;
+    it.textContent = label;
+    if (a === "del") it.classList.add("danger");
+    it.addEventListener("click", () => {
+      closeCardMenu();
+      if (a === "open") openMine(m.id);
+      else if (a === "rename") renameCard(m, nm);
+      else if (a === "dup") duplicateCard(m);
+      else if (a === "share") communityHooks.share?.(m.id);
+      else if (a === "unshare") communityHooks.unshare?.(m.id);
+      else deleteWithUndo(m);
+    });
+    menu.appendChild(it);
+  }
+  menu.addEventListener("keydown", (e) => {
+    const all = [...menu.querySelectorAll("button")], i = all.indexOf(
+      /** @type {HTMLButtonElement} */
+      document.activeElement
+    );
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      all[(i + (e.key === "ArrowDown" ? 1 : all.length - 1)) % all.length].focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeCardMenu(true);
+    } else if (e.key === "Tab") closeCardMenu();
+  });
+  document.body.appendChild(menu);
+  menuFor = btn;
+  btn.setAttribute("aria-expanded", "true");
+  const r = btn.getBoundingClientRect(), mh = menu.offsetHeight, mw = menu.offsetWidth;
+  menu.style.left = `${Math.max(8, Math.min(innerWidth - mw - 8, r.right - mw))}px`;
+  menu.style.top = `${r.bottom + 6 + mh > innerHeight ? r.top - mh - 6 : r.bottom + 6}px`;
+  menu.firstChild.focus();
+}
+function renameCard(m, nm) {
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.value = m.name;
+  inp.maxLength = 60;
+  inp.style.width = "100%";
+  inp.setAttribute("aria-label", "New name");
+  nm.replaceWith(inp);
+  inp.focus();
+  inp.select();
+  let ended = false;
+  const end = (keep) => {
+    if (ended) return;
+    ended = true;
+    const name = inp.value.trim();
+    if (keep && name && name !== m.name) designs.save({ id: m.id, name });
+    renderMine();
+  };
+  inp.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") end(true);
+    if (ev.key === "Escape") end(false);
+  });
+  inp.addEventListener("blur", () => end(true));
+}
+function duplicateCard(m) {
+  const copy = designs.save({ id: designs.newId(), name: m.name + " (copy)", design: m.design });
+  tlCopy(m.id, copy.id);
+  renderMine();
+}
+var UNDO_MS = 1e4;
+var pendingDelete = /* @__PURE__ */ new Map();
+function commitDelete(id) {
+  clearTimeout(pendingDelete.get(id));
+  pendingDelete.delete(id);
+  designs.remove(id);
+  timelines.remove(tlKeyFor(id));
+  if (mineCur === id) {
+    setMineCur(null);
+    tlCopy(void 0, null);
+    tl.key = tlKeyFor(null);
+    tlSave();
+  }
+  mineSave();
+}
+function deleteWithUndo(m) {
+  for (const id of [...pendingDelete.keys()]) commitDelete(id);
+  pendingDelete.set(
+    m.id,
+    setTimeout(() => {
+      commitDelete(m.id);
+      if (state.page === "mine") renderMine();
+    }, UNDO_MS)
+  );
+  renderMine();
+  notify(`\u201C${m.name}\u201D was deleted.`, {
+    ms: UNDO_MS,
+    action: {
+      label: "Undo",
+      run: () => {
+        clearTimeout(pendingDelete.get(m.id));
+        pendingDelete.delete(m.id);
+        renderMine();
+      }
+    }
+  });
+}
+addEventListener("pagehide", () => {
+  if (!pendingDelete.size) return;
+  for (const id of [...pendingDelete.keys()]) commitDelete(id);
+  flush();
+});
+document.addEventListener("click", (e) => {
+  if (menu && !menu.contains(
+    /** @type {Node} */
+    e.target
+  )) closeCardMenu();
+});
 function initMine() {
   $("dz-save").addEventListener("click", () => openSaveDialog(false));
   $("dz-new").addEventListener("click", () => {
@@ -16054,6 +16788,8 @@ if (!getSession("photo-seeded")) {
   designs.save({ id: "qphoto", name: "Medallion from the photo", design: photoMedallion() });
   setSession("photo-seeded", true);
 }
+designs.markSample("qmedallion");
+designs.markSample("qphoto");
 
 // src/timeline/timeline.js
 var TL_MAX = 100;
@@ -16334,6 +17070,7 @@ new ResizeObserver(() => {
 // src/storage/sync.js
 var SESSION_KEY = "sync";
 var FABRIC_ID = /^f[0-9a-f]{24}$/;
+var accountOf = (c) => c.auth0 || `dev:${(c.user || "").trim().toLowerCase()}`;
 var StopSync = class extends Error {
   /** @param {SyncStatus['state']} state @param {string} message */
   constructor(state2, message) {
@@ -16353,6 +17090,12 @@ function createSync({
   let status = { state: "off", pending: 0 };
   let running = null, again = false;
   const config = () => repo2.getSession(SESSION_KEY) || null;
+  if (config() && !repo2.account()) {
+    const acc = accountOf(config());
+    repo2.setAccount(acc);
+    repo2.designs.claimSynced(acc);
+    repo2.fabrics.claimSynced(acc);
+  }
   const pendingCount = () => repo2.designs.dirty().length + repo2.fabrics.dirty().length;
   const setStatus = (s) => {
     status = { ...status, ...s, pending: pendingCount() };
@@ -16362,13 +17105,17 @@ function createSync({
     const old = config();
     if (!c) {
       repo2.setSession(SESSION_KEY, void 0);
+      repo2.setAccount(null);
       setStatus({ state: "off", message: "" });
       return;
     }
     const url = c.url.trim().replace(/\/+$/, ""), who = c.auth0 ? { auth0: c.auth0, who: c.who || c.auth0 } : { user: (c.user || "").trim() }, same = old && old.url === url && old.user === who.user && old.auth0 === who.auth0;
+    repo2.setAccount(accountOf(who));
     if (!same) {
-      repo2.designs.resetSync();
-      repo2.fabrics.resetSync();
+      if (!old || old.url !== url) {
+        repo2.designs.resetSync();
+        repo2.fabrics.resetSync();
+      }
       repo2.setSession(SESSION_KEY, { url, ...who, since: 0 });
     } else if (who.who && old.who !== who.who) repo2.setSession(SESSION_KEY, { ...old, who: who.who });
     setStatus({ state: "ok", message: "" });
@@ -16563,7 +17310,16 @@ function createSync({
     })();
     return running;
   }
-  return { configure, config, syncNow, status: () => status };
+  async function request(method, path, body) {
+    if (!config()) throw new Error("Sign in first.");
+    try {
+      return await api(method, path, body);
+    } catch (e) {
+      if (e instanceof StopSync) setStatus({ state: e.state, message: e.message });
+      throw e;
+    }
+  }
+  return { configure, config, request, syncNow, status: () => status };
 }
 
 // src/storage/auth0.js
@@ -16653,14 +17409,36 @@ async function signInAndSync({ url, signup = false } = {}) {
     return closed ? "Sign-in was closed before it finished." : `Couldn't sign in: ${e?.message || e}`;
   }
   sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
+  accountChanged();
   run();
   return "";
 }
 async function signOutAndStop() {
   const was = sync.config();
+  if (was) $("dz-new").click();
   sync.configure(null);
+  accountChanged();
   await repo.flush();
   if (was?.auth0) await signOut().catch(() => {
+  });
+}
+function accountChanged() {
+  if (state.page === "mine") renderMine();
+  if (!repo.account()) return;
+  const d = repo.designs.strays().length, f = repo.fabrics.strays().length;
+  if (!d && !f) return;
+  const what = [d && `${d} design${d === 1 ? "" : "s"}`, f && `${f} fabric photo${f === 1 ? "" : "s"}`].filter(Boolean).join(" and ");
+  notify(`${what} made on this device without an account. Add ${d + f === 1 ? "it" : "them"} to your account?`, {
+    ms: 2e4,
+    action: {
+      label: "Add to my account",
+      run: () => {
+        repo.designs.adoptStrays();
+        repo.fabrics.adoptStrays();
+        if (state.page === "mine") renderMine();
+        run();
+      }
+    }
   });
 }
 async function run() {
@@ -16713,7 +17491,7 @@ var soon2 = (ms = AFTER_CHANGE_MS) => {
 };
 function initSyncUI() {
   const form = $("sync-form"), err = $("sync-err");
-  const say = (msg) => {
+  const say2 = (msg) => {
     err.textContent = msg;
     err.hidden = !msg;
   };
@@ -16724,7 +17502,7 @@ function initSyncUI() {
     $("sync-off").hidden = !c;
     $("sync-off").textContent = c?.auth0 ? "Sign out" : "Turn sync off";
     $("sync-signin").textContent = c?.auth0 ? "Sign in again" : "Sign in";
-    say("");
+    say2("");
     form.hidden = false;
     $("sync-signin").focus();
   };
@@ -16736,15 +17514,16 @@ function initSyncUI() {
   });
   $("sync-signin").addEventListener("click", async () => {
     if (!$("sync-url").reportValidity()) return;
-    say("");
+    say2("");
     const msg = await signInAndSync({ url: $("sync-url").value });
-    say(msg);
+    say2(msg);
     if (!msg) form.hidden = true;
   });
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!$("sync-user").value.trim()) return $("sync-user").focus();
     sync.configure({ url: $("sync-url").value, user: $("sync-user").value });
+    accountChanged();
     form.hidden = true;
     run();
   });
@@ -16759,6 +17538,13 @@ function initSyncUI() {
   }
 }
 initSyncUI();
+var signedIn = () => sync.config();
+var serverCall = (method, path, body) => sync.request(method, path, body);
+async function publicCall(path) {
+  if (sync.config()) return sync.request("GET", path);
+  const r = await fetch(DEFAULT_SERVER + path);
+  return { status: r.status, body: await r.json().catch(() => null) };
+}
 
 // src/mine/account.js
 var SKIP_KEY = "quilt-welcome.v1";
@@ -16888,6 +17674,294 @@ function initAccount() {
   if (!account?.auth0 && !skipped()) showWelcome(true);
 }
 initAccount();
+
+// src/mine/community.js
+var AUTHOR_KEY = "quilt-author.v1";
+var PHOTO_ID = /^f[0-9a-f]{24}$/;
+function photoCount(d) {
+  const ids = /* @__PURE__ */ new Set();
+  const walk = (x) => {
+    if (typeof x === "string") {
+      if (PHOTO_ID.test(x)) ids.add(x);
+    } else if (x && typeof x === "object") for (const v of Object.values(x)) walk(v);
+  };
+  walk(d);
+  return ids.size;
+}
+function quiltSig(d) {
+  const r = readDesign(d);
+  const stable = (x) => Array.isArray(x) ? `[${x.map(stable).join(",")}]` : x && typeof x === "object" ? `{${Object.keys(x).sort().map((k) => JSON.stringify(k) + ":" + stable(x[k])).join(",")}}` : JSON.stringify(x);
+  const text = stable(r ? r.design : d);
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(16) + ":" + text.length;
+}
+var unchangedCopy = (rec, d) => rec?.from && quiltSig(d) === rec.from.sig ? rec.from : null;
+var remembered = () => {
+  try {
+    return localStorage.getItem(AUTHOR_KEY) || "";
+  } catch (e) {
+    return "";
+  }
+};
+var say = (msg) => {
+  $("share-err").textContent = msg;
+  $("share-err").hidden = !msg;
+};
+var why = (e) => e && e.message || "Something went wrong.";
+var target2 = (
+  /** @type {string | null} */
+  null
+);
+function openShare(id) {
+  target2 = id;
+  const rec = id ? designs.get(id) : mineCur ? designs.get(mineCur) : null;
+  const d = id ? rec?.design : design;
+  if (!d) return;
+  const pic = quiltPicture(readDesign(d)?.design || d, 260);
+  pic.id = "share-cv";
+  pic.setAttribute("aria-hidden", "true");
+  $("share-cv").replaceWith(pic);
+  $("share-name").value = rec?.name || "";
+  $("share-author").value = remembered();
+  const shared = !!rec && sharedIds.has(rec.id), signed = !!signedIn(), n = photoCount(d);
+  $("share-form").hidden = !signed;
+  $("share-signin-note").hidden = signed;
+  $("share-stop").hidden = !(signed && shared);
+  $("share-title").textContent = shared ? "Shared with the community" : "Share with the community";
+  $("share-ok").textContent = !signed ? "Sign in" : shared ? "Update the shared quilt" : "Share with the community";
+  $("share-note").textContent = "Anyone using the Quilt designer can see this quilt and copy it to their designs." + (n ? ` Your ${n === 1 ? "fabric photo" : `${n} fabric photos`} in it ${n === 1 ? "is" : "are"} shared too.` : "");
+  say("");
+  const copyOf = signed ? unchangedCopy(rec, d) : null;
+  if (copyOf)
+    $("share-note").textContent = `This is a copy of \u201C${copyOf.name}\u201D by ${copyOf.author} from the community. Change it to make it yours, then share it.`;
+  $("share-ok").disabled = !!copyOf;
+  $("share-dlg").showModal();
+  (signed && !$("share-author").value ? $("share-author") : $("share-ok")).focus();
+}
+async function doShare() {
+  if (!signedIn()) {
+    $("share-dlg").close();
+    const msg = await signInAndSync();
+    if (msg) notify(msg);
+    else openShare(target2);
+    return;
+  }
+  const name = $("share-name").value.trim(), author = $("share-author").value.trim();
+  if (!name) return say("Please give the quilt a name.");
+  if (!author) return say("Please give the name to show with your quilt.");
+  if (author.includes("@")) return say("Your name is shown to everyone: please don\u2019t use an email.");
+  try {
+    localStorage.setItem(AUTHOR_KEY, author);
+  } catch (e) {
+  }
+  let id = target2;
+  if (!id) {
+    if (readOnly) return say("This quilt was made with a newer version of the app, so it can\u2019t be shared from here.");
+    id = saveCurrent(name).id;
+  }
+  const rec = designs.get(id);
+  if (!rec) return say("That quilt is no longer in My designs.");
+  $("share-ok").disabled = true;
+  $("share-ok").textContent = "Sharing\u2026";
+  try {
+    await run();
+    const put2 = () => serverCall("PUT", `/v1/shared/${encodeURIComponent(id)}`, { name, author, design: rec.design });
+    let r = await put2();
+    if (r.status === 409 && r.body?.error === "photos_missing") {
+      await run();
+      r = await put2();
+    }
+    if (r.status === 409 && r.body?.error === "not_changed") {
+      say(r.body.message);
+      $("share-ok").textContent = "Share with the community";
+      return;
+    }
+    if (r.status !== 200 && r.status !== 201) throw new Error(r.body?.message || `The server answered ${r.status}.`);
+    setSharedIds([...sharedIds, id]);
+    $("share-dlg").close();
+    if (state.page === "mine") renderMine();
+    if (state.page === "community") loadCommunity();
+    notify(`\u201C${name}\u201D is shared with the community.`, {
+      action: { label: "See it", run: () => showPage("community") }
+    });
+  } catch (e) {
+    say(`Couldn\u2019t share it: ${why(e)}`);
+    $("share-ok").disabled = false;
+    $("share-ok").textContent = "Try again";
+  }
+}
+async function unshare(id) {
+  const name = designs.get(id)?.name || "The quilt";
+  try {
+    const r = await serverCall("DELETE", `/v1/shared/${encodeURIComponent(id)}`);
+    if (r.status !== 200 && r.status !== 404) throw new Error(r.body?.message || `The server answered ${r.status}.`);
+    setSharedIds([...sharedIds].filter((x) => x !== id));
+    if ($("share-dlg").open) $("share-dlg").close();
+    if (state.page === "mine") renderMine();
+    if (state.page === "community") loadCommunity();
+    notify(`\u201C${name}\u201D is no longer shared.`);
+  } catch (e) {
+    notify(`Couldn\u2019t stop sharing: ${why(e)}`);
+  }
+}
+async function loadShared() {
+  if (!signedIn()) setSharedIds([]);
+  else
+    try {
+      const r = await serverCall("GET", "/v1/shared");
+      if (r.status === 200) setSharedIds(r.body.items.map((i) => i.designId));
+    } catch (e) {
+    }
+  if (state.page === "mine") renderMine();
+}
+var items = [];
+var more = false;
+var loading2 = 0;
+async function loadCommunity(append = false) {
+  const q = $("com-q").value.trim(), last = append ? items[items.length - 1] : null, qs = new URLSearchParams();
+  if (q) qs.set("q", q);
+  if (last) {
+    qs.set("before", String(last.updatedAt));
+    qs.set("beforeId", last.id);
+  }
+  const ticket = ++loading2;
+  let msg = "";
+  try {
+    const r = await publicCall("/v1/community" + (qs.size ? `?${qs}` : ""));
+    if (ticket !== loading2) return;
+    if (r.status !== 200) throw new Error(r.body?.message || `The server answered ${r.status}.`);
+    items = append ? items.concat(r.body.items) : r.body.items;
+    more = r.body.more;
+    const ids = /* @__PURE__ */ new Set();
+    for (const it of items) for (const id of fabricIdsIn(it.design, isFabric2)) ids.add(id);
+    await loadFabrics(ids);
+    if (ticket !== loading2) return;
+  } catch (e) {
+    if (ticket !== loading2) return;
+    if (!append) items = [];
+    more = false;
+    msg = `Can\u2019t reach the community right now. ${why(e)}`;
+  }
+  drawCommunity(msg || (q ? "No shared quilts match your search." : "No quilts shared yet: be the first!"));
+}
+function drawCommunity(empty) {
+  const grid = $("com-grid");
+  grid.innerHTML = "";
+  const when = (t) => new Date(t).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+  for (const it of items) {
+    const r = readDesign(it.design);
+    if (!r) continue;
+    const pin = document.createElement("article");
+    pin.className = "pin";
+    const img = document.createElement("div");
+    img.className = "img";
+    img.appendChild(quiltPicture(r.design, 260));
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const text = document.createElement("div");
+    text.className = "meta-text";
+    const nm = document.createElement("b");
+    nm.textContent = it.name;
+    const by = document.createElement("small");
+    by.className = "by";
+    by.textContent = `by ${it.author} \xB7 ${r.design.cols} \xD7 ${r.design.rows} blocks \xB7 ${when(it.updatedAt)}`;
+    text.append(nm, by);
+    if (it.mine) {
+      const tag = document.createElement("span");
+      tag.className = "pin-tag";
+      tag.textContent = "Yours";
+      text.appendChild(tag);
+    }
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "btn sm com-copy";
+    const had = alreadyHave(r.design);
+    const have = (rec) => {
+      copy.disabled = true;
+      copy.textContent = "In my designs \u2713";
+      copy.title = `You have it in My designs: \u201C${rec.name}\u201D`;
+    };
+    if (had) have(had);
+    else copy.textContent = "Copy to my designs";
+    copy.addEventListener("click", async () => {
+      copy.disabled = true;
+      copy.textContent = "Copying\u2026";
+      have(await copyToMine(it, r.design));
+    });
+    text.appendChild(document.createElement("br"));
+    text.appendChild(copy);
+    meta.appendChild(text);
+    pin.append(img, meta);
+    grid.appendChild(pin);
+  }
+  $("com-empty").hidden = items.length > 0;
+  $("com-empty").textContent = empty;
+  $("com-more").hidden = !more;
+}
+function alreadyHave(d) {
+  const sig = quiltSig(d);
+  return designs.list().find((m) => quiltSig(m.design) === sig) || null;
+}
+async function copyToMine(it, d) {
+  const had = alreadyHave(d);
+  if (had) return had;
+  for (const f of it.fabrics || []) {
+    if (fabrics.get(f.id)) continue;
+    try {
+      const blob = await (await fetch(f.url)).blob();
+      const { id } = await fabrics.add(blob, { name: f.name, cm: f.cm });
+      const rec2 = fabrics.get(id);
+      if (rec2?.blob) addStoredFabric(
+        /** @type {any} */
+        rec2
+      );
+    } catch (e) {
+    }
+  }
+  const rec = designs.save({
+    id: designs.newId(),
+    name: `${it.name} (from ${it.author})`,
+    design: d,
+    from: { id: it.id, name: it.name, author: it.author, sig: quiltSig(d) }
+    // to tell a changed copy from the original
+  });
+  notify(`\u201C${rec.name}\u201D is in My designs.`, { action: { label: "Open", run: () => openMine(rec.id) } });
+  return rec;
+}
+function initCommunity() {
+  $("dz-share").addEventListener("click", () => openShare(null));
+  $("com-share").addEventListener("click", () => openShare(null));
+  $("share-ok").addEventListener("click", doShare);
+  $("share-stop").addEventListener("click", () => target2 && unshare(target2));
+  $("share-cancel").addEventListener("click", () => $("share-dlg").close());
+  $("share-x").addEventListener("click", () => $("share-dlg").close());
+  $("share-author").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      doShare();
+    }
+  });
+  let soon3 = 0;
+  $("com-q").addEventListener("input", () => {
+    clearTimeout(soon3);
+    soon3 = setTimeout(() => loadCommunity(), 300);
+  });
+  $("com-more").addEventListener("click", () => loadCommunity(true));
+  communityHooks.share = (id) => openShare(id);
+  communityHooks.unshare = (id) => unshare(id);
+  communityHooks.render = () => loadCommunity();
+  let who;
+  onAccount((c) => {
+    const now = c ? c.auth0 || c.user || "" : "";
+    if (now === who) return;
+    who = now;
+    loadShared();
+    if (state.page === "community") loadCommunity();
+  });
+  if (state.page === "community") loadCommunity();
+}
+initCommunity();
 
 // src/sim/panels.js
 (function initStageControls() {
@@ -18011,7 +19085,7 @@ var turn90 = (sp) => ({
 });
 function packTemplates(shapes) {
   const W = TPL.w, H = TPL.h, g = TPL_GAP, sheets = [];
-  const items = shapes.slice().sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h) || b.w * b.h - a.w * a.h);
+  const items2 = shapes.slice().sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h) || b.w * b.h - a.w * a.h);
   const tryPlace = (sky, w, h) => {
     let best = null;
     for (let i = 0; i < sky.length; i++) {
@@ -18042,7 +19116,7 @@ function packTemplates(shapes) {
     out.sort((a, b) => a.x - b.x);
     return out.filter((s) => s.w > 1e-6);
   };
-  for (const it of items) {
+  for (const it of items2) {
     let placed = false;
     for (const sheet of sheets) {
       let best = null;
@@ -18426,6 +19500,7 @@ fitSimSide();
 if (location.hash === "#sim") showPage("sim");
 else if (location.hash === "#cut") showPage("cut");
 else if (location.hash === "#mine") showPage("mine");
+else if (location.hash === "#community") showPage("community");
 else showPage("design");
 (async () => {
   try {

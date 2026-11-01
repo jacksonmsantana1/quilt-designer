@@ -15,15 +15,28 @@ test('the switch changes how lengths are shown and typed, not the quilt, and is 
   await expect(sw).toBeChecked();
   await expect(page.locator('#dz-size-b')).toContainText('finished quilt 35⅜ × 11¾ in');
   await expect(page.locator('#dz-bsize [data-unit-name]')).toHaveText('in');
-  await expect(page.locator('#dz-bmm3')).toHaveValue('11.8125');
+  // in inches a length is typed as whole inches and picked as a fraction, never as decimals
+  const whole = page.getByLabel('Block size: whole inches'),
+    frac = page.getByLabel('Block size: fraction of an inch');
+  await expect(page.locator('#dz-bmm3')).toBeHidden();
+  await expect(whole).toHaveValue('11');
+  await expect(frac).toHaveValue('6'); // ¾: 300 mm is 11¾ in, as written above
+  await expect(frac.locator('option')).toHaveText(['0', '⅛', '¼', '⅜', '½', '⅝', '¾', '⅞']);
   expect((await app.current()).blockMm).toBe(300);
 
-  // typing 6 means 6 inches (152 mm); the box shows it back as 6
-  await page.locator('#dz-bmm3').fill('6');
-  await page.locator('#dz-bmm3').press('Enter');
+  // 6 and 0 means 6 inches (152 mm)
+  await frac.selectOption('0');
+  await whole.fill('6');
+  await whole.press('Enter');
   expect((await app.current()).blockMm).toBe(152);
-  await expect(page.locator('#dz-bmm3')).toHaveValue('6');
+  await expect(whole).toHaveValue('6');
   await expect(page.locator('#dz-size-b')).toContainText('finished quilt 18 × 6 in');
+  // 6½ in: the fraction menu alone changes it (165 mm), and back to 6
+  await frac.selectOption({ label: '½' });
+  expect((await app.current()).blockMm).toBe(165);
+  await expect(page.locator('#dz-size-b')).toContainText('finished quilt 19½ × 6½ in');
+  await frac.selectOption('0');
+  expect((await app.current()).blockMm).toBe(152);
 
   // the sashing widths are whole and half inches: 2 in is 51 mm
   await page.locator('#rail-sash').click();
@@ -31,6 +44,16 @@ test('the switch changes how lengths are shown and typed, not the quilt, and is 
   await page.locator('#sash-presets button', { hasText: '2 in' }).click();
   expect((await app.current()).sashing.mm).toBe(51);
   await expect(page.locator('#sash-mm')).toHaveValue('2');
+
+  // a box made later, a border's width, gets the same pair: 2⅝ in is 67 mm
+  await page.locator('#rail-brd').click();
+  await page.locator('.brd-type[data-t="plain"]').click();
+  const bw = page.locator('#brd-list .inch-pair').first();
+  await bw.locator('input').fill('2');
+  await bw.locator('select').selectOption({ label: '⅝' });
+  expect((await app.current()).borders[0].mm).toBe(67);
+  await expect(bw.locator('input')).toHaveValue('2');
+  await expect(bw.locator('select')).toHaveValue('5');
 
   // the cutting guide speaks inches, and buys fabric by the yard
   await page.locator('[data-page="cut"]').click();
@@ -46,6 +69,8 @@ test('the switch changes how lengths are shown and typed, not the quilt, and is 
 
   // back to millimetres
   await page.locator('#unit-lbl').click();
-  await expect(page.locator('#dz-size-b')).toContainText('51 mm sashing · finished quilt 558 × 152 mm');
+  await expect(page.locator('#dz-size-b')).toContainText('51 mm sashing');
+  await expect(page.locator('#dz-bmm3')).toBeVisible(); // a plain number box again
   await expect(page.locator('#dz-bmm3')).toHaveValue('152');
+  await expect(page.locator('#dz-bsize .inch-pair')).toBeHidden();
 });

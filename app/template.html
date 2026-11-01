@@ -24,6 +24,8 @@
     --mustard: oklch(0.8 0.13 85);
     --stitch: oklch(0.58 0.13 40 / .55);  /* the dashed "stitched" edges */
     --mark: oklch(0.62 0.17 40);          /* selections and guides drawn on the quilt */
+    --off: oklch(0.84 0.005 70);          /* a button that can't be pressed: grey */
+    --off-ink: oklch(0.42 0.005 70);
     --madder: oklch(0.5 0.15 30);         /* danger: delete, close */
     --held: oklch(0.6 0.12 70);
     --rest: oklch(0.5 0.08 145);
@@ -38,7 +40,7 @@
       --bg: oklch(0.2 0.02 40); --panel: oklch(0.25 0.02 40); --ink: oklch(0.93 0.02 80); --muted: oklch(0.74 0.03 70);
       --line: oklch(0.36 0.03 40); --accent: oklch(0.7 0.13 45); --accent-ink: oklch(0.2 0.02 40);
       --accent-soft: oklch(0.7 0.13 45 / .14); --sage: oklch(0.7 0.07 140); --sage-deep: oklch(0.72 0.08 145);
-      --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45);
+      --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45); --off: oklch(0.36 0.005 70); --off-ink: oklch(0.7 0.005 70);
       --madder: oklch(0.68 0.15 30); --held: oklch(0.78 0.12 75); --rest: oklch(0.74 0.1 145); --shade: 0, 0, 0;
       --stage: #1b1916; color-scheme: dark;
     }
@@ -47,7 +49,7 @@
     --bg: oklch(0.2 0.02 40); --panel: oklch(0.25 0.02 40); --ink: oklch(0.93 0.02 80); --muted: oklch(0.74 0.03 70);
     --line: oklch(0.36 0.03 40); --accent: oklch(0.7 0.13 45); --accent-ink: oklch(0.2 0.02 40);
     --accent-soft: oklch(0.7 0.13 45 / .14); --sage: oklch(0.7 0.07 140); --sage-deep: oklch(0.72 0.08 145);
-    --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45);
+    --mustard: oklch(0.82 0.13 85); --stitch: oklch(0.7 0.13 45 / .5); --mark: oklch(0.72 0.16 45); --off: oklch(0.36 0.005 70); --off-ink: oklch(0.7 0.005 70);
     --madder: oklch(0.68 0.15 30); --held: oklch(0.78 0.12 75); --rest: oklch(0.74 0.1 145); --shade: 0, 0, 0;
     --stage: #1b1916; color-scheme: dark;
   }
@@ -206,6 +208,8 @@
   button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
   button.btn.primary { background: var(--accent); border: 2px solid var(--accent); color: var(--accent-ink); box-shadow: 0 4px 12px rgba(var(--shade),.18); }
   button.btn.primary:hover:not(:disabled) { background: var(--accent); transform: translateY(-1px); }
+  /* can't be pressed (e.g. Share on an unchanged copy): grey, flat, and the pointer says so */
+  button.btn:disabled, button.btn.primary:disabled { background: var(--off); border: 2px solid var(--off); color: var(--off-ink); box-shadow: none; cursor: not-allowed; transform: none; }
   select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
 
   dl.meas { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; }
@@ -395,11 +399,21 @@
   .pin:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(var(--shade),.18); }
   .pin .img { position: relative; cursor: pointer; background: oklch(0.93 0.025 75); padding: 14px; }
   .pin canvas { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
-  .pin .over { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: flex-end; gap: 6px; padding: 10px; background: linear-gradient(rgba(0,0,0,.35), transparent 45%); opacity: 0; transition: opacity .18s ease; }
-  .pin:hover .over, .pin:focus-within .over { opacity: 1; }
-  .pin .over .open { margin-right: auto; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 8px 16px; font: 600 .85rem var(--font-body); cursor: pointer; }
-  .pin .over .ic { background: oklch(0.99 0.01 80 / .94); color: oklch(0.25 0.03 40); border: 0; border-radius: 999px; width: 34px; height: 34px; font-size: .95rem; cursor: pointer; }
-  .pin .meta { padding: 10px 14px 12px; }
+  .pin .meta { padding: 10px 8px 12px 14px; display: flex; align-items: flex-start; gap: 6px; }
+  .pin .meta-text { flex: 1; min-width: 0; }
+  /* shared with the community (mine/community.js) */
+  .pin-tag { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; background: var(--sage); color: oklch(0.25 0.03 40); font: 700 .7rem var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
+  .com-intro { text-align: center; margin: 4px 0 14px; }
+  .pin .by { display: block; color: var(--muted); font-size: .8rem; }
+  .pin .com-copy { margin-top: 8px; }
+  .com-more { text-align: center; margin-top: 12px; }
+  /* the card's ⋯ (Open, Rename, Duplicate, Delete): always there, phones too */
+  .pin-more { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--stitch); background: var(--panel); color: var(--accent); font: 700 1.1rem/1 var(--font-body); cursor: pointer; display: grid; place-items: center; }
+  .pin-more:hover, .pin-more[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent); }
+  .pin-menu { position: fixed; z-index: 80; min-width: 160px; padding: 6px; display: grid; gap: 2px; background: var(--panel); border: 2px dashed var(--stitch); border-radius: 10px; box-shadow: 0 12px 30px rgba(var(--shade),.2); }
+  .pin-menu button { text-align: left; font: 600 .92rem var(--font-body); color: var(--ink); background: none; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+  .pin-menu button:hover, .pin-menu button:focus-visible { background: var(--accent-soft); outline: none; }
+  .pin-menu button.danger { color: var(--madder); }
   .pin .meta b { display: block; font-size: .95rem; }
   .pin .meta small { color: var(--muted); font-size: .76rem; }
   .pin.current { box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(var(--shade),.08); }
@@ -447,6 +461,10 @@
   .unit-sw input:focus-visible + .u-track { outline: 2px solid var(--accent); outline-offset: 2px; }
   .unit-sw[data-unit="mm"] .u-mm, .unit-sw[data-unit="in"] .u-in { color: var(--ink); }
   @media (prefers-reduced-motion: reduce) { .unit-sw .u-track, .unit-sw .u-track i { transition: none; } }
+  /* a length in inches: whole inches and a fraction menu (designer/units-ui.js) */
+  .inch-pair { display: inline-flex; align-items: center; gap: 3px; }
+  .inch-pair .inch-whole { width: 3.6em; text-align: center; }
+  .inch-pair .inch-frac { padding: 4px 2px; min-width: 3.2em; }
   .size-in { margin: 0 4px; width: 4.6em; padding: 2px 4px; font: inherit; font-weight: 600; color: var(--ink, #1d2230); border: 1px solid var(--line); border-radius: 6px; background: var(--panel); text-align: center; }
   .size-in:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .tl-row { display: flex; justify-content: center; margin-top: 10px; transition: opacity .2s ease; }
@@ -771,6 +789,7 @@
     <button type="button" role="tab" data-page="design" aria-selected="true">Quilt designer</button>
     <button type="button" role="tab" data-page="cut" aria-selected="false">Cutting guide</button>
     <button type="button" role="tab" data-page="mine" aria-selected="false">My designs</button>
+    <button type="button" role="tab" data-page="community" aria-selected="false">Community</button>
   </nav>
   <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: a short exercise to make and change a three-block quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   <div class="acct" id="acct">
@@ -852,17 +871,17 @@
   <div class="row sim-toolbar">
     <select id="bedsel" aria-label="Bed (mattress size)" title="Bed (mattress size)"></select>
     <span class="bmm" id="bed-custom" hidden>
-      <label class="sr" for="bed-w">Mattress width</label><span class="bmm-in"><input id="bed-w" type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
-      <label class="sr" for="bed-l">Mattress length</label><span class="bmm-in"><input id="bed-l" type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> <span data-unit-name>mm</span></span>
+      <label class="sr" for="bed-w">Mattress width</label><span class="bmm-in"><input id="bed-w" data-len type="number" min="500" max="3000" step="5" inputmode="numeric" title="Mattress width"> ×</span>
+      <label class="sr" for="bed-l">Mattress length</label><span class="bmm-in"><input id="bed-l" data-len type="number" min="1000" max="3000" step="5" inputmode="numeric" title="Mattress length"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="table-custom" hidden>
-      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width" aria-label="Table width"> ×</span>
-      <span class="bmm-in"><input id="tbl-l" type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length" aria-label="Table length"> <span data-unit-name>mm</span>,</span>
-      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor"> <span data-unit-name>mm</span></span>
+      <label for="tbl-w">Table</label><span class="bmm-in"><input id="tbl-w" data-len type="number" min="300" max="3000" step="10" inputmode="numeric" title="Table width" aria-label="Table width"> ×</span>
+      <span class="bmm-in"><input id="tbl-l" data-len type="number" min="300" max="4000" step="10" inputmode="numeric" title="Table length" aria-label="Table length"> <span data-unit-name>mm</span>,</span>
+      <label for="tbl-h">height</label><span class="bmm-in"><input id="tbl-h" data-len type="number" min="300" max="1200" step="10" inputmode="numeric" title="Table height from the floor"> <span data-unit-name>mm</span></span>
     </span>
     <span class="bmm" id="couch-custom" hidden>
-      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm" aria-label="Couch width"> ×</span>
-      <span class="bmm-in"><input id="cch-l" type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back" aria-label="Couch depth"> <span data-unit-name>mm</span>,</span>
+      <label for="cch-w">Couch</label><span class="bmm-in"><input id="cch-w" data-len type="number" min="800" max="3500" step="10" inputmode="numeric" title="Couch width, arm to arm" aria-label="Couch width"> ×</span>
+      <span class="bmm-in"><input id="cch-l" data-len type="number" min="700" max="1200" step="10" inputmode="numeric" title="Couch depth, front to back" aria-label="Couch depth"> <span data-unit-name>mm</span>,</span>
       <label for="cch-s">seats</label><span class="bmm-in"><input id="cch-s" type="number" min="1" max="5" step="1" inputmode="numeric" title="How many seat cushions (each at least 40 cm wide)"></span>
     </span>
     <button class="btn" id="saveimg3" type="button" title="Take a picture of the 3D view and save it as a PNG">Take picture</button>
@@ -1068,6 +1087,7 @@
           <div class="rail rail-left" role="toolbar" aria-label="File">
             <button type="button" class="rail-btn" id="dz-new" aria-label="New design" title="New design: start a new quilt from the default pattern, with its own timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 3v18h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v4h4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M9 9h3v3H9z M12 12h3v3h-3z" fill="currentColor" opacity=".55"/><path d="M18 15v6M15 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
             <button type="button" class="rail-btn rail-primary" id="dz-save" aria-label="Save" title="Save this quilt to My designs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h13l3 3v13H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 4v5h7V4" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.5" y="13" width="9" height="7" rx=".8" fill="currentColor" opacity=".6"/></svg></button>
+            <button type="button" class="rail-btn" id="dz-share" aria-label="Share with the community" title="Share this quilt with the community"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="18.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
           </div>
           <div class="rail" role="toolbar" aria-label="Design tools">
             <button type="button" class="rail-btn" id="rail-parts" aria-pressed="false" aria-label="Block parts" title="Block parts: pattern, pieces and fabrics"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18" stroke="currentColor" stroke-width="1"/><path d="M9 9l3 3 3-3v6l-3-3-3 3z" fill="currentColor"/><path d="M9 3l3 6 3-6M9 21l3-6 3 6M3 9l6 3-6 3M21 9l-6 3 6 3" fill="currentColor" opacity=".55"/></svg></button>
@@ -1089,7 +1109,7 @@
           </div>
         </div>
       </div>
-      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size" title="Type a new block size and press Enter"> <span data-unit-name>mm</span></span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
+      <p class="fine dz-size dz-size2" id="dz-size2"><span id="dz-bsize">Block size <input id="dz-bmm3" data-len class="size-in" type="number" min="50" max="1000" step="5" value="458" inputmode="numeric" aria-label="Block size" title="Type a new block size and press Enter"> <span data-unit-name>mm</span></span><span id="dz-size-b"></span><span class="qlt"><label for="dz-quilting">Quilting</label> <select id="dz-quilting" title="How the layers are quilted: shown on the quilt, its back and in the simulation"><option value="ditch">In the ditch</option><option value="cross">Crosshatch</option><option value="fans">Baptist fans</option><option value="meander">Meander</option></select></span></p>
       <div class="tl-row" id="tl-row" hidden>
           <span class="tl-btns" role="group" aria-label="Timeline">
             <button class="btn" type="button" id="tl-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
@@ -1116,7 +1136,7 @@
         <button type="button" class="dz-cancel card-cancel" title="Cancel the changes made since the panel was opened, and close it" aria-label="Cancel changes and close">✕</button>
         <h2>Sashing</h2>
         <div class="row" style="align-items:center">
-          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> <span data-unit-name>mm</span></span></label>
+          <label class="bmm" for="sash-mm">Width <span class="bmm-in"><input id="sash-mm" data-len type="number" min="0" max="200" step="1" value="0" inputmode="numeric"> <span data-unit-name>mm</span></span></label>
           <span class="sash-presets" id="sash-presets"></span>
         </div>
         <label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="sash-border"> Also around the outside (border)</label>
@@ -1147,7 +1167,7 @@
         <p class="fine" style="margin:0 0 8px">One shape all over the quilt. Pick a fabric, then click a shape or drag over several to paint them. The arrows by Columns and Rows add more.</p>
         <div class="param"><label for="mos-shape">Shape</label><output></output><select id="mos-shape" title="The shape the whole quilt is made of"><option value="hex">Hexagons (flower garden)</option><option value="diamond">Diamonds (tumbling blocks)</option><option value="triangle">Triangles</option></select></div>
         <div class="fablib-groups mos-tools" id="mos-tools" role="group" aria-label="What a click paints"><button type="button" data-tool="one" aria-pressed="true" title="Paint one hexagon">One</button><button type="button" data-tool="rosette" aria-pressed="false" title="Paint a flower: the shape and the ones around it (with diamonds: the three of a cube)">Rosette</button><button type="button" data-tool="row" aria-pressed="false" title="Paint the whole row">Row</button><button type="button" data-tool="way" aria-pressed="false" title="Paint every shape lying the same way: every top, left or right of the cubes, or every triangle pointing up or down" hidden>Same way</button><button type="button" data-tool="random" aria-pressed="false" title="Each hexagon gets a fabric picked at random from the list below">Random</button></div>
-        <div class="param"><label for="mos-mm">Side of a shape</label><output data-unit-name>mm</output><input id="mos-mm" type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape"></div>
+        <div class="param"><label for="mos-mm">Side of a shape</label><output data-unit-name>mm</output><input id="mos-mm" data-len type="number" min="10" max="200" step="1" value="50" inputmode="numeric" aria-label="Side of a shape"></div>
         <p class="fine" style="margin:10px 0 4px">Paint with</p>
         <div class="fabs" id="mos-fabs" aria-label="The fabric to paint with"></div>
         <p style="margin:10px 0 0"><button class="btn sm" type="button" id="mos-fill" title="Paint every hexagon: in the chosen fabric, or with Random, each in a fabric from the list">Fill all</button></p>
@@ -1170,11 +1190,11 @@
         <label for="fit-bed" class="sr">Mattress size</label>
         <select id="fit-bed" aria-label="Mattress size" style="width:100%"></select>
         <div class="two" id="fit-custom" hidden style="margin-top:8px">
-          <div><label for="fit-w">Mattress width (<span data-unit-name>mm</span>)</label><input id="fit-w" type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
-          <div><label for="fit-l">Mattress length (<span data-unit-name>mm</span>)</label><input id="fit-l" type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-w">Mattress width (<span data-unit-name>mm</span>)</label><input id="fit-w" data-len type="number" min="500" max="3000" step="5" inputmode="numeric"></div>
+          <div><label for="fit-l">Mattress length (<span data-unit-name>mm</span>)</label><input id="fit-l" data-len type="number" min="1000" max="3000" step="5" inputmode="numeric"></div>
         </div>
         <div class="two" style="margin-top:8px;align-items:end">
-          <div><label for="fit-drop">Drop (<span data-unit-name>mm</span>)</label><input id="fit-drop" type="number" min="0" max="800" step="10" inputmode="numeric"></div>
+          <div><label for="fit-drop">Drop (<span data-unit-name>mm</span>)</label><input id="fit-drop" data-len type="number" min="0" max="800" step="10" inputmode="numeric"></div>
           <label style="display:flex;gap:6px;align-items:center;padding-bottom:6px"><input type="checkbox" id="fit-tuck"> Pillow tuck (+<span id="tuck-len">250 mm</span>)</label>
         </div>
         <p class="fine" id="fit-hint" style="margin:6px 0 0">Drop: about 250–300 mm covers the mattress, 450–550 mm the box spring too; floor length is the mattress-top height.</p>
@@ -1286,6 +1306,24 @@
     <button class="btn primary" type="button" id="save-ok">Save</button>
   </div>
 </dialog>
+<dialog class="dz-dialog" id="share-dlg" aria-labelledby="share-title">
+  <div class="dlg-head"><h2 id="share-title">Share with the community</h2><button class="btn sm dlg-x" type="button" id="share-x" aria-label="Close">×</button></div>
+  <div class="save-prev"><canvas id="share-cv" aria-hidden="true"></canvas></div>
+  <div id="share-form">
+    <label for="share-name" style="display:block;margin-top:10px">Quilt name</label>
+    <input type="text" id="share-name" maxlength="60" style="width:100%">
+    <label for="share-author" style="display:block;margin-top:10px">Your name, as others will see it</label>
+    <input type="text" id="share-author" maxlength="40" style="width:100%" placeholder="e.g. Jackson S." autocomplete="nickname">
+    <p class="fine" id="share-note" style="margin:10px 0 0">Anyone using the Quilt designer can see this quilt and copy it to their designs.</p>
+  </div>
+  <p class="fine" id="share-signin-note" style="margin:12px 0 0" hidden>Sign in to share your quilts with the community.</p>
+  <p class="fine sync-err" id="share-err" role="alert" hidden></p>
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button class="btn" type="button" id="share-stop" hidden>Stop sharing</button>
+    <button class="btn" type="button" id="share-cancel">Cancel</button>
+    <button class="btn primary" type="button" id="share-ok">Share with the community</button>
+  </div>
+</dialog>
 <dialog class="dz-dialog fablib" id="blklib" aria-labelledby="blklib-title">
   <div class="dlg-head"><h2 id="blklib-title">Block library</h2><button class="btn sm dlg-x" type="button" id="blklib-x" aria-label="Close">×</button></div>
   <input type="search" id="blklib-q" placeholder="Search: star, nine patch, log…" aria-label="Search blocks by name or family" autocomplete="off">
@@ -1325,6 +1363,16 @@
   <p class="fine" id="colfind-status"></p>
   <div class="fabs" id="colfind-results" aria-label="Fabrics, best match first: click one to use it"></div>
 </dialog>
+<section id="page-community" hidden>
+  <div class="mine-top">
+    <input type="search" id="com-q" placeholder="Search shared quilts and quilters" aria-label="Search shared quilts and quilters">
+    <button class="btn primary" type="button" id="com-share">Share current design</button>
+  </div>
+  <p class="fine com-intro">Quilts shared by quilters using the Quilt designer. <b>Copy to my designs</b> adds one to My designs, to change as you like.</p>
+  <div class="mine-grid" id="com-grid"></div>
+  <p class="fine mine-empty" id="com-empty" hidden></p>
+  <div class="com-more"><button class="btn" type="button" id="com-more" hidden>More quilts</button></div>
+</section>
 <section id="page-cut" hidden>
   <dialog class="dz-dialog cg-pop" id="cg-pop" aria-labelledby="cg-pop-title">
     <div class="dlg-head">

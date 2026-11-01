@@ -76,4 +76,30 @@ function inputRange(minMm, maxMm) {
     : { min: minMm, max: maxMm, step: 1 };
 }
 
-export { MM_PER_IN, buyLen, dims, fromInput, getUnit, inches, inputRange, len, num, onUnitChange, setUnit, toInput };
+/**
+ * A number of inches as whole inches and eighths, to the nearest eighth (what the inch boxes show: a whole number
+ * and a fraction menu): 11.8125 → [11, 7], 6.5 → [6, 4]. @param {number} v @returns {[number, number]}
+ */
+function eighthsOf(v) {
+  // the box holds inches to a sixteenth (toInput): a length exactly between two eighths was rounded up to that
+  // sixteenth, so halves go down, as the written length (inches) has it: 300 mm is 11.8125 in the box, 11¾ written
+  const e = Math.max(0, Math.round((Number.isFinite(v) ? Math.max(0, v) : 0) * 8 - 1e-6));
+  return [Math.floor(e / 8), e % 8];
+}
+
+export {
+  FRACTIONS,
+  MM_PER_IN,
+  buyLen,
+  dims,
+  eighthsOf,
+  fromInput,
+  getUnit,
+  inches,
+  inputRange,
+  len,
+  num,
+  onUnitChange,
+  setUnit,
+  toInput,
+};
