@@ -10,7 +10,8 @@ render/     drawing the quilt top, quilting lines, cutting-guide highlight
 designer/   the Quilt designer: design state, canvas, side panels, symmetry, hover, settings
 cutting/    cutting plan (pure), drawings and the Cutting guide page
 pdf/        the A4 cutting-guide PDF and real-size templates
-sim/        3D simulation: renderer, stage, bed/table, camera, quilt mesh, physics link, photo render, analysis
+sim/        3D simulation: renderer, stage, bed/table, camera, quilt mesh, physics link, photo render, analysis;
+            the realistic picture made in the background (picture, picture-ui, bedroom, quilt-hero)
 mine/       My designs and the sample designs
 timeline/   undo / redo and the film strip
 tour/       guided tour
@@ -24,7 +25,7 @@ main.js     entry point
 ## Rules
 
 - **Pure modules** (`core/patterns`, `core/geometry`, `core/symmetry`, `core/types`, `core/design`, `core/edits`,
-  `core/format`, `core/dom`, `cutting/plan`, `ui/notice` and the state modules below) are not in the chain: they have no side effects when loaded and import nothing that is, so they
+  `core/format`, `core/dom`, `core/quilt-sig`, `cutting/plan`, `render/relief`, `ui/notice` and the state modules below) are not in the chain: they have no side effects when loaded and import nothing that is, so they
   can be imported anywhere, including the unit tests in Node. Keep them that way.
 - **Load order.** Each other module's first import is the module before it (`import './previous.js'`), and `main.js`
   imports the last one. ES modules run depth-first and skip modules that are already loading, so the modules run

@@ -6,7 +6,7 @@ import { defaultDesign } from '@quilt/shared/design.js';
 import { photoIds } from '../src/routes/community.js';
 import { setup } from './helpers.js';
 
-const { as, pool } = await setup();
+const { as, pool, store } = await setup();
 const ana = as('cana'),
   ben = as('cben'),
   nobody = as(null);
@@ -59,6 +59,91 @@ test('only the owner stops sharing; My shared lists my own', async () => {
   assert.equal((await ana('DELETE', '/v1/shared/qc')).status, 200);
   assert.ok(!(await nobody('GET', '/v1/community')).body.items.some(i => i.name === 'Ana to stop'));
   assert.ok(!(await ana('GET', '/v1/shared')).body.items.some(i => i.designId === 'qc'));
+});
+
+const JPEG = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+const keyOf = url => url.replace('memory://', '');
+/** Uploads a picture to a shared quilt: the signed link, the upload, and `done`. */
+async function sendPicture(who, id, bytes = JPEG) {
+  const up = await who('POST', `/v1/shared/${id}/picture/upload`, { type: 'image/jpeg', bytes: bytes.length });
+  assert.equal(up.status, 200);
+  store.put(keyOf(up.body.url), bytes);
+  return who('POST', `/v1/shared/${id}/picture/done`);
+}
+const inCommunity = async name => (await nobody('GET', '/v1/community')).body.items.find(i => i.name === name);
+
+test('a shared quilt can have a realistic picture, which everyone sees', async () => {
+  await share(ana, 'qp', { name: 'Ana photo', design: { ...defaultDesign(), cols: 3 } });
+  assert.equal((await inCommunity('Ana photo')).pictureUrl, undefined);
+  const done = await sendPicture(ana, 'qp');
+  assert.equal(done.status, 200);
+  const url = (await inCommunity('Ana photo')).pictureUrl;
+  assert.match(url, /^memory:\/\/pictures\//);
+  assert.deepEqual(await store.get(keyOf(url)), JPEG);
+  assert.ok(!store.keys().some(k => k.includes('/picture-')), 'the upload was moved to its lasting place');
+  // a new picture of the same quilt replaces it
+  await sendPicture(ana, 'qp', Uint8Array.from([0xff, 0xd8, 0xff, 0xe1, 9]));
+  const newer = (await inCommunity('Ana photo')).pictureUrl;
+  assert.notEqual(newer, url);
+  assert.equal(await store.get(keyOf(url)), null);
+  // sharing it again unchanged keeps the picture; changing the quilt drops it, since it no longer shows that quilt
+  await share(ana, 'qp', { name: 'Ana photo', design: { ...defaultDesign(), cols: 3 } });
+  assert.equal((await inCommunity('Ana photo')).pictureUrl, newer);
+  await share(ana, 'qp', { name: 'Ana photo', design: { ...defaultDesign(), cols: 2 } });
+  assert.equal((await inCommunity('Ana photo')).pictureUrl, undefined);
+  assert.equal(await store.get(keyOf(newer)), null);
+});
+
+test('only a real picture, on your own shared quilt, is accepted', async () => {
+  await share(ana, 'qq', { name: 'Ana refused', design: { ...defaultDesign(), cols: 6 } });
+  // not shared, or someone else's
+  const body = { type: 'image/jpeg', bytes: 10 };
+  assert.equal((await ana('POST', '/v1/shared/none/picture/upload', body)).status, 404);
+  assert.equal((await ben('POST', '/v1/shared/qq/picture/upload', body)).status, 404);
+  assert.equal((await nobody('POST', '/v1/shared/qq/picture/upload', body)).status, 401);
+  // not a JPEG, too big, or not there
+  assert.equal((await ana('POST', '/v1/shared/qq/picture/upload', { type: 'image/png', bytes: 10 })).status, 400);
+  assert.equal(
+    (await ana('POST', '/v1/shared/qq/picture/upload', { type: 'image/jpeg', bytes: 5 * 1024 * 1024 })).status,
+    400,
+  );
+  assert.equal((await ana('POST', '/v1/shared/qq/picture/done')).status, 404); // no link asked for
+  await ana('POST', '/v1/shared/qq/picture/upload', body);
+  assert.equal((await ana('POST', '/v1/shared/qq/picture/done')).status, 409); // never uploaded
+  const wrong = await sendPicture(ana, 'qq', Uint8Array.from([1, 2, 3, 4, 5, 6]));
+  assert.deepEqual([wrong.status, wrong.body.error], [400, 'not_a_picture']);
+  assert.equal((await inCommunity('Ana refused')).pictureUrl, undefined);
+});
+
+test('a quilt taken down keeps out of sight with its picture, and a blocked person can send no more', async () => {
+  await share(ana, 'qt', { name: 'Ana down', design: { ...defaultDesign(), cols: 8 } });
+  await sendPicture(ana, 'qt');
+  assert.ok((await inCommunity('Ana down')).pictureUrl);
+  await pool.query("update shared_designs set hidden = true where name = 'Ana down'");
+  assert.equal(await inCommunity('Ana down'), undefined);
+  const body = { type: 'image/jpeg', bytes: 10 };
+  const up = await ana('POST', '/v1/shared/qt/picture/upload', body);
+  assert.deepEqual([up.status, up.body.error], [403, 'taken_down']);
+  assert.equal((await ana('POST', '/v1/shared/qt/picture/done')).status, 403);
+  // someone stopped from sharing can't change the picture of a quilt still showing either
+  await share(ben, 'qu', { name: 'Ben blocked', author: 'Ben', design: { ...defaultDesign(), cols: 9 } });
+  const blockBen = v =>
+    pool.query(
+      "update users set share_blocked = $1 where id = (select owner_id from shared_designs where name = 'Ben blocked')",
+      [v],
+    );
+  await blockBen(true);
+  const blocked = await ben('POST', '/v1/shared/qu/picture/upload', body);
+  assert.deepEqual([blocked.status, blocked.body.error], [403, 'share_blocked']);
+  await blockBen(false);
+});
+
+test('stopping sharing takes the picture away too', async () => {
+  await share(ana, 'qs', { name: 'Ana gone', design: { ...defaultDesign(), cols: 7 } });
+  await sendPicture(ana, 'qs');
+  const url = (await inCommunity('Ana gone')).pictureUrl;
+  assert.equal((await ana('DELETE', '/v1/shared/qs')).status, 200);
+  assert.equal(await store.get(keyOf(url)), null);
 });
 
 test('a broken quilt, an email for a name, or a missing name is refused', async () => {

@@ -142,6 +142,45 @@
   .w-card video { display: block; width: calc(100% + 40px); max-width: none; aspect-ratio: 8 / 5; margin: -20px -20px 16px; background: var(--w-card); }
   .w-card h3 { font-size: 1.2rem; margin: 0 0 8px; }
   .w-card p { margin: 0; color: var(--w-muted); }
+  /* the row of blocks to play with: like the cards above, from edge to edge with no scrollbar */
+  #welcome-blocks { max-width: none; padding-inline: 0; }
+  #welcome-blocks h2 { margin-bottom: 8px; padding-inline: 20px; }
+  .w-rail-bar { position: relative; min-height: 44px; display: flex; align-items: center; justify-content: center; padding-inline: 20px; margin-bottom: 16px; text-align: center; color: var(--w-muted); }
+  .w-rail-bar p { margin: 0; }
+  .w-rail-arrows { position: absolute; right: max(20px, 3vw); top: 0; display: flex; gap: 8px; }
+  .w-rail-arrows button { width: 44px; height: 44px; display: grid; place-items: center; border: var(--w-stitch); border-radius: 50%; background: transparent; color: var(--w-ink); cursor: pointer; }
+  .w-rail-arrows button:focus-visible, .w-block-try:focus-visible { outline: 3px solid var(--w-mustard); outline-offset: 2px; }
+  .w-rail-arrows svg, .w-block-try svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+  @media (hover: none), (max-width: 700px) { .w-rail-arrows { display: none; } } /* a finger swipes the row */
+  .w-rail { display: flex; align-items: stretch; gap: 20px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 8px max(20px, 3vw); }
+  .w-rail::-webkit-scrollbar { display: none; }
+  .w-rail:focus-visible { outline: 2px solid var(--w-rust); outline-offset: -2px; }
+  .w-block { flex: 0 0 232px; display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--w-card); border: var(--w-stitch); border-radius: 8px; }
+  .w-block > svg { display: block; width: 100%; height: auto; }
+  .w-piece { cursor: pointer; stroke: oklch(0.25 0.03 40 / .3); stroke-width: .005; stroke-linejoin: round; transition: fill .2s ease; }
+  .w-piece:hover { filter: brightness(1.07); }
+  .w-block-foot { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .w-block-try { flex-shrink: 0; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--w-rust); cursor: pointer; }
+  .w-block.own video { display: block; width: 100%; aspect-ratio: 1; background: var(--w-card); }
+  .w-block.own .w-btn { width: 100%; min-height: 44px; }
+  /* the makers' row moves at one steady speed: the second half of the track is a copy of the first, so the loop has no jump.
+     It stops under the mouse, so a name can be read; the name's room is kept so nothing moves when it shows */
+  #welcome-fabrics h2 { padding-inline: 20px; }
+  .w-brands { overflow: hidden; }
+  .w-brands-track { display: flex; width: max-content; animation: w-brands 90s linear infinite; }
+  .w-brands:hover .w-brands-track, .w-brands:focus-within .w-brands-track { animation-play-state: paused; }
+  @keyframes w-brands { to { transform: translateX(-50%); } }
+  .w-brand { flex: 0 0 240px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
+  .w-brand:focus-visible { outline: 3px solid var(--w-rust); outline-offset: -3px; }
+  .w-brand-logo { width: 220px; height: 132px; padding: 6px; overflow: hidden; border: var(--w-stitch); border-radius: 8px; background: var(--w-bg); }
+  .w-brand-logo img { display: block; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; } /* the white some logos come on takes the page's colour */
+  .w-brand-name { min-height: 3em; text-align: center; font-weight: 700; line-height: 1.5; opacity: 0; transition: opacity .15s ease; }
+  .w-brand:hover .w-brand-name, .w-brand:focus .w-brand-name { opacity: 1; }
+  @media (hover: none) { .w-brand-name { opacity: 1; } } /* no mouse: the names always show */
+  @media (prefers-reduced-motion: reduce) { /* still: each maker once, and wrapped */
+    .w-brands-track { animation: none; width: auto; flex-wrap: wrap; justify-content: center; }
+    .w-brand[aria-hidden="true"] { display: none; }
+  }
   .w-band { background: oklch(0.72 0.06 140 / .3); }
   .w-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; list-style: none; margin: 0; padding: 0; text-align: center; }
   .w-step button { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: center; cursor: pointer; }
@@ -186,7 +225,7 @@
   @media (max-width: 520px) {
     .w-top nav .w-btn.rust { display: none; } /* Start your first quilt is just below: Sign in stays for returning quilters */
   }
-  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn, .w-card, .w-step video, .w-num::before, .w-patch rect, .w-patch polygon { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn, .w-card, .w-step video, .w-num::before, .w-patch rect, .w-patch polygon, .w-piece { transition: none; } .w-rail { scroll-behavior: auto; } }
   h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
   header p { margin: 0; color: var(--muted); max-width: 72ch; flex-basis: 100%; }
   .bench { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
@@ -442,6 +481,21 @@
   .pin { break-inside: avoid; margin: 0 0 16px; background: var(--panel); border: 2px dashed var(--stitch); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(var(--shade),.08); transition: transform .18s ease, box-shadow .18s ease; position: relative; }
   .pin:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(var(--shade),.18); }
   .pin .img { position: relative; cursor: pointer; background: oklch(0.93 0.025 75); padding: 14px; }
+  /* the realistic picture (sim/picture-ui.js) */
+  .pin .pin-photo { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
+  .pin canvas.pin-inset { position: absolute; right: 22px; bottom: 22px; width: 26%; border: 2px solid var(--panel); }
+  .save-prev img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  .dz-dialog.pic-dlg { width: min(1100px, calc(100vw - 32px)); }
+  #pic-img { display: block; width: 100%; height: auto; border-radius: 6px; }
+  .pic-job { position: fixed; left: 16px; bottom: 16px; z-index: 9000; width: min(280px, calc(100vw - 32px)); padding: 10px 12px; background: var(--panel); color: var(--ink); border: 2px dashed var(--stitch); border-radius: 10px; box-shadow: 0 8px 24px rgba(var(--shade),.2); }
+  .pic-job[hidden] { display: none; }
+  .pic-job-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pic-job-bar { height: 5px; margin-top: 7px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .pic-job-bar div { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .rail-btn.has-picture { position: relative; }
+  .rail-btn.has-picture::after { content: ""; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .rail-btn.making svg { animation: pic-making 1.6s ease-in-out infinite; }
+  @keyframes pic-making { 50% { opacity: .35; } }
   .pin canvas { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
   .pin .meta { padding: 10px 8px 12px 14px; display: flex; align-items: flex-start; gap: 6px; }
   .pin .meta-text { flex: 1; min-width: 0; }
@@ -929,6 +983,28 @@
     </div>
   </section>
   <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-wrap w-section" id="welcome-blocks" aria-labelledby="welcome-blocks-title">
+    <h2 id="welcome-blocks-title"></h2>
+    <div class="w-rail-bar">
+      <p>Click or tap a piece to change its fabric.</p>
+      <div class="w-rail-arrows">
+        <button type="button" id="welcome-rail-back" aria-label="Earlier blocks"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8L10 13"/></svg></button>
+        <button type="button" id="welcome-rail-more" aria-label="More blocks"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3L11 8L6 13"/></svg></button>
+      </div>
+    </div>
+    <div class="w-rail" id="welcome-rail" role="group" tabindex="0" aria-label="Blocks you can try">
+      <div class="w-block own">
+        <video muted loop playsinline preload="none" poster="assets/clips/draw.jpg" aria-hidden="true"><source src="assets/clips/draw.webm" type="video/webm"><source src="assets/clips/draw.mp4" type="video/mp4"></video>
+        <button class="w-btn stitched sm" type="button" data-auth="signup">Draw your own</button>
+      </div>
+    </div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-band w-section" id="welcome-fabrics" aria-labelledby="welcome-fabrics-title">
+    <h2 id="welcome-fabrics-title"></h2>
+    <div class="w-brands"><div class="w-brands-track" id="welcome-brands"></div></div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
   <section class="w-wrap" aria-labelledby="welcome-start-title">
     <div class="w-start" id="welcome-start">
       <h2 id="welcome-start-title">Ready to piece it together?</h2>
@@ -1196,6 +1272,7 @@
             <div class="sym-wrap" id="sym-wrap"><button type="button" class="rail-btn" id="rail-sym" aria-expanded="false" aria-pressed="false" aria-label="Symmetry" title="Symmetry: every change to a block is copied to its mirror partners"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 18L18 6" stroke="currentColor" stroke-width="1.6"/></svg></button><div class="sym-row parked" id="sym-row" role="group" aria-label="Symmetry"><button type="button" class="sym-opt" data-sym="off" aria-pressed="false" title="Symmetry off" aria-label="Symmetry off"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 18L18 6" stroke="currentColor" stroke-width="1.6"/></svg><span>Off</span></button><button type="button" class="sym-opt" data-sym="lr" aria-pressed="false" title="Mirror left–right" aria-label="Mirror left–right"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v19" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M7 9l3 3-3 3z M17 9l-3 3 3 3z" fill="currentColor"/></svg><span>Left–right</span></button><button type="button" class="sym-opt" data-sym="tb" aria-pressed="false" title="Mirror top–bottom" aria-label="Mirror top–bottom"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 12h19" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M9 7l3 3 3-3z M9 17l3-3 3 3z" fill="currentColor"/></svg><span>Up–down</span></button><button type="button" class="sym-opt" data-sym="both" aria-pressed="false" title="Mirror both ways (4-way)" aria-label="Mirror both ways (4-way)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v19M2.5 12h19" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/></svg><span>4-way</span></button><button type="button" class="sym-opt" data-sym="kal" aria-pressed="false" title="Kaleidoscope (8-way): square layouts" aria-label="Kaleidoscope (8-way): square layouts"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v19M2.5 12h19M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.5 2"/></svg><span>8-way</span></button></div></div>
             <button type="button" class="rail-btn" id="dz-flip" aria-pressed="false" aria-label="Turn over" title="Turn over: show the back of the quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v11H4z" fill="currentColor" opacity=".55"/><path d="M9 4h11v11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 1.6"/><path d="M15.5 21a6 6 0 0 0 5-5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M18.4 15.2l2.2-.2.4 2.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <button type="button" class="rail-btn" id="dz-sim" data-page="sim" aria-label="Simulation" title="Simulation: see this quilt draped on a bed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6v13M21 13v6M3 16h18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><rect x="4.5" y="9.5" width="4" height="3" rx="1.2" fill="currentColor" opacity=".55"/><path d="M8.5 13.2c2.5-1.6 5.5-1.6 12.5-.2v3H8.5z" fill="currentColor"/><path d="M11 13.4v2.4M14 12.9v3M17 12.9v3" stroke="#fff" stroke-width=".8" opacity=".7"/></svg></button>
+            <button type="button" class="rail-btn" id="dz-picture" aria-label="Make a realistic picture of this quilt" title="Make a realistic picture of this quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h3.2l1.5-2.5h6.6l1.5 2.5H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg></button>
           </div>
           <div class="flip-inner">
             <canvas id="dz-quilt" class="face front" aria-label="Your quilt. Click a block to edit it, or drag a rectangle to select several."></canvas>
@@ -1406,6 +1483,18 @@
     <button class="btn primary" type="button" id="save-ok">Save</button>
   </div>
 </dialog>
+<dialog class="dz-dialog pic-dlg" id="pic-dlg" aria-labelledby="pic-title">
+  <div class="dlg-head"><h2 id="pic-title">Realistic picture</h2><button class="btn sm dlg-x" type="button" id="pic-close" aria-label="Close">×</button></div>
+  <img id="pic-img" alt="">
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <a class="btn" id="pic-save" download="quilt-picture.jpg">Save picture</a>
+  </div>
+</dialog>
+<div class="pic-job" id="pic-job" role="status" hidden>
+  <div class="pic-job-row"><b>Realistic picture</b><button class="btn sm" type="button" id="pic-job-stop">Stop</button></div>
+  <div class="fine" id="pic-job-text"></div>
+  <div class="pic-job-bar"><div id="pic-job-fill"></div></div>
+</div>
 <dialog class="dz-dialog" id="share-dlg" aria-labelledby="share-title">
   <div class="dlg-head"><h2 id="share-title">Share with the community</h2><button class="btn sm dlg-x" type="button" id="share-x" aria-label="Close">×</button></div>
   <div class="save-prev"><canvas id="share-cv" aria-hidden="true"></canvas></div>

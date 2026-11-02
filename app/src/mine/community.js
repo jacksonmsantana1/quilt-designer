@@ -18,6 +18,11 @@ import { communityHooks, setSharedIds, sharedIds } from './shared-state.js';
 import { serverSays } from '../storage/sync.js';
 import { getLang, t, tn } from '@quilt/shared/i18n.js';
 
+import { quiltSig } from '../core/quilt-sig.js';
+import { pictures } from '../storage/pictures.js';
+import { canMakePictures, onPicture, pictureJob, startPicture } from '../sim/picture.js';
+import { showPictureAt } from '../sim/picture-ui.js';
+
 const AUTHOR_KEY = 'quilt-author.v1';
 const PHOTO_ID = /^f[0-9a-f]{24}$/;
 
@@ -31,27 +36,6 @@ function photoCount(d) {
   };
   walk(d);
   return ids.size;
-}
-/**
- * A fingerprint of a quilt (as read and checked): the same quilt, whatever the order of its keys, gives the same
- * one. A copy from the community keeps its original's, to tell whether it has been changed since.
- * @param {any} d @returns {string}
- */
-function quiltSig(d) {
-  const r = readDesign(d);
-  const stable = x =>
-    Array.isArray(x)
-      ? `[${x.map(stable).join(',')}]`
-      : x && typeof x === 'object'
-        ? `{${Object.keys(x)
-            .sort()
-            .map(k => JSON.stringify(k) + ':' + stable(x[k]))
-            .join(',')}}`
-        : JSON.stringify(x);
-  const text = stable(r ? r.design : d);
-  let h = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return (h >>> 0).toString(16) + ':' + text.length;
 }
 /** A copy from the community not changed since: { name, author } of the quilt it copies, or null. @param {any} rec @param {any} d */
 const unchangedCopy = (rec, d) => (rec?.from && quiltSig(d) === rec.from.sig ? rec.from : null);
@@ -90,6 +74,18 @@ function openShare(id) {
   pic.id = 'share-cv';
   pic.setAttribute('aria-hidden', 'true');
   $('share-cv').replaceWith(pic);
+  const sig = quiltSig(d);
+  // its realistic picture, when it has one, in place of the drawing
+  pictures.get(sig).then(rec => {
+    if (!rec || !$('share-dlg').open || $('share-cv') !== pic) return;
+    const im = new Image(),
+      url = URL.createObjectURL(rec.blob);
+    im.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+    im.id = 'share-cv';
+    im.alt = '';
+    im.src = url;
+    pic.replaceWith(im);
+  });
   $('share-name').value = rec ? shownName(rec) : '';
   $('share-author').value = remembered();
   const shared = !!rec && sharedIds.has(rec.id),
@@ -106,7 +102,14 @@ function openShare(id) {
       : t('Share with the community');
   $('share-note').textContent =
     t('Anyone using the Quilt designer can see this quilt and copy it to their designs.') +
-    (n ? tn(n, ' Your fabric photo in it is shared too.', ' Your {n} fabric photos in it are shared too.') : '');
+    (n ? tn(n, ' Your fabric photo in it is shared too.', ' Your {n} fabric photos in it are shared too.') : '') +
+    (pictures.has(sig)
+      ? t(' Its realistic picture is shared too.')
+      : pictureJob()?.sig === sig
+        ? t(' Its realistic picture is being made, and is added when it’s ready.')
+        : canMakePictures()
+          ? t(' A realistic picture of it is made on this computer and added when it’s ready.')
+          : '');
   say('');
   // a copy from the community, not changed since: it is someone else's quilt
   const copyOf = signed ? unchangedCopy(rec, d) : null;
@@ -175,6 +178,7 @@ async function doShare() {
     if (r.status !== 200 && r.status !== 201) throw new Error(serverSays(r.body, r.status));
     setSharedIds([...sharedIds, id]);
     $('share-dlg').close();
+    await pictureGoesWith(id, rec.design);
     if (state.page === 'mine') renderMine();
     if (state.page === 'community') loadCommunity();
     notify(t('“{name}” is shared with the community.', { name }), {
@@ -184,6 +188,50 @@ async function doShare() {
     say(t('Couldn’t share it: {why}', { why: why(e) }));
     $('share-ok').disabled = false;
     $('share-ok').textContent = t('Try again');
+  }
+}
+
+// ---- the realistic picture of a shared quilt
+/** A shared quilt waiting for its turn, while another picture is being made. */
+let nextPicture = null;
+/** Sends this quilt's picture to its shared copy. Never stops the sharing: the quilt is shared either way. */
+async function uploadPicture(id, sig) {
+  try {
+    const rec = await pictures.get(sig);
+    if (!rec) return;
+    const path = `/v1/shared/${encodeURIComponent(id)}/picture`,
+      up = await serverCall('POST', `${path}/upload`, { type: rec.blob.type || 'image/jpeg', bytes: rec.blob.size });
+    if (up.status !== 200) throw new Error(serverSays(up.body, up.status));
+    const put = await fetch(up.body.url, { method: 'PUT', headers: up.body.headers, body: rec.blob });
+    if (!put.ok) throw new Error(t('The photo storage could not be reached.'));
+    const done = await serverCall('POST', `${path}/done`);
+    if (done.status !== 200) throw new Error(serverSays(done.body, done.status));
+    if (state.page === 'community') loadCommunity();
+  } catch (e) {
+    notify(t('The quilt is shared, but its realistic picture couldn’t be sent: {why}', { why: why(e) }));
+  }
+}
+/** A quilt was just shared: its picture goes too, or is made now and goes when it's ready. */
+async function pictureGoesWith(id, d) {
+  const sig = quiltSig(d);
+  await pictures.load();
+  if (pictures.has(sig)) return uploadPicture(id, sig);
+  // (the browser tests only make a picture when they mean to: it is slow without a graphics card)
+  if (pictureJob()?.sig === sig || !canMakePictures() || globalThis.__noAutoPicture) return;
+  if (!startPicture(d)) nextPicture = d;
+}
+/** A picture was finished: it goes to any shared quilt it belongs to, then the next one waiting is made. */
+function pictureFinished(e) {
+  if (e.type === 'change') return;
+  if (e.type === 'done' && signedIn())
+    for (const rec of designs.list())
+      if (sharedIds.has(rec.id) && quiltSig(rec.design) === e.sig) uploadPicture(rec.id, e.sig);
+  if (e.type === 'stopped') nextPicture = null;
+  if (nextPicture) {
+    const d = nextPicture;
+    nextPicture = null;
+    // (it may have got its picture in the meantime)
+    if (!pictures.has(quiltSig(d))) startPicture(d);
   }
 }
 
@@ -263,7 +311,18 @@ function drawCommunity(empty) {
     pin.className = 'pin';
     const img = document.createElement('div');
     img.className = 'img';
-    img.appendChild(quiltPicture(r.design, 260));
+    if (it.pictureUrl) {
+      // the realistic picture, with the quilt's own drawing in the corner: quilters want to read the pattern too
+      const photo = new Image();
+      photo.className = 'pin-photo';
+      photo.alt = t('“{name}” on a bed', { name: it.name });
+      photo.loading = 'lazy';
+      photo.src = it.pictureUrl;
+      photo.addEventListener('click', () => showPictureAt(it.pictureUrl));
+      const inset = quiltPicture(r.design, 90);
+      inset.classList.add('pin-inset');
+      img.append(photo, inset);
+    } else img.appendChild(quiltPicture(r.design, 260));
     const meta = document.createElement('div');
     meta.className = 'meta';
     const text = document.createElement('div');
@@ -376,6 +435,12 @@ async function copyToMine(it, d) {
       if (rec?.blob) addStoredFabric(/** @type {any} */ (rec));
     } catch (e) {} // a photo that can't be fetched: its parts show a stand-in
   }
+  // the same quilt, so the same picture
+  if (it.pictureUrl)
+    try {
+      const blob = await (await fetch(it.pictureUrl)).blob();
+      await pictures.put(quiltSig(d), blob, { width: 1500, height: 1000 });
+    } catch (e) {} // no picture: the person can make one
   const rec = designs.save({
     id: designs.newId(),
     name: t('{name} (from {author})', { name: it.name, author: it.author }),
@@ -407,6 +472,7 @@ function initCommunity() {
     soon = setTimeout(() => loadCommunity(), 300);
   });
   $('com-more').addEventListener('click', () => loadCommunity(true));
+  onPicture(pictureFinished);
   communityHooks.share = id => openShare(id);
   communityHooks.unshare = id => unshare(id);
   communityHooks.render = () => loadCommunity();

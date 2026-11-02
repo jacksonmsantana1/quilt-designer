@@ -137,6 +137,34 @@ export default {
     'O path tracing não funcionou nesta GPU ({gpu}): {reason}. Mudamos para o render rápido por rasterização, que funciona em qualquer GPU.',
   'unknown GPU': 'GPU desconhecida',
   'the scene could not be prepared ({error})': 'não foi possível preparar a cena ({error})',
+  // the realistic picture
+  'Realistic picture': 'Foto realista',
+  Stop: 'Parar',
+  'Save picture': 'Salvar foto',
+  'Make a realistic picture of this quilt': 'Fazer uma foto realista desta colcha',
+  'See the realistic picture of this quilt': 'Ver a foto realista desta colcha',
+  'The realistic picture of this quilt is being made': 'A foto realista desta colcha está sendo feita',
+  'Laying the quilt on the bed…': 'Estendendo a colcha na cama…',
+  'Setting up the room…': 'Preparando o quarto…',
+  'Warming up the graphics card… The page may pause for a moment, the first time only.':
+    'Aquecendo a placa de vídeo… A página pode travar por um instante, só na primeira vez.',
+  'Rendering: {pct}%': 'Renderizando: {pct}%',
+  'It’s on its way: keep working, and it will tell you when it’s ready.':
+    'Já está a caminho: continue trabalhando, e avisaremos quando ficar pronta.',
+  'A picture of another version of a quilt is being made. Wait for it, or stop it first.':
+    'Uma foto de outra versão de uma colcha está sendo feita. Espere terminar ou interrompa antes.',
+  'Making the picture. Keep working: it will tell you when it’s ready.':
+    'Fazendo a foto. Continue trabalhando: avisaremos quando ficar pronta.',
+  'Your realistic picture is ready.': 'Sua foto realista está pronta.',
+  'Couldn’t make the picture: {why}': 'Não foi possível fazer a foto: {why}',
+  ' Its realistic picture is shared too.': ' A foto realista dela também é compartilhada.',
+  ' Its realistic picture is being made, and is added when it’s ready.':
+    ' A foto realista dela está sendo feita e será adicionada quando ficar pronta.',
+  ' A realistic picture of it is made on this computer and added when it’s ready.':
+    ' Uma foto realista dela é feita neste computador e adicionada quando ficar pronta.',
+  'The quilt is shared, but its realistic picture couldn’t be sent: {why}':
+    'A colcha foi compartilhada, mas não foi possível enviar a foto realista: {why}',
+  '“{name}” on a bed': '“{name}” sobre uma cama',
   'Compiling the path tracer for your GPU… {secs} s (first time only)':
     'Compilando o path tracer para a sua GPU… {secs} s (só na primeira vez)',
   'Render done · {goal} samples · {secs} s · path traced': 'Render pronto · {goal} amostras · {secs} s · path tracing',

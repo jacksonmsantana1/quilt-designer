@@ -61,6 +61,9 @@ export const test = base.extend({
           localStorage.setItem('quilt-tour.v1', 'done');
         } catch (e) {}
       });
+    await page.addInitScript(() => {
+      globalThis.__noAutoPicture = true;
+    });
     await page.route('**/*', r => {
       const u = r.request().url();
       for (const [re, pkg] of LIBS) {

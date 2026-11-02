@@ -22,8 +22,8 @@ const QUILTING = {
   meander: 'Meander',
 };
 const quiltingOf = d => (d && QUILTING[d.quilting] ? d.quilting : 'ditch');
-function drawQuiltingLines(g, W, H, kind) {
-  const k = W / quiltMm(design).W; // px per mm
+function drawQuiltingLines(g, W, H, kind, d = design) {
+  const k = W / quiltMm(d).W; // px per mm
   g.save();
   g.beginPath();
   g.rect(0, 0, W, H);
@@ -77,8 +77,7 @@ function drawQuiltingLines(g, W, H, kind) {
   }
   g.restore();
 }
-function strokeSeams(g, W, H) {
-  const d = design;
+function strokeSeams(g, W, H, d = design) {
   for (const poly of tilePolys(d, W, H)) {
     pathPoly(g, poly); // a mosaic's shapes (none when it isn't one)
     g.stroke();

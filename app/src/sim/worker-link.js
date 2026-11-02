@@ -57,6 +57,11 @@ function connect() {
   });
 }
 const send = m => port && port.postMessage(m);
+/** A separate copy of the physics, for work that mustn't disturb the quilt on show (the realistic picture). */
+function newPhysicsWorker() {
+  const url = URL.createObjectURL(new Blob([physSrc + '\nClothSim.serve(self);'], { type: 'text/javascript' }));
+  return new Worker(url);
+}
 // the quilt can be turned a quarter turn on the bed or table before it is dropped (remembered in this browser)
 try {
   setQuiltTurned(localStorage.getItem('quilt-turned.v1') === '1');
@@ -64,4 +69,4 @@ try {
 // where the quilt's centre is dropped along the long side of the bed or table, mm from its centre (null = the usual spot)
 const dropPosM = () => (dropPos == null ? null : dropPos / 1000);
 
-export { dropPosM, send, startSim };
+export { dropPosM, newPhysicsWorker, send, startSim };

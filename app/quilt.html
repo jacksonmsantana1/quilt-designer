@@ -142,6 +142,46 @@
   .w-card video { display: block; width: calc(100% + 40px); max-width: none; aspect-ratio: 8 / 5; margin: -20px -20px 16px; background: var(--w-card); }
   .w-card h3 { font-size: 1.2rem; margin: 0 0 8px; }
   .w-card p { margin: 0; color: var(--w-muted); }
+  /* the row of blocks to play with: like the cards above, from edge to edge with no scrollbar */
+  #welcome-blocks { max-width: none; padding-inline: 0; }
+  #welcome-blocks h2 { margin-bottom: 8px; padding-inline: 20px; }
+  .w-rail-bar { position: relative; min-height: 44px; display: flex; align-items: center; justify-content: center; padding-inline: 20px; margin-bottom: 16px; text-align: center; color: var(--w-muted); }
+  .w-rail-bar p { margin: 0; }
+  .w-rail-arrows { position: absolute; right: max(20px, 3vw); top: 0; display: flex; gap: 8px; }
+  .w-rail-arrows button { width: 44px; height: 44px; display: grid; place-items: center; border: var(--w-stitch); border-radius: 50%; background: transparent; color: var(--w-ink); cursor: pointer; }
+  .w-rail-arrows button:focus-visible, .w-block-try:focus-visible { outline: 3px solid var(--w-mustard); outline-offset: 2px; }
+  .w-rail-arrows svg, .w-block-try svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+  @media (hover: none), (max-width: 700px) { .w-rail-arrows { display: none; } } /* a finger swipes the row */
+  .w-rail { display: flex; align-items: stretch; gap: 20px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 8px max(20px, 3vw); }
+  .w-rail::-webkit-scrollbar { display: none; }
+  .w-rail:focus-visible { outline: 2px solid var(--w-rust); outline-offset: -2px; }
+  .w-block { flex: 0 0 232px; display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--w-card); border: var(--w-stitch); border-radius: 8px; }
+  .w-block > svg { display: block; width: 100%; height: auto; }
+  .w-piece { cursor: pointer; stroke: oklch(0.25 0.03 40 / .3); stroke-width: .005; stroke-linejoin: round; transition: fill .2s ease; }
+  .w-piece:hover { filter: brightness(1.07); }
+  .w-block-foot { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .w-block-try { flex-shrink: 0; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--w-rust); cursor: pointer; }
+  .w-block.own video { display: block; width: 100%; aspect-ratio: 1; background: var(--w-card); }
+  .w-block.own .w-btn { width: 100%; min-height: 44px; }
+  /* the makers' row moves at one steady speed: the second half of the track is a copy of the first, so the loop has no jump.
+     It stops under the mouse, so a name can be read; the name's room is kept so nothing moves when it shows */
+  #welcome-fabrics h2 { padding-inline: 20px; }
+  .w-brands { overflow: hidden; }
+  .w-brands-track { display: flex; width: max-content; animation: w-brands 90s linear infinite; }
+  .w-brands:hover .w-brands-track, .w-brands:focus-within .w-brands-track { animation-play-state: paused; }
+  @keyframes w-brands { to { transform: translateX(-50%); } }
+  .w-brand { flex: 0 0 240px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
+  .w-brand:focus-visible { outline: 3px solid var(--w-rust); outline-offset: -3px; }
+  .w-brand-logo { width: 220px; height: 132px; padding: 6px; overflow: hidden; border: var(--w-stitch); border-radius: 8px; background: var(--w-bg); }
+  .w-brand-logo img { display: block; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; } /* the white some logos come on takes the page's colour */
+  .w-brand-name { min-height: 3em; text-align: center; font-weight: 700; line-height: 1.5; opacity: 0; transition: opacity .15s ease; }
+  .w-brand:hover .w-brand-name, .w-brand:focus .w-brand-name { opacity: 1; }
+  @media (hover: none) { .w-brand-name { opacity: 1; } } /* no mouse: the names always show */
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { /* still: each maker once, and wrapped */
+    .w-brands-track { animation: none; width: auto; flex-wrap: wrap; justify-content: center; }
+    .w-brand[aria-hidden="true"] { display: none; }
+  }
   .w-band { background: oklch(0.72 0.06 140 / .3); }
   .w-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; list-style: none; margin: 0; padding: 0; text-align: center; }
   .w-step button { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: center; cursor: pointer; }
@@ -186,8 +226,7 @@
   @media (max-width: 520px) {
     .w-top nav .w-btn.rust { display: none; } /* Start your first quilt is just below: Sign in stays for returning quilters */
   }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn, .w-card, .w-step video, .w-num::before, .w-patch rect, .w-patch polygon { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn, .w-card, .w-step video, .w-num::before, .w-patch rect, .w-patch polygon, .w-piece { transition: none; } .w-rail { scroll-behavior: auto; } }
   h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
   header p { margin: 0; color: var(--muted); max-width: 72ch; flex-basis: 100%; }
   .bench { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
@@ -443,6 +482,21 @@
   .pin { break-inside: avoid; margin: 0 0 16px; background: var(--panel); border: 2px dashed var(--stitch); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(var(--shade),.08); transition: transform .18s ease, box-shadow .18s ease; position: relative; }
   .pin:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(var(--shade),.18); }
   .pin .img { position: relative; cursor: pointer; background: oklch(0.93 0.025 75); padding: 14px; }
+  /* the realistic picture (sim/picture-ui.js) */
+  .pin .pin-photo { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
+  .pin canvas.pin-inset { position: absolute; right: 22px; bottom: 22px; width: 26%; border: 2px solid var(--panel); }
+  .save-prev img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  .dz-dialog.pic-dlg { width: min(1100px, calc(100vw - 32px)); }
+  #pic-img { display: block; width: 100%; height: auto; border-radius: 6px; }
+  .pic-job { position: fixed; left: 16px; bottom: 16px; z-index: 9000; width: min(280px, calc(100vw - 32px)); padding: 10px 12px; background: var(--panel); color: var(--ink); border: 2px dashed var(--stitch); border-radius: 10px; box-shadow: 0 8px 24px rgba(var(--shade),.2); }
+  .pic-job[hidden] { display: none; }
+  .pic-job-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pic-job-bar { height: 5px; margin-top: 7px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .pic-job-bar div { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .rail-btn.has-picture { position: relative; }
+  .rail-btn.has-picture::after { content: ""; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .rail-btn.making svg { animation: pic-making 1.6s ease-in-out infinite; }
+  @keyframes pic-making { 50% { opacity: .35; } }
   .pin canvas { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
   .pin .meta { padding: 10px 8px 12px 14px; display: flex; align-items: flex-start; gap: 6px; }
   .pin .meta-text { flex: 1; min-width: 0; }
@@ -930,6 +984,28 @@
     </div>
   </section>
   <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-wrap w-section" id="welcome-blocks" aria-labelledby="welcome-blocks-title">
+    <h2 id="welcome-blocks-title"></h2>
+    <div class="w-rail-bar">
+      <p>Click or tap a piece to change its fabric.</p>
+      <div class="w-rail-arrows">
+        <button type="button" id="welcome-rail-back" aria-label="Earlier blocks"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8L10 13"/></svg></button>
+        <button type="button" id="welcome-rail-more" aria-label="More blocks"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3L11 8L6 13"/></svg></button>
+      </div>
+    </div>
+    <div class="w-rail" id="welcome-rail" role="group" tabindex="0" aria-label="Blocks you can try">
+      <div class="w-block own">
+        <video muted loop playsinline preload="none" poster="assets/clips/draw.jpg" aria-hidden="true"><source src="assets/clips/draw.webm" type="video/webm"><source src="assets/clips/draw.mp4" type="video/mp4"></video>
+        <button class="w-btn stitched sm" type="button" data-auth="signup">Draw your own</button>
+      </div>
+    </div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
+  <section class="w-band w-section" id="welcome-fabrics" aria-labelledby="welcome-fabrics-title">
+    <h2 id="welcome-fabrics-title"></h2>
+    <div class="w-brands"><div class="w-brands-track" id="welcome-brands"></div></div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
   <section class="w-wrap" aria-labelledby="welcome-start-title">
     <div class="w-start" id="welcome-start">
       <h2 id="welcome-start-title">Ready to piece it together?</h2>
@@ -1197,6 +1273,7 @@
             <div class="sym-wrap" id="sym-wrap"><button type="button" class="rail-btn" id="rail-sym" aria-expanded="false" aria-pressed="false" aria-label="Symmetry" title="Symmetry: every change to a block is copied to its mirror partners"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 18L18 6" stroke="currentColor" stroke-width="1.6"/></svg></button><div class="sym-row parked" id="sym-row" role="group" aria-label="Symmetry"><button type="button" class="sym-opt" data-sym="off" aria-pressed="false" title="Symmetry off" aria-label="Symmetry off"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 18L18 6" stroke="currentColor" stroke-width="1.6"/></svg><span>Off</span></button><button type="button" class="sym-opt" data-sym="lr" aria-pressed="false" title="Mirror left–right" aria-label="Mirror left–right"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v19" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M7 9l3 3-3 3z M17 9l-3 3 3 3z" fill="currentColor"/></svg><span>Left–right</span></button><button type="button" class="sym-opt" data-sym="tb" aria-pressed="false" title="Mirror top–bottom" aria-label="Mirror top–bottom"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 12h19" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/><path d="M9 7l3 3 3-3z M9 17l3-3 3 3z" fill="currentColor"/></svg><span>Up–down</span></button><button type="button" class="sym-opt" data-sym="both" aria-pressed="false" title="Mirror both ways (4-way)" aria-label="Mirror both ways (4-way)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v19M2.5 12h19" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.5 2"/></svg><span>4-way</span></button><button type="button" class="sym-opt" data-sym="kal" aria-pressed="false" title="Kaleidoscope (8-way): square layouts" aria-label="Kaleidoscope (8-way): square layouts"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v19M2.5 12h19M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2.5 2"/></svg><span>8-way</span></button></div></div>
             <button type="button" class="rail-btn" id="dz-flip" aria-pressed="false" aria-label="Turn over" title="Turn over: show the back of the quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v11H4z" fill="currentColor" opacity=".55"/><path d="M9 4h11v11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 1.6"/><path d="M15.5 21a6 6 0 0 0 5-5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M18.4 15.2l2.2-.2.4 2.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <button type="button" class="rail-btn" id="dz-sim" data-page="sim" aria-label="Simulation" title="Simulation: see this quilt draped on a bed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6v13M21 13v6M3 16h18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><rect x="4.5" y="9.5" width="4" height="3" rx="1.2" fill="currentColor" opacity=".55"/><path d="M8.5 13.2c2.5-1.6 5.5-1.6 12.5-.2v3H8.5z" fill="currentColor"/><path d="M11 13.4v2.4M14 12.9v3M17 12.9v3" stroke="#fff" stroke-width=".8" opacity=".7"/></svg></button>
+            <button type="button" class="rail-btn" id="dz-picture" aria-label="Make a realistic picture of this quilt" title="Make a realistic picture of this quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h3.2l1.5-2.5h6.6l1.5 2.5H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg></button>
           </div>
           <div class="flip-inner">
             <canvas id="dz-quilt" class="face front" aria-label="Your quilt. Click a block to edit it, or drag a rectangle to select several."></canvas>
@@ -1407,6 +1484,18 @@
     <button class="btn primary" type="button" id="save-ok">Save</button>
   </div>
 </dialog>
+<dialog class="dz-dialog pic-dlg" id="pic-dlg" aria-labelledby="pic-title">
+  <div class="dlg-head"><h2 id="pic-title">Realistic picture</h2><button class="btn sm dlg-x" type="button" id="pic-close" aria-label="Close">×</button></div>
+  <img id="pic-img" alt="">
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <a class="btn" id="pic-save" download="quilt-picture.jpg">Save picture</a>
+  </div>
+</dialog>
+<div class="pic-job" id="pic-job" role="status" hidden>
+  <div class="pic-job-row"><b>Realistic picture</b><button class="btn sm" type="button" id="pic-job-stop">Stop</button></div>
+  <div class="fine" id="pic-job-text"></div>
+  <div class="pic-job-bar"><div id="pic-job-fill"></div></div>
+</div>
 <dialog class="dz-dialog" id="share-dlg" aria-labelledby="share-title">
   <div class="dlg-head"><h2 id="share-title">Share with the community</h2><button class="btn sm dlg-x" type="button" id="share-x" aria-label="Close">×</button></div>
   <div class="save-prev"><canvas id="share-cv" aria-hidden="true"></canvas></div>
@@ -3072,6 +3161,10 @@ var mine_default = {
   // first page and account corner
   "A patchwork quilt": "Um quilt de patchwork",
   "Click or tap a patch to turn it": "Clique ou toque em um retalho para gir\xE1-lo",
+  "{n} blocks to choose, or create your own": "{n} blocos para escolher, ou crie o seu",
+  "More than {n} fabrics from the biggest makers": "Mais de {n} Tecidos das maiores Fabricantes",
+  "Try other fabrics": "Experimentar outros tecidos",
+  "Try other fabrics on {name}": "Experimentar outros tecidos em {name}",
   "Sign in": "Entrar",
   "Sign in again": "Entrar de novo",
   "Sign out": "Sair",
@@ -3560,6 +3653,27 @@ var sim_default = {
   "Path tracing didn\u2019t work on this GPU ({gpu}): {reason}. Switched to the fast raster renderer, which works on any GPU.": "O path tracing n\xE3o funcionou nesta GPU ({gpu}): {reason}. Mudamos para o render r\xE1pido por rasteriza\xE7\xE3o, que funciona em qualquer GPU.",
   "unknown GPU": "GPU desconhecida",
   "the scene could not be prepared ({error})": "n\xE3o foi poss\xEDvel preparar a cena ({error})",
+  // the realistic picture
+  "Realistic picture": "Foto realista",
+  Stop: "Parar",
+  "Save picture": "Salvar foto",
+  "Make a realistic picture of this quilt": "Fazer uma foto realista desta colcha",
+  "See the realistic picture of this quilt": "Ver a foto realista desta colcha",
+  "The realistic picture of this quilt is being made": "A foto realista desta colcha est\xE1 sendo feita",
+  "Laying the quilt on the bed\u2026": "Estendendo a colcha na cama\u2026",
+  "Setting up the room\u2026": "Preparando o quarto\u2026",
+  "Warming up the graphics card\u2026 The page may pause for a moment, the first time only.": "Aquecendo a placa de v\xEDdeo\u2026 A p\xE1gina pode travar por um instante, s\xF3 na primeira vez.",
+  "Rendering: {pct}%": "Renderizando: {pct}%",
+  "It\u2019s on its way: keep working, and it will tell you when it\u2019s ready.": "J\xE1 est\xE1 a caminho: continue trabalhando, e avisaremos quando ficar pronta.",
+  "A picture of another version of a quilt is being made. Wait for it, or stop it first.": "Uma foto de outra vers\xE3o de uma colcha est\xE1 sendo feita. Espere terminar ou interrompa antes.",
+  "Making the picture. Keep working: it will tell you when it\u2019s ready.": "Fazendo a foto. Continue trabalhando: avisaremos quando ficar pronta.",
+  "Your realistic picture is ready.": "Sua foto realista est\xE1 pronta.",
+  "Couldn\u2019t make the picture: {why}": "N\xE3o foi poss\xEDvel fazer a foto: {why}",
+  " Its realistic picture is shared too.": " A foto realista dela tamb\xE9m \xE9 compartilhada.",
+  " Its realistic picture is being made, and is added when it\u2019s ready.": " A foto realista dela est\xE1 sendo feita e ser\xE1 adicionada quando ficar pronta.",
+  " A realistic picture of it is made on this computer and added when it\u2019s ready.": " Uma foto realista dela \xE9 feita neste computador e adicionada quando ficar pronta.",
+  "The quilt is shared, but its realistic picture couldn\u2019t be sent: {why}": "A colcha foi compartilhada, mas n\xE3o foi poss\xEDvel enviar a foto realista: {why}",
+  "\u201C{name}\u201D on a bed": "\u201C{name}\u201D sobre uma cama",
   "Compiling the path tracer for your GPU\u2026 {secs} s (first time only)": "Compilando o path tracer para a sua GPU\u2026 {secs} s (s\xF3 na primeira vez)",
   "Render done \xB7 {goal} samples \xB7 {secs} s \xB7 path traced": "Render pronto \xB7 {goal} amostras \xB7 {secs} s \xB7 path tracing",
   "Rendering \xB7 {n} / {goal} samples \xB7 {secs} s \xB7 path traced": "Renderizando \xB7 {n} / {goal} amostras \xB7 {secs} s \xB7 path tracing",
@@ -3655,7 +3769,12 @@ var template_default = {
   Cells: "C\xE9lulas",
   "Choose fabrics for every part": "Escolha tecidos para cada pe\xE7a",
   Clear: "Limpar",
+  "Blocks you can try": "Blocos para experimentar",
   "Clear history": "Limpar hist\xF3rico",
+  "Click or tap a piece to change its fabric.": "Clique ou toque em uma pe\xE7a para trocar o tecido.",
+  "Draw your own": "Desenhe o seu",
+  "Earlier blocks": "Blocos anteriores",
+  "More blocks": "Mais blocos",
   "Click a joined piece to split it back into cells": "Clique em uma pe\xE7a unida para dividi-la de novo em c\xE9lulas",
   "Click a piece to give it the fabric in hand": "Clique em uma pe\xE7a para dar a ela o tecido escolhido",
   "Click a seam line to take it away": "Clique em uma linha de costura para remov\xEA-la",
@@ -9287,21 +9406,21 @@ function placeBox(P) {
 function settingPieces(d, W, H) {
   if (!isOnPoint(d) || isMosaic(d)) return [];
   const q = quiltMm(d), cm = centreMm(d), bt = borderTotal(d), kx = W / q.W, ky = H / q.H, { p, m } = turnedFrame(d, W, H), D = p * Math.SQRT2, x0 = bt, y0 = bt, x1 = bt + cm.W, y1 = bt + cm.H, out = [];
-  const add = (kind, ...pts) => out.push({ kind, poly: pts.map(([x, y]) => [x * kx, y * ky]) });
+  const add2 = (kind, ...pts) => out.push({ kind, poly: pts.map(([x, y]) => [x * kx, y * ky]) });
   for (let c = 0; c < d.cols - 1; c++) {
     const a = x0 + m + D * c, mid = a + D / 2, b = a + D;
-    add("side", [a, y0], [b, y0], [mid, y0 + D / 2]);
-    add("side", [a, y1], [mid, y1 - D / 2], [b, y1]);
+    add2("side", [a, y0], [b, y0], [mid, y0 + D / 2]);
+    add2("side", [a, y1], [mid, y1 - D / 2], [b, y1]);
   }
   for (let r = 0; r < d.rows - 1; r++) {
     const a = y0 + m + D * r, mid = a + D / 2, b = a + D;
-    add("side", [x0, a], [x0 + D / 2, mid], [x0, b]);
-    add("side", [x1, a], [x1, b], [x1 - D / 2, mid]);
+    add2("side", [x0, a], [x0 + D / 2, mid], [x0, b]);
+    add2("side", [x1, a], [x1, b], [x1 - D / 2, mid]);
   }
-  add("corner", [x0, y0], [x0 + m, y0], [x0, y0 + m]);
-  add("corner", [x1, y0], [x1, y0 + m], [x1 - m, y0]);
-  add("corner", [x0, y1], [x0, y1 - m], [x0 + m, y1]);
-  add("corner", [x1, y1], [x1 - m, y1], [x1, y1 - m]);
+  add2("corner", [x0, y0], [x0 + m, y0], [x0, y0 + m]);
+  add2("corner", [x1, y0], [x1, y0 + m], [x1 - m, y0]);
+  add2("corner", [x0, y1], [x0, y1 - m], [x0 + m, y1]);
+  add2("corner", [x1, y1], [x1 - m, y1], [x1, y1 - m]);
   return out;
 }
 function nearestBlock(d, x, y, W, H) {
@@ -9460,11 +9579,11 @@ function sashPieces(d, W, H, across) {
   for (const x of xs)
     for (let r = 0; r < d.rows; r++)
       out.push({ kind: "sash", x: x * kx, y: (off + r * p) * ky, w: s.mm * kx, h: d.blockMm * ky });
-  const add = (rc) => (across.add(rc), out.push(rc));
+  const add2 = (rc) => (across.add(rc), out.push(rc));
   for (const y of ys)
     for (let c = 0; c < d.cols; c++)
-      add({ kind: "sash", x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
-  for (const x of xs) for (const y of ys) add({ kind: "corner", x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
+      add2({ kind: "sash", x: (off + c * p) * kx, y: y * ky, w: d.blockMm * kx, h: s.mm * ky });
+  for (const x of xs) for (const y of ys) add2({ kind: "corner", x: x * kx, y: y * ky, w: s.mm * kx, h: s.mm * ky });
   const big = (d.blocks || []).map((b, i) => b.span > 1 && b.under == null ? blockRect(d, i % d.cols, Math.floor(i / d.cols), W, H) : null).filter(Boolean);
   if (!big.length) return out;
   return out.filter((rc) => {
@@ -10084,8 +10203,8 @@ function createRepo() {
   let writing = Promise.resolve();
   let onError = () => {
   };
-  const listeners2 = /* @__PURE__ */ new Set();
-  const changed = (store, id) => listeners2.forEach((f) => f(store, id));
+  const listeners3 = /* @__PURE__ */ new Set();
+  const changed = (store, id) => listeners3.forEach((f) => f(store, id));
   function queue(store, key, value) {
     pending.set(store + "\0" + key, [store, key, value]);
     if (!scheduled) {
@@ -10332,7 +10451,7 @@ function createRepo() {
     /** Whether changes are kept after a reload (false when IndexedDB couldn't be opened). */
     isPersistent: () => persistent,
     /** Calls f(store, id) after every change made on this device to a design or fabric (not ones from sync). */
-    onChange: (f) => void listeners2.add(f),
+    onChange: (f) => void listeners3.add(f),
     getSession: getSession2,
     setSession: setSession2,
     /** The account signed in on this device (its records are listed and synced), or null. */
@@ -10659,26 +10778,26 @@ var setRenderT0 = (v) => renderT0 = v;
 // src/core/dom.js
 var $ = (id) => document.getElementById(id);
 var esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
-function sideRoller(box2, chosen) {
-  if (!box2.dataset.roller) {
-    box2.dataset.roller = "1";
-    box2.addEventListener(
+function sideRoller(box3, chosen) {
+  if (!box3.dataset.roller) {
+    box3.dataset.roller = "1";
+    box3.addEventListener(
       "wheel",
       (e) => {
-        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || box2.scrollWidth <= box2.clientWidth) return;
-        const max = box2.scrollWidth - box2.clientWidth;
-        if (e.deltaY < 0 && box2.scrollLeft <= 0 || e.deltaY > 0 && box2.scrollLeft >= max - 1) return;
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || box3.scrollWidth <= box3.clientWidth) return;
+        const max = box3.scrollWidth - box3.clientWidth;
+        if (e.deltaY < 0 && box3.scrollLeft <= 0 || e.deltaY > 0 && box3.scrollLeft >= max - 1) return;
         e.preventDefault();
-        box2.scrollLeft += e.deltaY;
+        box3.scrollLeft += e.deltaY;
       },
       { passive: false }
     );
   }
   const on = (
     /** @type {HTMLElement | null} */
-    box2.querySelector(chosen)
+    box3.querySelector(chosen)
   );
-  if (on && box2.clientWidth) box2.scrollLeft = Math.max(0, on.offsetLeft - (box2.clientWidth - on.offsetWidth) / 2);
+  if (on && box3.clientWidth) box3.scrollLeft = Math.max(0, on.offsetLeft - (box3.clientWidth - on.offsetWidth) / 2);
 }
 function themeColour(name, fallback) {
   if (typeof document === "undefined") return fallback;
@@ -10735,6 +10854,10 @@ function connect() {
   });
 }
 var send = (m) => port && port.postMessage(m);
+function newPhysicsWorker() {
+  const url = URL.createObjectURL(new Blob([physSrc + "\nClothSim.serve(self);"], { type: "text/javascript" }));
+  return new Worker(url);
+}
 try {
   setQuiltTurned(localStorage.getItem("quilt-turned.v1") === "1");
 } catch (e) {
@@ -11267,9 +11390,9 @@ function buildPatchwork() {
   showSwatches();
 }
 function showSwatches() {
-  const box2 = $("swatches");
-  if (!box2) return;
-  box2.innerHTML = "";
+  const box3 = $("swatches");
+  if (!box3) return;
+  box3.innerHTML = "";
   for (const s of swatches) {
     const c = document.createElement("canvas");
     c.width = c.height = 44;
@@ -11277,7 +11400,7 @@ function showSwatches() {
     const g = c.getContext("2d");
     const k = Math.min(s.canvas.width, s.canvas.height, 300);
     g.drawImage(s.canvas, 0, 0, k, k, 0, 0, 44, 44);
-    box2.appendChild(c);
+    box3.appendChild(c);
   }
 }
 async function useSwatches(defs) {
@@ -11429,17 +11552,28 @@ function upsample() {
   qGeo.attributes.position.needsUpdate = true;
   qGeo.computeVertexNormals();
   if (!aGeo.attributes.normal) aGeo.setAttribute("normal", qGeo.attributes.normal);
-  const n = qGeo.attributes.normal.array, h = Math.max(3e-3, state.params.thickness) / 2;
-  const tp = topGeo.attributes.position.array, bp = botGeo.attributes.position.array;
-  for (let k = 0; k < R * R * 3; k++) {
-    tp[k] = qPos[k] + n[k] * h;
-    bp[k] = qPos[k] - n[k] * h;
+  layQuilt(qPos, qGeo.attributes.normal.array, Math.max(3e-3, state.params.thickness) / 2, {
+    top: topGeo.attributes.position.array,
+    back: botGeo.attributes.position.array,
+    binding: bindGeo.attributes.position.array
+  });
+  for (const g of [topGeo, botGeo, bindGeo]) {
+    g.attributes.position.needsUpdate = true;
+    g.computeVertexNormals();
+    g.computeBoundingSphere();
   }
-  const bpos = bindGeo.attributes.position.array;
+}
+var newBackAndBinding = () => ({ back: dynGeo(R * R, qIdxRev, qUv), binding: dynGeo(PL * PROF, bindIdx, bindUv) });
+function layQuilt(qPos2, n, h, layers) {
+  const { top: tp, back: bp, binding: bpos } = layers;
+  for (let k = 0; k < R * R * 3; k++) {
+    tp[k] = qPos2[k] + n[k] * h;
+    bp[k] = qPos2[k] - n[k] * h;
+  }
   for (let k = 0; k < PL; k++) {
     const [i, j] = perim[k], v = j * R + i;
     const ii = i === 0 ? 1 : i === R - 1 ? R - 2 : i, jj = j === 0 ? 1 : j === R - 1 ? R - 2 : j, w = jj * R + ii;
-    let ox = qPos[3 * v] - qPos[3 * w], oy = qPos[3 * v + 1] - qPos[3 * w + 1], oz = qPos[3 * v + 2] - qPos[3 * w + 2];
+    let ox = qPos2[3 * v] - qPos2[3 * w], oy = qPos2[3 * v + 1] - qPos2[3 * w + 1], oz = qPos2[3 * v + 2] - qPos2[3 * w + 2];
     const nx = n[3 * v], ny = n[3 * v + 1], nz = n[3 * v + 2], dn = ox * nx + oy * ny + oz * nz;
     ox -= dn * nx;
     oy -= dn * ny;
@@ -11450,15 +11584,10 @@ function upsample() {
     oz /= ol;
     for (let s = 0; s < PROF; s++) {
       const th = Math.PI * s / (PROF - 1), c = Math.cos(th) * h, sn = Math.sin(th) * h * 0.8, o = 3 * (k * PROF + s);
-      bpos[o] = qPos[3 * v] + nx * c + ox * sn;
-      bpos[o + 1] = qPos[3 * v + 1] + ny * c + oy * sn;
-      bpos[o + 2] = qPos[3 * v + 2] + nz * c + oz * sn;
+      bpos[o] = qPos2[3 * v] + nx * c + ox * sn;
+      bpos[o + 1] = qPos2[3 * v + 1] + ny * c + oy * sn;
+      bpos[o + 2] = qPos2[3 * v + 2] + nz * c + oz * sn;
     }
-  }
-  for (const g of [topGeo, botGeo, bindGeo]) {
-    g.attributes.position.needsUpdate = true;
-    g.computeVertexNormals();
-    g.computeBoundingSphere();
   }
 }
 var handMat = new THREE6.MeshStandardMaterial({ color: 14263166, roughness: 0.6 });
@@ -12834,11 +12963,11 @@ function fabricIdsIn(value, isFabric3) {
 }
 function shortList({ basics, selected = null, inQuilt = [], recent = [], newest = [], max = 10, fill: fill3 = 5 }) {
   const basic = new Set(basics), extra = [];
-  const add = (id) => {
+  const add2 = (id) => {
     if (id && !basic.has(id) && !extra.includes(id) && extra.length < max) extra.push(id);
   };
-  [selected, ...inQuilt, ...recent].forEach(add);
-  for (const id of newest) if (extra.length < fill3) add(id);
+  [selected, ...inQuilt, ...recent].forEach(add2);
+  for (const id of newest) if (extra.length < fill3) add2(id);
   return [...basics, ...extra];
 }
 var withRecent = (list2, id, max = 12) => [id, ...list2.filter((x) => x !== id)].slice(0, max);
@@ -13505,9 +13634,9 @@ function shortListFabrics(selected) {
 }
 var lists = /* @__PURE__ */ new Map();
 function redrawLists() {
-  for (const [box2, selected] of lists) {
-    if (box2.isConnected) drawShortList(box2, selected);
-    else lists.delete(box2);
+  for (const [box3, selected] of lists) {
+    if (box3.isConnected) drawShortList(box3, selected);
+    else lists.delete(box3);
   }
 }
 function removeFromPalette(f) {
@@ -13525,11 +13654,11 @@ function removeFromPalette(f) {
     }
   });
 }
-function moreButton(box2, shown) {
+function moreButton(box3, shown) {
   const b = document.createElement("button");
   b.type = "button";
   b.className = "fab-more-btn";
-  if (box2.id) b.id = box2.id + "-more";
+  if (box3.id) b.id = box3.id + "-more";
   const rest = listedFabrics().length - shown, label = rest > 0 ? t("More fabrics ({n})", { n: rest }) : t("Add a fabric photo");
   b.title = t("{label}: search all fabrics, and add photos of your own", { label });
   b.setAttribute("aria-label", label);
@@ -13543,7 +13672,7 @@ function moreButton(box2, shown) {
     n.setAttribute("aria-hidden", "true");
     b.append(n);
   }
-  b.addEventListener("click", () => openLibrary(box2));
+  b.addEventListener("click", () => openLibrary(box3));
   return b;
 }
 var float = {
@@ -13567,9 +13696,9 @@ var float = {
   // the part of the page that shows it while the mouse is over it
   timer: 0
 };
-var inlineButtons = (box2) => (
+var inlineButtons = (box3) => (
   /** @type {HTMLElement[]} */
-  [...box2.parentElement.querySelector(":scope > .fab-more-stack")?.children || []]
+  [...box3.parentElement.querySelector(":scope > .fab-more-stack")?.children || []]
 );
 function floatButtons() {
   if (float.el) return [float.el, float.el2];
@@ -13618,17 +13747,17 @@ addEventListener(
   },
   true
 );
-function showFloat(box2, region) {
-  const inline = inlineButtons(box2);
+function showFloat(box3, region) {
+  const inline = inlineButtons(box3);
   if (!inline.length || matchMedia("(hover: none)").matches) return;
   const buttons = floatButtons();
   clearTimeout(float.timer);
-  float.box = box2;
+  float.box = box3;
   float.region = region;
   const size = 52, edge = (
     /** @type {HTMLElement} */
-    (box2.closest(".card") || box2.parentElement).getBoundingClientRect()
-  ), row = box2.getBoundingClientRect();
+    (box3.closest(".card") || box3.parentElement).getBoundingClientRect()
+  ), row = box3.getBoundingClientRect();
   let left = edge.left - size - 10;
   if (left < 4) left = Math.min(row.right, innerWidth) - size - 6;
   for (const [n, b] of buttons.entries()) {
@@ -13650,13 +13779,13 @@ function hideFloatSoon() {
   clearTimeout(float.timer);
   float.timer = setTimeout(hideFloat, 300);
 }
-function placeMoreButton(box2, button, second = null) {
-  let wrap = box2.parentElement;
+function placeMoreButton(box3, button, second = null) {
+  let wrap = box3.parentElement;
   if (!wrap.classList.contains("fabs-row")) {
     wrap = document.createElement("div");
     wrap.className = "fabs-row";
-    box2.replaceWith(wrap);
-    wrap.append(box2);
+    box3.replaceWith(wrap);
+    wrap.append(box3);
   }
   wrap.querySelector(":scope > .fab-more-stack")?.remove();
   const stack = document.createElement("div");
@@ -13667,19 +13796,19 @@ function placeMoreButton(box2, button, second = null) {
   const parent = wrap.parentElement, lists2 = parent ? parent.querySelectorAll(".fabs:not(.fablib-grid), #dz-patterns").length : 0, region = parent && parent !== document.body && lists2 === 1 ? parent : wrap;
   if (!region.dataset.float) {
     region.dataset.float = "1";
-    sectionRow.set(region, box2);
-    region.addEventListener("mouseenter", () => showFloat(box2, region));
-    region.addEventListener("focusin", () => showFloat(box2, region));
+    sectionRow.set(region, box3);
+    region.addEventListener("mouseenter", () => showFloat(box3, region));
+    region.addEventListener("focusin", () => showFloat(box3, region));
     region.addEventListener("mouseleave", hideFloatSoon);
   }
 }
-function drawShortList(box2, selected) {
-  lists.set(box2, selected);
-  box2.innerHTML = "";
+function drawShortList(box3, selected) {
+  lists.set(box3, selected);
+  box3.innerHTML = "";
   const fabs = shortListFabrics(selected);
-  for (const { f, fixed } of fabs) box2.appendChild(fabricTile(f, f.id === selected, fixed ? "fixed" : "remove"));
-  placeMoreButton(box2, moreButton(box2, fabs.length), colourButton ? colourButton(box2) : null);
-  sideRoller(box2, '.fab[aria-pressed="true"]');
+  for (const { f, fixed } of fabs) box3.appendChild(fabricTile(f, f.id === selected, fixed ? "fixed" : "remove"));
+  placeMoreButton(box3, moreButton(box3, fabs.length), colourButton ? colourButton(box3) : null);
+  sideRoller(box3, '.fab[aria-pressed="true"]');
 }
 var lib = { source: (
   /** @type {HTMLElement | null} */
@@ -13693,10 +13822,10 @@ var GROUPS = {
   collection: t("Collection"),
   mine: t("My photos")
 };
-function openLibrary(box2) {
-  lib.source = box2;
+function openLibrary(box3) {
+  lib.source = box3;
   lib.selected = /** @type {HTMLElement | null} */
-  box2.querySelector('.fab[aria-pressed="true"]')?.dataset.f ?? null;
+  box3.querySelector('.fab[aria-pressed="true"]')?.dataset.f ?? null;
   lib.group = "all";
   lib.shown = PAGE;
   $("fablib-q").value = "";
@@ -13736,12 +13865,12 @@ function drawLibrary() {
   const grid = $("fablib-grid");
   grid.innerHTML = "";
   if (lib.group === "all" || lib.group === "mine") {
-    const add = document.createElement("label");
-    add.className = "fab fab-more";
-    add.htmlFor = "dz-upload";
-    add.title = t("Add photos of your own fabrics");
-    add.innerHTML = `<b aria-hidden="true">+</b><span>${t("Add fabric photo")}</span>`;
-    grid.appendChild(add);
+    const add2 = document.createElement("label");
+    add2.className = "fab fab-more";
+    add2.htmlFor = "dz-upload";
+    add2.title = t("Add photos of your own fabrics");
+    add2.innerHTML = `<b aria-hidden="true">+</b><span>${t("Add fabric photo")}</span>`;
+    grid.appendChild(add2);
   }
   const onPalette = new Set(fabricPalette() || defaultPalette());
   for (const f of found.slice(0, lib.shown)) {
@@ -13760,11 +13889,11 @@ function drawLibrary() {
   $("fablib-none").textContent = query.trim() ? t("No fabrics match \u201C{q}\u201D.", { q: query.trim() }) : t("No fabrics here yet.");
 }
 function pickFromLibrary(id) {
-  const box2 = lib.source;
+  const box3 = lib.source;
   $("fablib").close();
-  if (box2) useFabricIn(box2, id);
+  if (box3) useFabricIn(box3, id);
 }
-function useFabricIn(box2, id) {
+function useFabricIn(box3, id) {
   loadFabrics([id]);
   noteRecent(id);
   const palette = fabricPalette();
@@ -13774,7 +13903,7 @@ function useFabricIn(box2, id) {
   b.className = "fab";
   b.dataset.f = id;
   b.hidden = true;
-  box2.appendChild(b);
+  box3.appendChild(b);
   b.click();
   b.remove();
 }
@@ -14013,8 +14142,8 @@ function measureAll() {
 var pickRgb = (p) => hslToRgb(p.h, p.s, p.l);
 var css = (rgb) => `rgb(${rgb.join(",")})`;
 var lightness = () => finder.picks[finder.sel]?.l ?? finder.light;
-function openFinder(box2) {
-  finder.source = box2;
+function openFinder(box3) {
+  finder.source = box3;
   const dlg = $("colfind");
   if (!dlg.open) {
     try {
@@ -14062,8 +14191,8 @@ function drawDots() {
   });
 }
 function drawPicks() {
-  const box2 = $("colfind-picks");
-  box2.innerHTML = "";
+  const box3 = $("colfind-picks");
+  box3.innerHTML = "";
   finder.picks.forEach((p2, i) => {
     const row = document.createElement("div");
     row.className = "colfind-pick";
@@ -14092,7 +14221,7 @@ function drawPicks() {
     x.textContent = "\xD7";
     x.setAttribute("aria-label", t("Take colour {n} away", { n: i + 1 }));
     row.append(sw, less, amount, more2, x);
-    box2.append(row);
+    box3.append(row);
   });
   $("colfind-hint").textContent = finder.picks.length ? finder.picks.length < MAX ? t("Click the wheel to add another colour; drag a dot to change it.") : t("Drag a dot to change its colour.") : t("Click the wheel to pick a colour (up to {max}).", { max: MAX });
   const slider = (
@@ -14104,8 +14233,8 @@ function drawPicks() {
   slider.style.background = `linear-gradient(to right, #000, ${mid}, #fff)`;
 }
 function drawQuilt() {
-  const box2 = $("colfind-quilt"), seen = [];
-  box2.innerHTML = "";
+  const box3 = $("colfind-quilt"), seen = [];
+  box3.innerHTML = "";
   const ids = design ? [...fabricIdsIn(design, isFabric2)] : [];
   for (const id of ids) {
     const main = colours.get(id)?.[0];
@@ -14119,15 +14248,15 @@ function drawQuilt() {
     b.dataset.rgb = main.rgb.join(",");
     b.style.background = css(main.rgb);
     b.setAttribute("aria-label", t("Use this colour from your quilt"));
-    box2.append(b);
+    box3.append(b);
     if (seen.length >= 8) break;
   }
   $("colfind-quilt-box").hidden = !seen.length;
 }
 function drawResults(keepScroll = false) {
-  const box2 = $("colfind-results"), status = $("colfind-status");
-  const left = box2.scrollLeft;
-  box2.innerHTML = "";
+  const box3 = $("colfind-results"), status = $("colfind-status");
+  const left = box3.scrollLeft;
+  box3.innerHTML = "";
   const all = listedFabrics(), known = all.filter((f) => colours.has(f.id));
   const reading = known.length < all.length ? t("Reading the fabrics' colours\u2026 {n} of {all}", { n: known.length, all: all.length }) : "";
   if (!finder.picks.length) {
@@ -14148,10 +14277,10 @@ function drawResults(keepScroll = false) {
     }
     tile.insertBefore(bar, tile.querySelector("span"));
     if (score < WEAK) tile.classList.add("weak");
-    box2.append(tile);
+    box3.append(tile);
   }
-  box2.scrollLeft = keepScroll ? left : 0;
-  sideRoller(box2, '.fab[aria-pressed="true"]');
+  box3.scrollLeft = keepScroll ? left : 0;
+  sideRoller(box3, '.fab[aria-pressed="true"]');
 }
 function drawAll() {
   drawWheel();
@@ -14278,23 +14407,23 @@ function initFinder() {
       /** @type {HTMLElement} */
       e.target.closest("button.fab")
     );
-    const box2 = finder.source;
-    if (!b?.dataset.f || !box2) return;
+    const box3 = finder.source;
+    if (!b?.dataset.f || !box3) return;
     dlg.close();
-    useFabricIn(box2, b.dataset.f);
+    useFabricIn(box3, b.dataset.f);
   });
-  setColourButton((box2) => {
+  setColourButton((box3) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "fab-more-btn";
-    if (box2.id) b.id = box2.id + "-colour";
+    if (box3.id) b.id = box3.id + "-colour";
     b.title = t("Find fabrics by colour");
     b.setAttribute("aria-label", t("Find fabrics by colour"));
     const ico = document.createElement("i");
     ico.className = "colwheel-ico";
     ico.setAttribute("aria-hidden", "true");
     b.append(ico);
-    b.addEventListener("click", () => openFinder(box2));
+    b.addEventListener("click", () => openFinder(box3));
     return b;
   });
 }
@@ -14384,7 +14513,7 @@ function patternTile(key) {
 }
 function drawPatternList() {
   if (!design) return;
-  const box2 = $("dz-patterns"), cur = design.blocks[focusBlock].pattern;
+  const box3 = $("dz-patterns"), cur = design.blocks[focusBlock].pattern;
   const keys = shortList({
     basics: STARTERS,
     selected: cur,
@@ -14392,10 +14521,10 @@ function drawPatternList() {
     recent: recentBlocks(),
     max: 10
   });
-  if (box2.dataset.keys !== keys.join()) {
-    box2.dataset.keys = keys.join();
-    box2.innerHTML = "";
-    for (const k of keys) box2.appendChild(patternTile(k));
+  if (box3.dataset.keys !== keys.join()) {
+    box3.dataset.keys = keys.join();
+    box3.innerHTML = "";
+    for (const k of keys) box3.appendChild(patternTile(k));
     const rest = Object.keys(PATTERNS).length - keys.length, more2 = document.createElement("button");
     more2.type = "button";
     more2.className = "fab-more-btn";
@@ -14404,10 +14533,10 @@ function drawPatternList() {
     more2.setAttribute("aria-label", t("More blocks ({n})", { n: rest }));
     more2.innerHTML = `<b aria-hidden="true">+</b><span aria-hidden="true">${rest}</span>`;
     more2.addEventListener("click", openBlockLibrary);
-    placeMoreButton(box2, more2);
+    placeMoreButton(box3, more2);
   }
-  for (const b of box2.querySelectorAll(".pat[data-p]")) b.setAttribute("aria-pressed", String(b.dataset.p === cur));
-  sideRoller(box2, '.pat[aria-pressed="true"]');
+  for (const b of box3.querySelectorAll(".pat[data-p]")) b.setAttribute("aria-pressed", String(b.dataset.p === cur));
+  sideRoller(box3, '.pat[aria-pressed="true"]');
 }
 var lib2 = { group: "all", shown: PAGE2 };
 var FAMILIES = [
@@ -14489,12 +14618,12 @@ function drawTile() {
 function pickFromLibrary2(key) {
   $("blklib").close();
   noteRecentBlock(key);
-  const box2 = $("dz-patterns"), b = document.createElement("button");
+  const box3 = $("dz-patterns"), b = document.createElement("button");
   b.type = "button";
   b.className = "pat";
   b.dataset.p = key;
   b.hidden = true;
-  box2.appendChild(b);
+  box3.appendChild(b);
   b.click();
   b.remove();
 }
@@ -14537,6 +14666,10 @@ function initBlockLibrary() {
 }
 initBlockLibrary();
 
+// src/sim/picture-state.js
+var pictureHooks = { designChanged: () => {
+} };
+
 // src/designer/design-state.js
 function loadDesign() {
   const raw = getSession("current");
@@ -14548,6 +14681,7 @@ function saveDesign() {
   if (readOnly) return;
   setSession("current", design);
   scheduleSync();
+  pictureHooks.designChanged();
 }
 
 // src/core/symmetry.js
@@ -14570,7 +14704,7 @@ function symPartners(bi, d) {
   const s = symOf(d);
   if (s === "off") return [];
   const g = cellGrid(d), [c, r] = g.cell(bi), C2 = d.cols, out = [], k = spanOf(d.blocks[bi]);
-  const add = (cc, rr, f) => {
+  const add2 = (cc, rr, f) => {
     const j = g.at(cc, rr);
     if (j >= 0 && j !== bi && !out.some((x) => x[0] === j)) out.push([j, f]);
   };
@@ -14590,10 +14724,10 @@ function symPartners(bi, d) {
     diag = ([u, v, f]) => [2 * C2 - 1 - k - u, v, comp(oLR, f)];
   }
   for (const b of base) {
-    add(b[0], b[1], b[2]);
+    add2(b[0], b[1], b[2]);
     if (s === "kal") {
       const [x, y, f] = diag(b);
-      add(x, y, f);
+      add2(x, y, f);
     }
   }
   return out;
@@ -15193,9 +15327,9 @@ var drawSoon = () => {
 };
 function drawDesignerCanvas() {
   if (!design) return;
-  const cv = $("dz-quilt"), box2 = cv.closest(".dz-quiltwrap").getBoundingClientRect();
+  const cv = $("dz-quilt"), box3 = cv.closest(".dz-quiltwrap").getBoundingClientRect();
   const dpr0 = Math.min(window.devicePixelRatio || 1, 2), qmm = quiltMm(design), ar = qmm.H / qmm.W;
-  let cw = Math.max(200, Math.floor(Math.min(box2.width - (window.innerWidth > 640 ? 128 : 0), 860)));
+  let cw = Math.max(200, Math.floor(Math.min(box3.width - (window.innerWidth > 640 ? 128 : 0), 860)));
   let maxH = Math.max(320, Math.floor(window.innerHeight * 0.82));
   if (document.body.classList.contains("tl-open")) {
     const docTop0 = cv.closest(".dz-quiltwrap").getBoundingClientRect().top + window.scrollY;
@@ -15377,11 +15511,11 @@ var BLOCK_PX = 300;
 
 // src/designer/fussy-cut.js
 function drawFussy() {
-  const box2 = $("dz-fussy");
-  if (!box2 || !design) return;
+  const box3 = $("dz-fussy");
+  if (!box3 || !design) return;
   const b = design.blocks[focusBlock], pi = selParts.size === 1 ? [...selParts][0] : -1, fab = pi >= 0 ? fabricById(b.fabrics[pi]) : null;
-  box2.hidden = !(fab && fab.print);
-  if (box2.hidden) return;
+  box3.hidden = !(fab && fab.print);
+  if (box3.hidden) return;
   const cv = $("dz-fussy-cv"), S = 170, dpr = Math.min(window.devicePixelRatio || 1, 2);
   cv.width = S * dpr;
   cv.height = S * dpr;
@@ -15495,8 +15629,8 @@ function drawFabricPalette() {
     if ($("set-fabs")) drawPaletteInto($("set-fabs"), design.settingFabric || "b0");
   }
 }
-function drawPaletteInto(box2, selected = activeFabric) {
-  drawShortList(box2, selected);
+function drawPaletteInto(box3, selected = activeFabric) {
+  drawShortList(box3, selected);
 }
 function renderDesigner() {
   if (!design) return;
@@ -15544,8 +15678,8 @@ var blockKey = (b) => {
   return k;
 };
 function drawBlockLibrary2() {
-  const box2 = $("dz-library");
-  if (!box2 || !design) return;
+  const box3 = $("dz-library");
+  if (!box3 || !design) return;
   const seen = /* @__PURE__ */ new Map();
   design.blocks.forEach((b, i) => {
     if (b.under != null) return;
@@ -15554,15 +15688,15 @@ function drawBlockLibrary2() {
     seen.get(k).n++;
   });
   const cur = blockKey(design.blocks[focusBlock]);
-  box2.innerHTML = "";
+  box3.innerHTML = "";
   const dpr = Math.min(window.devicePixelRatio || 1, 2), S = 68, realCm = design.blockMm / 10;
   for (const [k, { b, i, n }] of seen) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "blib-item";
-    btn.dataset.src = i;
-    btn.setAttribute("aria-pressed", String(k === cur));
-    btn.title = t("{name} \xB7 used {n}\xD7", { name: PATTERNS[b.pattern].label, n });
+    const btn2 = document.createElement("button");
+    btn2.type = "button";
+    btn2.className = "blib-item";
+    btn2.dataset.src = i;
+    btn2.setAttribute("aria-pressed", String(k === cur));
+    btn2.title = t("{name} \xB7 used {n}\xD7", { name: PATTERNS[b.pattern].label, n });
     const c = document.createElement("canvas");
     c.width = c.height = S * dpr;
     const g = c.getContext("2d");
@@ -15580,10 +15714,10 @@ function drawBlockLibrary2() {
     });
     const s = document.createElement("span");
     s.textContent = `${PATTERNS[b.pattern].label} \xD7${n}`;
-    btn.append(c, s);
-    box2.appendChild(btn);
+    btn2.append(c, s);
+    box3.appendChild(btn2);
   }
-  sideRoller(box2, '.blib-item[aria-pressed="true"]');
+  sideRoller(box3, '.blib-item[aria-pressed="true"]');
 }
 function copyBlockFrom(srcIndex) {
   selParts.clear();
@@ -15670,7 +15804,7 @@ function initDesignerUI() {
   const blocksIn = (x0, y0, x1, y1) => {
     const r = qcv.getBoundingClientRect(), out = /* @__PURE__ */ new Set();
     const L = Math.min(x0, x1), R2 = Math.max(x0, x1), T = Math.min(y0, y1), B2 = Math.max(y0, y1);
-    const box2 = [
+    const box3 = [
       [L, T],
       [R2, T],
       [R2, B2],
@@ -15683,7 +15817,7 @@ function initDesignerUI() {
     }
     for (let i = 0, n = cellCount(design); i < n; i++) {
       const P = blockPlace(design, i, r.width, r.height), cx = P.x + P.w / 2, cy = P.y + P.h / 2;
-      if (onPoint ? cx > L && cx < R2 && cy > T && cy < B2 : convexOverlap(box2, blockOutline(P)))
+      if (onPoint ? cx > L && cx < R2 && cy > T && cy < B2 : convexOverlap(box3, blockOutline(P)))
         out.add(anchorOf(design, i));
     }
     return out;
@@ -16154,10 +16288,22 @@ designNormalCanvas.width = designNormalCanvas.height = 1024;
 setDesignNormalTex(new THREE11.CanvasTexture(designNormalCanvas));
 designNormalTex.colorSpace = THREE11.NoColorSpace;
 designNormalTex.anisotropy = maxAniso;
+var BINDING_MM = 12.7;
+function paintBinding(g, W, H, d = design) {
+  const quiltCm = quiltMm(d).W / 10, bw = W * (BINDING_MM / 10 / quiltCm);
+  g.save();
+  g.beginPath();
+  g.rect(0, 0, W, H);
+  g.rect(bw, bw, W - 2 * bw, H - 2 * bw);
+  g.clip("evenodd");
+  g.fillStyle = fabricFill(g, fabricById("b1"), W / quiltCm, 3);
+  g.fillRect(0, 0, W, H);
+  g.restore();
+}
 function buildDesignMaps() {
   const qm = quiltMm(design);
   setQuiltDims(qm.W / 1e3, qm.H / 1e3);
-  const W = patchCanvas.width, H = patchCanvas.height, quiltCm = qm.W / 10;
+  const W = patchCanvas.width, H = patchCanvas.height;
   const g = patchCanvas.getContext("2d");
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.globalCompositeOperation = "source-over";
@@ -16169,15 +16315,7 @@ function buildDesignMaps() {
   g.imageSmoothingQuality = "high";
   g.drawImage(cav, 0, 0, W, H);
   g.globalCompositeOperation = "source-over";
-  const bw = W * (1.27 / quiltCm);
-  g.save();
-  g.beginPath();
-  g.rect(0, 0, W, H);
-  g.rect(bw, bw, W - 2 * bw, H - 2 * bw);
-  g.clip("evenodd");
-  g.fillStyle = fabricFill(g, fabricById("b1"), W / quiltCm, 3);
-  g.fillRect(0, 0, W, H);
-  g.restore();
+  paintBinding(g, W, H);
   patchTex.needsUpdate = true;
   const NW = designNormalCanvas.width, NH = designNormalCanvas.height, hc = document.createElement("canvas");
   hc.width = NW;
@@ -16422,15 +16560,15 @@ function fitOptions() {
   return list2;
 }
 function renderFitSuggestions() {
-  const box2 = $("fit-list");
-  if (!box2 || !design) return;
+  const box3 = $("fit-list");
+  if (!box3 || !design) return;
   const T = fitTarget();
   const goal = { target: dims([T.W, T.L]), top: dims([bedState.w, bedState.l]), drop: len(bedState.drop) };
   $("fit-target").textContent = bedState.tuck ? t("Target quilt: {target} (mattress {top} + {drop} drop each side and at the foot + {tuck} pillow tuck).", {
     ...goal,
     tuck: len(TUCK)
   }) : t("Target quilt: {target} (mattress {top} + {drop} drop each side and at the foot).", goal);
-  box2.innerHTML = "";
+  box3.innerHTML = "";
   for (const o of fitOptions()) {
     const side = Math.round((o.W - bedState.w) / 2), foot = o.L - bedState.l - (bedState.tuck ? TUCK : 0);
     const isNow = design.cols === o.c && design.rows === o.r && design.blockMm === o.B;
@@ -16438,18 +16576,18 @@ function renderFitSuggestions() {
     row.className = "fitopt";
     row.innerHTML = `<div><b>${t("{c} \xD7 {r} blocks of {size}", { c: o.c, r: o.r, size: len(o.B) })}</b>${o.current ? ` <span class="tag">${t("your block size")}</span>` : ""}${o.exact ? ` <span class="tag">${t("resized blocks")}</span>` : ""}
       <small>${t("{size} \xB7 drop {side} at the sides, {foot} at the foot", { size: dims([o.W, o.L]), side: len(side), foot: len(foot) })}</small></div>`;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn sm" + (isNow ? "" : " primary");
-    btn.textContent = isNow ? t("In use") : t("Use");
-    btn.disabled = isNow;
-    btn.addEventListener("click", () => {
+    const btn2 = document.createElement("button");
+    btn2.type = "button";
+    btn2.className = "btn sm" + (isNow ? "" : " primary");
+    btn2.textContent = isNow ? t("In use") : t("Use");
+    btn2.disabled = isNow;
+    btn2.addEventListener("click", () => {
       dispatch(setBlockMm, o.B);
       resizeTo(o.c, o.r);
       renderFitSuggestions();
     });
-    row.appendChild(btn);
-    box2.appendChild(row);
+    row.appendChild(btn2);
+    box3.appendChild(row);
   }
 }
 function initBedUI() {
@@ -16578,8 +16716,8 @@ var QUILTING2 = {
   meander: "Meander"
 };
 var quiltingOf = (d) => d && QUILTING2[d.quilting] ? d.quilting : "ditch";
-function drawQuiltingLines(g, W, H, kind) {
-  const k = W / quiltMm(design).W;
+function drawQuiltingLines(g, W, H, kind, d = design) {
+  const k = W / quiltMm(d).W;
   g.save();
   g.beginPath();
   g.rect(0, 0, W, H);
@@ -16626,8 +16764,7 @@ function drawQuiltingLines(g, W, H, kind) {
   }
   g.restore();
 }
-function strokeSeams(g, W, H) {
-  const d = design;
+function strokeSeams(g, W, H, d = design) {
   for (const poly of tilePolys(d, W, H)) {
     pathPoly(g, poly);
     g.stroke();
@@ -16668,6 +16805,1476 @@ function softSeams(W, H, blur, bg, ink, lineWidth) {
   }
   return c;
 }
+
+// src/sim/quilt-hero.js
+import * as THREE13 from "three";
+
+// src/render/relief.js
+var VALLEY = [
+  [0.35, 3.5],
+  [0.35, 13],
+  [0.3, 42]
+];
+var PUCKER_MM = 10;
+var PUCKER_SPACING_MM = 24;
+var WEAVE_MM = 0.05;
+var WEAVE_LONG_MM = 22;
+var WEAVE_WIDE_MM = 1.6;
+var EDGE_MM = 8;
+var NOISE = (() => {
+  const table = new Float32Array(65536);
+  let seed = 4242;
+  for (let i = 0; i < table.length; i++) {
+    seed = seed * 16807 % 2147483647;
+    table[i] = seed / 2147483647 * 2 - 1;
+  }
+  return table;
+})();
+function noise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const x0 = xi & 255, x1 = xi + 1 & 255, y0 = (yi & 255) << 8, y1 = (yi + 1 & 255) << 8;
+  const a = NOISE[x0 + y0], b = NOISE[x1 + y0], c = NOISE[x0 + y1], d = NOISE[x1 + y1];
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function nearestStitch(mask, w, h) {
+  const FAR = 1e9, down = new Float32Array(w * h), from = new Int32Array(w * h).fill(-1);
+  for (let x = 0; x < w; x++) {
+    let last = -1;
+    for (let y = 0; y < h; y++) {
+      const i = y * w + x;
+      if (mask[i]) last = y;
+      down[i] = last < 0 ? FAR : y - last;
+      from[i] = last;
+    }
+    last = -1;
+    for (let y = h - 1; y >= 0; y--) {
+      const i = y * w + x;
+      if (mask[i]) last = y;
+      if (last >= 0 && last - y < down[i]) {
+        down[i] = last - y;
+        from[i] = last;
+      }
+    }
+  }
+  const dist = new Float32Array(w * h), near = new Int32Array(w * h).fill(-1), site = new Int32Array(w), start = new Float64Array(w + 1);
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    let k = -1;
+    for (let x = 0; x < w; x++) {
+      const gx = down[row + x];
+      if (gx >= FAR) continue;
+      let s = -Infinity;
+      while (k >= 0) {
+        const q = site[k], gq = down[row + q];
+        s = (gx * gx + x * x - gq * gq - q * q) / (2 * (x - q));
+        if (s > start[k]) break;
+        k--;
+      }
+      k++;
+      site[k] = x;
+      start[k] = k === 0 ? -Infinity : s;
+    }
+    if (k < 0) {
+      dist.fill(FAR, row, row + w);
+      continue;
+    }
+    let j = 0;
+    for (let x = 0; x < w; x++) {
+      while (j < k && start[j + 1] < x) j++;
+      const q = site[j], g = down[row + q], dx = x - q;
+      dist[row + x] = Math.sqrt(dx * dx + g * g);
+      near[row + x] = from[row + q] * w + q;
+    }
+  }
+  return { dist, near };
+}
+function softBlur(src, w, h, r) {
+  const blurLines = (from, lines, n, next, step2) => {
+    const to = new Float32Array(w * h);
+    for (let l = 0; l < lines; l++) {
+      const first = l * next, at = (i) => from[first + step2 * Math.max(0, Math.min(n - 1, i))];
+      let sum = 0;
+      for (let i = -r; i <= r; i++) sum += at(i);
+      for (let i = 0; i < n; i++) {
+        to[first + step2 * i] = sum / (2 * r + 1);
+        sum += at(i + r + 1) - at(i - r);
+      }
+    }
+    return to;
+  };
+  let a = src;
+  for (let pass = 0; pass < 3; pass++) a = blurLines(blurLines(a, h, w, w, 1), w, h, 1, w);
+  return a;
+}
+function quiltRelief(mask, w, h, o) {
+  const { mmPerPx, depth, thread } = o, { dist, near } = nearestStitch(mask, w, h), out = new Float32Array(w * h);
+  let puckers = new Float32Array(w * h);
+  for (let y = 0, i = 0; y < h; y++)
+    for (let x = 0; x < w; x++, i++) {
+      if (near[i] < 0) continue;
+      const d = dist[i] * mmPerPx, e = d / PUCKER_MM;
+      const nx = near[i] % w * mmPerPx / PUCKER_SPACING_MM, ny = Math.floor(near[i] / w) * mmPerPx / PUCKER_SPACING_MM;
+      puckers[i] = noise(nx, ny) * e * Math.exp(1 - e) * depth * 0.1;
+      for (const [share, reach] of VALLEY) out[i] -= depth * share * Math.exp(-d / reach);
+    }
+  puckers = softBlur(puckers, w, h, 1);
+  for (let y = 0, i = 0; y < h; y++)
+    for (let x = 0; x < w; x++, i++) {
+      const X = x * mmPerPx, Y = y * mmPerPx;
+      const lumps = noise(X / 38, Y / 38) * 0.08 + noise(X / 95 + 7, Y / 95 + 3) * 0.18 + (noise(X / 310 + 2, Y / 310 + 9) + 1) * 0.28;
+      const weave = (noise(X / WEAVE_WIDE_MM, Y / WEAVE_LONG_MM) + noise(X / WEAVE_LONG_MM + 5, Y / WEAVE_WIDE_MM + 5)) * WEAVE_MM;
+      const edge = Math.min(1, Math.min(x, y, w - 1 - x, h - 1 - y) * mmPerPx / EDGE_MM), fade = edge * edge * (3 - 2 * edge);
+      out[i] = (out[i] + puckers[i] + lumps * depth + weave - (thread && thread[i] ? 0.45 : 0)) * fade;
+    }
+  return out;
+}
+function reliefNormals(height, w, h, mmPerPx) {
+  const rgba = new Uint8ClampedArray(4 * w * h);
+  for (let y = 0, i = 0; y < h; y++) {
+    const up = y > 0 ? -w : 0, dn = y < h - 1 ? w : 0;
+    for (let x = 0; x < w; x++, i++) {
+      const lf = x > 0 ? -1 : 0, rt = x < w - 1 ? 1 : 0;
+      const sx = (height[i + rt] - height[i + lf]) / ((rt - lf || 1) * mmPerPx), sy = (height[i + dn] - height[i + up]) / (((dn - up) / w || 1) * mmPerPx), l = Math.hypot(sx, sy, 1), o = 4 * i;
+      rgba[o] = (-sx / l * 0.5 + 0.5) * 255;
+      rgba[o + 1] = (sy / l * 0.5 + 0.5) * 255;
+      rgba[o + 2] = (1 / l * 0.5 + 0.5) * 255;
+      rgba[o + 3] = 255;
+    }
+  }
+  return rgba;
+}
+function refineGrid(src, n, k, dim) {
+  const fine = (n - 1) * k + 1, out = new Float32Array(fine * fine * dim), weights = [];
+  for (let s = 0; s < k; s++) {
+    const t2 = s / k, t22 = t2 * t2, t3 = t22 * t2;
+    weights.push([
+      -0.5 * t2 + t22 - 0.5 * t3,
+      1 - 2.5 * t22 + 1.5 * t3,
+      0.5 * t2 + 2 * t22 - 1.5 * t3,
+      -0.5 * t22 + 0.5 * t3
+    ]);
+  }
+  const clampN = (i) => Math.max(0, Math.min(n - 1, i));
+  const rows = new Float32Array(fine * n * dim);
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < fine; i++) {
+      const c = Math.min(n - 2, Math.floor(i / k)), s = i - c * k, w = s < k ? weights[s] : [0, 0, 1, 0];
+      for (let d = 0; d < dim; d++) {
+        let v = 0;
+        for (let m = 0; m < 4; m++) v += w[m] * src[dim * (j * n + clampN(c - 1 + m)) + d];
+        rows[dim * (j * fine + i) + d] = v;
+      }
+    }
+  for (let j = 0; j < fine; j++) {
+    const c = Math.min(n - 2, Math.floor(j / k)), s = j - c * k, w = s < k ? weights[s] : [0, 0, 1, 0];
+    const r0 = clampN(c - 1), r1 = c, r2 = c + 1, r3 = clampN(c + 2);
+    for (let i = 0; i < fine; i++)
+      for (let d = 0; d < dim; d++)
+        out[dim * (j * fine + i) + d] = w[0] * rows[dim * (r0 * fine + i) + d] + w[1] * rows[dim * (r1 * fine + i) + d] + w[2] * rows[dim * (r2 * fine + i) + d] + w[3] * rows[dim * (r3 * fine + i) + d];
+  }
+  return out;
+}
+
+// src/sim/quilt-hero.js
+var FINER = 8;
+var HR = (R - 1) * FINER + 1;
+var STITCH_MM = 2.6;
+var STITCH_GAP_MM = 1.4;
+var VALLEY_SHARE = 0.85;
+var VALLEY_MAX_MM = 11;
+var LOWEST_SHARE = 0.12;
+function canvasTexture(canvas4, srgb) {
+  const t2 = new THREE13.CanvasTexture(canvas4);
+  t2.colorSpace = srgb ? THREE13.SRGBColorSpace : THREE13.NoColorSpace;
+  t2.anisotropy = maxAniso;
+  return t2;
+}
+function newCanvas(w, h) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+}
+function stitchMask(d, w, h, kPxPerMm, kind, dashed) {
+  const g = newCanvas(w, h).getContext("2d", { willReadFrequently: true });
+  g.fillStyle = "#fff";
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = "#000";
+  g.lineWidth = Math.max(1.25, 0.8 * kPxPerMm);
+  if (dashed) g.setLineDash([STITCH_MM * kPxPerMm, STITCH_GAP_MM * kPxPerMm]);
+  strokeSeams(g, w, h, d);
+  if (kind !== "ditch") drawQuiltingLines(g, w, h, kind, d);
+  const bw = BINDING_MM * kPxPerMm;
+  g.strokeRect(bw, bw, w - 2 * bw, h - 2 * bw);
+  const px = g.getImageData(0, 0, w, h).data, mask = new Uint8Array(w * h);
+  for (let i = 0; i < mask.length; i++) mask[i] = px[4 * i] < 128 ? 1 : 0;
+  return mask;
+}
+var fineUv = null;
+var fineIndex = null;
+function ensureGrid() {
+  if (fineUv) return;
+  fineUv = new Float32Array(HR * HR * 2);
+  fineIndex = new Uint32Array(6 * (HR - 1) * (HR - 1));
+  for (let j = 0, k = 0; j < HR; j++)
+    for (let i = 0; i < HR; i++, k++) {
+      fineUv[2 * k] = i / (HR - 1);
+      fineUv[2 * k + 1] = 1 - j / (HR - 1);
+    }
+  let o = 0;
+  for (let j = 0; j < HR - 1; j++)
+    for (let i = 0; i < HR - 1; i++) {
+      const a = j * HR + i, b = a + 1, d = a + HR, c = d + 1;
+      fineIndex.set((i + j & 1) === 0 ? [a, c, b, a, d, c] : [a, d, b, b, d, c], o);
+      o += 6;
+    }
+}
+async function makeHeroTop(d, halfThick, midCoarse, normalCoarse, breathe) {
+  const qm = quiltMm(d), long = PW, w = qm.W >= qm.H ? long : Math.max(64, Math.round(long * qm.W / qm.H)), h = qm.W >= qm.H ? Math.max(64, Math.round(long * qm.H / qm.W)) : long, kPxPerMm = w / qm.W, mmPerPx = 1 / kPxPerMm, kind = quiltingOf(d);
+  const colour = newCanvas(w, h), g = colour.getContext("2d");
+  drawQuilt2(g, w, h, { design: d });
+  if (kind !== "ditch") {
+    g.save();
+    g.strokeStyle = "rgba(250,246,235,.6)";
+    g.lineWidth = Math.max(1, 0.6 * kPxPerMm);
+    g.setLineDash([STITCH_MM * kPxPerMm, STITCH_GAP_MM * kPxPerMm]);
+    drawQuiltingLines(g, w, h, kind, d);
+    g.restore();
+  }
+  paintBinding(g, w, h, d);
+  await breathe();
+  const faceMm = halfThick * 1e3, depth = Math.min(VALLEY_MAX_MM, VALLEY_SHARE * faceMm), solid = stitchMask(d, w, h, kPxPerMm, kind, false), thread = stitchMask(d, w, h, kPxPerMm, kind, true);
+  await breathe();
+  const height = quiltRelief(solid, w, h, { mmPerPx, depth, thread });
+  await breathe();
+  const broad = softBlur(height, w, h, Math.max(1, Math.round(1.8 * kPxPerMm))), crisp = new Float32Array(w * h);
+  for (let i = 0; i < crisp.length; i++) crisp[i] = height[i] - broad[i];
+  await breathe();
+  const relief = newCanvas(w, h);
+  relief.getContext("2d").putImageData(new ImageData(reliefNormals(crisp, w, h, mmPerPx), w, h), 0, 0);
+  await breathe();
+  ensureGrid();
+  const mid = refineGrid(midCoarse, R, FINER, 3), normal = refineGrid(normalCoarse, R, FINER, 3), pos = new Float32Array(HR * HR * 3);
+  for (let j = 0, k = 0; j < HR; j++) {
+    const y = j / (HR - 1) * (h - 1), y0 = Math.floor(y), y1 = Math.min(h - 1, y0 + 1), fy = y - y0;
+    for (let i = 0; i < HR; i++, k++) {
+      const x = i / (HR - 1) * (w - 1), x0 = Math.floor(x), x1 = Math.min(w - 1, x0 + 1), fx = x - x0, above = broad[y0 * w + x0] * (1 - fx) + broad[y0 * w + x1] * fx, below = broad[y1 * w + x0] * (1 - fx) + broad[y1 * w + x1] * fx, rise = above * (1 - fy) + below * fy, nx = normal[3 * k], ny = normal[3 * k + 1], nz = normal[3 * k + 2], s = 1 / (Math.hypot(nx, ny, nz) || 1), up = Math.max(LOWEST_SHARE * faceMm, faceMm + rise) / 1e3;
+      pos[3 * k] = mid[3 * k] + nx * s * up;
+      pos[3 * k + 1] = mid[3 * k + 1] + ny * s * up;
+      pos[3 * k + 2] = mid[3 * k + 2] + nz * s * up;
+    }
+  }
+  const geo = new THREE13.BufferGeometry();
+  geo.setAttribute("position", new THREE13.BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE13.BufferAttribute(fineUv, 2));
+  geo.setIndex(new THREE13.BufferAttribute(fineIndex, 1));
+  geo.computeVertexNormals();
+  const material = QM.top.clone();
+  material.map = canvasTexture(colour, true);
+  material.normalMap = canvasTexture(relief, false);
+  material.normalScale = new THREE13.Vector2(1, 1);
+  material.sheenColor = new THREE13.Color(0.1, 0.1, 0.1);
+  const mesh = new THREE13.Mesh(geo, material);
+  mesh.castShadow = mesh.receiveShadow = true;
+  mesh.frustumCulled = false;
+  mesh.userData.dispose = () => {
+    geo.dispose();
+    material.map.dispose();
+    material.normalMap.dispose();
+    material.dispose();
+  };
+  return mesh;
+}
+
+// src/sim/bedroom.js
+import * as THREE14 from "three";
+var ROOM_HEIGHT = 2.7;
+var WINDOW_W = 1.9;
+var WINDOW_H = 1.8;
+var SILL = 0.55;
+var WALL_DEPTH = 0.2;
+var SUN_DIR = new THREE14.Vector3(0.78, -0.55, 0.3).normalize();
+var SUN_FAR = 5;
+var SUN_SIZE = 0.15;
+var mats = {};
+function drawnTexture(w, h, draw, srgb = true) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const t2 = new THREE14.CanvasTexture(c);
+  if (srgb) t2.colorSpace = THREE14.SRGBColorSpace;
+  t2.anisotropy = maxAniso;
+  return t2;
+}
+function drawRug(g, w, h) {
+  let seed = 31;
+  const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  g.fillStyle = "#b9b0a0";
+  g.fillRect(0, 0, w, h);
+  const line2 = (a, lw, colour) => {
+    g.strokeStyle = colour;
+    g.lineWidth = lw;
+    g.strokeRect(a, a, w - 2 * a, h - 2 * a);
+  };
+  line2(26, 22, "#8f8674");
+  line2(58, 6, "#d6cfc0");
+  g.save();
+  g.beginPath();
+  g.rect(70, 70, w - 140, h - 140);
+  g.clip();
+  g.strokeStyle = "rgba(232,226,212,.42)";
+  g.lineWidth = 4;
+  for (let t2 = -h; t2 < w + h; t2 += 118) {
+    g.beginPath();
+    g.moveTo(t2, 0);
+    g.lineTo(t2 + h, h);
+    g.moveTo(t2, h);
+    g.lineTo(t2 + h, 0);
+    g.stroke();
+  }
+  g.restore();
+  for (let i = 0; i < 14e3; i++) {
+    g.fillStyle = `rgba(${rnd() < 0.5 ? "60,52,40" : "245,240,228"},${0.02 + rnd() * 0.05})`;
+    g.fillRect(rnd() * w, rnd() * h, 2 + rnd() * 9, 1 + rnd() * 3);
+  }
+}
+function drawPainting(g, w, h) {
+  let seed = 77;
+  const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  const sky = g.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, "#d9dfdc");
+  sky.addColorStop(0.55, "#efe6d6");
+  sky.addColorStop(1, "#e6d7bf");
+  g.fillStyle = sky;
+  g.fillRect(0, 0, w, h);
+  const hills = ["#b9c2b6", "#98a697", "#7f8f7c", "#66745f", "#535c49"];
+  hills.forEach((colour, k) => {
+    const base = h * (0.42 + k * 0.11), a = 18 + rnd() * 26, f = 4e-3 + rnd() * 5e-3, ph = rnd() * 6.28;
+    g.fillStyle = colour;
+    g.globalAlpha = 0.86;
+    g.beginPath();
+    g.moveTo(0, h);
+    for (let x = 0; x <= w; x += 6)
+      g.lineTo(x, base + Math.sin(x * f + ph) * a + Math.sin(x * f * 2.7 + ph * 2) * a * 0.35 + rnd() * 1.6);
+    g.lineTo(w, h);
+    g.fill();
+  });
+  g.globalAlpha = 1;
+  for (let i = 0; i < 26e3; i++) {
+    g.fillStyle = `rgba(${rnd() < 0.5 ? "70,66,55" : "255,252,244"},${rnd() * 0.05})`;
+    g.fillRect(rnd() * w, rnd() * h, 1.5, 1.5);
+  }
+}
+function drawLeaf(g, w, h) {
+  let seed = 5;
+  const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  g.fillStyle = "#2c4a33";
+  g.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 9 + rnd() * 18) {
+    g.fillStyle = `rgba(150,176,132,${0.18 + rnd() * 0.3})`;
+    g.beginPath();
+    g.moveTo(0, y);
+    for (let x = 0; x <= w; x += 12) g.lineTo(x, y + Math.sin(x * 0.11 + y) * 5 + rnd() * 3);
+    g.lineTo(w, y + 7);
+    g.lineTo(0, y + 7);
+    g.fill();
+  }
+  g.fillStyle = "#b7ad5b";
+  g.fillRect(0, 0, w * 0.07, h);
+  g.fillRect(w * 0.93, 0, w * 0.07, h);
+}
+function drawView(g, w, h) {
+  let seed = 11;
+  const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  const sky = g.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, "#f4f8fb");
+  sky.addColorStop(0.5, "#eef4f4");
+  sky.addColorStop(1, "#dfe9d8");
+  g.fillStyle = sky;
+  g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 90; i++) {
+    const x = rnd() * w, y = h * (0.34 + rnd() * 0.66), r = 14 + rnd() * 36, blob = g.createRadialGradient(x, y, 0, x, y, r);
+    const colour = rnd() < 0.5 ? "186,204,176" : "212,224,202";
+    blob.addColorStop(0, `rgba(${colour},.55)`);
+    blob.addColorStop(1, `rgba(${colour},0)`);
+    g.fillStyle = blob;
+    g.fillRect(x - r, y - r, 2 * r, 2 * r);
+  }
+}
+var loader = new THREE14.TextureLoader();
+var photos = /* @__PURE__ */ new Map();
+async function photo(url, repeat, srgb = true) {
+  if (!photos.has(url)) photos.set(url, loader.loadAsync(url));
+  const t2 = (await photos.get(url)).clone();
+  t2.needsUpdate = true;
+  if (srgb) t2.colorSpace = THREE14.SRGBColorSpace;
+  t2.anisotropy = maxAniso;
+  t2.wrapS = t2.wrapT = THREE14.RepeatWrapping;
+  t2.repeat.set(repeat[0], repeat[1]);
+  return t2;
+}
+var weaveColour = (repeat) => photo("assets/fabric/weave.jpg", repeat);
+var weaveRelief = (repeat) => photo("assets/weave_normal.jpg", repeat, false);
+var woodMaps = async (repeat) => ({
+  map: await photo("assets/wood_color.jpg", repeat),
+  roughnessMap: await photo("assets/wood_rough.jpg", repeat, false),
+  normalMap: await photo("assets/wood_normal.jpg", repeat, false)
+});
+var preparing = null;
+function prepareRoom() {
+  return preparing ??= (async () => {
+    const standard = (o) => new THREE14.MeshStandardMaterial(o), physical = (o) => new THREE14.MeshPhysicalMaterial(o), faint = new THREE14.Vector2(0.2, 0.2);
+    Object.assign(mats, {
+      wall: standard({ color: 15131095, roughness: 0.96 }),
+      headWall: standard({ color: 12170920, roughness: 0.94 }),
+      ceiling: standard({ color: 15921129, roughness: 0.95 }),
+      trim: standard({ color: 15789542, roughness: 0.42 }),
+      metal: standard({ color: 2894375, roughness: 0.45, metalness: 0.85 }),
+      brass: standard({ color: 11570519, roughness: 0.35, metalness: 0.95 }),
+      ceramic: physical({ color: 13617336, roughness: 0.38, clearcoat: 0.6, clearcoatRoughness: 0.2 }),
+      pot: standard({ color: 14999509, roughness: 0.7 }),
+      soil: standard({ color: 2760986, roughness: 1 }),
+      floor: physical({
+        ...await woodMaps([14 / 1.68, 14 / 0.84]),
+        color: 11774105,
+        // cools and deepens the photographed oak
+        roughness: 1,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.35,
+        normalScale: new THREE14.Vector2(0.6, 0.6)
+      }),
+      // the boxes of the bed and furniture have texture coordinates in metres, so these repeat per metre
+      wood: physical({
+        ...await woodMaps([1 / 1.68, 1 / 0.84]),
+        color: 7229760,
+        roughness: 1,
+        clearcoat: 0.3,
+        clearcoatRoughness: 0.4
+      }),
+      sheet: physical({
+        map: await weaveColour([4, 4]),
+        normalMap: await weaveRelief([4, 4]),
+        color: 15855593,
+        roughness: 0.95,
+        sheen: 1,
+        sheenRoughness: 0.6,
+        sheenColor: new THREE14.Color(0.35, 0.35, 0.35)
+      }),
+      couch: physical({
+        map: await weaveColour([5, 5]),
+        normalMap: await weaveRelief([5, 5]),
+        color: 10130571,
+        roughness: 0.97,
+        sheen: 1,
+        sheenRoughness: 0.7,
+        sheenColor: new THREE14.Color(0.3, 0.29, 0.27)
+      }),
+      // (the lampshade and the pillows take only the weave's relief: its photo is too blotchy for a plain pale cloth)
+      shade: physical({
+        normalMap: await weaveRelief([9, 3]),
+        normalScale: faint,
+        color: 15854299,
+        roughness: 0.95,
+        side: THREE14.DoubleSide
+      }),
+      curtain: physical({
+        map: await weaveColour([7, 12]),
+        normalMap: await weaveRelief([7, 12]),
+        color: 14274493,
+        roughness: 0.96,
+        sheen: 1,
+        sheenRoughness: 0.7,
+        sheenColor: new THREE14.Color(0.2, 0.19, 0.17),
+        side: THREE14.DoubleSide
+      }),
+      pillow: physical({
+        normalMap: await weaveRelief([5, 4]),
+        normalScale: faint,
+        color: 15986662,
+        roughness: 0.93,
+        sheen: 1,
+        sheenRoughness: 0.6,
+        sheenColor: new THREE14.Color(0.22, 0.22, 0.21)
+      }),
+      view: standard({
+        color: 0,
+        emissive: 16777215,
+        emissiveMap: drawnTexture(1024, 376, drawView),
+        emissiveIntensity: 2.2
+      }),
+      rug: physical({
+        map: drawnTexture(1024, 1024, drawRug),
+        normalMap: await weaveRelief([24, 24]),
+        normalScale: new THREE14.Vector2(0.9, 0.9),
+        roughness: 1,
+        sheen: 1,
+        sheenRoughness: 0.8,
+        sheenColor: new THREE14.Color(0.2, 0.19, 0.17)
+      }),
+      painting: standard({ map: drawnTexture(1024, 640, drawPainting), roughness: 0.82 }),
+      leaf: standard({ map: drawnTexture(128, 1024, drawLeaf), roughness: 0.42, side: THREE14.DoubleSide })
+    });
+  })();
+}
+function metreBox(h, r, segFlat, segRound) {
+  const geo = roundedBoxGeometry(h, r, segFlat, segRound), p = geo.attributes.position, uv = geo.attributes.uv, n = segFlat + 2 * segRound, perFace = (n + 1) * (n + 1);
+  for (let i = 0; i < p.count; i++) {
+    const face = Math.floor(i / perFace);
+    if (face < 2) uv.setXY(i, p.getZ(i), p.getY(i));
+    else if (face < 4) uv.setXY(i, p.getX(i), p.getZ(i));
+    else uv.setXY(i, p.getX(i), p.getY(i));
+  }
+  return geo;
+}
+function curtainGeometry(width, height, folds2, seed) {
+  const nu = 150, nv = 26, pos = [], uv = [], idx = [];
+  for (let j = 0; j <= nv; j++) {
+    const v = j / nv;
+    for (let i = 0; i <= nu; i++) {
+      const u = i / nu, wander = 0.5 * Math.sin(u * 13 + seed) + 0.3 * Math.sin(u * 29 + seed * 2.3 + v * 1.4), depth = 0.028 + 0.03 * v;
+      pos.push(
+        (u - 0.5) * width * (0.94 + 0.06 * v),
+        -v * height,
+        Math.sin(u * folds2 * Math.PI * 2 + wander * (0.4 + v)) * depth + wander * 0.012
+      );
+      uv.push(u, 1 - v);
+    }
+  }
+  for (let j = 0; j < nv; j++)
+    for (let i = 0; i < nu; i++) {
+      const a = j * (nu + 1) + i, b = a + 1, d = a + nu + 1, c = d + 1;
+      idx.push(a, d, b, b, d, c);
+    }
+  const g = new THREE14.BufferGeometry();
+  g.setAttribute("position", new THREE14.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE14.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+function pillowGeometry(w, h, thick, seed) {
+  const n = 40, pos = [], uv = [], idx = [];
+  for (const face of [1, -1]) {
+    const first = pos.length / 3;
+    for (let j = 0; j <= n; j++)
+      for (let i = 0; i <= n; i++) {
+        const a = i / n * 2 - 1, b = j / n * 2 - 1, puff = Math.sqrt(Math.max(0, (1 - a * a * a * a) * (1 - b * b * b * b))), dents = 1 + 0.08 * Math.sin(a * 3.1 + seed) * Math.cos(b * 2.3 - seed) + 0.04 * Math.sin((a + b) * 7 + seed), pull = 0.075;
+        pos.push(
+          a * (w / 2) * (1 - pull * (1 - b * b)),
+          b * (h / 2) * (1 - pull * (1 - a * a)),
+          face * puff * (thick / 2) * dents
+        );
+        uv.push(i / n, j / n);
+      }
+    for (let j = 0; j < n; j++)
+      for (let i = 0; i < n; i++) {
+        const p = first + j * (n + 1) + i, q = p + 1, s = p + n + 1, r = s + 1;
+        if (face > 0) idx.push(p, q, r, p, r, s);
+        else idx.push(p, r, q, p, s, r);
+      }
+  }
+  const g = new THREE14.BufferGeometry();
+  g.setAttribute("position", new THREE14.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE14.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+function leafGeometry(height, width, lean, twist) {
+  const nu = 4, nv = 22, pos = [], uv = [], idx = [];
+  for (let j = 0; j <= nv; j++) {
+    const v = j / nv, half = width / 2 * Math.min(1, 0.55 + v * 2.5) * Math.pow(Math.max(0, 1 - Math.pow(v, 5)), 0.6), turn = twist * v, bend = lean * v * v;
+    for (let i = 0; i <= nu; i++) {
+      const u = i / nu * 2 - 1, across = u * half, cup = (1 - u * u) * half * 0.22;
+      pos.push(
+        across * Math.cos(turn) + cup * Math.sin(turn),
+        v * height,
+        bend + across * Math.sin(turn) - cup * Math.cos(turn)
+      );
+      uv.push(i / nu, v);
+    }
+  }
+  for (let j = 0; j < nv; j++)
+    for (let i = 0; i < nu; i++) {
+      const a = j * (nu + 1) + i, b = a + 1, d = a + nu + 1, c = d + 1;
+      idx.push(a, b, c, a, c, d);
+    }
+  const g = new THREE14.BufferGeometry();
+  g.setAttribute("position", new THREE14.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE14.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+var lathe = (points, segments = 40) => new THREE14.LatheGeometry(
+  points.map(([r, y]) => new THREE14.Vector2(r, y)),
+  segments
+);
+var bedroom2 = new THREE14.Group();
+var roomSun = null;
+var bedPillows = [];
+function add(parent, geometry, material, x = 0, y = 0, z = 0, cast = true) {
+  const m = new THREE14.Mesh(geometry, material);
+  m.position.set(x, y, z);
+  m.castShadow = cast;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+var box2 = (parent, material, w, h, d, x, y, z) => add(parent, new THREE14.BoxGeometry(w, h, d), material, x, y, z);
+function buildWindow(left, zc) {
+  const top = SILL + WINDOW_H, z0 = zc - WINDOW_W / 2, z1 = zc + WINDOW_W / 2, x = left - WALL_DEPTH;
+  for (const [w, h, y, z] of [
+    [0.02, WINDOW_H + 0.04, SILL + WINDOW_H / 2, z0 - 0.01],
+    [0.02, WINDOW_H + 0.04, SILL + WINDOW_H / 2, z1 + 0.01],
+    [WINDOW_W, 0.02, top + 0.01, zc]
+  ])
+    box2(bedroom2, mats.wall, WALL_DEPTH, h, w, left - WALL_DEPTH / 2, y, z);
+  box2(bedroom2, mats.trim, WALL_DEPTH + 0.05, 0.035, WINDOW_W + 0.1, left - WALL_DEPTH / 2 + 0.025, SILL - 0.015, zc);
+  const bar = 0.05;
+  for (const z of [z0 + bar / 2, zc, z1 - bar / 2])
+    box2(bedroom2, mats.trim, 0.05, WINDOW_H, bar, x + 0.03, SILL + WINDOW_H / 2, z);
+  for (const y of [SILL + bar / 2, top - bar / 2, SILL + WINDOW_H * 0.68])
+    box2(bedroom2, mats.trim, 0.05, bar, WINDOW_W, x + 0.03, y, zc);
+  const sky = new THREE14.RectAreaLight(15331579, 15, WINDOW_W, WINDOW_H);
+  sky.position.set(x - 0.02, SILL + WINDOW_H / 2, zc);
+  sky.lookAt(left + 1, SILL + WINDOW_H / 2, zc);
+  bedroom2.add(sky);
+  const view2 = add(bedroom2, new THREE14.PlaneGeometry(30, 11), mats.view, left - SUN_FAR - 2, -0.5, zc, false);
+  view2.rotation.y = Math.PI / 2;
+  roomSun = new THREE14.RectAreaLight(16770758, 4500, SUN_SIZE, SUN_SIZE);
+  const through = new THREE14.Vector3(left, SILL + WINDOW_H * 0.62, zc);
+  roomSun.position.copy(through).addScaledVector(SUN_DIR, -SUN_FAR);
+  roomSun.lookAt(through);
+  bedroom2.add(roomSun);
+  const rodY = top + 0.14, rodX = left + 0.1, span = WINDOW_W + 0.9;
+  add(bedroom2, new THREE14.CylinderGeometry(0.012, 0.012, span, 16), mats.metal, rodX, rodY, zc).rotation.x = Math.PI / 2;
+  for (const s of [-1, 1]) {
+    add(bedroom2, new THREE14.SphereGeometry(0.024, 16, 12), mats.metal, rodX, rodY, zc + s * span / 2);
+    box2(bedroom2, mats.metal, 0.1, 0.02, 0.02, left + 0.05, rodY, zc + s * (span / 2 - 0.1));
+    const c = add(
+      bedroom2,
+      curtainGeometry(0.62, rodY - 0.015, 6, 1.7 + s),
+      mats.curtain,
+      rodX,
+      rodY - 5e-3,
+      zc + s * (WINDOW_W / 2 + 0.08)
+    );
+    c.rotation.y = Math.PI / 2;
+  }
+}
+function buildNightstand(x, z, withLamp) {
+  const stand = new THREE14.Group();
+  stand.position.set(x, 0, z);
+  bedroom2.add(stand);
+  add(stand, metreBox([0.25, 0.2, 0.2], 8e-3, 2, 2), mats.wood, 0, 0.42, 0);
+  add(stand, metreBox([0.222, 0.075, 8e-3], 3e-3, 2, 2), mats.wood, 0, 0.51, 0.2);
+  add(stand, metreBox([0.222, 0.075, 8e-3], 3e-3, 2, 2), mats.wood, 0, 0.34, 0.2);
+  for (const y of [0.51, 0.34]) add(stand, new THREE14.SphereGeometry(0.012, 16, 12), mats.brass, 0, y, 0.218);
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) {
+      const leg = add(stand, new THREE14.CylinderGeometry(0.016, 9e-3, 0.22, 12), mats.wood, sx * 0.21, 0.11, sz * 0.16);
+      leg.rotation.set(sz * 0.06, 0, -sx * 0.06);
+    }
+  if (withLamp) {
+    add(
+      stand,
+      lathe([
+        [1e-3, 0.62],
+        [0.062, 0.62],
+        [0.08, 0.66],
+        [0.094, 0.72],
+        [0.082, 0.79],
+        [0.05, 0.85],
+        [0.022, 0.89],
+        [0.016, 0.93]
+      ]),
+      mats.ceramic
+    );
+    add(stand, new THREE14.CylinderGeometry(6e-3, 6e-3, 0.1, 10), mats.brass, 0, 0.97, 0);
+    add(
+      stand,
+      lathe([
+        [0.155, 0.93],
+        [0.1, 1.15]
+      ]),
+      mats.shade
+    );
+  } else {
+    const covers = [7240298, 11904909, 8018509];
+    covers.forEach((colour, k) => {
+      const book = add(
+        stand,
+        roundedBoxGeometry([0.095 - k * 8e-3, 0.0125, 0.13 - k * 0.01], 3e-3, 2, 2),
+        new THREE14.MeshStandardMaterial({ color: colour, roughness: 0.72 }),
+        -0.04,
+        0.634 + k * 0.026,
+        0.02
+      );
+      book.rotation.y = 0.14 - k * 0.2;
+    });
+    add(
+      stand,
+      lathe([
+        [1e-3, 0.62],
+        [0.03, 0.62],
+        [0.055, 0.645],
+        [0.062, 0.675],
+        [0.056, 0.675],
+        [0.048, 0.65],
+        [1e-3, 0.632]
+      ]),
+      mats.ceramic,
+      0.14,
+      0,
+      -0.05
+    );
+  }
+}
+function buildPlant(x, z) {
+  const plant = new THREE14.Group();
+  plant.position.set(x, 0, z);
+  bedroom2.add(plant);
+  add(
+    plant,
+    lathe([
+      [1e-3, 5e-3],
+      [0.13, 5e-3],
+      [0.16, 0.2],
+      [0.175, 0.36],
+      [0.165, 0.36],
+      [0.15, 0.2],
+      [1e-3, 0.33]
+    ]),
+    mats.pot
+  );
+  add(plant, new THREE14.CylinderGeometry(0.163, 0.163, 0.01, 32), mats.soil, 0, 0.335, 0);
+  let seed = 19;
+  const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  for (let k = 0; k < 15; k++) {
+    const a = k * 2.399, r = 0.03 + k / 15 * 0.1, tall = 1 - k / 15 * 0.45, leaf = add(
+      plant,
+      leafGeometry(
+        (0.55 + rnd() * 0.3) * tall + 0.25,
+        0.07 + rnd() * 0.02,
+        0.05 + k / 15 * 0.2,
+        rnd() * 1.1 - 0.55
+      ),
+      mats.leaf,
+      Math.cos(a) * r,
+      0.33,
+      Math.sin(a) * r
+    );
+    leaf.rotation.y = -a + Math.PI / 2;
+  }
+}
+function buildArt(y, z, width) {
+  const h = width * 0.625, art = new THREE14.Group();
+  art.position.set(0, y, z);
+  bedroom2.add(art);
+  const wood = 0.022;
+  for (const s of [-1, 1]) {
+    box2(art, mats.wood, width + 2 * wood, wood, 0.028, 0, s * (h + wood) / 2, 0.014);
+    box2(art, mats.wood, wood, h, 0.028, s * (width + wood) / 2, 0, 0.014);
+  }
+  box2(art, mats.trim, width, h, 6e-3, 0, 0, 3e-3);
+  add(art, new THREE14.PlaneGeometry(width * 0.74, h * 0.72), mats.painting, 0, 0, 75e-4, false);
+}
+function buildFurnitureToDrape(bed, pillowsUnder) {
+  for (const b of ClothSim.bedColliders(bed)) {
+    if (b.dup || b.name.startsWith("pillow") && !pillowsUnder) continue;
+    const isWood = WOOD_PARTS(b.name), material = isWood ? mats.wood : b.name === "mattress" ? mats.sheet : b.name.startsWith("couch") ? mats.couch : mats.pillow;
+    add(bedroom2, metreBox(b.h, b.r, isWood ? 4 : 8, isWood ? 3 : 7), material, ...b.c);
+  }
+  if (bed.kind) return;
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1])
+      box2(bedroom2, mats.wood, 0.07, 0.1, 0.07, sx * bed.w / 2, 0.05, sz * (bed.l / 2 - 0.015));
+}
+function buildBedroom(bed, pillowsUnder) {
+  clearBedroom();
+  const W = bed.w / 2, L = bed.l / 2, onBed = !bed.kind, back = -L - (onBed || bed.kind === "couch" ? 0.12 : 1.1), left = -Math.max(2.5, W + 1.05), right = Math.max(2.4, W + 1), front = back + Math.max(5.5, 2 * L + 3.2), zc = Math.max(back + WINDOW_W / 2 + 0.75, 0.1), deep = front - back, wide = right - left;
+  buildFurnitureToDrape(bed, pillowsUnder);
+  const floor2 = add(bedroom2, new THREE14.PlaneGeometry(14, 14), mats.floor, left + 7, 0, back + 7, false);
+  floor2.rotation.x = -Math.PI / 2;
+  const backWall = add(
+    bedroom2,
+    new THREE14.PlaneGeometry(wide, ROOM_HEIGHT),
+    mats.headWall,
+    (left + right) / 2,
+    ROOM_HEIGHT / 2,
+    back,
+    false
+  );
+  backWall.name = "head wall";
+  add(
+    bedroom2,
+    new THREE14.PlaneGeometry(wide, ROOM_HEIGHT),
+    mats.wall,
+    (left + right) / 2,
+    ROOM_HEIGHT / 2,
+    front,
+    false
+  ).rotation.y = Math.PI;
+  add(
+    bedroom2,
+    new THREE14.PlaneGeometry(deep, ROOM_HEIGHT),
+    mats.wall,
+    right,
+    ROOM_HEIGHT / 2,
+    (back + front) / 2,
+    false
+  ).rotation.y = -Math.PI / 2;
+  const ceiling = add(
+    bedroom2,
+    new THREE14.PlaneGeometry(wide, deep),
+    mats.ceiling,
+    (left + right) / 2,
+    ROOM_HEIGHT,
+    (back + front) / 2,
+    false
+  );
+  ceiling.rotation.x = Math.PI / 2;
+  const outline = new THREE14.Shape([
+    new THREE14.Vector2(-front, 0),
+    new THREE14.Vector2(-back, 0),
+    new THREE14.Vector2(-back, ROOM_HEIGHT),
+    new THREE14.Vector2(-front, ROOM_HEIGHT)
+  ]);
+  outline.holes.push(
+    new THREE14.Path([
+      new THREE14.Vector2(-zc - WINDOW_W / 2, SILL),
+      new THREE14.Vector2(-zc - WINDOW_W / 2, SILL + WINDOW_H),
+      new THREE14.Vector2(-zc + WINDOW_W / 2, SILL + WINDOW_H),
+      new THREE14.Vector2(-zc + WINDOW_W / 2, SILL)
+    ])
+  );
+  const leftWall = add(bedroom2, new THREE14.ShapeGeometry(outline), mats.wall, left, 0, 0, false);
+  leftWall.rotation.y = Math.PI / 2;
+  buildWindow(left, zc);
+  const skirt = 0.11;
+  box2(bedroom2, mats.trim, wide, skirt, 0.016, (left + right) / 2, skirt / 2, back + 8e-3);
+  box2(bedroom2, mats.trim, 0.016, skirt, deep, left + 8e-3, skirt / 2, (back + front) / 2);
+  const rugW = bed.w + 1.3, rugL = Math.min(bed.l + 0.9, 3.2), rugZ = onBed ? L + 0.6 - rugL / 2 : 0;
+  box2(bedroom2, mats.rug, rugW, 0.012, rugL, 0, 6e-3, rugZ);
+  if (onBed) {
+    const beside = W + 0.06 + 0.3, standZ = back + 0.23;
+    buildNightstand(beside, standZ, true);
+    buildNightstand(-beside, standZ, false);
+    buildArt(1.82, back, Math.min(1.25, bed.w * 0.8));
+    bedPillows = [-1, 1].map((s) => {
+      const p = add(bedroom2, pillowGeometry(Math.min(0.68, W * 0.9), 0.46, 0.17, 1.3 + s), mats.pillow);
+      p.userData.side = s;
+      p.visible = false;
+      return p;
+    });
+  } else bedPillows = [];
+  buildPlant(left + 0.42, back + 0.42);
+}
+function clearBedroom() {
+  for (const m of bedroom2.children.slice()) {
+    bedroom2.remove(m);
+    m.traverse((o) => o.geometry?.dispose());
+  }
+  bedPillows = [];
+}
+function dressBed(bed, simPos2, wanted) {
+  const single = bed.w < 1.2, z = -bed.l / 2 + 0.13;
+  for (const p of bedPillows) {
+    const x = single ? 0 : p.userData.side * Math.min(0.36, bed.w / 4);
+    let y = 0.76;
+    for (let k = 0; k < N * N; k++)
+      if (Math.abs(simPos2[3 * k] - x) < 0.2 && Math.abs(simPos2[3 * k + 2] - z) < 0.12)
+        y = Math.max(y, simPos2[3 * k + 1]);
+    p.position.set(x, y + 0.21, z);
+    p.rotation.set(-0.3, p.userData.side * 0.05, p.userData.side * 0.03);
+    p.visible = wanted && !(single && p.userData.side > 0);
+  }
+}
+function showRoomSun(on) {
+  if (roomSun) roomSun.visible = on;
+}
+
+// src/sim/picture.js
+import * as THREE15 from "three";
+import { DenoiseMaterial, PhysicalCamera as PhysicalCamera2, WebGLPathTracer as WebGLPathTracer2 } from "three-gpu-pathtracer";
+import { FullScreenQuad as FullScreenQuad2 } from "three/addons/postprocessing/Pass.js";
+
+// src/storage/pictures.js
+var DB_NAME2 = "quilt-pictures";
+var STORE = "pictures";
+var KEEP = 30;
+function createPictures(factory = globalThis.indexedDB) {
+  let opening = null;
+  const memory = /* @__PURE__ */ new Map();
+  const index = /* @__PURE__ */ new Map();
+  let ready = null;
+  const req2 = (r) => new Promise((resolve, reject) => {
+    r.addEventListener("success", () => resolve(r.result));
+    r.addEventListener("error", () => reject(r.error));
+  });
+  const open = () => opening ??= new Promise((resolve) => {
+    if (!factory) return resolve(null);
+    try {
+      const o = factory.open(DB_NAME2, 1);
+      o.onupgradeneeded = () => o.result.createObjectStore(STORE, { keyPath: "key" });
+      o.onsuccess = () => resolve(o.result);
+      o.onerror = () => resolve(null);
+      o.onblocked = () => resolve(null);
+    } catch (e) {
+      resolve(null);
+    }
+  });
+  const load = () => ready ??= (async () => {
+    const db = await open();
+    if (!db) return;
+    const rows = await req2(db.transaction(STORE, "readonly").objectStore(STORE).getAll());
+    for (const r of rows) index.set(r.key, r.createdAt);
+  })();
+  return {
+    load,
+    /** Whether this quilt has a picture (after load()). @param {string} key */
+    has: (key) => index.has(key),
+    /** @param {string} key @returns {Promise<PictureRecord | null>} */
+    async get(key) {
+      await load();
+      const db = await open();
+      if (!db) return memory.get(key) || null;
+      return await req2(db.transaction(STORE, "readonly").objectStore(STORE).get(key)) || null;
+    },
+    /** @param {string} key @param {Blob} blob @param {{ width: number, height: number }} size */
+    async put(key, blob, size) {
+      await load();
+      const rec = { key, blob, ...size, createdAt: Date.now() }, db = await open();
+      index.set(key, rec.createdAt);
+      const old = [...index.entries()].sort((a, b) => b[1] - a[1]).slice(KEEP).map((e) => e[0]);
+      for (const k of old) index.delete(k);
+      if (!db) {
+        memory.set(key, rec);
+        for (const k of old) memory.delete(k);
+        return;
+      }
+      const tx = db.transaction(STORE, "readwrite"), os = tx.objectStore(STORE);
+      os.put(rec);
+      for (const k of old) os.delete(k);
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+  };
+}
+var pictures = createPictures();
+
+// src/core/quilt-sig.js
+function quiltSig(d) {
+  const r = readDesign(d);
+  const stable = (x) => Array.isArray(x) ? `[${x.map(stable).join(",")}]` : x && typeof x === "object" ? `{${Object.keys(x).sort().map((k) => JSON.stringify(k) + ":" + stable(x[k])).join(",")}}` : JSON.stringify(x);
+  const text = stable(r ? r.design : d);
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0).toString(16) + ":" + text.length;
+}
+
+// src/sim/picture.js
+var WIDTH = 1500;
+var HEIGHT = 1e3;
+var JPEG_QUALITY = 0.92;
+var SAMPLES = 512;
+var RASTER_FRAMES = 256;
+var ENOUGH_SECONDS = 600;
+var ENOUGH_SAMPLES = 64;
+var COMPILE_SECONDS = 150;
+var SETTLE_SECONDS = 90;
+var PHYSICS_SPEED = 3;
+var Stopped = class extends Error {
+};
+var Job = class {
+  /** @param {any} design */
+  constructor(design2) {
+    this.sig = quiltSig(design2);
+    this.design = design2;
+    this.stage = "settling";
+    this.progress = 0;
+    this.stopped = false;
+    this.cleanups = [];
+  }
+  /** @param {Job['stage']} stage */
+  setStage(stage) {
+    this.stage = stage;
+    this.progress = 0;
+    tell({ type: "change" });
+  }
+  /** @param {number} progress */
+  setProgress(progress) {
+    this.progress = Math.min(1, progress);
+    tell({ type: "change" });
+  }
+};
+var job = null;
+var listeners2 = /* @__PURE__ */ new Set();
+var tell = (e) => listeners2.forEach((f) => f(e));
+var onPicture = (f) => void listeners2.add(f);
+var pictureJob = () => job;
+var canMakePictures = () => !IS_PHONE && typeof Worker !== "undefined";
+function check2(j) {
+  if (j.stopped) throw new Stopped();
+}
+function breather(j) {
+  return async () => {
+    await new Promise((done) => setTimeout(done, 0));
+    check2(j);
+  };
+}
+function settleQuilt(j, bed, pillows) {
+  const qm = quiltMm(j.design);
+  return new Promise((resolve, reject) => {
+    const worker = newPhysicsWorker();
+    j.cleanups.push(() => worker.terminate());
+    let last = null;
+    const finish = () => {
+      clearTimeout(limit);
+      worker.terminate();
+      if (j.stopped) reject(new Stopped());
+      else if (last) resolve(last);
+      else reject(new Error("the quilt did not settle"));
+    };
+    const limit = setTimeout(finish, SETTLE_SECONDS * 1e3);
+    j.cleanups.push(() => {
+      clearTimeout(limit);
+      if (j.stopped) reject(new Stopped());
+    });
+    worker.onerror = (e) => {
+      clearTimeout(limit);
+      reject(new Error(e.message));
+    };
+    worker.onmessage = (e) => {
+      const m = e.data;
+      if (m.type !== "frame") return;
+      last = m.pos;
+      if (j.stopped || m.stats?.restAt != null) finish();
+    };
+    const send2 = (m) => worker.postMessage(m);
+    send2({
+      type: "init",
+      opt: {
+        n: N,
+        scenario: "drop",
+        params: state.params,
+        substeps: state.substeps,
+        bed,
+        width: qm.W / 1e3,
+        length: qm.H / 1e3
+      }
+    });
+    send2({
+      type: "reset",
+      scenario: "drop",
+      dropHeight: state.dropHeight,
+      rot: quiltTurned,
+      pos: dropPos == null ? null : dropPos / 1e3
+    });
+    send2({ type: "pillows", value: pillows });
+    send2({ type: "speed", value: PHYSICS_SPEED });
+  });
+}
+var backMaterial = () => QM.back.clone();
+var bindingMaterial = () => QM.binding.clone();
+async function buildScene(j, bed, pillows, points) {
+  const breathe = breather(j);
+  await prepareRoom();
+  check2(j);
+  const scene2 = new THREE15.Scene();
+  buildBedroom(bed, pillows);
+  dressBed(bed, points, pillows);
+  scene2.add(bedroom2);
+  j.cleanups.push(() => {
+    scene2.remove(bedroom2);
+    clearBedroom();
+  });
+  await breathe();
+  const mid = new Float32Array(R * R * 3), shape = new THREE15.BufferGeometry();
+  subdivide(points, mid, 3);
+  shape.setAttribute("position", new THREE15.BufferAttribute(mid, 3));
+  shape.setIndex(qGeo.index);
+  shape.computeVertexNormals();
+  const normal = shape.attributes.normal.array, halfThick = Math.max(3e-3, state.params.thickness) / 2, { back, binding } = newBackAndBinding();
+  layQuilt(mid, normal, halfThick, {
+    top: new Float32Array(R * R * 3),
+    // (the picture has its own, finer top)
+    back: back.attributes.position.array,
+    binding: binding.attributes.position.array
+  });
+  const backMesh = new THREE15.Mesh(back, backMaterial()), bindingMesh = new THREE15.Mesh(binding, bindingMaterial());
+  for (const m of [backMesh, bindingMesh]) {
+    m.geometry.computeVertexNormals();
+    m.castShadow = m.receiveShadow = true;
+    m.frustumCulled = false;
+    scene2.add(m);
+  }
+  const hero = await makeHeroTop(j.design, halfThick, mid, normal, breathe);
+  scene2.add(hero);
+  j.cleanups.push(() => {
+    hero.userData.dispose();
+    for (const m of [backMesh, bindingMesh]) {
+      m.geometry.dispose();
+      m.material.dispose();
+    }
+  });
+  const camera2 = new PhysicalCamera2(38, WIDTH / HEIGHT, 0.05, 50), r = Math.max(5, 2.5 * Math.max(bed.w, bed.l)), az = 0.72, el = 0.27, aim = new THREE15.Vector3(0, bed.kind === "table" ? Math.max(0.5, bed.h - 0.1) : 0.8, 0.1);
+  camera2.bokehSize = 0;
+  camera2.position.set(
+    aim.x + r * Math.cos(el) * Math.sin(az),
+    aim.y + r * Math.sin(el),
+    aim.z + r * Math.cos(el) * Math.cos(az)
+  );
+  camera2.lookAt(aim);
+  camera2.updateMatrixWorld();
+  scene2.updateMatrixWorld(true);
+  return { scene: scene2, camera: camera2 };
+}
+function runSteps(j, gl, step2) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 12);"], { type: "text/javascript" })), timer3 = new Worker(url);
+    let fence = null, over = false;
+    const end = (fn, v) => {
+      if (over) return;
+      over = true;
+      timer3.terminate();
+      URL.revokeObjectURL(url);
+      if (fence) gl.deleteSync(fence);
+      fence = null;
+      fn(v);
+    };
+    j.cleanups.push(() => end(reject, new Stopped()));
+    timer3.onmessage = () => {
+      if (over) return;
+      try {
+        if (j.stopped) throw new Stopped();
+        if (fence) {
+          if (gl.isContextLost()) throw new Error("the graphics card was reset");
+          const s = gl.clientWaitSync(fence, 0, 0);
+          if (s === gl.TIMEOUT_EXPIRED) return;
+          gl.deleteSync(fence);
+          fence = null;
+        }
+        if (step2()) return end(resolve);
+        fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+        gl.flush();
+      } catch (e) {
+        end(reject, e);
+      }
+    };
+  });
+}
+function newRenderer(j, canvas4) {
+  const renderer2 = new THREE15.WebGLRenderer({ canvas: canvas4, antialias: true, preserveDrawingBuffer: true });
+  renderer2.setPixelRatio(1);
+  renderer2.setSize(WIDTH, HEIGHT, false);
+  renderer2.toneMapping = THREE15.NeutralToneMapping;
+  renderer2.toneMappingExposure = 1;
+  j.cleanups.push(() => {
+    renderer2.dispose();
+    renderer2.forceContextLoss();
+  });
+  return renderer2;
+}
+var quality = (usual) => globalThis.__pictureQuality || usual;
+async function renderPathTraced(j, canvas4, scene2, camera2) {
+  const renderer2 = newRenderer(j, canvas4), gl = renderer2.getContext();
+  if (!gl.getExtension("EXT_color_buffer_float")) throw new Error("no floating-point render targets");
+  renderer2.debug.checkShaderErrors = false;
+  const pt = new WebGLPathTracer2(renderer2);
+  pt.textureSize.set(2048, 2048);
+  pt.tiles.set(3, 3);
+  pt.renderDelay = 0;
+  pt.minSamples = 0;
+  pt.fadeDuration = 0;
+  pt.dynamicLowRes = false;
+  pt.rasterizeScene = false;
+  pt.renderToCanvas = false;
+  pt.filterGlossyFactor = 0.5;
+  pt.bounces = 6;
+  const denoise = new FullScreenQuad2(new DenoiseMaterial({ sigma: 2.2, kSigma: 2 }));
+  denoise.material.uniforms.threshold.value = Math.max(0.03, 1.6 / Math.sqrt(SAMPLES));
+  pt.renderToCanvasCallback = (target3) => {
+    denoise.material.map = target3.texture;
+    denoise.render(renderer2);
+  };
+  j.cleanups.push(() => {
+    denoise.material.dispose();
+    denoise.dispose();
+    pt.dispose();
+  });
+  showRoomSun(true);
+  pt.setScene(scene2, camera2);
+  j.setStage("compiling");
+  const goal = quality(SAMPLES), t0 = performance.now();
+  let checked = false, rendering = false;
+  await runSteps(j, gl, () => {
+    const secs = (performance.now() - t0) / 1e3;
+    if (pt.isCompiling && secs > COMPILE_SECONDS) throw new Error("the path tracer took too long to compile");
+    if (pt.samples >= goal || secs > ENOUGH_SECONDS && pt.samples >= ENOUGH_SAMPLES) return true;
+    pt.renderSample();
+    if (!pt.isCompiling && !rendering) {
+      rendering = true;
+      j.setStage("rendering");
+    }
+    if (rendering) j.setProgress(pt.samples / goal);
+    if (!checked && pt.samples >= 4) {
+      checked = true;
+      if (isBlack(renderer2, pt.target)) throw new Error("the picture came out black");
+    }
+    return false;
+  });
+  pt.pausePathTracing = true;
+  pt.renderToCanvas = true;
+  pt.renderSample();
+  gl.finish();
+}
+function isBlack(renderer2, target3) {
+  const w = target3.width, h = target3.height, px = new Float32Array(4);
+  let lit = 0;
+  for (const [u, v] of [
+    [0.3, 0.3],
+    [0.5, 0.4],
+    [0.7, 0.5],
+    [0.4, 0.6],
+    [0.6, 0.7]
+  ]) {
+    renderer2.readRenderTargetPixels(target3, Math.floor(u * w), Math.floor(v * h), 1, 1, px);
+    if (Number.isFinite(px[0] + px[1] + px[2]) && px[0] + px[1] + px[2] > 1e-4) lit++;
+  }
+  return lit < 2;
+}
+var halton2 = (n, b) => {
+  let f = 1, r = 0;
+  for (let i = n; i > 0; i = Math.floor(i / b)) {
+    f /= b;
+    r += f * (i % b);
+  }
+  return r;
+};
+async function renderRaster(j, canvas4, scene2, camera2) {
+  const renderer2 = newRenderer(j, canvas4), gl = renderer2.getContext();
+  renderer2.shadowMap.enabled = true;
+  renderer2.shadowMap.type = THREE15.PCFShadowMap;
+  showRoomSun(false);
+  const sun2 = new THREE15.DirectionalLight(16773598, 2.4), fill3 = new THREE15.DirectionalLight(16775151, 1);
+  for (const l of [sun2, fill3]) {
+    l.castShadow = true;
+    l.shadow.mapSize.set(2048, 2048);
+    Object.assign(l.shadow.camera, { left: -3.2, right: 3.2, top: 3.2, bottom: -3.2, near: 0.5, far: 18 });
+    l.shadow.bias = -5e-4;
+    l.shadow.normalBias = 0.025;
+    l.target.position.set(0, 0.5, 0);
+    scene2.add(l, l.target);
+  }
+  const opt = { type: THREE15.HalfFloatType, colorSpace: THREE15.LinearSRGBColorSpace }, frame3 = new THREE15.WebGLRenderTarget(WIDTH, HEIGHT, { ...opt, depthBuffer: true }), sum = new THREE15.WebGLRenderTarget(WIDTH, HEIGHT, { ...opt, depthBuffer: false });
+  const blend = new FullScreenQuad2(
+    new THREE15.ShaderMaterial({
+      uniforms: { tMap: { value: frame3.texture }, uW: { value: 1 } },
+      vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+      fragmentShader: "uniform sampler2D tMap; uniform float uW; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(tMap, vUv).rgb, uW); }",
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE15.CustomBlending,
+      blendSrc: THREE15.SrcAlphaFactor,
+      blendDst: THREE15.OneMinusSrcAlphaFactor,
+      blendSrcAlpha: THREE15.OneFactor,
+      blendDstAlpha: THREE15.OneFactor
+    })
+  ), show2 = new FullScreenQuad2(
+    new THREE15.MeshBasicMaterial({ map: sum.texture, toneMapped: true, depthTest: false, depthWrite: false })
+  );
+  j.cleanups.push(() => {
+    frame3.dispose();
+    sum.dispose();
+    blend.material.dispose();
+    blend.dispose();
+    show2.material.dispose();
+    show2.dispose();
+    sun2.dispose();
+    fill3.dispose();
+  });
+  j.setStage("rendering");
+  const goal = quality(RASTER_FRAMES), sunDir = new THREE15.Vector3(-3.6, 3.2, 0.9).normalize();
+  let k = 0;
+  await runSteps(j, gl, () => {
+    if (k >= goal) return true;
+    k++;
+    const a = 2 * Math.PI * halton2(k, 2), s = 0.16 * Math.sqrt(halton2(k, 3));
+    sun2.position.copy(sunDir).add(new THREE15.Vector3(Math.cos(a) * s, Math.sin(a) * s, Math.sin(a * 0.7) * s)).normalize().multiplyScalar(6);
+    const u = halton2(k, 5), phi = 2 * Math.PI * halton2(k, 7), sr = Math.sqrt(u);
+    fill3.position.set(sr * Math.cos(phi), Math.max(0.08, Math.sqrt(1 - u)), sr * Math.sin(phi)).normalize().multiplyScalar(9);
+    camera2.setViewOffset(WIDTH, HEIGHT, halton2(k, 2) - 0.5, halton2(k, 3) - 0.5, WIDTH, HEIGHT);
+    renderer2.setRenderTarget(frame3);
+    renderer2.clear();
+    renderer2.render(scene2, camera2);
+    renderer2.setRenderTarget(sum);
+    blend.material.uniforms.uW.value = 1 / k;
+    const ac = renderer2.autoClear;
+    renderer2.autoClear = false;
+    blend.render(renderer2);
+    renderer2.autoClear = ac;
+    renderer2.setRenderTarget(null);
+    j.setProgress(k / goal);
+    return false;
+  });
+  camera2.clearViewOffset();
+  scene2.remove(sun2, sun2.target, fill3, fill3.target);
+  renderer2.setRenderTarget(null);
+  show2.render(renderer2);
+  gl.finish();
+}
+function runCleanups(j) {
+  for (const f of j.cleanups.splice(0).reverse())
+    try {
+      f();
+    } catch (e) {
+    }
+}
+async function makePicture(j) {
+  const bed = bedM(), pillows = !bed.kind && !!document.getElementById("pillows")?.checked;
+  const points = await settleQuilt(j, bed, pillows);
+  check2(j);
+  j.setStage("preparing");
+  const { scene: scene2, camera: camera2 } = await buildScene(j, bed, pillows, points), newCanvas2 = () => {
+    const c = document.createElement("canvas");
+    c.width = WIDTH;
+    c.height = HEIGHT;
+    return c;
+  };
+  await breather(j)();
+  let canvas4 = newCanvas2();
+  const usePath = look.engine === "path" || look.engine === "auto" && !ptBroken;
+  try {
+    if (!usePath) throw new Error("the fast raster renderer is in use on this graphics card");
+    await renderPathTraced(j, canvas4, scene2, camera2);
+  } catch (e) {
+    if (e instanceof Stopped) throw e;
+    console.warn("The realistic picture falls back to the fast renderer:", e?.message);
+    canvas4 = newCanvas2();
+    scene2.environment = await loadHdri("soft");
+    scene2.environmentIntensity = 0.5;
+    check2(j);
+    await renderRaster(j, canvas4, scene2, camera2);
+  }
+  check2(j);
+  const blob = await new Promise((done) => canvas4.toBlob(done, "image/jpeg", JPEG_QUALITY));
+  if (!blob) throw new Error("the picture could not be saved");
+  await pictures.put(j.sig, blob, { width: WIDTH, height: HEIGHT });
+}
+function startPicture(design2) {
+  if (job || !canMakePictures()) return false;
+  const j = new Job(design2);
+  job = j;
+  tell({ type: "change" });
+  makePicture(j).then(() => {
+    job = null;
+    runCleanups(j);
+    tell({ type: "done", sig: j.sig });
+  }).catch((e) => {
+    job = null;
+    runCleanups(j);
+    if (e instanceof Stopped) tell({ type: "stopped", sig: j.sig });
+    else {
+      console.error("The realistic picture failed:", e);
+      tell({ type: "failed", sig: j.sig, why: e?.message || t("Something went wrong.") });
+    }
+  });
+  return true;
+}
+function stopPicture() {
+  if (!job) return;
+  job.stopped = true;
+  runCleanups(job);
+}
+
+// src/sim/picture-ui.js
+var btn = $("dz-picture");
+function refreshButton() {
+  if (!design) return;
+  const sig = quiltSig(design), job2 = pictureJob(), ready = pictures.has(sig);
+  const label = ready ? t("See the realistic picture of this quilt") : job2?.sig === sig ? t("The realistic picture of this quilt is being made") : t("Make a realistic picture of this quilt");
+  btn.title = label;
+  btn.setAttribute("aria-label", label);
+  btn.classList.toggle("has-picture", ready);
+  btn.classList.toggle("making", job2?.sig === sig);
+}
+function jobText(job2) {
+  if (job2.stage === "settling") return t("Laying the quilt on the bed\u2026");
+  if (job2.stage === "preparing") return t("Setting up the room\u2026");
+  if (job2.stage === "compiling")
+    return t("Warming up the graphics card\u2026 The page may pause for a moment, the first time only.");
+  return t("Rendering: {pct}%", { pct: Math.round(job2.progress * 100) });
+}
+var shownText = "";
+function refreshCard() {
+  const job2 = pictureJob(), card = $("pic-job");
+  card.hidden = !job2;
+  if (!job2) return;
+  const text = jobText(job2);
+  if (text !== shownText) $("pic-job-text").textContent = shownText = text;
+  $("pic-job-fill").style.width = `${Math.round(job2.progress * 100)}%`;
+}
+var shownUrl = "";
+function closeViewer() {
+  if (shownUrl) URL.revokeObjectURL(shownUrl);
+  shownUrl = "";
+  $("pic-img").removeAttribute("src");
+}
+async function showPicture(sig) {
+  const rec = await pictures.get(sig);
+  if (!rec) return;
+  closeViewer();
+  shownUrl = URL.createObjectURL(rec.blob);
+  showPictureAt(shownUrl);
+}
+function showPictureAt(url) {
+  $("pic-img").src = url;
+  $("pic-save").href = url;
+  if (!$("pic-dlg").open) $("pic-dlg").showModal();
+}
+function clicked() {
+  if (!design) return;
+  const sig = quiltSig(design), job2 = pictureJob();
+  if (pictures.has(sig)) return showPicture(sig);
+  if (job2?.sig === sig) return notify(t("It\u2019s on its way: keep working, and it will tell you when it\u2019s ready."));
+  if (job2) return notify(t("A picture of another version of a quilt is being made. Wait for it, or stop it first."));
+  if (startPicture(design)) notify(t("Making the picture. Keep working: it will tell you when it\u2019s ready."));
+}
+function init() {
+  if (!canMakePictures()) btn.hidden = true;
+  btn.addEventListener("click", clicked);
+  $("pic-job-stop").addEventListener("click", stopPicture);
+  $("pic-close").addEventListener("click", () => $("pic-dlg").close());
+  $("pic-dlg").addEventListener("close", closeViewer);
+  let soon3 = 0;
+  pictureHooks.designChanged = () => {
+    clearTimeout(soon3);
+    soon3 = setTimeout(refreshButton, 400);
+  };
+  onPicture((e) => {
+    refreshCard();
+    if (e.type === "change") {
+      if (!shownText || pictureJob()?.progress === 0) refreshButton();
+      return;
+    }
+    shownText = "";
+    refreshButton();
+    if (e.type === "done")
+      notify(t("Your realistic picture is ready."), {
+        ms: 2e4,
+        action: { label: t("See it"), run: () => showPicture(e.sig) }
+      });
+    else if (e.type === "failed") notify(t("Couldn\u2019t make the picture: {why}", { why: e.why }));
+  });
+  pictures.load().then(refreshButton);
+}
+init();
 
 // src/mine/shared-state.js
 var sharedIds = /* @__PURE__ */ new Set();
@@ -17049,12 +18656,12 @@ function drawQuiltHi(cv, maxW, maxH, kind) {
   g.restore();
 }
 function drawCutQuilt(P, into) {
-  const cv = into ? into.cv : $("cg-quilt"), box2 = cv.parentElement;
+  const cv = into ? into.cv : $("cg-quilt"), box3 = cv.parentElement;
   const u = into && into.u || 1, dpr = into && into.dpr || Math.min(window.devicePixelRatio || 1, 2), lab2 = 22 * u;
   const s = sashOf(design), gapMm = Math.round(design.blockMm * 0.05);
   const d2 = s.mm ? design : { ...design, sashing: { mm: gapMm, fabric: "b0", corner: "b0", border: false } };
   const q = quiltMm(d2);
-  const availW = (into ? into.w : Math.min(1100, box2.clientWidth || 900)) - lab2;
+  const availW = (into ? into.w : Math.min(1100, box3.clientWidth || 900)) - lab2;
   let k = availW / q.W;
   if (into) k = Math.min(k, (into.h - lab2) / q.H);
   k = Math.max(k, 60 * u / design.blockMm);
@@ -17866,8 +19473,8 @@ function renderCut() {
     <tr class="extra"><td></td><td class="letter small">${t("Batting")}</td><td class="req">${dims([P.backing.w, P.backing.h])}</td></tr>`
   );
   tb.querySelector(".backrow .sw").appendChild(swatchCanvas(backFab));
-  const box2 = $("cg-blocks");
-  box2.innerHTML = "";
+  const box3 = $("cg-blocks");
+  box3.innerHTML = "";
   P.blocks.forEach((b, i) => {
     const div = document.createElement("div");
     div.className = "cgblock";
@@ -17882,7 +19489,7 @@ function renderCut() {
       meta.push(t("{n} mirrored (cut their odd-shaped pieces with the template turned over)", { n: mirroredCount(b) }));
     div.innerHTML = `<h3>${b.mosaic ? t("Mosaic") : b.corner ? t("Cornerstone block") : t("Block {n}", { n: i + 1 })}</h3><p class="meta">${meta.join(" \xB7 ")}</p><div class="cg-art"><canvas aria-label="${t("Block {n}: {label}, pieces labelled with fabric letters", { n: i + 1, label: esc(b.label) })}"></canvas><span class="cg-hint" aria-hidden="true">${t("Click: cutting list \xB7 double-click: see it in the quilt")}</span></div>
       <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>${t("Fabric")}</th><th>${t("Cut")}</th><th>${t("Per block")}</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-    box2.appendChild(div);
+    box3.appendChild(div);
     {
       const bc = div.querySelector("canvas");
       const draw = () => drawCutBlock(bc, b, P, i + 1);
@@ -17920,7 +19527,7 @@ function renderCut() {
     ).join("");
     const wide = isOnPoint(design) ? t("{size} wide, framing every block", { size: len(sz2.mm) }) : sz2.border ? t("{size} wide, also around the outside", { size: len(sz2.mm) }) : t("{size} wide", { size: len(sz2.mm) });
     div.innerHTML = `<h3>${t("Sashing")}</h3><p class="meta">${wide}</p><div class="cg-art"><canvas aria-label="${t("Part of the quilt showing the sashing, pieces labelled with their IDs")}"></canvas>${hint}</div>` + listOf(`<th>ID</th><th>${t("Cut")}</th><th>Total</th>`, rows);
-    box2.appendChild(div);
+    box3.appendChild(div);
     const cv = div.querySelector("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 300;
     const drawSash = () => {
       const H = sashPicH(S);
@@ -17961,7 +19568,7 @@ function renderCut() {
       (x) => `<tr data-k="${x.setting}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${Math.ceil(x.n / x.yield)}</td><td class="n">${x.n}</td></tr>`
     ).join("");
     div.innerHTML = `<h3>${t("Setting triangles")}</h3><p class="meta">${t("Fill the edges of the quilt on point \xB7 straight grain along the quilt's edge")}</p><div class="cg-art"><canvas aria-label="${t("A corner of the quilt on point, the setting triangles labelled with their IDs")}"></canvas>${hint}</div>` + listOf(`<th>ID</th><th>${t("Cut")}</th><th>${t("Squares")}</th><th>${t("Triangles")}</th>`, rows);
-    box2.appendChild(div);
+    box3.appendChild(div);
     const cv = div.querySelector("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 300;
     const drawSet = () => {
       const H = settingPicH(S);
@@ -18012,7 +19619,7 @@ function renderCut() {
     }).join("");
     const where = bs2.length > 1 ? bi === 0 ? ` \xB7 ${t("innermost")}` : bi === bs2.length - 1 ? ` \xB7 ${t("outermost")}` : "" : "";
     div.innerHTML = `<h3>${t("Border {n}", { n: bi + 1 })}</h3><p class="meta">${BORDER_TYPES[bd.type].label} \xB7 ${len(bd.mm)}${where}</p><div class="cg-art"><canvas aria-label="${t("The quilt with border {n} lit up and its pieces labelled", { n: bi + 1 })}"></canvas>${hint}</div><p class="meta cg-brdleg">${t("Pieces: <b>{ids}</b>", { ids: cuts.map((x) => x.id).join(" \xB7 ") })}</p>` + listOf(`<th>ID</th><th>${t("Cut")}</th><th>Total</th>`, rows);
-    box2.appendChild(div);
+    box3.appendChild(div);
     const cv = div.querySelector("canvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), S = 300, GAP = bs2.length > 1 ? 7 : 0, H = explodedH(S, GAP);
     cv.width = S * dpr;
     cv.height = H * dpr;
@@ -18726,8 +20333,8 @@ function drawCutting() {
     if (!cuts.has(k)) cuts.set(k, { role: part.role, how: c.how, n: 0, yield: c.yield });
     cuts.get(k).n++;
   }
-  const box2 = $("drawblk-cut");
-  box2.innerHTML = "";
+  const box3 = $("drawblk-cut");
+  box3.innerHTML = "";
   const head = document.createElement("p");
   head.className = "fine";
   head.textContent = t("For one {size} block ({n} \xD7 {n} squares of {cell}), seam allowance included:", {
@@ -18735,7 +20342,7 @@ function drawCutting() {
     n,
     cell: len(W / n)
   });
-  box2.appendChild(head);
+  box3.appendChild(head);
   const ul = document.createElement("ul");
   for (const r of [...new Set(parts.map((p) => p.role))].sort((a, b) => a - b))
     for (const c of [...cuts.values()].filter((c2) => c2.role === r)) {
@@ -18749,7 +20356,7 @@ function drawCutting() {
       );
       ul.appendChild(li);
     }
-  box2.appendChild(ul);
+  box3.appendChild(ul);
 }
 function cellPoint(e) {
   const r = canvas3().getBoundingClientRect(), { o, size, dpr } = frame(), n = nOf(), toCells = (v) => (v * dpr - o) / size * n;
@@ -19043,8 +20650,8 @@ initDrawer();
 // src/designer/sashing-ui.js
 var cbSel = /* @__PURE__ */ new Set();
 function drawCornerPatterns(current, allowed) {
-  const box2 = $("sash-cpats");
-  if (!box2.childElementCount)
+  const box3 = $("sash-cpats");
+  if (!box3.childElementCount)
     for (const key of ["", ...CORNER_PATTERNS]) {
       const b = document.createElement("button");
       b.type = "button";
@@ -19067,9 +20674,9 @@ function drawCornerPatterns(current, allowed) {
       const s = document.createElement("span");
       s.textContent = b.title;
       b.append(c, s);
-      box2.appendChild(b);
+      box3.appendChild(b);
     }
-  for (const b of box2.querySelectorAll("button")) {
+  for (const b of box3.querySelectorAll("button")) {
     b.setAttribute("aria-pressed", String(b.dataset.p === current));
     b.disabled = !!b.dataset.p && !allowed;
   }
@@ -19108,15 +20715,15 @@ function renderSashUI() {
   $("sash-border").parentElement.title = onPoint ? t("On point, the sashing always frames every block") : "";
   $("sash-cs").checked = s.cornerstones;
   $("sash-cs-box").hidden = !s.cornerstones;
-  const box2 = $("sash-presets");
-  box2.innerHTML = "";
+  const box3 = $("sash-presets");
+  box3.innerHTML = "";
   for (const v of getUnit() === "in" ? [0, 25, 38, 51, 64, 76] : [0, 25, 38, 50, 64, 76]) {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = v ? len(v) : t("None");
     b.dataset.v = v;
     b.setAttribute("aria-pressed", String(s.mm === v));
-    box2.appendChild(b);
+    box3.appendChild(b);
   }
   drawPaletteInto($("sash-fabs"), raw.fabric || "b0");
   const wide = s.mm >= CORNER_BLOCK_MIN_MM, cb = s.cornerBlock;
@@ -19387,8 +20994,8 @@ onFabricsLoaded(() => {
 // src/designer/settings.js
 function syncSymUI() {
   if ($("dz-quilting") && design) $("dz-quilting").value = quiltingOf(design);
-  const btn = $("rail-sym");
-  if (!btn || !design) return;
+  const btn2 = $("rail-sym");
+  if (!btn2 || !design) return;
   const cur = symOf(design), onPoint = isOnPoint(design);
   for (const o of document.querySelectorAll("#sym-row .sym-opt")) {
     const v = (
@@ -19402,12 +21009,12 @@ function syncSymUI() {
       "title",
       off ? t("Kaleidoscope (8-way): only for square layouts (as many columns as rows)") : o.getAttribute("aria-label")
     );
-    if (v === cur) btn.querySelector("svg").innerHTML = o.querySelector("svg").innerHTML;
+    if (v === cur) btn2.querySelector("svg").innerHTML = o.querySelector("svg").innerHTML;
   }
-  btn.setAttribute("aria-pressed", String(cur !== "off"));
+  btn2.setAttribute("aria-pressed", String(cur !== "off"));
   const paused = onPoint && design.cols !== design.rows;
-  btn.disabled = paused;
-  btn.title = paused ? t("Symmetry on point needs as many columns as rows") : t("Symmetry: every change to a block is copied to its mirror partners");
+  btn2.disabled = paused;
+  btn2.title = paused ? t("Symmetry on point needs as many columns as rows") : t("Symmetry: every change to a block is copied to its mirror partners");
   if (paused) openSym(false);
 }
 function openSym(open) {
@@ -19516,13 +21123,13 @@ var VALUE = (
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")
 );
 var inchFields = [];
-function inchPair(box2) {
-  if (box2.dataset.inchPair) return;
-  box2.dataset.inchPair = "1";
-  const name = box2.getAttribute("aria-label") || box2.title || t("Length");
+function inchPair(box3) {
+  if (box3.dataset.inchPair) return;
+  box3.dataset.inchPair = "1";
+  const name = box3.getAttribute("aria-label") || box3.title || t("Length");
   const whole = document.createElement("input");
   whole.type = "number";
-  whole.className = `${box2.className} inch-whole`.trim();
+  whole.className = `${box3.className} inch-whole`.trim();
   whole.inputMode = "numeric";
   whole.step = "1";
   whole.min = "0";
@@ -19534,18 +21141,18 @@ function inchPair(box2) {
   const pair = document.createElement("span");
   pair.className = "inch-pair";
   pair.append(whole, frac);
-  box2.after(pair);
+  box3.after(pair);
   const sync2 = () => {
     const inches2 = getUnit() === "in";
-    box2.hidden = inches2;
+    box3.hidden = inches2;
     pair.hidden = !inches2;
     if (!inches2) return;
-    const [w, e] = eighthsOf(+VALUE.get.call(box2));
+    const [w, e] = eighthsOf(+VALUE.get.call(box3));
     if (document.activeElement !== whole) whole.value = String(w);
     frac.value = String(e);
-    if (box2.max) whole.max = String(Math.floor(+box2.max));
+    if (box3.max) whole.max = String(Math.floor(+box3.max));
   };
-  Object.defineProperty(box2, "value", {
+  Object.defineProperty(box3, "value", {
     configurable: true,
     get() {
       return VALUE.get.call(this);
@@ -19556,8 +21163,8 @@ function inchPair(box2) {
     }
   });
   const send2 = () => {
-    VALUE.set.call(box2, String((+whole.value || 0) + +frac.value / 8));
-    box2.dispatchEvent(new Event("change", { bubbles: true }));
+    VALUE.set.call(box3, String((+whole.value || 0) + +frac.value / 8));
+    box3.dispatchEvent(new Event("change", { bubbles: true }));
   };
   whole.addEventListener("change", send2);
   frac.addEventListener("change", send2);
@@ -19777,19 +21384,19 @@ function tourHost() {
   return document.body;
 }
 function tourPlace() {
-  const box2 = $("tour"), st = TOUR[tour.i], host = tourHost();
-  if (box2.parentElement !== host) host.appendChild(box2);
-  box2.classList.toggle("center", !!st.center && !tour.userPos);
-  const W = innerWidth, H = innerHeight, bw = box2.offsetWidth, bh = box2.offsetHeight, m = 12;
+  const box3 = $("tour"), st = TOUR[tour.i], host = tourHost();
+  if (box3.parentElement !== host) host.appendChild(box3);
+  box3.classList.toggle("center", !!st.center && !tour.userPos);
+  const W = innerWidth, H = innerHeight, bw = box3.offsetWidth, bh = box3.offsetHeight, m = 12;
   const clampXY = (x, y) => [Math.max(m, Math.min(W - bw - m, x)), Math.max(m, Math.min(H - bh - m, y))];
   if (tour.userPos) {
     const [x, y] = clampXY(tour.userPos[0], tour.userPos[1]);
-    box2.style.left = x + "px";
-    box2.style.top = y + "px";
+    box3.style.left = x + "px";
+    box3.style.top = y + "px";
     return;
   }
   if (st.center) {
-    box2.style.left = box2.style.top = "";
+    box3.style.left = box3.style.top = "";
     return;
   }
   const rectOf = (el) => {
@@ -19845,15 +21452,15 @@ function tourPlace() {
     if (T) cost += Math.hypot(x + bw / 2 - (T.left + T.width / 2), y + bh / 2 - (T.top + T.height / 2)) * 2;
     if (!best || cost < best.cost) best = { x, y, cost };
   }
-  box2.style.left = best.x + "px";
-  box2.style.top = best.y + "px";
+  box3.style.left = best.x + "px";
+  box3.style.top = best.y + "px";
 }
 function initTourDrag() {
   const head = document.querySelector("#tour .tour-head");
   head.addEventListener("pointerdown", (e) => {
     if (e.target.closest("button")) return;
-    const box2 = $("tour"), r = box2.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
-    box2.classList.remove("center");
+    const box3 = $("tour"), r = box3.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    box3.classList.remove("center");
     head.setPointerCapture(e.pointerId);
     const move = (ev) => {
       tour.userPos = [ev.clientX - dx, ev.clientY - dy];
@@ -19867,10 +21474,10 @@ function initTourDrag() {
     head.addEventListener("pointerup", up);
   });
   $("tour-min").addEventListener("click", () => {
-    const box2 = $("tour");
-    box2.classList.toggle("min");
-    $("tour-min").textContent = box2.classList.contains("min") ? "\u25A2" : "\u2013";
-    $("tour-min").title = box2.classList.contains("min") ? t("Show the instructions") : t("Fold the instructions");
+    const box3 = $("tour");
+    box3.classList.toggle("min");
+    $("tour-min").textContent = box3.classList.contains("min") ? "\u25A2" : "\u2013";
+    $("tour-min").title = box3.classList.contains("min") ? t("Show the instructions") : t("Fold the instructions");
     tourPlace();
   });
 }
@@ -19962,9 +21569,9 @@ function tourEnd(how) {
   clearInterval(tour.poll);
   document.body.classList.remove("tour-active");
   tourMark();
-  const box2 = $("tour");
-  box2.hidden = true;
-  document.body.appendChild(box2);
+  const box3 = $("tour");
+  box3.hidden = true;
+  document.body.appendChild(box3);
   try {
     localStorage.setItem(TOUR_KEY, "done");
   } catch (e) {
@@ -20174,8 +21781,8 @@ function closeCardMenu(focusBack = false) {
   if (focusBack) menuFor?.focus();
   menuFor = null;
 }
-function cardMenu(btn, m, nm) {
-  const again = menuFor === btn;
+function cardMenu(btn2, m, nm) {
+  const again = menuFor === btn2;
   closeCardMenu();
   if (again) return;
   menu = document.createElement("div");
@@ -20221,9 +21828,9 @@ function cardMenu(btn, m, nm) {
     } else if (e.key === "Tab") closeCardMenu();
   });
   document.body.appendChild(menu);
-  menuFor = btn;
-  btn.setAttribute("aria-expanded", "true");
-  const r = btn.getBoundingClientRect(), mh = menu.offsetHeight, mw = menu.offsetWidth;
+  menuFor = btn2;
+  btn2.setAttribute("aria-expanded", "true");
+  const r = btn2.getBoundingClientRect(), mh = menu.offsetHeight, mw = menu.offsetWidth;
   menu.style.left = `${Math.max(8, Math.min(innerWidth - mw - 8, r.right - mw))}px`;
   menu.style.top = `${r.bottom + 6 + mh > innerHeight ? r.top - mh - 6 : r.bottom + 6}px`;
   menu.firstChild.focus();
@@ -21404,7 +23011,7 @@ function watchClips(on) {
   clipWatch = null;
   const clips = (
     /** @type {NodeListOf<HTMLVideoElement>} */
-    $("welcome").querySelectorAll(".w-card video")
+    $("welcome").querySelectorAll(".w-card video, .w-block video")
   );
   if (!on) {
     for (const v of clips) v.pause();
@@ -21514,6 +23121,107 @@ function initStory() {
     watch.observe(list2);
   };
 }
+var RAIL_SIZE = 12;
+var railSuits = (key) => {
+  const parts = partsOf(key);
+  return parts.length >= 4 && parts.length <= 64 && new Set(parts.map((p) => p.role)).size >= 2;
+};
+function railPicks() {
+  const keys = Object.keys(PATTERNS).filter((k) => !PATTERNS[k].drawn);
+  const picks = [];
+  for (let i = 0; i < keys.length && picks.length < RAIL_SIZE; i++) {
+    const j = i + Math.floor(Math.random() * (keys.length - i));
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+    if (railSuits(keys[i])) picks.push(keys[i]);
+  }
+  return picks;
+}
+var RAIL_COLOURS = [
+  [3, 0, 2],
+  [3, 2, 0],
+  [3, 5, 0],
+  [3, 0, 1],
+  [2, 5, 3],
+  [3, 5, 2],
+  [1, 0, 3],
+  [3, 4, 2]
+];
+var railColour = (set, role) => RAIL_COLOURS[set][role] ?? C.map((_, c) => c).filter((c) => !RAIL_COLOURS[set].includes(c))[role - 3];
+function railBlock(key, i) {
+  const set = i % RAIL_COLOURS.length, name = PATTERNS[key].label;
+  const pieces = partsOf(key).map((p) => {
+    const c = railColour(set, p.role);
+    return `<polygon class="w-piece" data-role="${p.role}" data-c="${c}" fill="${C[c]}" points="${p.poly.map(([x, y]) => `${+x.toFixed(4)},${+y.toFixed(4)}`).join(" ")}"/>`;
+  }).join("");
+  return `<div class="w-block" data-set="${set}"><svg viewBox="-.005 -.005 1.01 1.01" role="img" aria-label="${name}">${pieces}</svg><div class="w-block-foot"><b>${name}</b><button type="button" class="w-block-try" aria-label="${t("Try other fabrics on {name}", { name })}" title="${t("Try other fabrics")}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8A5 5 0 1 1 11.5 4.5M11.8 1.5V4.8H8.5"/></svg></button></div></div>`;
+}
+function fillBlockRail() {
+  const count = Object.values(PATTERNS).filter((p) => !p.drawn).length;
+  $("welcome-blocks-title").textContent = t("{n} blocks to choose, or create your own", { n: count });
+  $("welcome-rail").insertAdjacentHTML("afterbegin", railPicks().map(railBlock).join(""));
+}
+var BRANDS = [
+  { name: "Fernando Maluhy", logo: "assets/brands/fernando_maluhy.jpg" },
+  { name: "C\xEDrculo S/A", logo: "assets/brands/circulo.jpg" },
+  { name: "Fabricart", logo: "assets/brands/fabricart.png" },
+  { name: "Catex Tecidos", logo: "assets/brands/catex.png" },
+  { name: "Fuxicos e Fricotes", logo: "assets/brands/fuxicos_e_fricotes.png" }
+];
+var BRAND_SETS = 6;
+function brandCard(b, first) {
+  return `<div class="w-brand" ${first ? 'tabindex="0"' : 'aria-hidden="true"'}><div class="w-brand-logo"><img src="${b.logo}" alt=""></div><span class="w-brand-name">${b.name}</span></div>`;
+}
+function fillBrands() {
+  $("welcome-fabrics-title").textContent = t("More than {n} fabrics from the biggest makers", {
+    n: COLLECTION_SIZE.toLocaleString(getLang())
+  });
+  let cards = "";
+  for (let set = 0; set < BRAND_SETS; set++) for (const b of BRANDS) cards += brandCard(b, set === 0);
+  $("welcome-brands").innerHTML = cards;
+}
+function initBlockRail() {
+  const rail = $("welcome-rail");
+  const CARD = 252;
+  $("welcome-rail-back").addEventListener("click", () => rail.scrollBy({ left: -2 * CARD }));
+  $("welcome-rail-more").addEventListener("click", () => rail.scrollBy({ left: 2 * CARD }));
+  rail.addEventListener(
+    "wheel",
+    (e) => {
+      if (e.ctrlKey || !e.deltaY || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      const end = rail.scrollWidth - rail.clientWidth;
+      if (e.deltaY < 0 && rail.scrollLeft <= 0 || e.deltaY > 0 && rail.scrollLeft >= end - 1) return;
+      e.preventDefault();
+      const by = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
+      rail.scrollBy({ left: by, behavior: "instant" });
+    },
+    { passive: false }
+  );
+  rail.addEventListener("click", (e) => {
+    const el = (
+      /** @type {HTMLElement} */
+      e.target
+    );
+    const piece = el.closest(".w-piece");
+    if (piece) {
+      const next = (+(piece.getAttribute("data-c") || 0) + 1) % C.length;
+      piece.setAttribute("data-c", String(next));
+      piece.setAttribute("fill", C[next]);
+      return;
+    }
+    if (!el.closest(".w-block-try")) return;
+    const block = (
+      /** @type {HTMLElement} */
+      el.closest(".w-block")
+    );
+    const set = (+(block.dataset.set || 0) + 1) % RAIL_COLOURS.length;
+    block.dataset.set = String(set);
+    for (const p of block.querySelectorAll(".w-piece")) {
+      const c = railColour(set, +(p.getAttribute("data-role") || 0));
+      p.setAttribute("data-c", String(c));
+      p.setAttribute("fill", C[c]);
+    }
+  });
+}
 function showWelcome(on) {
   $("welcome").hidden = !on;
   watchClips(on);
@@ -21521,6 +23229,10 @@ function showWelcome(on) {
   if (!on) return;
   if (!$("welcome-art").firstChild)
     $("welcome-art").innerHTML = `${patchworkArt()}<p class="w-art-hint">${t("Click or tap a patch to turn it")}</p>`;
+  if (!$("welcome-blocks-title").firstChild) {
+    fillBlockRail();
+    fillBrands();
+  }
   welcomeSays("");
   openMenu(false);
   $("welcome").scrollTop = 0;
@@ -21540,6 +23252,7 @@ function initAccount() {
   initCardRow();
   initStory();
   initPatchwork();
+  initBlockRail();
   for (const b of $("welcome").querySelectorAll("[data-auth]"))
     b.addEventListener("click", () => welcomeSignIn(
       /** @type {HTMLElement} */
@@ -21598,14 +23311,6 @@ function photoCount(d) {
   walk(d);
   return ids.size;
 }
-function quiltSig(d) {
-  const r = readDesign(d);
-  const stable = (x) => Array.isArray(x) ? `[${x.map(stable).join(",")}]` : x && typeof x === "object" ? `{${Object.keys(x).sort().map((k) => JSON.stringify(k) + ":" + stable(x[k])).join(",")}}` : JSON.stringify(x);
-  const text = stable(r ? r.design : d);
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return (h >>> 0).toString(16) + ":" + text.length;
-}
 var unchangedCopy = (rec, d) => rec?.from && quiltSig(d) === rec.from.sig ? rec.from : null;
 var remembered = () => {
   try {
@@ -21632,6 +23337,16 @@ function openShare(id) {
   pic.id = "share-cv";
   pic.setAttribute("aria-hidden", "true");
   $("share-cv").replaceWith(pic);
+  const sig = quiltSig(d);
+  pictures.get(sig).then((rec2) => {
+    if (!rec2 || !$("share-dlg").open || $("share-cv") !== pic) return;
+    const im = new Image(), url = URL.createObjectURL(rec2.blob);
+    im.addEventListener("load", () => URL.revokeObjectURL(url), { once: true });
+    im.id = "share-cv";
+    im.alt = "";
+    im.src = url;
+    pic.replaceWith(im);
+  });
   $("share-name").value = rec ? shownName(rec) : "";
   $("share-author").value = remembered();
   const shared = !!rec && sharedIds.has(rec.id), signed = !!signedIn(), n = photoCount(d);
@@ -21640,7 +23355,7 @@ function openShare(id) {
   $("share-stop").hidden = !(signed && shared);
   $("share-title").textContent = shared ? t("Shared with the community") : t("Share with the community");
   $("share-ok").textContent = !signed ? t("Sign in") : shared ? t("Update the shared quilt") : t("Share with the community");
-  $("share-note").textContent = t("Anyone using the Quilt designer can see this quilt and copy it to their designs.") + (n ? tn(n, " Your fabric photo in it is shared too.", " Your {n} fabric photos in it are shared too.") : "");
+  $("share-note").textContent = t("Anyone using the Quilt designer can see this quilt and copy it to their designs.") + (n ? tn(n, " Your fabric photo in it is shared too.", " Your {n} fabric photos in it are shared too.") : "") + (pictures.has(sig) ? t(" Its realistic picture is shared too.") : pictureJob()?.sig === sig ? t(" Its realistic picture is being made, and is added when it\u2019s ready.") : canMakePictures() ? t(" A realistic picture of it is made on this computer and added when it\u2019s ready.") : "");
   say("");
   const copyOf = signed ? unchangedCopy(rec, d) : null;
   if (copyOf)
@@ -21702,6 +23417,7 @@ async function doShare() {
     if (r.status !== 200 && r.status !== 201) throw new Error(serverSays(r.body, r.status));
     setSharedIds([...sharedIds, id]);
     $("share-dlg").close();
+    await pictureGoesWith(id, rec.design);
     if (state.page === "mine") renderMine();
     if (state.page === "community") loadCommunity();
     notify(t("\u201C{name}\u201D is shared with the community.", { name }), {
@@ -21711,6 +23427,42 @@ async function doShare() {
     say(t("Couldn\u2019t share it: {why}", { why: why(e) }));
     $("share-ok").disabled = false;
     $("share-ok").textContent = t("Try again");
+  }
+}
+var nextPicture = null;
+async function uploadPicture(id, sig) {
+  try {
+    const rec = await pictures.get(sig);
+    if (!rec) return;
+    const path = `/v1/shared/${encodeURIComponent(id)}/picture`, up = await serverCall("POST", `${path}/upload`, { type: rec.blob.type || "image/jpeg", bytes: rec.blob.size });
+    if (up.status !== 200) throw new Error(serverSays(up.body, up.status));
+    const put2 = await fetch(up.body.url, { method: "PUT", headers: up.body.headers, body: rec.blob });
+    if (!put2.ok) throw new Error(t("The photo storage could not be reached."));
+    const done = await serverCall("POST", `${path}/done`);
+    if (done.status !== 200) throw new Error(serverSays(done.body, done.status));
+    if (state.page === "community") loadCommunity();
+  } catch (e) {
+    notify(t("The quilt is shared, but its realistic picture couldn\u2019t be sent: {why}", { why: why(e) }));
+  }
+}
+async function pictureGoesWith(id, d) {
+  const sig = quiltSig(d);
+  await pictures.load();
+  if (pictures.has(sig)) return uploadPicture(id, sig);
+  if (pictureJob()?.sig === sig || !canMakePictures() || globalThis.__noAutoPicture) return;
+  if (!startPicture(d)) nextPicture = d;
+}
+function pictureFinished(e) {
+  if (e.type === "change") return;
+  if (e.type === "done" && signedIn()) {
+    for (const rec of designs.list())
+      if (sharedIds.has(rec.id) && quiltSig(rec.design) === e.sig) uploadPicture(rec.id, e.sig);
+  }
+  if (e.type === "stopped") nextPicture = null;
+  if (nextPicture) {
+    const d = nextPicture;
+    nextPicture = null;
+    if (!pictures.has(quiltSig(d))) startPicture(d);
   }
 }
 async function unshare(id) {
@@ -21778,7 +23530,17 @@ function drawCommunity(empty) {
     pin.className = "pin";
     const img = document.createElement("div");
     img.className = "img";
-    img.appendChild(quiltPicture(r.design, 260));
+    if (it.pictureUrl) {
+      const photo2 = new Image();
+      photo2.className = "pin-photo";
+      photo2.alt = t("\u201C{name}\u201D on a bed", { name: it.name });
+      photo2.loading = "lazy";
+      photo2.src = it.pictureUrl;
+      photo2.addEventListener("click", () => showPictureAt(it.pictureUrl));
+      const inset = quiltPicture(r.design, 90);
+      inset.classList.add("pin-inset");
+      img.append(photo2, inset);
+    } else img.appendChild(quiltPicture(r.design, 260));
     const meta = document.createElement("div");
     meta.className = "meta";
     const text = document.createElement("div");
@@ -21828,8 +23590,8 @@ function drawCommunity(empty) {
   $("com-more").hidden = !more;
 }
 function reportButton(it) {
-  const box2 = document.createElement("div");
-  box2.className = "com-report";
+  const box3 = document.createElement("div");
+  box3.className = "com-report";
   const open = document.createElement("button");
   open.type = "button";
   open.className = "linkish";
@@ -21857,14 +23619,14 @@ function reportButton(it) {
       } catch (e) {
         says = e?.message || String(e);
       }
-      box2.replaceChildren();
+      box3.replaceChildren();
       notify(says);
     });
-    box2.replaceChildren(why2, send2);
+    box3.replaceChildren(why2, send2);
     why2.focus();
   });
-  box2.appendChild(open);
-  return box2;
+  box3.appendChild(open);
+  return box3;
 }
 function alreadyHave(d) {
   const sig = quiltSig(d);
@@ -21886,6 +23648,12 @@ async function copyToMine(it, d) {
     } catch (e) {
     }
   }
+  if (it.pictureUrl)
+    try {
+      const blob = await (await fetch(it.pictureUrl)).blob();
+      await pictures.put(quiltSig(d), blob, { width: 1500, height: 1e3 });
+    } catch (e) {
+    }
   const rec = designs.save({
     id: designs.newId(),
     name: t("{name} (from {author})", { name: it.name, author: it.author }),
@@ -21917,6 +23685,7 @@ function initCommunity() {
     soon3 = setTimeout(() => loadCommunity(), 300);
   });
   $("com-more").addEventListener("click", () => loadCommunity(true));
+  onPicture(pictureFinished);
   communityHooks.share = (id) => openShare(id);
   communityHooks.unshare = (id) => unshare(id);
   communityHooks.render = () => loadCommunity();
@@ -21934,7 +23703,7 @@ initCommunity();
 
 // src/sim/panels.js
 (function initStageControls() {
-  const stage = $("stage"), btn = $("stage-ctl"), KEY2 = "quilt-stage-ctl.v1";
+  const stage = $("stage"), btn2 = $("stage-ctl"), KEY2 = "quilt-stage-ctl.v1";
   let shown = false;
   try {
     shown = localStorage.getItem(KEY2) === "1";
@@ -21943,14 +23712,14 @@ initCommunity();
   const set = (v) => {
     shown = v;
     stage.dataset.ctl = v ? "shown" : "hidden";
-    btn.textContent = v ? t("Hide controls") : t("Show controls");
-    btn.setAttribute("aria-expanded", String(v));
+    btn2.textContent = v ? t("Hide controls") : t("Show controls");
+    btn2.setAttribute("aria-expanded", String(v));
     try {
       localStorage.setItem(KEY2, v ? "1" : "0");
     } catch (e) {
     }
   };
-  btn.addEventListener("click", () => set(!shown));
+  btn2.addEventListener("click", () => set(!shown));
   set(shown);
 })();
 var simPanels = { run: false, adv: false };
@@ -21965,29 +23734,29 @@ function updateSimSide() {
   });
 }
 (function initRunMore() {
-  const btn = $("run-more");
+  const btn2 = $("run-more");
   const set = (v) => {
     simPanels.run = v;
-    btn.textContent = v ? t("Fewer options") : t("More options");
-    btn.setAttribute("aria-expanded", String(v));
+    btn2.textContent = v ? t("Fewer options") : t("More options");
+    btn2.setAttribute("aria-expanded", String(v));
     updateSimSide();
   };
-  btn.addEventListener("click", () => set(!simPanels.run));
+  btn2.addEventListener("click", () => set(!simPanels.run));
   set(false);
 })();
 (function initAdvanced() {
-  const side = $("sim-side"), btn = $("sim-adv");
+  const side = $("sim-side"), btn2 = $("sim-adv");
   let shown = false;
   const set = (v) => {
     shown = v;
     side.dataset.adv = v ? "shown" : "hidden";
     simPanels.adv = v;
-    btn.textContent = v ? t("Hide advanced settings") : t("Show advanced settings");
-    btn.title = t("Photo render, measurements, final-state analysis and fabric physics");
-    btn.setAttribute("aria-expanded", String(v));
+    btn2.textContent = v ? t("Hide advanced settings") : t("Show advanced settings");
+    btn2.title = t("Photo render, measurements, final-state analysis and fabric physics");
+    btn2.setAttribute("aria-expanded", String(v));
     if (typeof updateSimSide === "function") updateSimSide();
   };
-  btn.addEventListener("click", () => set(!shown));
+  btn2.addEventListener("click", () => set(!shown));
   set(shown);
 })();
 
@@ -23484,8 +25253,8 @@ function cgPdfStatus(msg) {
   if (msg && !msg.endsWith("\u2026")) cgPdfStatus.t = setTimeout(() => cgPdfStatus(""), 5e3);
 }
 async function downloadCutPdf() {
-  const btn = $("cg-pdf");
-  btn.disabled = true;
+  const btn2 = $("cg-pdf");
+  btn2.disabled = true;
   const d = /* @__PURE__ */ new Date(), pad = (n) => String(n).padStart(2, "0");
   const filename = t("quilt-cutting-guide-A4-{date}.pdf", {
     date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -23513,7 +25282,7 @@ async function downloadCutPdf() {
       code === "declined" ? t("Not saved") : code === "rate_limited" ? t("A save dialog is already open") : e && e.message || t("The PDF could not be made")
     );
   } finally {
-    btn.disabled = false;
+    btn2.disabled = false;
   }
 }
 $("cg-pdf").addEventListener("click", downloadCutPdf);
@@ -23578,6 +25347,7 @@ else showPage("design");
       setActiveFabric(activeFabric || "b0");
     }
     syncSimulation();
+    pictureHooks.designChanged();
   } catch (e) {
     $("loading").textContent = t("Some photos or lighting could not load. Showing a plain preview.");
     setTimeout(() => {
