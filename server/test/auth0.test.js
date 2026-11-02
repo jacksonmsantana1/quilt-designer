@@ -87,7 +87,7 @@ test('development mode with Auth0 set up takes both: the header and Auth0 tokens
 });
 
 test('settings: Auth0 is the production default once its tenant is given; it needs the API identifier', () => {
-  const DB = { DATABASE_URL: 'postgres://x/y' };
+  const DB = { DATABASE_URL: 'postgres://x/y?sslmode=require' };
   const c = loadConfig({ ...DB, NODE_ENV: 'production', AUTH0_DOMAIN: `https://${DOMAIN}/`, AUTH0_AUDIENCE: AUDIENCE });
   assert.equal(c.auth, 'auth0');
   assert.deepEqual(c.auth0, { domain: DOMAIN, audience: AUDIENCE });

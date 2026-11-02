@@ -44,6 +44,7 @@ test.beforeAll(async () => {
   // development sign-in by name, and Auth0 tokens too: signed here with a test key (the tests' own "Auth0")
   const config = loadConfig({
     NODE_ENV: 'test',
+    AUTH_MODE: 'dev',
     DATABASE_URL: url.toString(),
     CORS_ORIGINS: 'http://localhost',
     AUTH0_DOMAIN,
@@ -529,6 +530,39 @@ test("the server refuses an unchanged copy even without the app's note (another 
     timeout: 15_000,
   });
   await expect(page.locator('#share-dlg')).toBeVisible();
+});
+
+test('reporting a quilt: only someone else’s, and three people take it down', async ({ app, page }) => {
+  await app.open('mine');
+  await connectAs(page, 'rep0');
+  await page.getByRole('tab', { name: 'Community' }).click();
+  // made straight on the server: this test is about the report, not sharing
+  const { defaultDesign: make } = await import('@quilt/shared/design.js');
+  const d = make();
+  const design = { ...d, blocks: d.blocks.map((b, i) => (i === 1 ? { ...b, rot: 3 } : b)) };
+  const put = await fetch(`${apiUrl}/v1/shared/reported`, {
+    method: 'PUT',
+    headers: { 'x-dev-user': 'rep9', 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'To report', author: 'Rep', design }),
+  });
+  const { item } = await put.json();
+  const say = who =>
+    fetch(`${apiUrl}/v1/community/${item.id}/report`, {
+      method: 'POST',
+      headers: { 'x-dev-user': who, 'content-type': 'application/json' },
+      body: JSON.stringify({ reason: 'spam' }),
+    });
+  await say('rep1');
+  await say('rep2');
+  await page.locator('#com-q').fill('To report');
+  const card = page.locator('.pin', { hasText: 'To report' });
+  await card.getByRole('button', { name: 'Report' }).click();
+  await card.getByRole('combobox', { name: 'Why are you reporting this quilt?' }).selectOption('copyright');
+  await card.getByRole('button', { name: 'Send report' }).click();
+  await expect(page.locator('#notice')).toContainText('take a look');
+  await page.locator('#com-q').fill('');
+  await page.locator('#com-q').fill('To report');
+  await expect(page.locator('.pin', { hasText: 'To report' })).toHaveCount(0);
 });
 
 test('Stop sharing from the ⋯ menu: gone from the community, the tag goes', async ({ app, page }) => {

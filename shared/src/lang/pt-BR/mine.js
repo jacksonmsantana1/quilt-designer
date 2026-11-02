@@ -159,4 +159,21 @@ export default {
   'Copy to my designs': 'Copiar para meus projetos',
   'Copying…': 'Copiando…',
   '“{name}” is in My designs.': '“{name}” está em Meus projetos.',
+
+  // reporting a quilt, and what the server can refuse
+  Report: 'Denunciar',
+  'Why are you reporting this quilt?': 'Por que você está denunciando este quilt?',
+  'Inappropriate content': 'Conteúdo impróprio',
+  'Copied without permission': 'Copiado sem permissão',
+  Spam: 'Spam',
+  'Something else': 'Outro motivo',
+  'Send report': 'Enviar denúncia',
+  'Thanks. We’ll take a look at this quilt.': 'Agradecemos. Vamos dar uma olhada neste quilt.',
+  'Too many requests. Please wait a moment.': 'Muitos pedidos de uma vez. Aguarde um momento.',
+  'There is no more room in this account.': 'Não há mais espaço nesta conta.',
+  'This quilt is too large to share with the community.':
+    'Este quilt é grande demais para compartilhar com a comunidade.',
+  'This account can no longer share with the community.': 'Esta conta não pode mais compartilhar com a comunidade.',
+  'This quilt was taken down from the community.': 'Este quilt foi retirado da comunidade.',
+  'Sign-in only works with this app’s own server.': 'O login só funciona com o servidor do próprio aplicativo.',
 };

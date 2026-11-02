@@ -1,6 +1,6 @@
 // Saved quilts: read, save (create or change) and delete one, each checked against its save counter.
-import { readDesign } from '@quilt/shared/format.js';
 import { lockOwner, tx } from '../db.js';
+import { readQuilt } from '../read-quilt.js';
 import { ApiError, designRecord } from '../records.js';
 
 /** A request whose params, body and query the route's schema has already checked. @typedef {import('fastify').FastifyRequest & { params: any, body: any, query: any }} Req */
@@ -17,8 +17,11 @@ const baseRevQuery = {
   properties: { baseRev: { type: 'integer', minimum: 1 } },
 };
 
-/** @param {import('fastify').FastifyInstance} app @param {import('pg').Pool} pool */
-export function designRoutes(app, pool) {
+/**
+ * @param {import('fastify').FastifyInstance} app @param {import('pg').Pool} pool
+ * @param {import('../config.js').Config} config
+ */
+export function designRoutes(app, pool, config) {
   app.get('/v1/designs/:id', { schema: { params: idParam } }, async (/** @type {Req} */ req) => {
     const { rows } = await pool.query('select * from designs where id = $1 and owner_id = $2', [
       req.params.id,
@@ -51,7 +54,7 @@ export function designRoutes(app, pool) {
     async (/** @type {Req} */ req, reply) => {
       const { name, design, baseRev } = req.body;
       // the same checks the app makes when it opens a quilt (shared/src/format.js)
-      const r = readDesign(design);
+      const r = readQuilt(design);
       if (!r) throw new ApiError(400, 'not_a_quilt', 'The design could not be read as a quilt.');
       if (r.newer)
         throw new ApiError(
@@ -70,6 +73,13 @@ export function designRoutes(app, pool) {
           throw new ApiError(409, 'conflict', 'The design was changed somewhere else.', {
             server: cur ? designRecord(cur) : null,
           });
+        if (!cur || cur.deleted) {
+          const have = await c.query('select count(*)::int as n from designs where owner_id = $1 and not deleted', [
+            req.user.id,
+          ]);
+          if (have.rows[0].n >= config.perPerson.designs)
+            throw new ApiError(413, 'storage_full', 'You have reached the most designs one account can keep.');
+        }
         const q = cur
           ? `update designs set name = $3, doc = $4, format_version = $5, rev = rev + 1, seq = nextval('change_seq'),
                deleted = false, updated_at = now()

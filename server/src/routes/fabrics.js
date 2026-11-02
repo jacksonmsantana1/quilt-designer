@@ -33,6 +33,8 @@ export function fabricRoutes(app, pool, store, config) {
   app.post(
     '/v1/fabrics/:id/upload',
     {
+      // each link can bring in a photo, so fewer than for other requests (and still a few photos a second)
+      config: { rateLimit: { max: Math.ceil(config.ratePerMinute / 5), timeWindow: '1 minute' } },
       schema: {
         params: idParam,
         body: {
@@ -52,10 +54,20 @@ export function fabricRoutes(app, pool, store, config) {
       const owner = req.user.id,
         { id } = req.params,
         { name, cm, type, bytes } = req.body;
+      let stale = null;
       const row = await tx(pool, async c => {
         await lockOwner(c, owner);
         const cur = await find(c, owner, id, true);
         if (cur && cur.uploaded && !cur.deleted) return cur;
+        // what this person keeps, photos still on their way included
+        const kept = await c.query(
+          'select coalesce(sum(bytes), 0)::bigint as bytes from fabrics where owner_id = $1 and id <> $2 and not deleted',
+          [owner, id],
+        );
+        if (Number(kept.rows[0].bytes) + bytes > config.perPerson.photoBytes)
+          throw new ApiError(413, 'storage_full', 'Your photo storage is full. Delete some fabric photos to add more.');
+        // an upload asked for before and never finished: its place is not needed any more
+        if (cur?.upload_key) stale = cur.upload_key;
         // new, or a photo that was deleted / never finished uploading: ready for an upload (not listed until done)
         const res = await c.query(
           `insert into fabrics (owner_id, id, name, cm, type, bytes, object_key, upload_key, uploaded, rev, seq)
@@ -67,6 +79,7 @@ export function fabricRoutes(app, pool, store, config) {
         );
         return res.rows[0];
       });
+      if (stale) await store.remove(stale);
       if (row.uploaded && !row.deleted) return { status: 'have', record: fabricRecord(row) };
       const up = await store.uploadUrl(row.upload_key, { type, bytes });
       return { status: 'upload', ...up };

@@ -104,7 +104,7 @@ test('only a real picture, on your own shared quilt, is accepted', async () => {
   // not a JPEG, too big, or not there
   assert.equal((await ana('POST', '/v1/shared/qq/picture/upload', { type: 'image/png', bytes: 10 })).status, 400);
   assert.equal(
-    (await ana('POST', '/v1/shared/qq/picture/upload', { type: 'image/jpeg', bytes: 9 * 1024 * 1024 })).status,
+    (await ana('POST', '/v1/shared/qq/picture/upload', { type: 'image/jpeg', bytes: 5 * 1024 * 1024 })).status,
     400,
   );
   assert.equal((await ana('POST', '/v1/shared/qq/picture/done')).status, 404); // no link asked for
@@ -113,6 +113,29 @@ test('only a real picture, on your own shared quilt, is accepted', async () => {
   const wrong = await sendPicture(ana, 'qq', Uint8Array.from([1, 2, 3, 4, 5, 6]));
   assert.deepEqual([wrong.status, wrong.body.error], [400, 'not_a_picture']);
   assert.equal((await inCommunity('Ana refused')).pictureUrl, undefined);
+});
+
+test('a quilt taken down keeps out of sight with its picture, and a blocked person can send no more', async () => {
+  await share(ana, 'qt', { name: 'Ana down', design: { ...defaultDesign(), cols: 8 } });
+  await sendPicture(ana, 'qt');
+  assert.ok((await inCommunity('Ana down')).pictureUrl);
+  await pool.query("update shared_designs set hidden = true where name = 'Ana down'");
+  assert.equal(await inCommunity('Ana down'), undefined);
+  const body = { type: 'image/jpeg', bytes: 10 };
+  const up = await ana('POST', '/v1/shared/qt/picture/upload', body);
+  assert.deepEqual([up.status, up.body.error], [403, 'taken_down']);
+  assert.equal((await ana('POST', '/v1/shared/qt/picture/done')).status, 403);
+  // someone stopped from sharing can't change the picture of a quilt still showing either
+  await share(ben, 'qu', { name: 'Ben blocked', author: 'Ben', design: { ...defaultDesign(), cols: 9 } });
+  const blockBen = v =>
+    pool.query(
+      "update users set share_blocked = $1 where id = (select owner_id from shared_designs where name = 'Ben blocked')",
+      [v],
+    );
+  await blockBen(true);
+  const blocked = await ben('POST', '/v1/shared/qu/picture/upload', body);
+  assert.deepEqual([blocked.status, blocked.body.error], [403, 'share_blocked']);
+  await blockBen(false);
 });
 
 test('stopping sharing takes the picture away too', async () => {

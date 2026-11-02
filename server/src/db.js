@@ -6,7 +6,8 @@ pg.types.setTypeParser(20, v => Number(v));
 
 /** @param {string} url */
 export function createPool(url) {
-  const pool = new pg.Pool({ connectionString: url, max: 10 });
+  // the wait is long enough for a database that was asleep (Neon) to wake, and no longer
+  const pool = new pg.Pool({ connectionString: url, max: 10, connectionTimeoutMillis: 15_000 });
   // an idle connection the database closes (restart, failover) must not crash the server: the pool replaces it
   pool.on('error', e => console.error('database connection lost:', e.message));
   return pool;

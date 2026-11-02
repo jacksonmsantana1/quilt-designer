@@ -362,6 +362,7 @@ function drawCommunity(empty) {
     });
     text.appendChild(document.createElement('br'));
     text.appendChild(copy);
+    if (!it.mine && signedIn()) text.appendChild(reportButton(it));
     meta.appendChild(text);
     pin.append(img, meta);
     grid.appendChild(pin);
@@ -369,6 +370,47 @@ function drawCommunity(empty) {
   $('com-empty').hidden = items.length > 0;
   $('com-empty').textContent = empty;
   $('com-more').hidden = !more;
+}
+
+/** "Report": asks why, and tells the server. Enough people reporting a quilt hide it. @param {any} it */
+function reportButton(it) {
+  const box = document.createElement('div');
+  box.className = 'com-report';
+  const open = document.createElement('button');
+  open.type = 'button';
+  open.className = 'linkish';
+  open.textContent = t('Report');
+  open.addEventListener('click', () => {
+    const why = document.createElement('select');
+    why.setAttribute('aria-label', t('Why are you reporting this quilt?'));
+    for (const [value, label] of [
+      ['inappropriate', t('Inappropriate content')],
+      ['copyright', t('Copied without permission')],
+      ['spam', t('Spam')],
+      ['other', t('Something else')],
+    ])
+      why.add(new Option(label, value));
+    const send = document.createElement('button');
+    send.type = 'button';
+    send.className = 'btn sm';
+    send.textContent = t('Send report');
+    send.addEventListener('click', async () => {
+      send.disabled = true;
+      let says = t('Thanks. We’ll take a look at this quilt.');
+      try {
+        const r = await serverCall('POST', `/v1/community/${it.id}/report`, { reason: why.value });
+        if (r.status !== 200) says = serverSays(r.body, r.status);
+      } catch (e) {
+        says = e?.message || String(e);
+      }
+      box.replaceChildren();
+      notify(says);
+    });
+    box.replaceChildren(why, send);
+    why.focus();
+  });
+  box.appendChild(open);
+  return box;
 }
 
 /**

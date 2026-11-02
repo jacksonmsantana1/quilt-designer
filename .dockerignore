@@ -1,0 +1,10 @@
+# The API's package takes only what server/Dockerfile copies: nothing else goes near it, secrets above all.
+*
+!package.json
+!package-lock.json
+!app/package.json
+!shared/package.json
+!shared/src
+!server/package.json
+!server/src
+!server/migrations

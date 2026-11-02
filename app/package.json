@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node tools/python.mjs build.py",
+    "publish:page": "node tools/publish.mjs",
     "format": "prettier --write \"src/**/*.js\" \"tests/**/*.mjs\"",
     "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.mjs\"",
     "lint": "eslint src tests",
@@ -17,6 +18,7 @@
     "@quilt/shared": "*"
   },
   "devDependencies": {
+    "@auth0/auth0-spa-js": "2.28.4",
     "@playwright/test": "^1.63.0",
     "acorn": "^8.19.0",
     "esbuild": "^0.28.2",
