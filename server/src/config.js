@@ -20,6 +20,8 @@
  * @property {{ photoBytes: number, designs: number, shared: number }} perPerson  what one account can keep
  * @property {number} ratePerMinute  requests one person (or address, before signing in) can make in a minute
  * @property {string | null} clientIpHeader  the header the host's proxy puts the visitor's address in
+ * @property {string | null} sentryDsn  where error reports go (none: nowhere)
+ * @property {string | undefined} release  which version of the code this is, for the reports
  */
 
 /** @param {Record<string, string | undefined>} [env] @returns {Config} */
@@ -47,6 +49,13 @@ export function loadConfig(env = process.env) {
   if (!['s3', 'local'].includes(storage)) throw new Error(`STORAGE must be s3 or local, not "${storage}"`);
   if (storage === 'local' && nodeEnv === 'production')
     throw new Error('STORAGE=local (photos in a folder served by the API) cannot be used with NODE_ENV=production');
+  // online, the connection to the database has to be encrypted: the address asks for it (a database on this
+  // computer, for trying the package out, doesn't need it)
+  if (nodeEnv === 'production' && env.DATABASE_URL) {
+    const local = /@(localhost|127\.0\.0\.1|host\.docker\.internal|db)[:/]/.test(env.DATABASE_URL);
+    if (!local && !/[?&]sslmode=(require|verify-ca|verify-full)\b/.test(env.DATABASE_URL))
+      throw new Error('DATABASE_URL must ask for an encrypted connection: add ?sslmode=require');
+  }
   const port = Number(env.PORT || 8787);
   const positive = (k, otherwise) => {
     const v = env[k] === undefined ? otherwise : Number(env[k]);
@@ -85,5 +94,7 @@ export function loadConfig(env = process.env) {
     // the first sync of a large collection sends a lot at once; the seed script, far more
     ratePerMinute: positive('RATE_LIMIT_PER_MINUTE', auth === 'dev' ? 6000 : 600),
     clientIpHeader: env.CLIENT_IP_HEADER ? env.CLIENT_IP_HEADER.toLowerCase() : null,
+    sentryDsn: env.SENTRY_DSN || null,
+    release: env.RELEASE || env.FLY_IMAGE_REF || undefined,
   };
 }

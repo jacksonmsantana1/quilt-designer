@@ -22,7 +22,7 @@ const send = (url, body, type = 'image/png') =>
   app.inject({ method: 'PUT', url: path0(url), payload: Buffer.from(body), headers: { 'content-type': type } });
 
 test('settings: local storage by default in development, refused in production', () => {
-  const DB = { DATABASE_URL: 'postgres://x/y' };
+  const DB = { DATABASE_URL: 'postgres://x/y?sslmode=require' };
   assert.equal(loadConfig(DB).storage, 'local');
   assert.equal(loadConfig({ ...DB, S3_ENDPOINT: 'http://localhost:9000' }).storage, 's3');
   assert.equal(loadConfig({ ...DB, NODE_ENV: 'production' }).storage, 's3');

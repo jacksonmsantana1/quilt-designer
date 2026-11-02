@@ -94,7 +94,12 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   from the same versions in node_modules, so template.html and package.json must agree) and writes `app/dist/_headers`,
   the host's security headers. Scripts run only by their fingerprint or from those packages, so no inline event
   attributes (`onclick="…"`), `eval`, or new CDN packages without the map. The browser tests run under this policy.
-  Sign-in tokens only go to `API_URL` (`storage/auth0.js`: set it when the server goes live) or this computer.
+  Sign-in tokens only go to `API_URL` or this computer.
+- **The published page**: `npm run publish:page -w @quilt/app` makes `app/publish/` (the page as `index.html`, assets,
+  `_headers`) and fills in `core/build-settings.js` (`API_URL`, `SENTRY_DSN`, the version); in `quilt.html` they stay
+  empty: no server online, no error reports. Sentry's library loads only on the published page, by its fingerprint
+  (`ui/error-reports.js`: a new version needs a new one). What leaves goes through `shared/src/scrub-report.js`, which
+  keeps a short list of safe fields: quilts, names, emails, tokens and photo links must never get into a report.
 - **Style**: Prettier (120 cols, single quotes). Comments say why in plain words. UI text is short and friendly.
 
 ## Server (server/)
@@ -122,20 +127,23 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
 - **Community moderation**: `POST /v1/community/:id/report`; three different people hide a quilt until
   `npm run moderate -w @quilt/server` (list, hide, show, block, unblock) settles it. A hidden quilt can't be re-shared.
 - The server reads quilts with `read-quilt.js`, never `readDesign` directly: it forgets their drawn blocks afterwards.
+- **Backups** (`scripts/backup.sh`, `restore.sh`, `.github/workflows/backup.yml`): encrypted nightly copies of the
+  database in their own bucket, off until the repository variable `BACKUPS_ON` is `true`. Photos are not in them.
+- `/alive` is the host's check and never touches the database (Neon is paid by the hour, and has to be left to sleep);
+  `/health` does, for an uptime monitor asking every few minutes. Unexpected errors go to `error-reports.js`.
 
 ## Where things stand
 
 Done, in order: module split → tooling and tests → pure edits through dispatch → store modules, one undo step
 per edit → versioned format → IndexedDB → coverage and more tests → server (steps 1–4, 6) → app sync (step 7).
 
-**Next: step 8, going live.** Deploy the API (one Node instance on Fly or Render), managed PostgreSQL with
-backups (Neon, Supabase or Render), Cloudflare R2 for photos behind a CDN, error logging. Set `NODE_ENV=production`,
-`API_URL` in `storage/auth0.js`, `CLIENT_IP_HEADER`; publish `app/dist/_headers` beside the page; give the R2 bucket
-a rule that removes `uploads/` after a day (unfinished uploads). Login is done (Auth0, above); going live needs the app's real address added in Auth0 (Allowed Callback URLs and Web Origins: the
-origin; Allowed Logout URLs: the page itself, since Sign out goes through Auth0's logout and comes back to it).
-The owner hasn't chosen the host yet: ask. The published page on claude.ai can only sync once the API is on https
-on the internet (Chrome blocks pages from reaching a server on the person's own computer), and Auth0's sign-in
-popup may not open from inside claude.ai's frame: untested.
+**Next: step 8, going live.** The owner chose Fly.io (São Paulo) for the API, Neon (São Paulo) for the database,
+Cloudflare R2 for photos and backups, Cloudflare Pages for the page, and Sentry for error reports. Everything that can be
+prepared on a computer is (`server/Dockerfile`, `fly.toml`, `publish:page`, `.github/workflows/backup.yml`); the steps
+that are left need the owner's accounts, and are in `server/README.md`, "Going live". None of it has run on a real host
+yet, so expect small corrections there: the photo size limit on R2 and how long Neon takes to wake are untested. The
+published page on claude.ai can only sync once the API is on https on the internet (Chrome blocks pages from reaching a
+server on the person's own computer), and Auth0's sign-in popup may not open from inside claude.ai's frame: untested.
 
 **Known gaps / ideas**
 - Plans on the welcome page: Block (free) and Bind ("Coming soon", no price or button). Nothing takes payments yet, so

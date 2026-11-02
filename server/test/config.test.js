@@ -5,7 +5,7 @@ import { loadConfig } from '../src/config.js';
 import { s3Store } from '../src/objects.js';
 import { setup } from './helpers.js';
 
-const DB = { DATABASE_URL: 'postgres://x/y' };
+const DB = { DATABASE_URL: 'postgres://x/y?sslmode=require' };
 
 test('the stand-in login only when asked for by name; otherwise Auth0, or nobody', () => {
   // a forgotten setting never opens the stand-in login: it has to be asked for by name
@@ -21,6 +21,14 @@ test('production refuses the stand-in login and defaults to none', () => {
     /cannot be used with NODE_ENV=production/,
   );
   assert.equal(loadConfig({ ...DB, NODE_ENV: 'production' }).auth, 'none');
+});
+
+test('production: the connection to the database must be encrypted, except on this computer', () => {
+  const prod = url => loadConfig({ DATABASE_URL: url, NODE_ENV: 'production' });
+  assert.throws(() => prod('postgres://u:p@db.neon.tech/quilt'), /encrypted connection/);
+  assert.throws(() => prod('postgres://u:p@db.neon.tech/quilt?sslmode=disable'), /encrypted connection/);
+  assert.equal(prod('postgres://u:p@db.neon.tech/quilt?sslmode=require').env, 'production');
+  assert.equal(prod('postgres://u:p@localhost:5432/quilt').env, 'production');
 });
 
 test('missing or bad settings stop the start with a clear message', () => {

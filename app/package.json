@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node tools/python.mjs build.py",
+    "publish:page": "node tools/publish.mjs",
     "format": "prettier --write \"src/**/*.js\" \"tests/**/*.mjs\"",
     "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.mjs\"",
     "lint": "eslint src tests",

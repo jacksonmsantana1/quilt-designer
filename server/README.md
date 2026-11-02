@@ -24,6 +24,94 @@ the published page on claude.ai can't reach a server on your computer, and needs
 
 `npm run migrate -w @quilt/server` applies new migrations (`migrations/*.sql`, in name order, each once).
 
+## Going live
+
+Everything here needs the owner's accounts. Passwords and keys go only into the host's secret storage and GitHub's:
+never in the code or a chat. On the first try, expect small corrections: none of this has run on a real host yet.
+
+**1. Accounts.** Fly.io, Neon, Cloudflare and Sentry, with two-factor sign-in on each.
+
+**2. Database.** A Neon project in **AWS São Paulo** (the region can't be changed later) with PostgreSQL 16. Its
+connection address must end in `?sslmode=require`: the server refuses to start otherwise. Check that it offers the
+`vector` extension, which the first migration turns on.
+
+**3. Storage.** Two private R2 buckets, each with its own key: one for photos, one for backups.
+- Photos: allow `PUT` and `GET` from the page's address (the bucket's CORS settings), and add a rule that removes
+  `uploads/` after a day, for uploads never finished.
+- Backups: nothing public. Keep the key to this bucket out of the server's settings.
+
+**4. The API on Fly.io.** `fly.toml` holds what isn't secret. Change its `app` name if it's taken, because that name
+gives the API's address. From the top folder:
+
+```
+fly launch --no-deploy --copy-config
+fly secrets set DATABASE_URL=... S3_ENDPOINT=... S3_BUCKET=... S3_ACCESS_KEY_ID=... S3_SECRET_ACCESS_KEY=...
+fly secrets set AUTH0_DOMAIN=... AUTH0_AUDIENCE=https://api.quilt-designer CORS_ORIGINS=https://... SENTRY_DSN=...
+fly deploy
+```
+
+Then `https://<app>.fly.dev/health` answers `{"ok":true}`. The tables are made when the server starts. In Sentry, use
+separate projects for the API and the page.
+
+**5. The page on Cloudflare Pages.** From the top folder, with the API's address and the page's Sentry address:
+
+```
+API_URL=https://<app>.fly.dev SENTRY_DSN=https://... npm run publish:page -w @quilt/app
+npx wrangler pages deploy app/publish --project-name block-and-bind
+```
+
+`_headers` in that folder holds the page's protection. Check it arrived: the page's response has a
+`Content-Security-Policy` header.
+
+**6. Auth0.** Add the page's address: Allowed Callback URLs and Allowed Web Origins (the origin), Allowed Logout URLs
+(the page itself). Also turn on Refresh Token Rotation, and give Google sign-in your own keys, not Auth0's dev keys.
+
+**7. Backups on.** In the GitHub repository, add the secrets `BACKUP_DATABASE_URL`, `BACKUP_PASSPHRASE`,
+`BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY_ID` and `BACKUP_S3_SECRET_ACCESS_KEY`, and the
+variable `BACKUPS_ON` = `true`. Run "Nightly backup" once by hand under Actions, then restore it (below) before relying
+on it. **Keep the passphrase somewhere safe outside GitHub: without it, the backups can't be read.**
+
+**8. Watching.** An uptime monitor on `/health`, every few minutes, not more often: it wakes the database, which is paid
+by the hour. Trigger one test error from the API and one from the page, and check Sentry shows them with no personal
+data.
+
+**9. Before opening to everyone:** the terms of use and privacy policy, and a way to delete an account.
+
+### Updating
+
+```
+fly deploy                                    # the API, when server/ or shared/ changed
+API_URL=... SENTRY_DSN=... npm run publish:page -w @quilt/app   # the page, then wrangler as above
+```
+
+A change to the database goes first in a new file in `migrations/`, and must keep working with the version running just
+before it, since that is what going back returns to.
+
+### When something goes wrong
+
+- **A bad version of the API:** `fly releases --image` lists them; `fly deploy --image <the last good one>` goes back.
+- **A bad version of the page:** in Cloudflare Pages, "Rollback" on the last good deployment.
+- **The API is down:** `fly status`, `fly logs`. `/alive` answering while `/health` fails means the database.
+- **Data damaged:** first stop writes with `fly scale count 0`. Neon can restore to a moment in its restore window, into
+  a new branch. Older than that, the nightly backups below. Then point `DATABASE_URL` at the good copy, and scale back to 1.
+- **A key leaked:** make a new one where it was issued, `fly secrets set`, then delete the old one.
+- **Something on Community that must go:** `npm run moderate -w @quilt/server hide <id>`, with `DATABASE_URL` set.
+
+### Backups
+
+`npm run backup -w @quilt/server` is one backup, as GitHub runs it each night (`.github/workflows/backup.yml`): the
+database's own `pg_dump`, encrypted with gpg, in the backups bucket. It keeps 30 days (`BACKUP_DAYS`) and never fewer
+than the last 7. Photos are not in it: they stay in R2. Needs Docker, gpg and node.
+
+To bring one back, into a **new, empty** database (it refuses any other):
+
+```
+RESTORE_DATABASE_URL=... BACKUP_PASSPHRASE=... BACKUP_S3_...=... npm run restore -w @quilt/server latest
+```
+
+`node server/scripts/backup-store.js list` shows them; give a name instead of `latest` for an older one. GitHub pauses
+scheduled runs of a public repository after 60 days without activity, and says so by email: turn it back on under Actions.
+
 ## Tests
 
 `npm test -w @quilt/server` makes a fresh database per test file on the PostgreSQL in `TEST_DATABASE_URL`

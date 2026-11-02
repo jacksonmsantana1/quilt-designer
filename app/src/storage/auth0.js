@@ -3,6 +3,7 @@
 // Auth0's library comes from the CDN, and only once someone signs in or is signed in: the app works without it.
 // The tenant, the app's id there and the server's identifier are not secrets (a page can't keep secrets).
 import { getLang } from '@quilt/shared/i18n.js';
+import { API_URL } from '../core/build-settings.js';
 
 const AUTH0 = {
   domain: 'dev-5op4uervqyekvlsx.us.auth0.com',
@@ -10,9 +11,6 @@ const AUTH0 = {
   audience: 'https://api.quilt-designer',
 };
 const LIBRARY = 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2.28.4/dist/auth0-spa-js.production.esm.js';
-/** The app's quilt server on the internet, once it has one ('' until then: only a server on this computer). */
-const API_URL = '';
-
 /**
  * Whether a sign-in token may be sent to an address: only to the app's own server or one on this computer, so a
  * mistyped or suggested address can't collect it. @param {any} url @param {string} [api] @returns {boolean}
@@ -92,4 +90,4 @@ async function signOut() {
   if (c) await c.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
 }
 
-export { API_URL, AUTH0, signIn, signInToken, signOut, tokenMayGoTo };
+export { AUTH0, signIn, signInToken, signOut, tokenMayGoTo };

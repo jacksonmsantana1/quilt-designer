@@ -4,8 +4,10 @@ import { createPool } from './db.js';
 import { migrate } from './migrate.js';
 import { localStore, s3Store } from './objects.js';
 import { buildApp } from './app.js';
+import { startErrorReports } from './error-reports.js';
 
 const config = loadConfig();
+const reports = await startErrorReports(config.sentryDsn, { environment: config.env, release: config.release });
 const pool = createPool(config.databaseUrl);
 await migrate(pool);
 const store = config.storage === 'local' ? localStore(config.localDir, config.publicUrl) : s3Store(config.s3);
@@ -14,6 +16,7 @@ const app = await buildApp({
   pool,
   store,
   logger: { level: config.env === 'production' ? 'info' : 'debug' },
+  onError: reports.report,
 });
 if (config.auth === 'dev')
   app.log.warn(
@@ -28,4 +31,5 @@ for (const sig of ['SIGINT', 'SIGTERM'])
   process.on(sig, async () => {
     await app.close();
     await pool.end();
+    await reports.close();
   });

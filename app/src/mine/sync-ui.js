@@ -5,7 +5,8 @@ import '../timeline/timeline.js'; // load order: runs after timeline/timeline
 import { $ } from '../core/dom.js';
 import { design, mineCur, setMineCur } from '../core/store.js';
 import { createSync } from '../storage/sync.js';
-import { API_URL, signIn, signInToken, signOut, tokenMayGoTo } from '../storage/auth0.js';
+import { API_URL } from '../core/build-settings.js';
+import { signIn, signInToken, signOut, tokenMayGoTo } from '../storage/auth0.js';
 import { onChange, repo } from '../storage/repo.js';
 import { notify } from '../ui/notice.js';
 import { openDesign } from '../designer/dispatch.js';
@@ -202,6 +203,12 @@ function initSyncUI() {
   const openForm = () => {
     const c = sync.config();
     $('sync-url').value = c?.url || DEFAULT_SERVER;
+    // the published page has one server: nothing to choose, and no development sign-in
+    if (API_URL) {
+      $('sync-url').value = API_URL;
+      /** @type {HTMLElement} */ ($('sync-url').closest('label')).hidden = true;
+      /** @type {HTMLElement} */ (form.querySelector('.sync-dev')).hidden = true;
+    }
     $('sync-user').value = c?.user || '';
     $('sync-off').hidden = !c;
     $('sync-off').textContent = c?.auth0 ? t('Sign out') : t('Turn sync off');
