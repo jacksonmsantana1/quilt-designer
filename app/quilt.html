@@ -451,6 +451,10 @@
   .com-intro { text-align: center; margin: 4px 0 14px; }
   .pin .by { display: block; color: var(--muted); font-size: .8rem; }
   .pin .com-copy { margin-top: 8px; }
+  .com-report { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+  .com-report select { max-width: 100%; font: inherit; font-size: 12px; }
+  .com-report .linkish { all: unset; cursor: pointer; font-size: 12px; text-decoration: underline; opacity: .7; }
+  .com-report .linkish:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
   .com-more { text-align: center; margin-top: 12px; }
   /* the card's ⋯ (Open, Rename, Duplicate, Delete): always there, phones too */
   .pin-more { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--stitch); background: var(--panel); color: var(--accent); font: 700 1.1rem/1 var(--font-body); cursor: pointer; display: grid; place-items: center; }
@@ -2411,6 +2415,16 @@ if (typeof module !== 'undefined') module.exports = ClothSim;
 </script>
 <script type="importmap">
 {
+  "integrity": {
+  "https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2.28.4/dist/auth0-spa-js.production.esm.js": "sha384-udgLLvuCKMoNMHHdZk/UaHCPUk0JHmcbYSI+qeJMuJLjBGWXrd6reTuijTsNjg9n",
+  "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js": "sha384-kdNOO53DEd2OvoLusDIw6hCXaxB/qGpJBHgz5k/qQLgjDAQUZ8IjCFCfuYzc/sfX",
+  "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.core.js": "sha384-T0d5qlOvyPT92JVj73IjXSVeqEuJIXH7hs2dZzcsSyRv/ugCdA1BDA07IZZ1QryO",
+  "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/lights/RectAreaLightUniformsLib.js": "sha384-wrZOPsQGB+gcZrjnfR6LpxaCX3jfEt6pVQtZM16hETBMcJGIudLy0vYbuqogztzM",
+  "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/lights/RectAreaLightTexturesLib.js": "sha384-oQJvQLSnYhmAimeL8vXcNV47WTQ2LVYW5s1mTiM6D3vOsVGcUmE2dE0rcWNy/RJM",
+  "https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.24/build/index.module.js": "sha384-l2U/xhrMHvZZEuFx4633I2VxxM1NpvPUnBkCWm3RpN0wRbSMSg7puwRpQiaWJQYa",
+  "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.14/build/index.module.js": "sha384-vP2AiS9jTzRD99Z0JuCyWJyptyXAFp1bgVjcG8EQvbtjuL9ffchA3/vNWSzwfCu4",
+  "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/postprocessing/Pass.js": "sha384-927X5fcqlqKPsXZV1w3tv5BZx797OXX3D/TDJk0FHwJd12z58B5aqS77g5LZoprI"
+},
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/",
@@ -3170,7 +3184,22 @@ var mine_default = {
   "You have it in My designs: \u201C{name}\u201D": "Voc\xEA j\xE1 tem em Meus projetos: \u201C{name}\u201D",
   "Copy to my designs": "Copiar para meus projetos",
   "Copying\u2026": "Copiando\u2026",
-  "\u201C{name}\u201D is in My designs.": "\u201C{name}\u201D est\xE1 em Meus projetos."
+  "\u201C{name}\u201D is in My designs.": "\u201C{name}\u201D est\xE1 em Meus projetos.",
+  // reporting a quilt, and what the server can refuse
+  Report: "Denunciar",
+  "Why are you reporting this quilt?": "Por que voc\xEA est\xE1 denunciando este quilt?",
+  "Inappropriate content": "Conte\xFAdo impr\xF3prio",
+  "Copied without permission": "Copiado sem permiss\xE3o",
+  Spam: "Spam",
+  "Something else": "Outro motivo",
+  "Send report": "Enviar den\xFAncia",
+  "Thanks. We\u2019ll take a look at this quilt.": "Agradecemos. Vamos dar uma olhada neste quilt.",
+  "Too many requests. Please wait a moment.": "Muitos pedidos de uma vez. Aguarde um momento.",
+  "There is no more room in this account.": "N\xE3o h\xE1 mais espa\xE7o nesta conta.",
+  "This quilt is too large to share with the community.": "Este quilt \xE9 grande demais para compartilhar com a comunidade.",
+  "This account can no longer share with the community.": "Esta conta n\xE3o pode mais compartilhar com a comunidade.",
+  "This quilt was taken down from the community.": "Este quilt foi retirado da comunidade.",
+  "Sign-in only works with this app\u2019s own server.": "O login s\xF3 funciona com o servidor do pr\xF3prio aplicativo."
 };
 
 // ../shared/src/lang/pt-BR/pieces.js
@@ -20668,7 +20697,12 @@ function serverSays(json, status, otherwise = t("The server answered {status}.",
     not_uploaded: t("The image has not arrived in storage yet."),
     wrong_image: t("The uploaded image is not the one this fabric id names."),
     author_email: t("The author name is shown to everyone: please don\u2019t use an email."),
-    photos_missing: t("Some of its fabric photos are not on the server yet: sync first.")
+    photos_missing: t("Some of its fabric photos are not on the server yet: sync first."),
+    rate_limited: t("Too many requests. Please wait a moment."),
+    storage_full: t("There is no more room in this account."),
+    too_large: t("This quilt is too large to share with the community."),
+    share_blocked: t("This account can no longer share with the community."),
+    taken_down: t("This quilt was taken down from the community.")
   };
   return byCode[json?.error] ?? otherwise;
 }
@@ -20745,7 +20779,7 @@ function createSync({
     }
     const json = await r.json().catch(() => null);
     if (r.status === 401) throw new StopSync("login", serverSays(json, r.status, t("Not signed in.")));
-    if (r.status >= 500) throw new StopSync("error", serverSays(json, r.status));
+    if (r.status >= 500 || r.status === 429) throw new StopSync("error", serverSays(json, r.status));
     return { status: r.status, body: json };
   }
   const sameDesign = (a, b) => a.name === b.name && JSON.stringify(a.design) === JSON.stringify(b.design);
@@ -20939,6 +20973,15 @@ var AUTH0 = {
   audience: "https://api.quilt-designer"
 };
 var LIBRARY = "https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2.28.4/dist/auth0-spa-js.production.esm.js";
+var API_URL = "";
+function tokenMayGoTo(url, api = API_URL) {
+  try {
+    const u = new URL(url);
+    return ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !!api && u.origin === new URL(api).origin;
+  } catch (e) {
+    return false;
+  }
+}
 var client = null;
 function auth0Client() {
   client ||= import(
@@ -20991,7 +21034,12 @@ var EVERY_MS = 6e4;
 var before = null;
 var arrived = [];
 var watchers = [];
-var sync = createSync({ repo, onRemote: (e) => arrived.push(e), onStatus: showStatus, getToken: signInToken });
+var sync = createSync({
+  repo,
+  onRemote: (e) => arrived.push(e),
+  onStatus: showStatus,
+  getToken: async () => tokenMayGoTo(sync.config()?.url) ? signInToken() : null
+});
 var time = (at) => new Date(at).toLocaleTimeString([getLang()], { hour: "2-digit", minute: "2-digit" });
 function showStatus(s) {
   const c = sync?.config?.();
@@ -21010,12 +21058,13 @@ function showStatus(s) {
   $("sync-setup").textContent = !c ? t("Sign in to sync") : s.state === "login" ? t("Sign in") : t("Account");
   for (const fn of watchers) fn(c, s);
 }
-var DEFAULT_SERVER = "http://localhost:8787";
+var DEFAULT_SERVER = API_URL || "http://localhost:8787";
 function onAccount(fn) {
   watchers.push(fn);
   fn(sync.config(), sync.status());
 }
 async function signInAndSync({ url, signup = false } = {}) {
+  if (url && !tokenMayGoTo(url)) return t("Sign-in only works with this app\u2019s own server.");
   let who;
   try {
     who = await signIn({ signup });
@@ -21023,7 +21072,8 @@ async function signInAndSync({ url, signup = false } = {}) {
     const closed = /popup|cancel/i.test(`${e?.error || ""} ${e?.message || ""}`);
     return closed ? t("Sign-in was closed before it finished.") : t("Couldn't sign in: {why}", { why: e?.message || e });
   }
-  sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
+  const saved = sync.config()?.url;
+  sync.configure({ url: url || (tokenMayGoTo(saved) ? saved : DEFAULT_SERVER), auth0: who.sub, who: who.who });
   accountChanged();
   run();
   return "";
@@ -21698,6 +21748,7 @@ function drawCommunity(empty) {
     });
     text.appendChild(document.createElement("br"));
     text.appendChild(copy);
+    if (!it.mine && signedIn()) text.appendChild(reportButton(it));
     meta.appendChild(text);
     pin.append(img, meta);
     grid.appendChild(pin);
@@ -21705,6 +21756,45 @@ function drawCommunity(empty) {
   $("com-empty").hidden = items.length > 0;
   $("com-empty").textContent = empty;
   $("com-more").hidden = !more;
+}
+function reportButton(it) {
+  const box2 = document.createElement("div");
+  box2.className = "com-report";
+  const open = document.createElement("button");
+  open.type = "button";
+  open.className = "linkish";
+  open.textContent = t("Report");
+  open.addEventListener("click", () => {
+    const why2 = document.createElement("select");
+    why2.setAttribute("aria-label", t("Why are you reporting this quilt?"));
+    for (const [value, label] of [
+      ["inappropriate", t("Inappropriate content")],
+      ["copyright", t("Copied without permission")],
+      ["spam", t("Spam")],
+      ["other", t("Something else")]
+    ])
+      why2.add(new Option(label, value));
+    const send2 = document.createElement("button");
+    send2.type = "button";
+    send2.className = "btn sm";
+    send2.textContent = t("Send report");
+    send2.addEventListener("click", async () => {
+      send2.disabled = true;
+      let says = t("Thanks. We\u2019ll take a look at this quilt.");
+      try {
+        const r = await serverCall("POST", `/v1/community/${it.id}/report`, { reason: why2.value });
+        if (r.status !== 200) says = serverSays(r.body, r.status);
+      } catch (e) {
+        says = e?.message || String(e);
+      }
+      box2.replaceChildren();
+      notify(says);
+    });
+    box2.replaceChildren(why2, send2);
+    why2.focus();
+  });
+  box2.appendChild(open);
+  return box2;
 }
 function alreadyHave(d) {
   const sig = quiltSig(d);

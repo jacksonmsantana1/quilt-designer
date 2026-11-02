@@ -90,6 +90,11 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   reloads), so `t()` works in module-level constants. Saved quilts don't depend on it: piece names stay English in
   `design.drawn` and are translated when read (`partsOf`); `PATTERNS[k].family` stays English for the code (`t(family)`
   to show it). Node always starts in English, and the browser tests run in English except `i18n.spec.mjs`.
+- **Page security**: `build.py` puts each CDN library's fingerprint in the import map (`tools/import-integrity.mjs`,
+  from the same versions in node_modules, so template.html and package.json must agree) and writes `app/dist/_headers`,
+  the host's security headers. Scripts run only by their fingerprint or from those packages, so no inline event
+  attributes (`onclick="…"`), `eval`, or new CDN packages without the map. The browser tests run under this policy.
+  Sign-in tokens only go to `API_URL` (`storage/auth0.js`: set it when the server goes live) or this computer.
 - **Style**: Prettier (120 cols, single quotes). Comments say why in plain words. UI text is short and friendly.
 
 ## Server (server/)
@@ -107,9 +112,16 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   server (`auth.js`, jose) checks issuer, audience, RS256 signature and expiry, and maps `sub` to users.auth_sub.
   Tests never reach Auth0: they sign tokens with their own key (`buildApp({ keys })`), and the browser tests
   serve a stand-in for the library. `AUTH_MODE=dev` also takes the `X-Dev-User` header (tests, the `seed` user).
-  Production refuses `AUTH_MODE=dev` and `STORAGE=local`. Migration 001 has not been deployed anywhere yet, so it can still be edited; after the first
+  The stand-in login only runs when `AUTH_MODE=dev` is set by name; without it the server takes Auth0 tokens or
+  nobody. Production refuses `AUTH_MODE=dev` and `STORAGE=local`. Migration 001 has not been deployed anywhere yet, so it can still be edited; after the first
   deployment, add new migration files instead.
 - `npm run smoke -w @quilt/server` checks a running server end to end.
+- **Limits** (`config.js`, `server/.env.example`): requests a minute (`@fastify/rate-limit`: per person, per address
+  before sign-in; fewer for uploads, sharing and the public list), photos, designs and shared quilts per account, shared
+  quilt size, bytes in a Community page. On a host's proxy set `CLIENT_IP_HEADER` (Fly.io: `fly-client-ip`).
+- **Community moderation**: `POST /v1/community/:id/report`; three different people hide a quilt until
+  `npm run moderate -w @quilt/server` (list, hide, show, block, unblock) settles it. A hidden quilt can't be re-shared.
+- The server reads quilts with `read-quilt.js`, never `readDesign` directly: it forgets their drawn blocks afterwards.
 
 ## Where things stand
 
@@ -117,8 +129,9 @@ Done, in order: module split → tooling and tests → pure edits through dispat
 per edit → versioned format → IndexedDB → coverage and more tests → server (steps 1–4, 6) → app sync (step 7).
 
 **Next: step 8, going live.** Deploy the API (one Node instance on Fly or Render), managed PostgreSQL with
-backups (Neon, Supabase or Render), Cloudflare R2 for photos behind a CDN, error logging. Login is done (Auth0,
-above); going live needs the app's real address added in Auth0 (Allowed Callback URLs and Web Origins: the
+backups (Neon, Supabase or Render), Cloudflare R2 for photos behind a CDN, error logging. Set `NODE_ENV=production`,
+`API_URL` in `storage/auth0.js`, `CLIENT_IP_HEADER`; publish `app/dist/_headers` beside the page; give the R2 bucket
+a rule that removes `uploads/` after a day (unfinished uploads). Login is done (Auth0, above); going live needs the app's real address added in Auth0 (Allowed Callback URLs and Web Origins: the
 origin; Allowed Logout URLs: the page itself, since Sign out goes through Auth0's logout and comes back to it).
 The owner hasn't chosen the host yet: ask. The published page on claude.ai can only sync once the API is on https
 on the internet (Chrome blocks pages from reaching a server on the person's own computer), and Auth0's sign-in

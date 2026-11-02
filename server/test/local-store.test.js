@@ -37,7 +37,10 @@ test('the whole upload through the API’s own links; the link only takes that t
   assert.match(up.body.url, /^http:\/\/api\.test\/dev-files\/uploads\//);
   assert.equal((await send(up.body.url, img.subarray(0, 10))).statusCode, 403); // other size
   assert.equal((await send(up.body.url, img, 'image/jpeg')).statusCode, 403); // other type
-  assert.equal((await send(up.body.url.replace(/sig=[0-9a-f]/, 'sig=0'), img)).statusCode, 403); // tampered
+  // tampered: another first digit (always another: a signature can start with any of them)
+  const tampered = up.body.url.replace(/sig=(.)/, (_, c) => `sig=${c === '0' ? '1' : '0'}`);
+  assert.notEqual(tampered, up.body.url);
+  assert.equal((await send(tampered, img)).statusCode, 403);
   assert.equal((await send(up.body.url, img)).statusCode, 200);
   assert.equal((await ana('POST', `/v1/fabrics/${id}/done`)).status, 200);
   const got = await ana('GET', `/v1/fabrics/${id}`);

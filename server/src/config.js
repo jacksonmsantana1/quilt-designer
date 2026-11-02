@@ -16,6 +16,10 @@
  * @property {{ endpoint?: string, region: string, bucket: string, accessKeyId: string, secretAccessKey: string, forcePathStyle: boolean }} s3
  * @property {number} maxDesignBytes
  * @property {number} maxFabricBytes
+ * @property {number} maxSharedBytes  how large a quilt shared with the community can be
+ * @property {{ photoBytes: number, designs: number, shared: number }} perPerson  what one account can keep
+ * @property {number} ratePerMinute  requests one person (or address, before signing in) can make in a minute
+ * @property {string | null} clientIpHeader  the header the host's proxy puts the visitor's address in
  */
 
 /** @param {Record<string, string | undefined>} [env] @returns {Config} */
@@ -26,9 +30,8 @@ export function loadConfig(env = process.env) {
   const auth0 = env.AUTH0_DOMAIN
     ? { domain: env.AUTH0_DOMAIN.replace(/^https:\/\//, '').replace(/\/+$/, ''), audience: env.AUTH0_AUDIENCE || '' }
     : null;
-  const auth = /** @type {Config['auth']} */ (
-    env.AUTH_MODE || (nodeEnv !== 'production' ? 'dev' : auth0 ? 'auth0' : 'none')
-  );
+  // the stand-in login only when asked for by name: a forgotten setting must never leave the door open
+  const auth = /** @type {Config['auth']} */ (env.AUTH_MODE || (auth0 ? 'auth0' : 'none'));
   if (auth === 'dev' && nodeEnv === 'production')
     throw new Error('AUTH_MODE=dev (the stand-in login) cannot be used with NODE_ENV=production');
   if (!['dev', 'auth0', 'none'].includes(auth)) throw new Error(`AUTH_MODE must be dev, auth0 or none, not "${auth}"`);
@@ -45,6 +48,11 @@ export function loadConfig(env = process.env) {
   if (storage === 'local' && nodeEnv === 'production')
     throw new Error('STORAGE=local (photos in a folder served by the API) cannot be used with NODE_ENV=production');
   const port = Number(env.PORT || 8787);
+  const positive = (k, otherwise) => {
+    const v = env[k] === undefined ? otherwise : Number(env[k]);
+    if (!Number.isFinite(v) || v <= 0) throw new Error(`${k} must be a positive number, not "${env[k]}"`);
+    return v;
+  };
   return {
     env: nodeEnv,
     storage,
@@ -68,5 +76,14 @@ export function loadConfig(env = process.env) {
     },
     maxDesignBytes: 2 * 1024 * 1024,
     maxFabricBytes: 15 * 1024 * 1024,
+    maxSharedBytes: 512 * 1024,
+    perPerson: {
+      photoBytes: positive('MAX_PHOTO_MB_PER_PERSON', 1024) * 1024 * 1024,
+      designs: positive('MAX_DESIGNS_PER_PERSON', 2000),
+      shared: positive('MAX_SHARED_PER_PERSON', 200),
+    },
+    // the first sync of a large collection sends a lot at once; the seed script, far more
+    ratePerMinute: positive('RATE_LIMIT_PER_MINUTE', auth === 'dev' ? 6000 : 600),
+    clientIpHeader: env.CLIENT_IP_HEADER ? env.CLIENT_IP_HEADER.toLowerCase() : null,
   };
 }

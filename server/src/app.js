@@ -2,6 +2,7 @@
 // storage (and call it with app.inject, without a network).
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { registerAuth } from './auth.js';
 import { ApiError } from './records.js';
 import { designRoutes } from './routes/designs.js';
@@ -26,6 +27,19 @@ export async function buildApp({ config, pool, store, logger = false, keys }) {
     allowedHeaders: ['content-type', 'authorization', 'x-dev-user'],
   });
 
+  // Counted after sign-in (preHandler), per person; before it, per address. One server, so its memory is enough.
+  await app.register(rateLimit, {
+    hook: 'preHandler',
+    max: config.ratePerMinute,
+    timeWindow: '1 minute',
+    keyGenerator: (/** @type {any} */ req) => {
+      if (req.user) return req.user.id;
+      const from = config.clientIpHeader && req.headers[config.clientIpHeader];
+      return typeof from === 'string' ? from : req.ip;
+    },
+    errorResponseBuilder: () => new ApiError(429, 'rate_limited', 'Too many requests. Please wait a moment.'),
+  });
+
   app.setErrorHandler((/** @type {any} */ err, req, reply) => {
     if (err instanceof ApiError)
       return reply.code(err.status).send({ error: err.code, message: err.message, ...err.extra });
@@ -37,16 +51,16 @@ export async function buildApp({ config, pool, store, logger = false, keys }) {
   });
   app.setNotFoundHandler((req, reply) => reply.code(404).send({ error: 'not_found', message: 'No such address.' }));
 
-  app.get('/health', async () => {
+  app.get('/health', { config: { rateLimit: false } }, async () => {
     await pool.query('select 1');
     return { ok: true };
   });
   // development storage (objects.js localStore) serves its own upload and download links
   if ('routes' in store && typeof store.routes === 'function') store.routes(app, config.maxFabricBytes);
   registerAuth(app, config, pool, keys);
-  designRoutes(app, pool);
+  designRoutes(app, pool, config);
   fabricRoutes(app, pool, store, config);
   changeRoutes(app, pool);
-  communityRoutes(app, pool, store);
+  communityRoutes(app, pool, store, config);
   return app;
 }
