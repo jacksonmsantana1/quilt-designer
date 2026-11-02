@@ -751,8 +751,9 @@ const CLIPS = {
     await browser.close();
   },
 
-  // The "Draw your own" card of the welcome page: a Sawtooth star drawn in the block editor, mirrored four ways. Square
-  // and close on the grid with the shapes and fabrics under it, and no words, so it suits every language.
+  // The "Draw your own" card of the welcome page, in the block editor, mirrored four ways: a Sawtooth star on the grid
+  // of cells, then a star with slanted seams on graph paper. Square and close on the drawing with the shapes and fabrics
+  // under it, and no words, so it suits every language.
   async draw() {
     const plain = () => newBlock('plain', [CREAM]);
     const d = heroDesign({ corner: plain, edge: plain, inner: plain });
@@ -764,6 +765,7 @@ const CLIPS = {
       .drawblk-paper { width: 400px; margin: 0 auto; }
       .drawblk-body { grid-template-columns: 1fr !important; gap: 12px !important; margin: 0 !important; }
       .drawblk-side { flex-direction: row !important; align-items: center; justify-content: space-between; gap: 14px !important; }
+      .drawblk-side > :has(#drawblk-roles) { margin-left: auto; }
       #drawblk-cells-tools { flex: 1 1 0; }
       #drawblk-tools button { height: 44px; padding: 0 !important; font-size: 1.2rem !important; }
       .drawblk-role { width: 44px !important; height: 44px !important; }`,
@@ -811,7 +813,55 @@ const CLIPS = {
     await pick('#drawblk-tools [data-tool="s"]');
     await place(1.5, 1.5); // its middle
     await clip.move(box.x + box.width + 40, box.y + box.height + 40, 400);
-    await clip.hold(1500);
+    await clip.hold(900);
+
+    // graph paper: seams at any angle, which cells can't do; the tools have words, so they stay out of the picture
+    await page.evaluate(() => {
+      const veil = document.createElement('div');
+      veil.id = 'clip-veil';
+      veil.style.cssText = `position:absolute;inset:0;z-index:5;pointer-events:none;background:#fef9f1;opacity:0`;
+      document.getElementById('drawblk').append(veil);
+    });
+    const veil = o => page.evaluate(v => (document.getElementById('clip-veil').style.opacity = v), o);
+    const inPicture = sel => page.locator(sel).evaluate(b => b.click());
+    await clip.tween(220, t => veil(t));
+    await inPicture('#drawblk-mode [data-mode="paper"]');
+    await inPicture('#drawblk-clear');
+    await page.waitForTimeout(150);
+    await clip.tween(220, t => veil(1 - t));
+    const RULER = 24; // the editor's rulers along the top and left
+    const onPaper = (x, y) => [
+      grid.x + RULER + (x / 4) * (grid.width - RULER),
+      grid.y + RULER + (y / 4) * (grid.height - RULER),
+    ];
+    const seam = async (x0, y0, x1, y1) => {
+      await clip.move(...onPaper(x0, y0), 340);
+      await page.mouse.down();
+      const [ax, ay] = onPaper(x0, y0),
+        [bx, by] = onPaper(x1, y1);
+      await clip.tween(380, async t => {
+        clip.pt = { x: mix(ax, bx, t), y: mix(ay, by, t) };
+        await clip.pointer();
+        await page.mouse.move(clip.pt.x, clip.pt.y);
+      });
+      await page.mouse.up();
+      await clip.hold(120);
+    };
+    await seam(0, 0, 2, 1); // a slanted seam from the corner, and its mirror images
+    await seam(0, 0, 1, 2);
+    await seam(1, 2, 2, 1); // the diamond in the middle
+    await inPicture('#drawblk-ptools [data-ptool="fill"]');
+    const color = async (x, y) => {
+      await clip.move(...onPaper(x, y), 380);
+      await clip.click();
+      await clip.hold(180);
+    };
+    await pick('#drawblk-roles [data-role="1"]');
+    await color(1, 1); // the star's four points
+    await pick('#drawblk-roles [data-role="2"]');
+    await color(2, 2); // its middle
+    await clip.move(box.x + box.width + 40, box.y + box.height + 40, 400);
+    await clip.hold(1400);
     clip.encode();
     await browser.close();
   },
