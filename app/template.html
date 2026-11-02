@@ -163,6 +163,24 @@
   .w-block-try { flex-shrink: 0; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--w-rust); cursor: pointer; }
   .w-block.own video { display: block; width: 100%; aspect-ratio: 1; background: var(--w-card); }
   .w-block.own .w-btn { width: 100%; min-height: 44px; }
+  /* the makers' row moves at one steady speed: the second half of the track is a copy of the first, so the loop has no jump.
+     It stops under the mouse, so a name can be read; the name's room is kept so nothing moves when it shows */
+  #welcome-fabrics h2 { padding-inline: 20px; }
+  .w-brands { overflow: hidden; }
+  .w-brands-track { display: flex; width: max-content; animation: w-brands 90s linear infinite; }
+  .w-brands:hover .w-brands-track, .w-brands:focus-within .w-brands-track { animation-play-state: paused; }
+  @keyframes w-brands { to { transform: translateX(-50%); } }
+  .w-brand { flex: 0 0 240px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
+  .w-brand:focus-visible { outline: 3px solid var(--w-rust); outline-offset: -3px; }
+  .w-brand-logo { width: 220px; height: 132px; padding: 6px; overflow: hidden; border: var(--w-stitch); border-radius: 8px; background: var(--w-bg); }
+  .w-brand-logo img { display: block; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; } /* the white some logos come on takes the page's colour */
+  .w-brand-name { min-height: 3em; text-align: center; font-weight: 700; line-height: 1.5; opacity: 0; transition: opacity .15s ease; }
+  .w-brand:hover .w-brand-name, .w-brand:focus .w-brand-name { opacity: 1; }
+  @media (hover: none) { .w-brand-name { opacity: 1; } } /* no mouse: the names always show */
+  @media (prefers-reduced-motion: reduce) { /* still: each maker once, and wrapped */
+    .w-brands-track { animation: none; width: auto; flex-wrap: wrap; justify-content: center; }
+    .w-brand[aria-hidden="true"] { display: none; }
+  }
   .w-band { background: oklch(0.72 0.06 140 / .3); }
   .w-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; list-style: none; margin: 0; padding: 0; text-align: center; }
   .w-step button { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: center; cursor: pointer; }
@@ -978,6 +996,11 @@
             <li>See your quilt draped on a bed in 3D</li>
             <li>Designs saved in this browser</li>
           </ul>
+  <section class="w-band w-section" id="welcome-fabrics" aria-labelledby="welcome-fabrics-title">
+    <h2 id="welcome-fabrics-title"></h2>
+    <div class="w-brands"><div class="w-brands-track" id="welcome-brands"></div></div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
           <button class="w-btn stitched" type="button" data-auth="signup">Create free account</button>
         </div>
         <div class="w-plan bind">

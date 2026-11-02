@@ -163,6 +163,25 @@
   .w-block-try { flex-shrink: 0; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--w-rust); cursor: pointer; }
   .w-block.own video { display: block; width: 100%; aspect-ratio: 1; background: var(--w-card); }
   .w-block.own .w-btn { width: 100%; min-height: 44px; }
+  /* the makers' row moves at one steady speed: the second half of the track is a copy of the first, so the loop has no jump.
+     It stops under the mouse, so a name can be read; the name's room is kept so nothing moves when it shows */
+  #welcome-fabrics h2 { padding-inline: 20px; }
+  .w-brands { overflow: hidden; }
+  .w-brands-track { display: flex; width: max-content; animation: w-brands 90s linear infinite; }
+  .w-brands:hover .w-brands-track, .w-brands:focus-within .w-brands-track { animation-play-state: paused; }
+  @keyframes w-brands { to { transform: translateX(-50%); } }
+  .w-brand { flex: 0 0 240px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
+  .w-brand:focus-visible { outline: 3px solid var(--w-rust); outline-offset: -3px; }
+  .w-brand-logo { width: 220px; height: 132px; padding: 6px; overflow: hidden; border: var(--w-stitch); border-radius: 8px; background: var(--w-bg); }
+  .w-brand-logo img { display: block; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; } /* the white some logos come on takes the page's colour */
+  .w-brand-name { min-height: 3em; text-align: center; font-weight: 700; line-height: 1.5; opacity: 0; transition: opacity .15s ease; }
+  .w-brand:hover .w-brand-name, .w-brand:focus .w-brand-name { opacity: 1; }
+  @media (hover: none) { .w-brand-name { opacity: 1; } } /* no mouse: the names always show */
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { /* still: each maker once, and wrapped */
+    .w-brands-track { animation: none; width: auto; flex-wrap: wrap; justify-content: center; }
+    .w-brand[aria-hidden="true"] { display: none; }
+  }
   .w-band { background: oklch(0.72 0.06 140 / .3); }
   .w-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; list-style: none; margin: 0; padding: 0; text-align: center; }
   .w-step button { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: center; cursor: pointer; }
@@ -207,7 +226,6 @@
   @media (max-width: 520px) {
     .w-top nav .w-btn.rust { display: none; } /* Start your first quilt is just below: Sign in stays for returning quilters */
   }
-  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn, .w-card, .w-step video, .w-num::before, .w-patch rect, .w-patch polygon, .w-piece { transition: none; } .w-rail { scroll-behavior: auto; } }
   h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
   header p { margin: 0; color: var(--muted); max-width: 72ch; flex-basis: 100%; }
@@ -979,6 +997,11 @@
             <li>See your quilt draped on a bed in 3D</li>
             <li>Designs saved in this browser</li>
           </ul>
+  <section class="w-band w-section" id="welcome-fabrics" aria-labelledby="welcome-fabrics-title">
+    <h2 id="welcome-fabrics-title"></h2>
+    <div class="w-brands"><div class="w-brands-track" id="welcome-brands"></div></div>
+  </section>
+  <div class="w-strip" aria-hidden="true"></div>
           <button class="w-btn stitched" type="button" data-auth="signup">Create free account</button>
         </div>
         <div class="w-plan bind">
@@ -2465,7 +2488,7 @@ var __export = (target3, all) => {
     __defProp(target3, name, { get: all[name], enumerable: true });
 };
 
-// ../shared/src/lang/pt-BR/blocks.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/blocks.js
 var blocks_default = {
   "4 Queens": "4 Queens",
   Alabama: "Alabama",
@@ -2769,7 +2792,7 @@ var blocks_default = {
   "Z and cross": "Z e cruz"
 };
 
-// ../shared/src/lang/pt-BR/cutting.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/cutting.js
 var cutting_default = {
   // how to cut (cutting/plan.js)
   "square {size}": "quadrado de {size}",
@@ -2929,7 +2952,7 @@ var cutting_default = {
   "Trim along the dotted border where sheets join, match the + marks, and tape the sheets edge to edge.": "Apare na linha pontilhada onde as folhas se unem, alinhe as marcas + e cole as folhas com fita, lado a lado."
 };
 
-// ../shared/src/lang/pt-BR/designer.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/designer.js
 var designer_default = {
   // units (core/units.js, designer/units-ui.js)
   in: "pol",
@@ -3081,7 +3104,7 @@ var designer_default = {
   "Symmetry: every change to a block is copied to its mirror partners": "Simetria: cada mudan\xE7a em um bloco \xE9 copiada para os blocos espelhados"
 };
 
-// ../shared/src/lang/pt-BR/mine.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/mine.js
 var mine_default = {
   // the app's own sample quilts
   "Medallion sampler": "Sampler medalh\xE3o",
@@ -3097,6 +3120,7 @@ var mine_default = {
   "A patchwork quilt": "Um quilt de patchwork",
   "Click or tap a patch to turn it": "Clique ou toque em um retalho para gir\xE1-lo",
   "{n} blocks to choose, or create your own": "{n} blocos para escolher, ou crie o seu",
+  "More than {n} fabrics from the biggest makers": "Mais de {n} Tecidos das maiores Fabricantes",
   "Try other fabrics": "Experimentar outros tecidos",
   "Try other fabrics on {name}": "Experimentar outros tecidos em {name}",
   "Sign in": "Entrar",
@@ -3214,7 +3238,7 @@ var mine_default = {
   "\u201C{name}\u201D is in My designs.": "\u201C{name}\u201D est\xE1 em Meus projetos."
 };
 
-// ../shared/src/lang/pt-BR/pieces.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/pieces.js
 var pieces_default = {
   "A#": "A#",
   B: "B",
@@ -3381,7 +3405,7 @@ var pieces_default = {
   "white block": "bloco branco"
 };
 
-// ../shared/src/lang/pt-BR/shared.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/shared.js
 var shared_default = {
   // what was repaired when a saved quilt was opened (format.js)
   "{n} drawn block could not be read and was left out.": "{n} bloco desenhado n\xE3o p\xF4de ser lido e foi deixado de fora.",
@@ -3455,7 +3479,7 @@ var shared_default = {
   yd: "jd"
 };
 
-// ../shared/src/lang/pt-BR/sim.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/sim.js
 var sim_default = {
   // beds, tables and couches
   "Full / Double": "Full / Casal",
@@ -3601,7 +3625,7 @@ var sim_default = {
   "Click to open or close": "Clique para abrir ou fechar"
 };
 
-// ../shared/src/lang/pt-BR/template.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/template.js
 var template_default = {
   English: "English",
   Portugu\u00EAs: "Portugu\xEAs",
@@ -4058,7 +4082,7 @@ var template_default = {
   "\u21BB Restart": "\u21BB Recome\xE7ar"
 };
 
-// ../shared/src/lang/pt-BR/tour.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/tour.js
 var tour_default = {
   // the guided tour
   "Guided tour": "Tour guiado",
@@ -4129,13 +4153,13 @@ var tour_default = {
   Pause: "Pausar"
 };
 
-// ../shared/src/lang/pt-BR.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR.js
 var PARTS = { cutting: cutting_default, designer: designer_default, mine: mine_default, shared: shared_default, sim: sim_default, template: template_default, tour: tour_default };
 var DICT = Object.assign({}, ...Object.values(PARTS));
 var BLOCKS = blocks_default;
 var PIECES = pieces_default;
 
-// ../shared/src/i18n.js
+// ../node_modules/@quilt/shared/src/i18n.js
 var LANG_KEY = "quilt-lang.v1";
 function startLang() {
   if (typeof document === "undefined") return "en";
@@ -4239,7 +4263,7 @@ function memoryDb() {
   };
 }
 
-// ../shared/src/blocks.js
+// ../node_modules/@quilt/shared/src/blocks.js
 var GRID_BLOCKS = {
   // ---- four patch family
   doublefour: {
@@ -7955,7 +7979,7 @@ var GRID_BLOCKS = {
   }
 };
 
-// ../shared/src/grid-blocks.js
+// ../node_modules/@quilt/shared/src/grid-blocks.js
 var KIND = { sq: "Square", rect: "Rectangle", tri: "Triangle", goose: "Goose", sky: "Sky" };
 function parseGrid(text) {
   const cells = text.trim().split("\n").map((l) => l.trim().split(/\s+/));
@@ -8094,7 +8118,7 @@ function gridParts(def) {
   }));
 }
 
-// ../shared/src/patterns.js
+// ../node_modules/@quilt/shared/src/patterns.js
 var P_ = (name, role, poly) => ({ name, role, poly });
 function rotPoly(poly, k) {
   let p = poly;
@@ -8921,7 +8945,7 @@ for (const p of Object.values(PATTERNS)) {
 var PCACHE = {};
 var partsOf = (name) => PCACHE[name] = PCACHE[name] || PATTERNS[name].parts().map((p) => ({ ...p, name: pieceText(p.name) }));
 
-// ../shared/src/mosaic.js
+// ../node_modules/@quilt/shared/src/mosaic.js
 var MOSAIC_SHAPES = ["hex", "diamond", "triangle"];
 var SHAPE_NAMES = {
   hex: [t("hexagon"), t("hexagons")],
@@ -9094,7 +9118,7 @@ function tilesForTool(m, i, tool) {
   return [i];
 }
 
-// ../shared/src/geometry.js
+// ../node_modules/@quilt/shared/src/geometry.js
 var polyCentre = (p) => {
   let x = 0, y = 0;
   for (const q of p) {
@@ -9601,7 +9625,7 @@ function pathPolyInto(g, poly) {
   g.closePath();
 }
 
-// ../shared/src/design.js
+// ../node_modules/@quilt/shared/src/design.js
 var FORMAT_VERSION = 8;
 var ROLE_COUNT = 6;
 var ROLE_DEFAULT = ["b0", "b1", "b3", "b5", "b8", "b10"];
@@ -9637,7 +9661,7 @@ function rolesOf(b) {
   return roles;
 }
 
-// ../shared/src/drawn-blocks.js
+// ../node_modules/@quilt/shared/src/drawn-blocks.js
 var DRAWN_FAMILY = "My blocks";
 var MAX_N = 12;
 var MAX_DRAWN = 200;
@@ -9727,7 +9751,7 @@ function readDrawn(raw) {
   return { drawn, lost };
 }
 
-// ../shared/src/format.js
+// ../node_modules/@quilt/shared/src/format.js
 var MIGRATIONS = [
   // 0 → 1: designs saved before block sizes and backing fabrics existed
   (d) => ({
@@ -12827,7 +12851,7 @@ function paletteList({ palette, defaults, inQuilt = [], selected = null }) {
 var withoutFabric = (palette, id) => palette.filter((x) => x !== id);
 var withFabric = (palette, id) => palette.includes(id) ? palette : [...palette, id];
 
-// ../shared/src/lang/pt-BR/fabric-names.js
+// ../node_modules/@quilt/shared/src/lang/pt-BR/fabric-names.js
 var KINDS = {
   Solid: "Liso",
   Stripe: "Listrado",
@@ -12924,7 +12948,7 @@ var COLOURS = {
 };
 var fabricName = (kind, colour, back) => back ? `${KINDS[kind]} ${COLOURS[colour]} sobre ${COLOURS[back]}` : `${KINDS[kind]} ${COLOURS[colour]}`;
 
-// ../shared/src/fabric-patterns.js
+// ../node_modules/@quilt/shared/src/fabric-patterns.js
 var SIZE2 = 512;
 var COLOURS2 = [
   ["navy", 2042436],
@@ -18204,7 +18228,7 @@ function split(dr, x, y, sym = "off") {
   return { n: dr.n, pieces };
 }
 
-// ../shared/src/seam-faces.js
+// ../node_modules/@quilt/shared/src/seam-faces.js
 var EPS = 1e-9;
 var keyOf = (x, y) => `${Math.round(x * 1e6)},${Math.round(y * 1e6)}`;
 function area2(p) {
@@ -21479,6 +21503,25 @@ function fillBlockRail() {
   $("welcome-blocks-title").textContent = t("{n} blocks to choose, or create your own", { n: count });
   $("welcome-rail").insertAdjacentHTML("afterbegin", railPicks().map(railBlock).join(""));
 }
+var BRANDS = [
+  { name: "Fernando Maluhy", logo: "assets/brands/fernando_maluhy.jpg" },
+  { name: "C\xEDrculo S/A", logo: "assets/brands/circulo.jpg" },
+  { name: "Fabricart", logo: "assets/brands/fabricart.png" },
+  { name: "Catex Tecidos", logo: "assets/brands/catex.png" },
+  { name: "Fuxicos e Fricotes", logo: "assets/brands/fuxicos_e_fricotes.png" }
+];
+var BRAND_SETS = 6;
+function brandCard(b, first) {
+  return `<div class="w-brand" ${first ? 'tabindex="0"' : 'aria-hidden="true"'}><div class="w-brand-logo"><img src="${b.logo}" alt=""></div><span class="w-brand-name">${b.name}</span></div>`;
+}
+function fillBrands() {
+  $("welcome-fabrics-title").textContent = t("More than {n} fabrics from the biggest makers", {
+    n: COLLECTION_SIZE.toLocaleString(getLang())
+  });
+  let cards = "";
+  for (let set = 0; set < BRAND_SETS; set++) for (const b of BRANDS) cards += brandCard(b, set === 0);
+  $("welcome-brands").innerHTML = cards;
+}
 function initBlockRail() {
   const rail = $("welcome-rail");
   const CARD = 252;
@@ -21529,7 +21572,10 @@ function showWelcome(on) {
   if (!on) return;
   if (!$("welcome-art").firstChild)
     $("welcome-art").innerHTML = `${patchworkArt()}<p class="w-art-hint">${t("Click or tap a patch to turn it")}</p>`;
-  if (!$("welcome-blocks-title").firstChild) fillBlockRail();
+  if (!$("welcome-blocks-title").firstChild) {
+    fillBlockRail();
+    fillBrands();
+  }
   welcomeSays("");
   openMenu(false);
   $("welcome").scrollTop = 0;

@@ -6,7 +6,8 @@
 import './sync-ui.js'; // load order: runs after mine/sync-ui
 import { $ } from '../core/dom.js';
 import { onAccount, signInAndSync, signOutAndStop } from './sync-ui.js';
-import { t } from '@quilt/shared/i18n.js';
+import { COLLECTION_SIZE } from '@quilt/shared/fabric-patterns.js';
+import { getLang, t } from '@quilt/shared/i18n.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 
 const SKIP_KEY = 'quilt-welcome.v1';
@@ -306,6 +307,30 @@ function fillBlockRail() {
   $('welcome-blocks-title').textContent = t('{n} blocks to choose, or create your own', { n: count });
   $('welcome-rail').insertAdjacentHTML('afterbegin', railPicks().map(railBlock).join(''));
 }
+// The makers' row: each logo comes from the maker's own website. The whole path is written out so standalone.py finds it.
+const BRANDS = [
+  { name: 'Fernando Maluhy', logo: 'assets/brands/fernando_maluhy.jpg' },
+  { name: 'Círculo S/A', logo: 'assets/brands/circulo.jpg' },
+  { name: 'Fabricart', logo: 'assets/brands/fabricart.png' },
+  { name: 'Catex Tecidos', logo: 'assets/brands/catex.png' },
+  { name: 'Fuxicos e Fricotes', logo: 'assets/brands/fuxicos_e_fricotes.png' },
+];
+const BRAND_SETS = 6; // half of them are the copy for the loop; the other half is wider than any screen
+/** @param {{ name: string, logo: string }} b @param {boolean} first the copies are for the eye only */
+function brandCard(b, first) {
+  return (
+    `<div class="w-brand" ${first ? 'tabindex="0"' : 'aria-hidden="true"'}>` +
+    `<div class="w-brand-logo"><img src="${b.logo}" alt=""></div><span class="w-brand-name">${b.name}</span></div>`
+  );
+}
+function fillBrands() {
+  $('welcome-fabrics-title').textContent = t('More than {n} fabrics from the biggest makers', {
+    n: COLLECTION_SIZE.toLocaleString(getLang()),
+  });
+  let cards = '';
+  for (let set = 0; set < BRAND_SETS; set++) for (const b of BRANDS) cards += brandCard(b, set === 0);
+  $('welcome-brands').innerHTML = cards;
+}
 function initBlockRail() {
   const rail = $('welcome-rail');
   // two cards at a time; the row's own smooth scrolling (none for people who ask for less motion)
@@ -354,7 +379,10 @@ function showWelcome(on) {
   if (!on) return;
   if (!$('welcome-art').firstChild)
     $('welcome-art').innerHTML = `${patchworkArt()}<p class="w-art-hint">${t('Click or tap a patch to turn it')}</p>`;
-  if (!$('welcome-blocks-title').firstChild) fillBlockRail();
+  if (!$('welcome-blocks-title').firstChild) {
+    fillBlockRail();
+    fillBrands();
+  }
   welcomeSays('');
   openMenu(false);
   $('welcome').scrollTop = 0;

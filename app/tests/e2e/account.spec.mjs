@@ -101,6 +101,40 @@ test.describe('a first visit, signed out', () => {
     await expect.poll(() => clip.evaluate(v => v.currentTime), { timeout: 20_000 }).toBeGreaterThan(0);
   });
 
+  test('the makers’ row moves by itself, and stops to show a name under the mouse', async ({ app, page }) => {
+    await app.open();
+    await expect(page.locator('#welcome-fabrics-title')).toHaveText('More than 1,500 fabrics from the biggest makers');
+    const brands = page.locator('#welcome-brands .w-brand');
+    await expect(page.locator('#welcome-brands .w-brand:not([aria-hidden])')).toHaveText([
+      'Fernando Maluhy',
+      'Círculo S/A',
+      'Fabricart',
+      'Catex Tecidos',
+      'Fuxicos e Fricotes',
+    ]);
+    await expect(brands).toHaveCount(30);
+    // every logo file is there
+    const logos = await page
+      .locator('#welcome-brands .w-brand:not([aria-hidden]) img')
+      .evaluateAll(imgs => Promise.all(imgs.map(i => fetch(i.src).then(r => r.ok))));
+    expect(logos).toEqual([true, true, true, true, true]);
+
+    const track = page.locator('#welcome-brands');
+    await page.locator('#welcome-fabrics').scrollIntoViewIfNeeded(); // the section: the track itself never holds still
+    const place = () => track.evaluate(t => t.getBoundingClientRect().x);
+    const was = await place();
+    await expect.poll(place).toBeLessThan(was); // it moves
+
+    const name = brands.nth(2).locator('.w-brand-name');
+    await expect(name).toHaveCSS('opacity', '0');
+    const box = await brands.nth(2).boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + 40);
+    await expect(track).toHaveCSS('animation-play-state', 'paused');
+    await expect(page.locator('#welcome-brands .w-brand:hover .w-brand-name')).toHaveCSS('opacity', '1');
+    await page.mouse.move(2, 2);
+    await expect(track).toHaveCSS('animation-play-state', 'running');
+  });
+
   test('the mouse wheel over the row of blocks moves it sideways, then the page at its end', async ({ app, page }) => {
     await app.open();
     const rail = page.locator('#welcome-rail');

@@ -138,6 +138,9 @@ popup may not open from inside claude.ai's frame: untested.
 - Undo timelines are all loaded into memory at start; load per design if people have hundreds of designs.
 - Later: "fabrics like this one" with pgvector (image embeddings in a background job) and dominant-colour palettes.
 - Parked by the owner: tests for the photo render, the 3D camera/controls and the guided tour.
+- The makers' row on the welcome page (`BRANDS` in `mine/account.js`) shows logos taken from the makers' own websites
+  (`app/assets/brands`). No permission has been asked for yet, and the app's 1500 fabrics are drawn by code, not those
+  makers' fabrics: the heading and the logos need real fabrics and the makers' permission before the page goes public.
 
 ## Commits
 
