@@ -23,7 +23,7 @@ const tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null
 const blk = i => design && design.blocks[i];
 const TOUR = [
   {
-    title: t('Welcome to the Quilt designer!'),
+    title: t('Welcome to Block & Bind!'),
     text: t(
       'In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.',
     ),

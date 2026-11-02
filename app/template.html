@@ -1,5 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8"><!-- for local servers that don't say it (python -m http.server): ↻ × ✓ would show as â†» -->
-<title>Quilt Drape Simulation</title>
+<title>Block &amp; Bind</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,8 +96,9 @@
   .welcome[hidden] { display: none; }
   .welcome h2, .welcome h3, .w-hero h1, .w-logo b, .w-step b { font-family: "Fraunces", Georgia, serif; font-weight: 600; letter-spacing: -.01em; }
   .w-wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
-  .w-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 16px; }
+  .w-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 16px; } /* on a phone the menu goes under the name */
   .w-logo { display: flex; align-items: center; gap: 10px; font-size: 1.45rem; }
+  .w-logo b { white-space: nowrap; }
   .w-logo svg { width: 32px; height: 32px; border-radius: 4px; }
   .w-top nav { display: flex; gap: 8px; }
   .w-btn { font: 700 1rem "Karla", var(--font-body); padding: 12px 20px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: transform .12s ease, box-shadow .12s ease; }
@@ -115,35 +120,73 @@
   .w-hero p.w-lead { font-size: 1.1rem; color: var(--w-muted); max-width: 46ch; margin: 0 0 28px; }
   .w-actions { display: flex; flex-wrap: wrap; gap: 12px; }
   .w-art { border: var(--w-stitch); border-radius: 12px; padding: 12px; }
-  .w-art svg { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .w-art svg { display: block; width: 100%; height: auto; border-radius: 8px; user-select: none; }
+  .w-patch { cursor: pointer; }
+  .w-patch:hover { filter: brightness(1.07); }
+  .w-patch rect, .w-patch polygon { transition: transform .3s ease, fill .3s ease; }
+  .w-seams { pointer-events: none; }
+  .w-art-hint { margin: 8px 0 0; text-align: center; font-size: .85rem; color: var(--w-muted); }
   .w-section { padding-block: 64px; }
   .w-section h2 { text-align: center; font-size: clamp(1.8rem, 4vw, 2.3rem); margin: 0 0 36px; }
-  .w-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-  .w-card { background: var(--w-card); border: var(--w-stitch); border-radius: 8px; padding: 20px; }
-  .w-card i { display: block; width: 32px; height: 32px; border-radius: 3px; margin-bottom: 18px; }
+  /* one row from edge to edge of the page, scrolled sideways with no scrollbar: the card cut off at the edge says there is more */
+  #welcome-feats { max-width: none; padding-inline: 0; --w-small: clamp(300px, 30vw, 560px); --w-big: min(700px, 88vw); }
+  .w-cards { display: flex; justify-content: safe center; align-items: center; gap: 20px; overflow-x: auto; scrollbar-width: none; padding: 8px max(20px, 3vw); min-height: calc(var(--w-big) * 5 / 8 + 150px); }
+  .w-cards::-webkit-scrollbar { display: none; }
+  .w-cards:focus-visible { outline: 2px solid var(--w-rust); outline-offset: -2px; }
+  .w-card { flex: 0 0 var(--w-small); background: var(--w-card); border: var(--w-stitch); border-radius: 8px; padding: 20px; overflow: hidden; transition: flex-basis .3s ease, box-shadow .3s ease; }
+  .w-card.big { flex-basis: var(--w-big); box-shadow: 0 10px 28px oklch(0.25 0.03 40 / .18); }
+  @media (hover: none) { /* touch: a large card at a time, stopping at each one */
+    .w-cards { scroll-snap-type: x mandatory; min-height: 0; }
+    .w-card { flex-basis: var(--w-big); scroll-snap-align: center; }
+  }
+  .w-card video { display: block; width: calc(100% + 40px); max-width: none; aspect-ratio: 8 / 5; margin: -20px -20px 16px; background: var(--w-card); }
   .w-card h3 { font-size: 1.2rem; margin: 0 0 8px; }
   .w-card p { margin: 0; color: var(--w-muted); }
   .w-band { background: oklch(0.72 0.06 140 / .3); }
   .w-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; list-style: none; margin: 0; padding: 0; text-align: center; }
-  .w-step b { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto 14px; border-radius: 50%; background: var(--w-rust); color: var(--w-on-rust); font-size: 1.05rem; }
+  .w-step button { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: center; cursor: pointer; }
+  .w-step button:focus-visible { outline: 2px solid var(--w-rust); outline-offset: 4px; border-radius: 8px; }
+  .w-band .w-wrap { max-width: 1360px; } /* wider than the other sections: the steps' clips need the room */
+  .w-step video { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--w-card); transition: transform .2s ease, box-shadow .2s ease; }
+  .w-step button:hover video { transform: translateY(-4px); }
+  .w-step.on video { box-shadow: 0 10px 26px oklch(0.25 0.03 40 / .3); }
+  .w-num { position: relative; display: block; margin: 14px 0 12px; }
+  /* the stitched line from each step to the next: dashed, and sewn up solid as the clip plays */
+  .w-step:not(:last-child) .w-num::after { content: ''; position: absolute; top: 50%; left: 50%; width: calc(100% + 18px); border-top: 2px dashed oklch(0.58 0.13 40 / .45); }
+  .w-step:not(:last-child) .w-num::before { content: ''; position: absolute; z-index: 1; top: 50%; left: 50%; width: calc((100% + 18px) * var(--sewn, 0)); border-top: 2px solid var(--w-rust); transition: width .25s linear; }
+  .w-step b { position: relative; z-index: 2; display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto; border-radius: 50%; background: var(--w-rust); color: var(--w-on-rust); font-size: 1.05rem; }
+  .w-steps.playing .w-step:not(.on, .done) b { background: var(--w-card); color: var(--w-rust); box-shadow: inset 0 0 0 2px var(--w-rust); }
+  .w-step.on b { box-shadow: 0 0 0 5px oklch(0.58 0.13 40 / .28); }
+  .w-facts { margin: 32px 0 0; text-align: center; font-weight: 600; }
   .w-start { background: var(--w-rust); color: var(--w-on-rust); border-radius: 14px; padding: 56px 24px; text-align: center; margin-block: 56px 28px; }
   .w-start h2 { margin: 0 0 12px; }
   .w-start p { margin: 0 auto 24px; max-width: 44ch; opacity: .92; }
   .w-start .w-actions { justify-content: center; }
-  .w-skip { margin-top: 22px; border: 0; background: none; color: var(--w-on-rust); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px; }
-  .w-start small { display: block; opacity: .8; margin-top: 4px; }
+  /* the two plans; Bind has no price and no button until payments exist */
+  .w-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 20px; max-width: 820px; margin: 0 auto; }
+  .w-plan { display: flex; flex-direction: column; gap: 14px; padding: 28px; border-radius: 12px; background: var(--w-card); color: var(--w-ink); text-align: left; }
+  .w-plan.bind { outline: 4px solid var(--w-mustard); }
+  .w-plan h3 { margin: 0; font-size: 1.5rem; }
+  .w-plan p { margin: 0; max-width: none; opacity: 1; color: var(--w-muted); }
+  .w-price { font: 600 2.1rem/1.2 "Fraunces", Georgia, serif; letter-spacing: -.01em; }
+  .w-plan ul { flex-grow: 1; display: grid; align-content: start; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .w-plan li { position: relative; padding-left: 26px; }
+  .w-plan li::before { content: "✓"; position: absolute; left: 2px; color: var(--w-rust); font-weight: 700; }
+  .w-plan .w-btn { width: 100%; }
+  .w-start .w-have { margin: 28px auto 0; max-width: none; }
+  .w-have button { border: 0; background: none; color: var(--w-on-rust); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px; }
   .w-err { position: sticky; bottom: 16px; width: fit-content; max-width: calc(100% - 32px); margin: 0 auto; padding: 10px 16px; border-radius: 8px; background: var(--w-ink); color: var(--w-bg); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .w-err[hidden] { display: none; }
   .w-foot { text-align: center; color: var(--w-muted); font-size: .9rem; padding-block: 18px 32px; margin: 0; }
   @media (max-width: 860px) {
     .w-hero { grid-template-columns: 1fr; padding-block: 36px; }
-    .w-cards, .w-steps { grid-template-columns: repeat(2, 1fr); }
+    .w-steps { grid-template-columns: repeat(2, 1fr); }
+    .w-step .w-num::after, .w-step .w-num::before { display: none; }
   }
   @media (max-width: 520px) {
-    .w-cards { grid-template-columns: 1fr; }
     .w-top nav .w-btn.rust { display: none; } /* Start your first quilt is just below: Sign in stays for returning quilters */
   }
-  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn, .w-card, .w-step video, .w-num::before, .w-patch rect, .w-patch polygon { transition: none; } }
   h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
   header p { margin: 0; color: var(--muted); max-width: 72ch; flex-basis: 100%; }
   .bench { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
@@ -811,10 +854,12 @@
   }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
+</head>
+<body>
 
 <header>
-  <h1 class="sr">Quilt Drape Simulation</h1>
-  <div class="app-logo" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="16" height="16" fill="oklch(0.58 0.13 40)"/><rect x="16" width="16" height="16" fill="oklch(0.8 0.13 85)"/><rect y="16" width="16" height="16" fill="oklch(0.72 0.06 140)"/><rect x="16" y="16" width="16" height="16" fill="oklch(0.58 0.13 40)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/></svg><b>Quilt designer</b></div>
+  <h1 class="sr">Block &amp; Bind</h1>
+  <div class="app-logo" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M0 0H32V18L18 32H0z" fill="oklch(0.58 0.13 40)"/><path d="M16 0H32V16H16z" fill="oklch(0.8 0.13 85)"/><path d="M0 16H16V32H0z" fill="oklch(0.72 0.06 140)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/><path d="M32 18Q25 21 20 20Q21 25 18 32z" fill="oklch(0.8 0.13 85)"/></svg><b>Block &amp; Bind</b></div>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Pages">
     <button type="button" role="tab" data-page="design" aria-selected="true">Quilt designer</button>
     <button type="button" role="tab" data-page="cut" aria-selected="false">Cutting guide</button>
@@ -838,11 +883,10 @@
 
 <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
   <div class="w-wrap w-top">
-    <div class="w-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="16" height="16" fill="oklch(0.58 0.13 40)"/><rect x="16" width="16" height="16" fill="oklch(0.8 0.13 85)"/><rect y="16" width="16" height="16" fill="oklch(0.72 0.06 140)"/><rect x="16" y="16" width="16" height="16" fill="oklch(0.58 0.13 40)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/></svg><b>Quilt designer</b></div>
+    <div class="w-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M0 0H32V18L18 32H0z" fill="oklch(0.58 0.13 40)"/><path d="M16 0H32V16H16z" fill="oklch(0.8 0.13 85)"/><path d="M0 16H16V32H0z" fill="oklch(0.72 0.06 140)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/><path d="M32 18Q25 21 20 20Q21 25 18 32z" fill="oklch(0.8 0.13 85)"/></svg><b>Block &amp; Bind</b></div>
     <nav aria-label="Account">
       <select class="lang-menu" data-lang aria-label="Language" title="Language"><option value="en">English</option><option value="pt-BR">Português</option></select>
       <button class="w-btn stitched sm" type="button" id="welcome-signin" data-auth="signin">Sign in</button>
-      <button class="w-btn rust sm" type="button" data-auth="signup">Get started</button>
     </nav>
   </div>
   <div class="w-strip" aria-hidden="true"></div>
@@ -853,7 +897,6 @@
       <p class="w-lead">Design your quilt block by block, get its cutting guide and real-size templates, and see it draped on a bed, all in one cozy place.</p>
       <div class="w-actions">
         <button class="w-btn rust" type="button" id="welcome-signup" data-auth="signup">Start your first quilt</button>
-        <button class="w-btn stitched" type="button" id="welcome-features">See features</button>
       </div>
     </div>
     <div class="w-art" id="welcome-art" aria-hidden="true"></div>
@@ -861,11 +904,11 @@
   <div class="w-strip" aria-hidden="true"></div>
   <section class="w-wrap w-section" id="welcome-feats" aria-labelledby="welcome-feats-title">
     <h2 id="welcome-feats-title">Your sewing room, organized</h2>
-    <div class="w-cards">
-      <div class="w-card"><i style="background:var(--w-rust)"></i><h3>Block designer</h3><p>Pick blocks, swap fabrics part by part, mirror them, and see the whole quilt as you go.</p></div>
-      <div class="w-card"><i style="background:var(--w-sage)"></i><h3>Cutting guide</h3><p>Every piece to cut, with seam allowances, and an A4 PDF with real-size templates.</p></div>
-      <div class="w-card"><i style="background:var(--w-mustard)"></i><h3>Your own fabrics</h3><p>Use photos of the fabrics on your shelf, at their real size, in your designs.</p></div>
-      <div class="w-card"><i style="background:var(--w-rust)"></i><h3>See it on a bed</h3><p>Drape the finished quilt over a bed or a table in 3D before you cut a thing.</p></div>
+    <div class="w-cards" id="welcome-cards" tabindex="0" role="group" aria-labelledby="welcome-feats-title">
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/block.jpg" aria-hidden="true"><source src="assets/clips/block.webm" type="video/webm"><source src="assets/clips/block.mp4" type="video/mp4"></video><h3>Block designer</h3><p>Pick blocks, swap fabrics part by part, mirror them, and see the whole quilt as you go.</p></div>
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/cut.jpg" aria-hidden="true"><source src="assets/clips/cut.webm" type="video/webm"><source src="assets/clips/cut.mp4" type="video/mp4"></video><h3>Cutting guide</h3><p>Every piece to cut, with seam allowances, and an A4 PDF with real-size templates.</p></div>
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/fabric.jpg" aria-hidden="true"><source src="assets/clips/fabric.webm" type="video/webm"><source src="assets/clips/fabric.mp4" type="video/mp4"></video><h3>Your own fabrics</h3><p>Use photos of the fabrics on your shelf, at their real size, in your designs.</p></div>
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/bed.jpg" aria-hidden="true"><source src="assets/clips/bed.webm" type="video/webm"><source src="assets/clips/bed.mp4" type="video/mp4"></video><h3>See it on a bed</h3><p>Drape the finished quilt over a bed or a table in 3D before you cut a thing.</p></div>
     </div>
   </section>
   <div class="w-strip" aria-hidden="true"></div>
@@ -873,24 +916,45 @@
     <div class="w-wrap w-section">
       <h2 id="welcome-steps-title">From idea to heirloom</h2>
       <ol class="w-steps">
-        <li class="w-step"><b>1</b>Pick your blocks and layout, straight or on point</li>
-        <li class="w-step"><b>2</b>Choose fabrics for every part</li>
-        <li class="w-step"><b>3</b>Get the cutting guide and templates</li>
-        <li class="w-step"><b>4</b>See it on a bed, and keep it on all your devices</li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_blocks.jpg" aria-hidden="true"><source src="assets/clips/story_blocks.webm" type="video/webm"><source src="assets/clips/story_blocks.mp4" type="video/mp4"></video><span class="w-num"><b>1</b></span><span>Pick your blocks and layout, straight or on point</span></button></li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_fabrics.jpg" aria-hidden="true"><source src="assets/clips/story_fabrics.webm" type="video/webm"><source src="assets/clips/story_fabrics.mp4" type="video/mp4"></video><span class="w-num"><b>2</b></span><span>Choose fabrics for every part</span></button></li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_cut.jpg" aria-hidden="true"><source src="assets/clips/story_cut.webm" type="video/webm"><source src="assets/clips/story_cut.mp4" type="video/mp4"></video><span class="w-num"><b>3</b></span><span>Get the cutting guide and templates</span></button></li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_bed.jpg" aria-hidden="true"><source src="assets/clips/story_bed.webm" type="video/webm"><source src="assets/clips/story_bed.mp4" type="video/mp4"></video><span class="w-num"><b>4</b></span><span>See it on a bed or a table</span></button></li>
       </ol>
+      <p class="w-facts">1,500 fabrics · Free · Works in your browser, nothing to install</p>
     </div>
   </section>
   <div class="w-strip" aria-hidden="true"></div>
   <section class="w-wrap" aria-labelledby="welcome-start-title">
     <div class="w-start" id="welcome-start">
       <h2 id="welcome-start-title">Ready to piece it together?</h2>
-      <p>With a free account, your designs and fabric photos follow you to your other devices.</p>
-      <div class="w-actions">
-        <button class="w-btn mustard" type="button" data-auth="signup">Create free account</button>
-        <button class="w-btn light" type="button" data-auth="signin">Sign in</button>
+      <p>Start free, and take your quilts everywhere with Bind.</p>
+      <div class="w-plans">
+        <div class="w-plan">
+          <h3 translate="no">Block</h3>
+          <p>Everything you need to design a quilt.</p>
+          <b class="w-price">Free</b>
+          <ul>
+            <li>Design quilts block by block</li>
+            <li>Cutting guide and A4 PDF with real-size templates</li>
+            <li>See your quilt draped on a bed in 3D</li>
+            <li>Designs saved in this browser</li>
+          </ul>
+          <button class="w-btn stitched" type="button" data-auth="signup">Create free account</button>
+        </div>
+        <div class="w-plan bind">
+          <h3 translate="no">Bind</h3>
+          <p>Your quilts and fabrics, wherever you sew.</p>
+          <b class="w-price">Coming soon</b>
+          <ul>
+            <li>Everything in Block</li>
+            <li>Your designs on all your devices</li>
+            <li>Your fabric photos kept online</li>
+            <li>Share your quilts with the Community</li>
+          </ul>
+        </div>
       </div>
-      <button class="w-skip" type="button" id="welcome-skip">Continue without an account</button>
-      <small>Your designs are then kept in this browser only.</small>
+      <p class="w-have">Already have an account? <button type="button" data-auth="signin">Sign in</button></p>
     </div>
   </section>
   <p class="w-foot">Made with thread &amp; love.</p>
@@ -1508,3 +1572,5 @@
 <script type="module">
 /*MAIN*/
 </script>
+</body>
+</html>

@@ -1,5 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8"><!-- for local servers that don't say it (python -m http.server): ↻ × ✓ would show as â†» -->
-<title>Quilt Drape Simulation</title>
+<title>Block &amp; Bind</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,8 +96,9 @@
   .welcome[hidden] { display: none; }
   .welcome h2, .welcome h3, .w-hero h1, .w-logo b, .w-step b { font-family: "Fraunces", Georgia, serif; font-weight: 600; letter-spacing: -.01em; }
   .w-wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
-  .w-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 16px; }
+  .w-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 16px; } /* on a phone the menu goes under the name */
   .w-logo { display: flex; align-items: center; gap: 10px; font-size: 1.45rem; }
+  .w-logo b { white-space: nowrap; }
   .w-logo svg { width: 32px; height: 32px; border-radius: 4px; }
   .w-top nav { display: flex; gap: 8px; }
   .w-btn { font: 700 1rem "Karla", var(--font-body); padding: 12px 20px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: transform .12s ease, box-shadow .12s ease; }
@@ -115,36 +120,74 @@
   .w-hero p.w-lead { font-size: 1.1rem; color: var(--w-muted); max-width: 46ch; margin: 0 0 28px; }
   .w-actions { display: flex; flex-wrap: wrap; gap: 12px; }
   .w-art { border: var(--w-stitch); border-radius: 12px; padding: 12px; }
-  .w-art svg { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .w-art svg { display: block; width: 100%; height: auto; border-radius: 8px; user-select: none; }
+  .w-patch { cursor: pointer; }
+  .w-patch:hover { filter: brightness(1.07); }
+  .w-patch rect, .w-patch polygon { transition: transform .3s ease, fill .3s ease; }
+  .w-seams { pointer-events: none; }
+  .w-art-hint { margin: 8px 0 0; text-align: center; font-size: .85rem; color: var(--w-muted); }
   .w-section { padding-block: 64px; }
   .w-section h2 { text-align: center; font-size: clamp(1.8rem, 4vw, 2.3rem); margin: 0 0 36px; }
-  .w-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-  .w-card { background: var(--w-card); border: var(--w-stitch); border-radius: 8px; padding: 20px; }
-  .w-card i { display: block; width: 32px; height: 32px; border-radius: 3px; margin-bottom: 18px; }
+  /* one row from edge to edge of the page, scrolled sideways with no scrollbar: the card cut off at the edge says there is more */
+  #welcome-feats { max-width: none; padding-inline: 0; --w-small: clamp(300px, 30vw, 560px); --w-big: min(700px, 88vw); }
+  .w-cards { display: flex; justify-content: safe center; align-items: center; gap: 20px; overflow-x: auto; scrollbar-width: none; padding: 8px max(20px, 3vw); min-height: calc(var(--w-big) * 5 / 8 + 150px); }
+  .w-cards::-webkit-scrollbar { display: none; }
+  .w-cards:focus-visible { outline: 2px solid var(--w-rust); outline-offset: -2px; }
+  .w-card { flex: 0 0 var(--w-small); background: var(--w-card); border: var(--w-stitch); border-radius: 8px; padding: 20px; overflow: hidden; transition: flex-basis .3s ease, box-shadow .3s ease; }
+  .w-card.big { flex-basis: var(--w-big); box-shadow: 0 10px 28px oklch(0.25 0.03 40 / .18); }
+  @media (hover: none) { /* touch: a large card at a time, stopping at each one */
+    .w-cards { scroll-snap-type: x mandatory; min-height: 0; }
+    .w-card { flex-basis: var(--w-big); scroll-snap-align: center; }
+  }
+  .w-card video { display: block; width: calc(100% + 40px); max-width: none; aspect-ratio: 8 / 5; margin: -20px -20px 16px; background: var(--w-card); }
   .w-card h3 { font-size: 1.2rem; margin: 0 0 8px; }
   .w-card p { margin: 0; color: var(--w-muted); }
   .w-band { background: oklch(0.72 0.06 140 / .3); }
   .w-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; list-style: none; margin: 0; padding: 0; text-align: center; }
-  .w-step b { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto 14px; border-radius: 50%; background: var(--w-rust); color: var(--w-on-rust); font-size: 1.05rem; }
+  .w-step button { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: center; cursor: pointer; }
+  .w-step button:focus-visible { outline: 2px solid var(--w-rust); outline-offset: 4px; border-radius: 8px; }
+  .w-band .w-wrap { max-width: 1360px; } /* wider than the other sections: the steps' clips need the room */
+  .w-step video { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--w-card); transition: transform .2s ease, box-shadow .2s ease; }
+  .w-step button:hover video { transform: translateY(-4px); }
+  .w-step.on video { box-shadow: 0 10px 26px oklch(0.25 0.03 40 / .3); }
+  .w-num { position: relative; display: block; margin: 14px 0 12px; }
+  /* the stitched line from each step to the next: dashed, and sewn up solid as the clip plays */
+  .w-step:not(:last-child) .w-num::after { content: ''; position: absolute; top: 50%; left: 50%; width: calc(100% + 18px); border-top: 2px dashed oklch(0.58 0.13 40 / .45); }
+  .w-step:not(:last-child) .w-num::before { content: ''; position: absolute; z-index: 1; top: 50%; left: 50%; width: calc((100% + 18px) * var(--sewn, 0)); border-top: 2px solid var(--w-rust); transition: width .25s linear; }
+  .w-step b { position: relative; z-index: 2; display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto; border-radius: 50%; background: var(--w-rust); color: var(--w-on-rust); font-size: 1.05rem; }
+  .w-steps.playing .w-step:not(.on, .done) b { background: var(--w-card); color: var(--w-rust); box-shadow: inset 0 0 0 2px var(--w-rust); }
+  .w-step.on b { box-shadow: 0 0 0 5px oklch(0.58 0.13 40 / .28); }
+  .w-facts { margin: 32px 0 0; text-align: center; font-weight: 600; }
   .w-start { background: var(--w-rust); color: var(--w-on-rust); border-radius: 14px; padding: 56px 24px; text-align: center; margin-block: 56px 28px; }
   .w-start h2 { margin: 0 0 12px; }
   .w-start p { margin: 0 auto 24px; max-width: 44ch; opacity: .92; }
   .w-start .w-actions { justify-content: center; }
-  .w-skip { margin-top: 22px; border: 0; background: none; color: var(--w-on-rust); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px; }
-  .w-start small { display: block; opacity: .8; margin-top: 4px; }
+  /* the two plans; Bind has no price and no button until payments exist */
+  .w-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 20px; max-width: 820px; margin: 0 auto; }
+  .w-plan { display: flex; flex-direction: column; gap: 14px; padding: 28px; border-radius: 12px; background: var(--w-card); color: var(--w-ink); text-align: left; }
+  .w-plan.bind { outline: 4px solid var(--w-mustard); }
+  .w-plan h3 { margin: 0; font-size: 1.5rem; }
+  .w-plan p { margin: 0; max-width: none; opacity: 1; color: var(--w-muted); }
+  .w-price { font: 600 2.1rem/1.2 "Fraunces", Georgia, serif; letter-spacing: -.01em; }
+  .w-plan ul { flex-grow: 1; display: grid; align-content: start; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .w-plan li { position: relative; padding-left: 26px; }
+  .w-plan li::before { content: "✓"; position: absolute; left: 2px; color: var(--w-rust); font-weight: 700; }
+  .w-plan .w-btn { width: 100%; }
+  .w-start .w-have { margin: 28px auto 0; max-width: none; }
+  .w-have button { border: 0; background: none; color: var(--w-on-rust); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px; }
   .w-err { position: sticky; bottom: 16px; width: fit-content; max-width: calc(100% - 32px); margin: 0 auto; padding: 10px 16px; border-radius: 8px; background: var(--w-ink); color: var(--w-bg); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
   .w-err[hidden] { display: none; }
   .w-foot { text-align: center; color: var(--w-muted); font-size: .9rem; padding-block: 18px 32px; margin: 0; }
   @media (max-width: 860px) {
     .w-hero { grid-template-columns: 1fr; padding-block: 36px; }
-    .w-cards, .w-steps { grid-template-columns: repeat(2, 1fr); }
+    .w-steps { grid-template-columns: repeat(2, 1fr); }
+    .w-step .w-num::after, .w-step .w-num::before { display: none; }
   }
   @media (max-width: 520px) {
-    .w-cards { grid-template-columns: 1fr; }
     .w-top nav .w-btn.rust { display: none; } /* Start your first quilt is just below: Sign in stays for returning quilters */
   }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .welcome { scroll-behavior: auto; } .w-btn, .w-card, .w-step video, .w-num::before, .w-patch rect, .w-patch polygon { transition: none; } }
   h1 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; letter-spacing: .01em; margin: 0; text-wrap: balance; }
   header p { margin: 0; color: var(--muted); max-width: 72ch; flex-basis: 100%; }
   .bench { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
@@ -812,10 +855,12 @@
   }
   @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
+</head>
+<body>
 
 <header>
-  <h1 class="sr">Quilt Drape Simulation</h1>
-  <div class="app-logo" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="16" height="16" fill="oklch(0.58 0.13 40)"/><rect x="16" width="16" height="16" fill="oklch(0.8 0.13 85)"/><rect y="16" width="16" height="16" fill="oklch(0.72 0.06 140)"/><rect x="16" y="16" width="16" height="16" fill="oklch(0.58 0.13 40)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/></svg><b>Quilt designer</b></div>
+  <h1 class="sr">Block &amp; Bind</h1>
+  <div class="app-logo" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M0 0H32V18L18 32H0z" fill="oklch(0.58 0.13 40)"/><path d="M16 0H32V16H16z" fill="oklch(0.8 0.13 85)"/><path d="M0 16H16V32H0z" fill="oklch(0.72 0.06 140)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/><path d="M32 18Q25 21 20 20Q21 25 18 32z" fill="oklch(0.8 0.13 85)"/></svg><b>Block &amp; Bind</b></div>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Pages">
     <button type="button" role="tab" data-page="design" aria-selected="true">Quilt designer</button>
     <button type="button" role="tab" data-page="cut" aria-selected="false">Cutting guide</button>
@@ -839,11 +884,10 @@
 
 <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" hidden>
   <div class="w-wrap w-top">
-    <div class="w-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="16" height="16" fill="oklch(0.58 0.13 40)"/><rect x="16" width="16" height="16" fill="oklch(0.8 0.13 85)"/><rect y="16" width="16" height="16" fill="oklch(0.72 0.06 140)"/><rect x="16" y="16" width="16" height="16" fill="oklch(0.58 0.13 40)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/></svg><b>Quilt designer</b></div>
+    <div class="w-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M0 0H32V18L18 32H0z" fill="oklch(0.58 0.13 40)"/><path d="M16 0H32V16H16z" fill="oklch(0.8 0.13 85)"/><path d="M0 16H16V32H0z" fill="oklch(0.72 0.06 140)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/><path d="M32 18Q25 21 20 20Q21 25 18 32z" fill="oklch(0.8 0.13 85)"/></svg><b>Block &amp; Bind</b></div>
     <nav aria-label="Account">
       <select class="lang-menu" data-lang aria-label="Language" title="Language"><option value="en">English</option><option value="pt-BR">Português</option></select>
       <button class="w-btn stitched sm" type="button" id="welcome-signin" data-auth="signin">Sign in</button>
-      <button class="w-btn rust sm" type="button" data-auth="signup">Get started</button>
     </nav>
   </div>
   <div class="w-strip" aria-hidden="true"></div>
@@ -854,7 +898,6 @@
       <p class="w-lead">Design your quilt block by block, get its cutting guide and real-size templates, and see it draped on a bed, all in one cozy place.</p>
       <div class="w-actions">
         <button class="w-btn rust" type="button" id="welcome-signup" data-auth="signup">Start your first quilt</button>
-        <button class="w-btn stitched" type="button" id="welcome-features">See features</button>
       </div>
     </div>
     <div class="w-art" id="welcome-art" aria-hidden="true"></div>
@@ -862,11 +905,11 @@
   <div class="w-strip" aria-hidden="true"></div>
   <section class="w-wrap w-section" id="welcome-feats" aria-labelledby="welcome-feats-title">
     <h2 id="welcome-feats-title">Your sewing room, organized</h2>
-    <div class="w-cards">
-      <div class="w-card"><i style="background:var(--w-rust)"></i><h3>Block designer</h3><p>Pick blocks, swap fabrics part by part, mirror them, and see the whole quilt as you go.</p></div>
-      <div class="w-card"><i style="background:var(--w-sage)"></i><h3>Cutting guide</h3><p>Every piece to cut, with seam allowances, and an A4 PDF with real-size templates.</p></div>
-      <div class="w-card"><i style="background:var(--w-mustard)"></i><h3>Your own fabrics</h3><p>Use photos of the fabrics on your shelf, at their real size, in your designs.</p></div>
-      <div class="w-card"><i style="background:var(--w-rust)"></i><h3>See it on a bed</h3><p>Drape the finished quilt over a bed or a table in 3D before you cut a thing.</p></div>
+    <div class="w-cards" id="welcome-cards" tabindex="0" role="group" aria-labelledby="welcome-feats-title">
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/block.jpg" aria-hidden="true"><source src="assets/clips/block.webm" type="video/webm"><source src="assets/clips/block.mp4" type="video/mp4"></video><h3>Block designer</h3><p>Pick blocks, swap fabrics part by part, mirror them, and see the whole quilt as you go.</p></div>
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/cut.jpg" aria-hidden="true"><source src="assets/clips/cut.webm" type="video/webm"><source src="assets/clips/cut.mp4" type="video/mp4"></video><h3>Cutting guide</h3><p>Every piece to cut, with seam allowances, and an A4 PDF with real-size templates.</p></div>
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/fabric.jpg" aria-hidden="true"><source src="assets/clips/fabric.webm" type="video/webm"><source src="assets/clips/fabric.mp4" type="video/mp4"></video><h3>Your own fabrics</h3><p>Use photos of the fabrics on your shelf, at their real size, in your designs.</p></div>
+      <div class="w-card"><video muted loop playsinline preload="none" poster="assets/clips/bed.jpg" aria-hidden="true"><source src="assets/clips/bed.webm" type="video/webm"><source src="assets/clips/bed.mp4" type="video/mp4"></video><h3>See it on a bed</h3><p>Drape the finished quilt over a bed or a table in 3D before you cut a thing.</p></div>
     </div>
   </section>
   <div class="w-strip" aria-hidden="true"></div>
@@ -874,24 +917,45 @@
     <div class="w-wrap w-section">
       <h2 id="welcome-steps-title">From idea to heirloom</h2>
       <ol class="w-steps">
-        <li class="w-step"><b>1</b>Pick your blocks and layout, straight or on point</li>
-        <li class="w-step"><b>2</b>Choose fabrics for every part</li>
-        <li class="w-step"><b>3</b>Get the cutting guide and templates</li>
-        <li class="w-step"><b>4</b>See it on a bed, and keep it on all your devices</li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_blocks.jpg" aria-hidden="true"><source src="assets/clips/story_blocks.webm" type="video/webm"><source src="assets/clips/story_blocks.mp4" type="video/mp4"></video><span class="w-num"><b>1</b></span><span>Pick your blocks and layout, straight or on point</span></button></li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_fabrics.jpg" aria-hidden="true"><source src="assets/clips/story_fabrics.webm" type="video/webm"><source src="assets/clips/story_fabrics.mp4" type="video/mp4"></video><span class="w-num"><b>2</b></span><span>Choose fabrics for every part</span></button></li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_cut.jpg" aria-hidden="true"><source src="assets/clips/story_cut.webm" type="video/webm"><source src="assets/clips/story_cut.mp4" type="video/mp4"></video><span class="w-num"><b>3</b></span><span>Get the cutting guide and templates</span></button></li>
+        <li class="w-step"><button type="button"><video muted playsinline preload="none" poster="assets/clips/story_bed.jpg" aria-hidden="true"><source src="assets/clips/story_bed.webm" type="video/webm"><source src="assets/clips/story_bed.mp4" type="video/mp4"></video><span class="w-num"><b>4</b></span><span>See it on a bed or a table</span></button></li>
       </ol>
+      <p class="w-facts">1,500 fabrics · Free · Works in your browser, nothing to install</p>
     </div>
   </section>
   <div class="w-strip" aria-hidden="true"></div>
   <section class="w-wrap" aria-labelledby="welcome-start-title">
     <div class="w-start" id="welcome-start">
       <h2 id="welcome-start-title">Ready to piece it together?</h2>
-      <p>With a free account, your designs and fabric photos follow you to your other devices.</p>
-      <div class="w-actions">
-        <button class="w-btn mustard" type="button" data-auth="signup">Create free account</button>
-        <button class="w-btn light" type="button" data-auth="signin">Sign in</button>
+      <p>Start free, and take your quilts everywhere with Bind.</p>
+      <div class="w-plans">
+        <div class="w-plan">
+          <h3 translate="no">Block</h3>
+          <p>Everything you need to design a quilt.</p>
+          <b class="w-price">Free</b>
+          <ul>
+            <li>Design quilts block by block</li>
+            <li>Cutting guide and A4 PDF with real-size templates</li>
+            <li>See your quilt draped on a bed in 3D</li>
+            <li>Designs saved in this browser</li>
+          </ul>
+          <button class="w-btn stitched" type="button" data-auth="signup">Create free account</button>
+        </div>
+        <div class="w-plan bind">
+          <h3 translate="no">Bind</h3>
+          <p>Your quilts and fabrics, wherever you sew.</p>
+          <b class="w-price">Coming soon</b>
+          <ul>
+            <li>Everything in Block</li>
+            <li>Your designs on all your devices</li>
+            <li>Your fabric photos kept online</li>
+            <li>Share your quilts with the Community</li>
+          </ul>
+        </div>
       </div>
-      <button class="w-skip" type="button" id="welcome-skip">Continue without an account</button>
-      <small>Your designs are then kept in this browser only.</small>
+      <p class="w-have">Already have an account? <button type="button" data-auth="signin">Sign in</button></p>
     </div>
   </section>
   <p class="w-foot">Made with thread &amp; love.</p>
@@ -3498,6 +3562,9 @@ var sim_default = {
 
 // ../shared/src/lang/pt-BR/template.js
 var template_default = {
+  English: "English",
+  Portugu\u00EAs: "Portugu\xEAs",
+  Language: "Idioma",
   ". Pick one for the whole back of the quilt.": ". Escolha um para todo o verso do quilt.",
   "0.25\xD7 slow motion": "0,25\xD7 c\xE2mera lenta",
   "0.5\xD7 slow motion": "0,5\xD7 c\xE2mera lenta",
@@ -3525,6 +3592,7 @@ var template_default = {
   "Add a border": "Adicionar uma barra",
   "Add one or more borders around the quilt; the first is next to the blocks, each new one goes outside it.": "Adicione uma ou mais barras em volta do quilt; a primeira fica junto dos blocos, e cada nova vai por fora dela.",
   Air: "Ar",
+  "Already have an account?": "J\xE1 tem uma conta?",
   "Also around the outside (border)": "Tamb\xE9m em volta, por fora (barra)",
   Analysis: "An\xE1lise",
   "Anyone using the Quilt designer can see this quilt and copy it to their designs.": "Quem usa o Desenho de quilts pode ver este quilt e copi\xE1-lo para os pr\xF3prios projetos.",
@@ -3536,7 +3604,9 @@ var template_default = {
   Bedroom: "Quarto",
   "Bending length (Peirce)": "Comprimento de flex\xE3o (Peirce)",
   "Binding strips": "Tiras de vi\xE9s",
+  Bind: "Bind",
   Block: "Bloco",
+  "Block & Bind": "Block & Bind",
   "Block designer": "Desenho de blocos",
   "Block library": "Biblioteca de blocos",
   "Block parts": "Pe\xE7as do bloco",
@@ -3568,9 +3638,9 @@ var template_default = {
   "Colour wheel: click to add a colour, drag a dot to change it": "C\xEDrculo de cores: clique para adicionar uma cor, arraste um ponto para mud\xE1-la",
   Columns: "Colunas",
   Community: "Comunidade",
+  "Coming soon": "Em breve",
   "Compute per frame": "C\xE1lculo por quadro",
   Connect: "Conectar",
-  "Continue without an account": "Continuar sem conta",
   "Copy this block to selected": "Copiar este bloco para os selecionados",
   "Copy to my designs": "Copiar para meus projetos",
   "Cornerstone fabric": "Tecido do quadrado de canto",
@@ -3588,10 +3658,13 @@ var template_default = {
   "Curvature (folds)": "Curvatura (dobras)",
   "Cut it normally": "Cortar normalmente",
   "Cutting guide": "Guia de corte",
+  "Cutting guide and A4 PDF with real-size templates": "Guia de corte e PDF A4 com moldes em tamanho real",
   "Depth of field": "Profundidade de campo",
+  "Design quilts block by block": "Desenhe quilts bloco a bloco",
   "Design timeline": "Linha do tempo do projeto",
   "Design tools": "Ferramentas de desenho",
   "Design your quilt block by block, get its cutting guide and real-size templates, and see it draped on a bed, all in one cozy place.": "Desenhe seu quilt bloco a bloco, receba o guia de corte e os moldes em tamanho real e veja o caimento em uma cama, tudo em um s\xF3 cantinho aconchegante.",
+  "Designs saved in this browser": "Projetos salvos neste navegador",
   "Designs, their undo history and the fabrics you added from your own photos are kept in this browser.": "Os projetos, o hist\xF3rico de desfazer e os tecidos que voc\xEA adicionou das suas pr\xF3prias fotos ficam guardados neste navegador.",
   "Development sign-in (by name)": "Entrada de desenvolvimento (por nome)",
   "Diamonds (tumbling blocks)": "Losangos (tumbling blocks)",
@@ -3621,10 +3694,11 @@ var template_default = {
   "Elastic \xD710": "El\xE1stica \xD710",
   "End the tour": "Encerrar o tour",
   "Energy over the last 10 seconds": "Energia nos \xFAltimos 10 segundos",
-  English: "English",
   Erase: "Apagar",
   "Every piece to cut, with seam allowances, and an A4 PDF with real-size templates.": "Cada pe\xE7a a cortar, com margens de costura, e um PDF A4 com moldes em tamanho real.",
   "Every stitch,": "Cada ponto,",
+  "Everything in Block": "Tudo do Block",
+  "Everything you need to design a quilt.": "Tudo o que voc\xEA precisa para desenhar um quilt.",
   Exposure: "Exposi\xE7\xE3o",
   Fabric: "Tecido",
   "Fabric for the selected parts": "Tecido das pe\xE7as selecionadas",
@@ -3656,10 +3730,10 @@ var template_default = {
   "Foot drop": "Caimento nos p\xE9s",
   "For quilters, by quilters": "Por quem faz quilt, para quem faz quilt",
   "Forget the history, keep the current design": "Esquecer o hist\xF3rico e manter o projeto atual",
+  Free: "Gr\xE1tis",
   "From idea to heirloom": "Da ideia \xE0 heran\xE7a de fam\xEDlia",
   "Fussy cut": "Fussy cut",
   "Gap to bed or floor (contact)": "Folga at\xE9 a cama ou o ch\xE3o (contato)",
-  "Get started": "Come\xE7ar",
   "Get the cutting guide and templates": "Receba o guia de corte e os moldes",
   "Go to a step in the timeline": "Ir para um passo da linha do tempo",
   "Good \xB7 128 samples": "Boa \xB7 128 amostras",
@@ -3690,7 +3764,6 @@ var template_default = {
   "Kaleidoscope (8-way): square layouts": "Caleidosc\xF3pio (8 dire\xE7\xF5es): disposi\xE7\xF5es quadradas",
   Kinetic: "Cin\xE9tica",
   "Kinetic energy": "Energia cin\xE9tica",
-  Language: "Idioma",
   "Latest step": "\xDAltimo passo",
   Layout: "Disposi\xE7\xE3o",
   "Left\u2013right": "Esquerda\u2013direita",
@@ -3758,13 +3831,11 @@ var template_default = {
   "Playback speed": "Velocidade de reprodu\xE7\xE3o",
   "Pointer mode": "Modo do ponteiro",
   "Points every": "Pontos a cada",
-  Portugu\u00EAs: "Portugu\xEAs",
   "Preparing render\u2026": "Preparando a renderiza\xE7\xE3o\u2026",
   Preset: "Predefini\xE7\xE3o",
   Preview: "Pr\xE9via",
   "Previous step": "Passo anterior",
   Quality: "Qualidade",
-  "Quilt Drape Simulation": "Simula\xE7\xE3o de caimento de quilt",
   "Quilt designer": "Desenho de quilts",
   "Quilt in contact": "Quilt em contato",
   "Quilt mass": "Massa do quilt",
@@ -3810,9 +3881,10 @@ var template_default = {
   "Search your designs": "Buscar nos seus projetos",
   "Search: gingham, teal, chintz\u2026": "Buscar: xadrez, azul-petr\xF3leo, chita\u2026",
   "Search: star, nine patch, log\u2026": "Buscar: estrela, nine patch, log\u2026",
-  "See features": "Ver recursos",
   "See it on a bed": "Veja na cama",
-  "See it on a bed, and keep it on all your devices": "Veja na cama e tenha em todos os seus aparelhos",
+  "See it on a bed or a table": "Veja na cama ou na mesa",
+  "See your quilt draped on a bed in 3D": "Veja o caimento do seu quilt em uma cama, em 3D",
+  "1,500 fabrics \xB7 Free \xB7 Works in your browser, nothing to install": "1.500 tecidos \xB7 Gr\xE1tis \xB7 Funciona no navegador, sem instalar nada",
   "Select all blocks": "Selecionar todos os blocos",
   "Select blocks with this pattern": "Selecionar blocos com este desenho",
   "Self-contact": "Autocontato",
@@ -3824,6 +3896,7 @@ var template_default = {
   "Share current design": "Compartilhar o projeto atual",
   "Share this quilt with the community": "Compartilhar este quilt com a comunidade",
   "Share with the community": "Compartilhar com a comunidade",
+  "Share your quilts with the Community": "Compartilhe seus quilts com a comunidade",
   "Show advanced settings": "Mostrar ajustes avan\xE7ados",
   "Show controls": "Mostrar controles",
   "Show lengths in inches": "Mostrar medidas em polegadas",
@@ -3853,6 +3926,7 @@ var template_default = {
   "Squares per side": "Quadrados por lado",
   "Standard views": "Vistas padr\xE3o",
   "Start a photo render": "Iniciar uma renderiza\xE7\xE3o fotogr\xE1fica",
+  "Start free, and take your quilts everywhere with Bind.": "Comece gr\xE1tis e leve seus quilts para todo lado com o Bind.",
   "Start from selected": "Come\xE7ar do selecionado",
   "Start over": "Recome\xE7ar",
   "Start your first quilt": "Comece seu primeiro quilt",
@@ -3909,15 +3983,16 @@ var template_default = {
   "Whole quilt": "Quilt inteiro",
   Width: "Largura",
   "Width a new photo covers": "Largura que uma nova foto cobre",
-  "With a free account, your designs and fabric photos follow you to your other devices.": "Com uma conta gratuita, seus projetos e fotos de tecidos acompanham voc\xEA nos outros aparelhos.",
   "Without cornerstones, the strips between the rows run the full width of the quilt": "Sem quadrados de canto, as faixas entre as linhas ocupam toda a largura do quilt",
   "Wool blanket": "Cobertor de l\xE3",
-  "Your designs are then kept in this browser only.": "Seus projetos ficam guardados s\xF3 neste navegador.",
+  "Your designs on all your devices": "Seus projetos em todos os seus aparelhos",
+  "Your fabric photos kept online": "Suas fotos de tecidos guardadas on-line",
   "Your name (development sign-in)": "Seu nome (entrada de desenvolvimento)",
   "Your name, as others will see it": "Seu nome, como os outros v\xE3o ver",
   "Your own fabrics": "Seus pr\xF3prios tecidos",
   "Your quilt": "Seu quilt",
   "Your quilt. Click a block to edit it, or drag a rectangle to select several.": "Seu quilt. Clique em um bloco para edit\xE1-lo ou arraste um ret\xE2ngulo para selecionar v\xE1rios.",
+  "Your quilts and fabrics, wherever you sew.": "Seus quilts e tecidos, onde quer que voc\xEA costure.",
   "Your saved designs and fabric photos follow you to your other devices through a quilt server. Sign in with the same account on each.": "Seus projetos salvos e fotos de tecidos acompanham voc\xEA nos seus outros aparelhos por meio de um servidor de quilts. Entre com a mesma conta em cada um.",
   "Your sewing room, organized": "Seu ateli\xEA de costura, organizado",
   "adds one to My designs, to change as you like.": "adiciona um a Meus projetos, para voc\xEA mudar como quiser.",
@@ -3944,7 +4019,7 @@ var tour_default = {
   "Step {n} of {all}": "Passo {n} de {all}",
   "Show the instructions": "Mostrar as instru\xE7\xF5es",
   "Fold the instructions": "Recolher as instru\xE7\xF5es",
-  "Welcome to the Quilt designer!": "Boas-vindas ao Desenho de quilts!",
+  "Welcome to Block & Bind!": "Boas-vindas ao Block & Bind!",
   "In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.": "Em cerca de dois minutos voc\xEA vai fazer um <b>quilt de tr\xEAs blocos</b> no Desenho de quilts, mudar o desenho e os tecidos e adicionar uma barra. Em cada passo, s\xF3 o bot\xE3o necess\xE1rio acende.",
   "Start the exercise": "Come\xE7ar o exerc\xEDcio",
   "Not now": "Agora n\xE3o",
@@ -7771,6 +7846,66 @@ var GRID_BLOCKS = {
       0 0\2 0/2 3
       3 2/0 2\0 0
       0 0 1 0`
+  },
+  brighthopes: {
+    label: "Bright Hopes",
+    family: "Larger grids",
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      3 - - 1 3 - - 1
+      2 0 - | 2 0 - |
+      | | + | | | + |
+      | 4 - - | 4 - -
+      3 - - 1 3 - - 1
+      2 0 - | 2 0 - |
+      | | + | | | + |
+      | 4 - - | 4 - -`
+  },
+  cogwheels: {
+    label: "Cogwheels",
+    family: "Larger grids",
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      1 0 1 - 1 0 1 -
+      0 1 | + 0 1 | +
+      0 - 0 1 0 - 0 1
+      | + 1 0 | + 1 0
+      1 0 1 - 1 0 1 -
+      0 1 | + 0 1 | +
+      0 - 0 1 0 - 0 1
+      | + 1 0 | + 1 0`
+  },
+  redcross16: {
+    label: "Red Cross",
+    family: "Larger grids",
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      2 - 1 0 0 1 2 -
+      | + 1 0 0 1 | +
+      1 1 1 0 0 1 1 1
+      0 0 0 3 3 0 0 0
+      0 0 0 3 3 0 0 0
+      1 1 1 0 0 1 1 1
+      2 - 1 0 0 1 2 -
+      | + 1 0 0 1 | +`
+  },
+  stepstoglory: {
+    label: "Steps to Glory",
+    family: "Larger grids",
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      2 0 1 3 2 1 1 0
+      0 0 1 1 3 1 1 1
+      1 1 0 0 2 3 1 1
+      3 1 0 0 2 2 3 2
+      2 3 3 2 0 0 1 3
+      0 1 2 2 0 0 1 1
+      0 1 1 3 3 3 0 0
+      2 0 0 2 3 3 0 2`
   }
 };
 
@@ -10204,7 +10339,7 @@ function translated(s) {
   return out === key ? s : s.replace(/^(\s*)[\s\S]*?(\s*)$/, (_, a, b) => a + out + b);
 }
 function translateTree(root) {
-  if (SKIP.has(root.tagName)) return;
+  if (SKIP.has(root.tagName) || root.getAttribute("translate") === "no") return;
   for (const a of ATTRIBUTES) if (root.hasAttribute(a)) root.setAttribute(a, translated(root.getAttribute(a) || ""));
   if (root instanceof HTMLTemplateElement) for (const el of root.content.children) translateTree(el);
   for (const node of root.childNodes) {
@@ -14339,7 +14474,7 @@ var oDiag = (o) => o.flip ? { rot: (o.rot + 3) % 4, flip: false } : { rot: (o.ro
 function symPartners(bi, d) {
   const s = symOf(d);
   if (s === "off") return [];
-  const g = cellGrid(d), [c, r] = g.cell(bi), C = d.cols, out = [], k = spanOf(d.blocks[bi]);
+  const g = cellGrid(d), [c, r] = g.cell(bi), C2 = d.cols, out = [], k = spanOf(d.blocks[bi]);
   const add = (cc, rr, f) => {
     const j = g.at(cc, rr);
     if (j >= 0 && j !== bi && !out.some((x) => x[0] === j)) out.push([j, f]);
@@ -14349,15 +14484,15 @@ function symPartners(bi, d) {
   let diag;
   if (!isOnPoint(d)) {
     const Rr = d.rows;
-    if (lr) base.push([C - k - c, r, oLR]);
+    if (lr) base.push([C2 - k - c, r, oLR]);
     if (tb) base.push([c, Rr - k - r, oTB]);
-    if (lr && tb) base.push([C - k - c, Rr - k - r, comp(oLR, oTB)]);
+    if (lr && tb) base.push([C2 - k - c, Rr - k - r, comp(oLR, oTB)]);
     diag = ([cc, rr, f]) => [rr, cc, comp(oDiag, f)];
   } else {
-    if (lr) base.push([r + C - 1, c - C + 1, oDiag]);
-    if (tb) base.push([C - k - r, C - k - c, (o) => oLR(oTB(oDiag(o)))]);
-    if (lr && tb) base.push([2 * C - 1 - k - c, 1 - k - r, comp(oLR, oTB)]);
-    diag = ([u, v, f]) => [2 * C - 1 - k - u, v, comp(oLR, f)];
+    if (lr) base.push([r + C2 - 1, c - C2 + 1, oDiag]);
+    if (tb) base.push([C2 - k - r, C2 - k - c, (o) => oLR(oTB(oDiag(o)))]);
+    if (lr && tb) base.push([2 * C2 - 1 - k - c, 1 - k - r, comp(oLR, oTB)]);
+    diag = ([u, v, f]) => [2 * C2 - 1 - k - u, v, comp(oLR, f)];
   }
   for (const b of base) {
     add(b[0], b[1], b[2]);
@@ -14392,10 +14527,10 @@ function withSymmetry(d, sources) {
   return normalizeSpans(out);
 }
 function symmetrySources(d) {
-  const s = symOf(d), g = cellGrid(d), C = d.cols, R2 = d.rows, on = isOnPoint(d), src = [];
+  const s = symOf(d), g = cellGrid(d), C2 = d.cols, R2 = d.rows, on = isOnPoint(d), src = [];
   if (s === "off") return src;
   for (let i = 0; i < d.blocks.length; i++) {
-    const [a, b] = g.cell(i), x = on ? a - b - (C - 1) : 2 * a - (C - 1), y = on ? a + b + 1 - C : 2 * b - (R2 - 1), inL = x <= 0, inT = y <= 0;
+    const [a, b] = g.cell(i), x = on ? a - b - (C2 - 1) : 2 * a - (C2 - 1), y = on ? a + b + 1 - C2 : 2 * b - (R2 - 1), inL = x <= 0, inT = y <= 0;
     if (s === "lr" ? inL : s === "tb" ? inT : s === "both" ? inL && inT : inL && inT && x >= y) src.push(i);
   }
   return src;
@@ -17798,8 +17933,8 @@ function renderCut() {
     drawB();
     cgRedraws.push(drawB);
     cgRowHover(div, (tr) => {
-      const FB = tr.dataset.fab, C = tr.dataset.c === "1";
-      return (x) => x.t === "brd" && x.bi === bi && x.fabric === FB && x.corner === C;
+      const FB = tr.dataset.fab, C2 = tr.dataset.c === "1";
+      return (x) => x.t === "brd" && x.bi === bi && x.fabric === FB && x.corner === C2;
     });
     cgCardBehaviour(
       div,
@@ -19380,7 +19515,7 @@ var tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null }
 var blk = (i) => design && design.blocks[i];
 var TOUR = [
   {
-    title: t("Welcome to the Quilt designer!"),
+    title: t("Welcome to Block & Bind!"),
     text: t(
       "In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step."
     ),
@@ -21045,10 +21180,9 @@ var skipped = () => {
     return false;
   }
 };
-var rememberSkip = (skip) => {
+var forgetSkip = () => {
   try {
-    if (skip) localStorage.setItem(SKIP_KEY, "skip");
-    else localStorage.removeItem(SKIP_KEY);
+    localStorage.removeItem(SKIP_KEY);
   } catch (e) {
   }
 };
@@ -21056,49 +21190,217 @@ var welcomeSays = (msg) => {
   $("welcome-err").textContent = msg;
   $("welcome-err").hidden = !msg;
 };
+var C = [
+  "oklch(0.58 0.13 40)",
+  // rust
+  "oklch(0.72 0.06 140)",
+  // sage
+  "oklch(0.8 0.13 85)",
+  // mustard
+  "oklch(0.94 0.03 80)",
+  // cream
+  "oklch(0.48 0.11 35)",
+  // deep rust
+  "oklch(0.62 0.07 145)"
+  // deep sage
+];
 function patchworkArt(cols = 8, rows = 6, s = 100) {
-  const C = [
-    "oklch(0.58 0.13 40)",
-    // rust
-    "oklch(0.72 0.06 140)",
-    // sage
-    "oklch(0.8 0.13 85)",
-    // mustard
-    "oklch(0.94 0.03 80)",
-    // cream
-    "oklch(0.48 0.11 35)",
-    // deep rust
-    "oklch(0.62 0.07 145)"
-    // deep sage
-  ];
   let seed = 7;
   const next = (n) => (seed = (seed * 9301 + 49297) % 233280, Math.floor(seed / 233280 * n));
   let out = "";
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
-      const x = c * s, y = r * s, a = C[next(C.length)], b = next(3) ? C[3] : C[next(C.length)];
-      out += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="${b}"/>`;
+      const x = c * s, y = r * s, a = next(C.length), b = next(3) ? 3 : next(C.length);
+      out += `<g class="w-patch" data-a="${a}" data-b="${b}"><rect x="${x}" y="${y}" width="${s}" height="${s}" fill="${C[b]}"/>`;
       if (next(4)) {
-        const pts = [
-          [x, y, x + s, y, x, y + s],
-          [x, y, x + s, y, x + s, y + s],
-          [x + s, y, x + s, y + s, x, y + s],
-          [x, y, x + s, y + s, x, y + s]
-        ][next(4)];
-        out += `<polygon points="${pts.join(" ")}" fill="${a}"/>`;
+        const turn = next(4);
+        out += `<polygon points="${x},${y} ${x + s},${y} ${x},${y + s}" fill="${C[a]}" data-turn="${turn}" style="transform-origin:${x + s / 2}px ${y + s / 2}px;transform:rotate(${turn * 90}deg)"/>`;
       }
+      out += "</g>";
     }
+  let seams = "";
   for (let c = 1; c < cols; c++)
-    out += `<path d="M${c * s} 0V${rows * s}" stroke="oklch(0.25 0.03 40 / .25)" stroke-width="1.5"/>`;
+    seams += `<path d="M${c * s} 0V${rows * s}" stroke="oklch(0.25 0.03 40 / .25)" stroke-width="1.5"/>`;
   for (let r = 1; r < rows; r++)
-    out += `<path d="M0 ${r * s}H${cols * s}" stroke="oklch(0.25 0.03 40 / .25)" stroke-width="1.5"/>`;
-  out += `<rect x="8" y="8" width="${cols * s - 16}" height="${rows * s - 16}" fill="none" stroke="oklch(0.98 0.01 80 / .7)" stroke-width="2" stroke-dasharray="7 6"/>`;
-  return `<svg viewBox="0 0 ${cols * s} ${rows * s}" role="img" aria-label="${t("A patchwork quilt")}">${out}</svg>`;
+    seams += `<path d="M0 ${r * s}H${cols * s}" stroke="oklch(0.25 0.03 40 / .25)" stroke-width="1.5"/>`;
+  seams += `<rect x="8" y="8" width="${cols * s - 16}" height="${rows * s - 16}" fill="none" stroke="oklch(0.98 0.01 80 / .7)" stroke-width="2" stroke-dasharray="7 6"/>`;
+  return `<svg viewBox="0 0 ${cols * s} ${rows * s}" role="img" aria-label="${t("A patchwork quilt")}">${out}<g class="w-seams">${seams}</g></svg>`;
+}
+function turnPatch(patch) {
+  const { a, b } = patch.dataset;
+  const tri = (
+    /** @type {SVGPolygonElement | null} */
+    patch.querySelector("polygon")
+  );
+  if (!tri) {
+    const next2 = (+b + 1) % C.length;
+    patch.setAttribute("data-b", String(next2));
+    const square = (
+      /** @type {SVGRectElement} */
+      patch.querySelector("rect")
+    );
+    square.style.fill = C[next2];
+    return;
+  }
+  const turn = +tri.dataset.turn + 1;
+  tri.dataset.turn = String(turn);
+  tri.style.transform = `rotate(${turn * 90}deg)`;
+  if (turn % 4) return;
+  let next = (+a + 1) % C.length;
+  if (next === +b) next = (next + 1) % C.length;
+  patch.setAttribute("data-a", String(next));
+  tri.style.fill = C[next];
+}
+function initPatchwork() {
+  const art = $("welcome-art");
+  const patchAt = (el) => (
+    /** @type {Element} */
+    el.closest(".w-patch")
+  );
+  let first = null, moved = /* @__PURE__ */ new Set();
+  const once = (p) => {
+    if (!moved.has(p)) turnPatch(p);
+    moved.add(p);
+  };
+  art.addEventListener("pointerdown", (e) => {
+    first = patchAt(e.target);
+    moved = /* @__PURE__ */ new Set();
+  });
+  art.addEventListener("pointerover", (e) => {
+    const p = patchAt(e.target);
+    if (e.pointerType !== "mouse" || e.buttons !== 1 || !first || !p || p === first) return;
+    once(first);
+    once(p);
+  });
+  art.addEventListener("click", (e) => {
+    const p = patchAt(e.target);
+    if (p) once(p);
+  });
+  art.addEventListener("dragstart", (e) => e.preventDefault());
+}
+var clipWatch = null;
+function watchClips(on) {
+  if (clipWatch) clipWatch.disconnect();
+  clipWatch = null;
+  const clips = (
+    /** @type {NodeListOf<HTMLVideoElement>} */
+    $("welcome").querySelectorAll(".w-card video")
+  );
+  if (!on) {
+    for (const v of clips) v.pause();
+    return;
+  }
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  clipWatch = new IntersectionObserver((seen) => {
+    for (const { target: target3, isIntersecting } of seen) {
+      const v = (
+        /** @type {HTMLVideoElement} */
+        target3
+      );
+      if (isIntersecting) v.play().catch(() => {
+      });
+      else v.pause();
+    }
+  });
+  for (const v of clips) clipWatch.observe(v);
+}
+function initCardRow() {
+  const row = $("welcome-cards");
+  let big = null, follow = 0;
+  const grow = (card) => {
+    if (card === big) return;
+    big?.classList.remove("big");
+    big = card;
+    cancelAnimationFrame(follow);
+    if (!card) return;
+    card.classList.add("big");
+    const pull = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0.16, until = performance.now() + 800;
+    const step2 = (now) => {
+      const r = row.getBoundingClientRect(), c = card.getBoundingClientRect(), room = Math.max(16, Math.min(110, (r.width - c.width) / 2));
+      if (c.left < r.left + room) row.scrollLeft += (c.left - r.left - room) * pull;
+      else if (c.right > r.right - room) row.scrollLeft += (c.right - r.right + room) * pull;
+      if (now < until) follow = requestAnimationFrame(step2);
+    };
+    follow = requestAnimationFrame(step2);
+  };
+  row.addEventListener("pointermove", (e) => {
+    const card = e.pointerType === "mouse" && /** @type {Element} */
+    e.target.closest(".w-card");
+    if (card) grow(card);
+  });
+  row.addEventListener("pointerleave", () => grow(null));
+}
+var playStory = (on) => void on;
+function initStory() {
+  const list2 = (
+    /** @type {HTMLElement} */
+    $("welcome").querySelector(".w-steps")
+  );
+  const steps = (
+    /** @type {HTMLElement[]} */
+    [...list2.querySelectorAll(".w-step")]
+  );
+  const clips = steps.map((s) => (
+    /** @type {HTMLVideoElement} */
+    s.querySelector("video")
+  ));
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let now = -1, again = 0, watch = null;
+  const mark = () => steps.forEach((s, i) => {
+    s.classList.toggle("on", i === now);
+    s.classList.toggle("done", i < now);
+    const sewn = i === now ? clips[i].currentTime / (clips[i].duration || 1) : i < now ? 1 : 0;
+    s.style.setProperty("--sewn", String(sewn));
+  });
+  const play = (i) => {
+    clearTimeout(again);
+    clips.forEach((v, k) => k !== i && v.pause());
+    now = i;
+    clips[i].currentTime = 0;
+    clips[i].play().catch(() => {
+    });
+    mark();
+  };
+  clips.forEach((v, i) => {
+    v.addEventListener("timeupdate", () => i === now && mark());
+    v.addEventListener("ended", () => {
+      if (i !== now || still) return;
+      if (i < clips.length - 1) play(i + 1);
+      else {
+        steps[i].style.setProperty("--sewn", "1");
+        again = window.setTimeout(() => play(0), 2500);
+      }
+    });
+    steps[i].querySelector("button").addEventListener("click", () => play(i));
+  });
+  list2.classList.toggle("playing", !still);
+  playStory = (on) => {
+    if (watch) watch.disconnect();
+    watch = null;
+    if (!on) {
+      clearTimeout(again);
+      for (const v of clips) v.pause();
+      return;
+    }
+    if (still) return;
+    watch = new IntersectionObserver(([{ isIntersecting }]) => {
+      if (!isIntersecting) {
+        clearTimeout(again);
+        for (const v of clips) v.pause();
+      } else if (now < 0 || clips[now].ended) play(now < 0 || now === clips.length - 1 ? 0 : now + 1);
+      else clips[now].play().catch(() => {
+      });
+    });
+    watch.observe(list2);
+  };
 }
 function showWelcome(on) {
   $("welcome").hidden = !on;
+  watchClips(on);
+  playStory(on);
   if (!on) return;
-  if (!$("welcome-art").firstChild) $("welcome-art").innerHTML = patchworkArt();
+  if (!$("welcome-art").firstChild)
+    $("welcome-art").innerHTML = `${patchworkArt()}<p class="w-art-hint">${t("Click or tap a patch to turn it")}</p>`;
   welcomeSays("");
   openMenu(false);
   $("welcome").scrollTop = 0;
@@ -21115,16 +21417,14 @@ function openMenu(open) {
   $("acct-btn").setAttribute("aria-expanded", String(open));
 }
 function initAccount() {
+  initCardRow();
+  initStory();
+  initPatchwork();
   for (const b of $("welcome").querySelectorAll("[data-auth]"))
     b.addEventListener("click", () => welcomeSignIn(
       /** @type {HTMLElement} */
       b.dataset.auth === "signup"
     ));
-  $("welcome-features").addEventListener("click", () => $("welcome-feats").scrollIntoView({ block: "start" }));
-  $("welcome-skip").addEventListener("click", () => {
-    rememberSkip(true);
-    showWelcome(false);
-  });
   let account = null;
   onAccount((c, s) => {
     account = c;
@@ -21145,7 +21445,7 @@ function initAccount() {
   $("acct-btn").addEventListener("click", () => openMenu($("acct-menu").hidden));
   $("acct-signout").addEventListener("click", async () => {
     openMenu(false);
-    rememberSkip(false);
+    forgetSkip();
     await signOutAndStop();
     showWelcome(true);
   });
@@ -23129,3 +23429,5 @@ else showPage("design");
 })();
 
 </script>
+</body>
+</html>

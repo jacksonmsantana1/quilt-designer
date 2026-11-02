@@ -3657,6 +3657,66 @@ const GRID_BLOCKS = {
       3 2/0 2\0 0
       0 0 1 0`,
   },
+  brighthopes: {
+    label: 'Bright Hopes',
+    family: 'Larger grids',
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      3 - - 1 3 - - 1
+      2 0 - | 2 0 - |
+      | | + | | | + |
+      | 4 - - | 4 - -
+      3 - - 1 3 - - 1
+      2 0 - | 2 0 - |
+      | | + | | | + |
+      | 4 - - | 4 - -`,
+  },
+  cogwheels: {
+    label: 'Cogwheels',
+    family: 'Larger grids',
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      1 0 1 - 1 0 1 -
+      0 1 | + 0 1 | +
+      0 - 0 1 0 - 0 1
+      | + 1 0 | + 1 0
+      1 0 1 - 1 0 1 -
+      0 1 | + 0 1 | +
+      0 - 0 1 0 - 0 1
+      | + 1 0 | + 1 0`,
+  },
+  redcross16: {
+    label: 'Red Cross',
+    family: 'Larger grids',
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      2 - 1 0 0 1 2 -
+      | + 1 0 0 1 | +
+      1 1 1 0 0 1 1 1
+      0 0 0 3 3 0 0 0
+      0 0 0 3 3 0 0 0
+      1 1 1 0 0 1 1 1
+      2 - 1 0 0 1 2 -
+      | + 1 0 0 1 | +`,
+  },
+  stepstoglory: {
+    label: 'Steps to Glory',
+    family: 'Larger grids',
+    n: 8,
+    // from a pattern-book diagram (a 16-inch block of 2-inch squares), read by the diagram reader and corrected by hand
+    rows: String.raw`
+      2 0 1 3 2 1 1 0
+      0 0 1 1 3 1 1 1
+      1 1 0 0 2 3 1 1
+      3 1 0 0 2 2 3 2
+      2 3 3 2 0 0 1 3
+      0 1 2 2 0 0 1 1
+      0 1 1 3 3 3 0 0
+      2 0 0 2 3 3 0 2`,
+  },
 };
 
 export { GRID_BLOCKS };

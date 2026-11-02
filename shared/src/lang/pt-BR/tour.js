@@ -5,7 +5,7 @@ export default {
   'Step {n} of {all}': 'Passo {n} de {all}',
   'Show the instructions': 'Mostrar as instruções',
   'Fold the instructions': 'Recolher as instruções',
-  'Welcome to the Quilt designer!': 'Boas-vindas ao Desenho de quilts!',
+  'Welcome to Block & Bind!': 'Boas-vindas ao Block & Bind!',
   'In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.':
     'Em cerca de dois minutos você vai fazer um <b>quilt de três blocos</b> no Desenho de quilts, mudar o desenho e os tecidos e adicionar uma barra. Em cada passo, só o botão necessário acende.',
   'Start the exercise': 'Começar o exercício',

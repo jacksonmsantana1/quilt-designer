@@ -1,8 +1,11 @@
-# Quilt designer: notes for Claude
+# Block & Bind: notes for Claude
 
 A quilt designer in the browser: design a quilt block by block, get its cutting guide and an A4 PDF with
 real-size templates, and see it draped on a bed or table in 3D. The app works on its own (IndexedDB); an
 optional server syncs saved quilts and fabric photos between a person's devices.
+
+The app's name is **Block & Bind**. "Quilt designer" stays as the name of the design tab. The internal names
+(`quilt-designer.*` storage keys, the Auth0 API identifier, the folder and packages) stayed on purpose.
 
 The owner is a quilter and engineer (Jackson, Brazil, UTC-3), not a full-time web developer. Explain choices
 in plain words, ask before big structural changes, and keep the app working at every commit.
@@ -28,6 +31,7 @@ npm run test:e2e           # Playwright browser tests of the app (build first; ~
 npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e/index.html
 npm run dev -w @quilt/server         # API on :8787 (needs server/.env, see server/.env.example)
 npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabrics for user "seed" (sync as "seed")
+node app/tools/record-clips.mjs      # re-records the welcome cards' clips (app/assets/clips) from the real app; build first; needs ffmpeg, pdftoppm
 ```
 
 Server tests and `app/tests/e2e/sync.spec.mjs` need PostgreSQL: `TEST_DATABASE_URL` (default
@@ -119,6 +123,11 @@ on the internet (Chrome blocks pages from reaching a server on the person's own 
 popup may not open from inside claude.ai's frame: untested.
 
 **Known gaps / ideas**
+- Plans on the welcome page: Block (free) and Bind ("Coming soon", no price or button). Nothing takes payments yet, so
+  a free account still has sync and Community sharing, and the card says so. Charging for Bind needs a payment
+  provider, the owner's prices, and a decision on what happens to free accounts' synced designs.
+- The welcome page no longer offers "Continue without an account" (the owner's choice): a new visitor must sign in,
+  which needs Auth0 and the API online. People who skipped earlier keep their `quilt-welcome.v1` and go straight in.
 - Block editor: drawn blocks can't be deleted from My blocks yet; drawing needs a pointer (no keyboard way).
 - The "Add fabric photos" button sits in a section that is always hidden, so people can't add their own fabrics
   (tests reach it through the code). Proposed: a "+ Add fabric" tile at the end of the fabric list (photo file).

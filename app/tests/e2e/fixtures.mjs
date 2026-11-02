@@ -18,16 +18,12 @@ const LIBS = [
   [/three-gpu-pathtracer@0\.0\.24\/(.*)$/, 'three-gpu-pathtracer'],
 ];
 let html = null;
-const pageHtml = () =>
-  (html ??=
-    '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' +
-    fs.readFileSync(path.join(ROOT, 'quilt.html'), 'utf8') +
-    '</body></html>');
+const pageHtml = () => (html ??= fs.readFileSync(path.join(ROOT, 'quilt.html'), 'utf8'));
 
 export const test = base.extend({
   // set `firstVisit: true` in a test file to see the guided tour start by itself
   firstVisit: [false, { option: true }],
-  // set `welcome: true` to see the welcome page (sign in, or carry on without an account) at start
+  // set `welcome: true` to see the welcome page at start
   welcome: [false, { option: true }],
   // where the page is served: http://localhost/ is a secure context (Web Crypto), http://x/ is not
   origin: ['http://x', { option: true }],

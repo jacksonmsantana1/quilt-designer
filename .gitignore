@@ -25,3 +25,4 @@ server/.data/
 
 # review pages made by shared/tools/drawing-review.mjs (they hold the pictures)
 /drawing-review*.html
+/diagram-review*.html

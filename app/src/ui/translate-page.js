@@ -17,7 +17,7 @@ function translated(s) {
 
 /** @param {Element} root */
 function translateTree(root) {
-  if (SKIP.has(root.tagName)) return;
+  if (SKIP.has(root.tagName) || root.getAttribute('translate') === 'no') return; // names stay as they are: the Block plan
   for (const a of ATTRIBUTES) if (root.hasAttribute(a)) root.setAttribute(a, translated(root.getAttribute(a) || ''));
   if (root instanceof HTMLTemplateElement) for (const el of root.content.children) translateTree(el);
   for (const node of root.childNodes) {
