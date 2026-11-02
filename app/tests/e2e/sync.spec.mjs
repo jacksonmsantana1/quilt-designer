@@ -44,6 +44,7 @@ test.beforeAll(async () => {
   // development sign-in by name, and Auth0 tokens too: signed here with a test key (the tests' own "Auth0")
   const config = loadConfig({
     NODE_ENV: 'test',
+    AUTH_MODE: 'dev',
     DATABASE_URL: url.toString(),
     CORS_ORIGINS: 'http://localhost',
     AUTH0_DOMAIN,

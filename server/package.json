@@ -10,12 +10,14 @@
     "migrate": "node --env-file-if-exists=.env src/migrate.js",
     "test": "node --test --test-concurrency=1 \"test/*.test.js\"",
     "smoke": "node scripts/smoke.js",
-    "seed": "node scripts/seed-fabrics.js"
+    "seed": "node scripts/seed-fabrics.js",
+    "moderate": "node --env-file-if-exists=.env scripts/moderate.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1159.0",
     "@aws-sdk/s3-request-presigner": "^3.1159.0",
     "@fastify/cors": "^11.3.1",
+    "@fastify/rate-limit": "^11.2.1",
     "@quilt/shared": "*",
     "fastify": "^5.12.7",
     "jose": "^6.2.14",

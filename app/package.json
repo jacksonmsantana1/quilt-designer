@@ -17,6 +17,7 @@
     "@quilt/shared": "*"
   },
   "devDependencies": {
+    "@auth0/auth0-spa-js": "2.28.4",
     "@playwright/test": "^1.63.0",
     "acorn": "^8.19.0",
     "esbuild": "^0.28.2",

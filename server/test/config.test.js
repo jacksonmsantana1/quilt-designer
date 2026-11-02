@@ -8,8 +8,11 @@ import { setup } from './helpers.js';
 const DB = { DATABASE_URL: 'postgres://x/y' };
 
 test('development and tests use the stand-in login by default', () => {
-  assert.equal(loadConfig({ ...DB }).auth, 'dev');
-  assert.equal(loadConfig({ ...DB, NODE_ENV: 'test' }).auth, 'dev');
+  // a forgotten setting never opens the stand-in login: it has to be asked for by name
+  assert.equal(loadConfig({ ...DB }).auth, 'none');
+  assert.equal(loadConfig({ ...DB, NODE_ENV: 'test' }).auth, 'none');
+  assert.equal(loadConfig({ ...DB, AUTH0_DOMAIN: 'a.test', AUTH0_AUDIENCE: 'x' }).auth, 'auth0');
+  assert.equal(loadConfig({ ...DB, AUTH_MODE: 'dev' }).auth, 'dev');
 });
 
 test('production refuses the stand-in login and defaults to none', () => {
