@@ -7,7 +7,7 @@ import { setup } from './helpers.js';
 
 const DB = { DATABASE_URL: 'postgres://x/y' };
 
-test('development and tests use the stand-in login by default', () => {
+test('the stand-in login only when asked for by name; otherwise Auth0, or nobody', () => {
   // a forgotten setting never opens the stand-in login: it has to be asked for by name
   assert.equal(loadConfig({ ...DB }).auth, 'none');
   assert.equal(loadConfig({ ...DB, NODE_ENV: 'test' }).auth, 'none');
