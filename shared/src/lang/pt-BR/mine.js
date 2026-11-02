@@ -15,6 +15,9 @@ export default {
   // first page and account corner
   'A patchwork quilt': 'Um quilt de patchwork',
   'Click or tap a patch to turn it': 'Clique ou toque em um retalho para girá-lo',
+  '{n} blocks to choose, or create your own': '{n} blocos para escolher, ou crie o seu',
+  'Try other fabrics': 'Experimentar outros tecidos',
+  'Try other fabrics on {name}': 'Experimentar outros tecidos em {name}',
   'Sign in': 'Entrar',
   'Sign in again': 'Entrar de novo',
   'Sign out': 'Sair',

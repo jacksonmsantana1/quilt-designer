@@ -1,6 +1,7 @@
 // The welcome page (shown at start when nobody is signed in) and the account corner. Signing in through them,
 // with the API, is in sync.spec.mjs.
 import { test, expect } from './fixtures.mjs';
+import { PATTERNS } from '@quilt/shared/patterns.js';
 
 /** Signing in is the way past the welcome page: a stand-in for Auth0's library. No server answers, so sync just waits. */
 async function signInPastWelcome(page) {
@@ -36,7 +37,11 @@ test.describe('a first visit, signed out', () => {
     await expect(page.locator('#welcome-signin')).toBeFocused();
     await expect(page.locator('#welcome-art svg')).toBeVisible(); // the patchwork picture
     // a new account from the hero and the end; Sign in from the top and the end
-    await expect(w.locator('[data-auth="signup"]')).toHaveText(['Start your first quilt', 'Create free account']);
+    await expect(w.locator('[data-auth="signup"]')).toHaveText([
+      'Start your first quilt',
+      'Draw your own',
+      'Create free account',
+    ]);
     await expect(w.locator('[data-auth="signin"]')).toHaveText(['Sign in', 'Sign in']);
     await expect(w.locator('.w-plan h3')).toHaveText(['Block', 'Bind']);
     await expect(w.locator('.w-plan .w-price')).toHaveText(['Free', 'Coming soon']); // no price until payments exist
@@ -51,6 +56,67 @@ test.describe('a first visit, signed out', () => {
     // who skipped it before it went away isn't sent back to it
     await skippedEarlier(page);
     await expect(w).toBeHidden();
+  });
+
+  test('the row of blocks: the real count, pieces and whole blocks change fabric, and the last card shows a block drawn', async ({
+    app,
+    page,
+  }) => {
+    await app.open();
+    const count = Object.values(PATTERNS).filter(p => !p.drawn).length;
+    await expect(page.locator('#welcome-blocks-title')).toHaveText(`${count} blocks to choose, or create your own`);
+    const blocks = page.locator('#welcome-rail .w-block:not(.own)');
+    await expect(blocks).toHaveCount(12);
+
+    // the blocks are different ones each time the page opens
+    const names = () => blocks.locator('b').allTextContents();
+    const first = await names();
+    expect(new Set(first).size).toBe(12);
+    await page.reload();
+    await expect(blocks).toHaveCount(12);
+    expect(await names()).not.toEqual(first);
+
+    const block = blocks.first();
+    const fills = () => block.locator('.w-piece').evaluateAll(ps => ps.map(p => p.getAttribute('fill')));
+    const before = await fills();
+    await block
+      .locator('svg')
+      .first()
+      .click({ position: { x: 40, y: 40 } });
+    const clicked = await fills();
+    expect(clicked.filter((f, i) => f !== before[i])).toHaveLength(1); // that one piece
+
+    await block.getByRole('button', { name: /^Try other fabrics on / }).click();
+    expect(await fills()).not.toEqual(clicked);
+
+    const rail = page.locator('#welcome-rail');
+    await rail.evaluate(r => r.scrollTo({ left: 0, behavior: 'instant' }));
+    await page.getByRole('button', { name: 'More blocks' }).click();
+    await expect.poll(() => rail.evaluate(r => r.scrollLeft)).toBeGreaterThan(0);
+
+    // the last card: the clip plays once it is on screen, and its picture and clip files are there
+    const clip = page.locator('#welcome-rail .own video');
+    expect(await clip.evaluate(v => fetch(v.poster).then(r => r.ok))).toBe(true);
+    await clip.scrollIntoViewIfNeeded();
+    await expect.poll(() => clip.evaluate(v => v.currentTime), { timeout: 20_000 }).toBeGreaterThan(0);
+  });
+
+  test('the mouse wheel over the row of blocks moves it sideways, then the page at its end', async ({ app, page }) => {
+    await app.open();
+    const rail = page.locator('#welcome-rail');
+    const welcome = page.locator('#welcome');
+    await rail.scrollIntoViewIfNeeded();
+    await rail.evaluate(r => r.scrollTo({ left: 0, behavior: 'instant' }));
+    await rail.hover();
+    const pageAt = await welcome.evaluate(w => w.scrollTop);
+
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => rail.evaluate(r => r.scrollLeft)).toBeGreaterThan(200);
+    expect(await welcome.evaluate(w => w.scrollTop)).toBe(pageAt); // the page stays put meanwhile
+
+    await rail.evaluate(r => r.scrollTo({ left: r.scrollWidth, behavior: 'instant' }));
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => welcome.evaluate(w => w.scrollTop)).toBeGreaterThan(pageAt);
   });
 
   test('the steps tell one story: their clips play one after another, and a step can be clicked', async ({
@@ -258,7 +324,7 @@ test.describe('a first visit, signed out', () => {
     await app.open();
     await skippedEarlier(page);
     const loaded = await page.evaluate(() => [...document.querySelectorAll('.welcome video')].map(v => v.readyState));
-    expect(loaded).toEqual(new Array(8).fill(0));
+    expect(loaded).toEqual(new Array(9).fill(0));
   });
 
   test('signed out, the account corner says Sign in, which brings the welcome page back', async ({ app, page }) => {

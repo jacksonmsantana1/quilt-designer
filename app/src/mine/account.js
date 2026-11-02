@@ -7,6 +7,7 @@ import './sync-ui.js'; // load order: runs after mine/sync-ui
 import { $ } from '../core/dom.js';
 import { onAccount, signInAndSync, signOutAndStop } from './sync-ui.js';
 import { t } from '@quilt/shared/i18n.js';
+import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 
 const SKIP_KEY = 'quilt-welcome.v1';
 const skipped = () => {
@@ -131,7 +132,9 @@ let clipWatch = null;
 function watchClips(on) {
   if (clipWatch) clipWatch.disconnect();
   clipWatch = null;
-  const clips = /** @type {NodeListOf<HTMLVideoElement>} */ ($('welcome').querySelectorAll('.w-card video'));
+  const clips = /** @type {NodeListOf<HTMLVideoElement>} */ (
+    $('welcome').querySelectorAll('.w-card video, .w-block video')
+  );
   if (!on) {
     for (const v of clips) v.pause();
     return;
@@ -248,6 +251,101 @@ function initStory() {
   };
 }
 
+// The row of blocks to play with: different ones at random each time the page opens, each in the page's colours (for a
+// block's background, main and accent pieces: places in C); Try other fabrics moves a block on to the next set.
+const RAIL_SIZE = 12;
+/** Blocks that show well on a small card: not a plain square, nor hundreds of tiny pieces. @param {string} key */
+const railSuits = key => {
+  const parts = partsOf(key);
+  return parts.length >= 4 && parts.length <= 64 && new Set(parts.map(p => p.role)).size >= 2;
+};
+/** @returns {string[]} */
+function railPicks() {
+  const keys = Object.keys(PATTERNS).filter(k => !PATTERNS[k].drawn);
+  const picks = [];
+  // shuffling only as far as needed: most blocks are never looked at
+  for (let i = 0; i < keys.length && picks.length < RAIL_SIZE; i++) {
+    const j = i + Math.floor(Math.random() * (keys.length - i));
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+    if (railSuits(keys[i])) picks.push(keys[i]);
+  }
+  return picks;
+}
+const RAIL_COLOURS = [
+  [3, 0, 2],
+  [3, 2, 0],
+  [3, 5, 0],
+  [3, 0, 1],
+  [2, 5, 3],
+  [3, 5, 2],
+  [1, 0, 3],
+  [3, 4, 2],
+];
+/** A block's fourth fabric and on take the colours its set doesn't use. @param {number} set @param {number} role */
+const railColour = (set, role) =>
+  RAIL_COLOURS[set][role] ?? C.map((_, c) => c).filter(c => !RAIL_COLOURS[set].includes(c))[role - 3];
+/** @param {string} key @param {number} i */
+function railBlock(key, i) {
+  const set = i % RAIL_COLOURS.length,
+    name = PATTERNS[key].label;
+  const pieces = partsOf(key)
+    .map(p => {
+      const c = railColour(set, p.role);
+      return `<polygon class="w-piece" data-role="${p.role}" data-c="${c}" fill="${C[c]}" points="${p.poly.map(([x, y]) => `${+x.toFixed(4)},${+y.toFixed(4)}`).join(' ')}"/>`;
+    })
+    .join('');
+  return (
+    `<div class="w-block" data-set="${set}"><svg viewBox="-.005 -.005 1.01 1.01" role="img" aria-label="${name}">${pieces}</svg>` +
+    `<div class="w-block-foot"><b>${name}</b><button type="button" class="w-block-try" aria-label="${t('Try other fabrics on {name}', { name })}" title="${t('Try other fabrics')}">` +
+    `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8A5 5 0 1 1 11.5 4.5M11.8 1.5V4.8H8.5"/></svg></button></div></div>`
+  );
+}
+/** Draws the row when the first page first shows. The number is counted: the blocks a person drew don't come with the app. */
+function fillBlockRail() {
+  const count = Object.values(PATTERNS).filter(p => !p.drawn).length;
+  $('welcome-blocks-title').textContent = t('{n} blocks to choose, or create your own', { n: count });
+  $('welcome-rail').insertAdjacentHTML('afterbegin', railPicks().map(railBlock).join(''));
+}
+function initBlockRail() {
+  const rail = $('welcome-rail');
+  // two cards at a time; the row's own smooth scrolling (none for people who ask for less motion)
+  const CARD = 252;
+  $('welcome-rail-back').addEventListener('click', () => rail.scrollBy({ left: -2 * CARD }));
+  $('welcome-rail-more').addEventListener('click', () => rail.scrollBy({ left: 2 * CARD }));
+  // the mouse wheel over the row moves it sideways; at either end the wheel scrolls the page again, so nobody gets stuck
+  rail.addEventListener(
+    'wheel',
+    e => {
+      if (e.ctrlKey || !e.deltaY || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // zoom, or already sideways
+      const end = rail.scrollWidth - rail.clientWidth;
+      if ((e.deltaY < 0 && rail.scrollLeft <= 0) || (e.deltaY > 0 && rail.scrollLeft >= end - 1)) return;
+      e.preventDefault();
+      const by = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY; // Firefox counts lines
+      rail.scrollBy({ left: by, behavior: 'instant' });
+    },
+    { passive: false },
+  );
+  rail.addEventListener('click', e => {
+    const el = /** @type {HTMLElement} */ (e.target);
+    const piece = el.closest('.w-piece');
+    if (piece) {
+      const next = (+(piece.getAttribute('data-c') || 0) + 1) % C.length;
+      piece.setAttribute('data-c', String(next));
+      piece.setAttribute('fill', C[next]);
+      return;
+    }
+    if (!el.closest('.w-block-try')) return;
+    const block = /** @type {HTMLElement} */ (el.closest('.w-block'));
+    const set = (+(block.dataset.set || 0) + 1) % RAIL_COLOURS.length;
+    block.dataset.set = String(set);
+    for (const p of block.querySelectorAll('.w-piece')) {
+      const c = railColour(set, +(p.getAttribute('data-role') || 0));
+      p.setAttribute('data-c', String(c));
+      p.setAttribute('fill', C[c]);
+    }
+  });
+}
+
 /** @param {boolean} on */
 function showWelcome(on) {
   $('welcome').hidden = !on;
@@ -256,6 +354,7 @@ function showWelcome(on) {
   if (!on) return;
   if (!$('welcome-art').firstChild)
     $('welcome-art').innerHTML = `${patchworkArt()}<p class="w-art-hint">${t('Click or tap a patch to turn it')}</p>`;
+  if (!$('welcome-blocks-title').firstChild) fillBlockRail();
   welcomeSays('');
   openMenu(false);
   $('welcome').scrollTop = 0;
@@ -279,6 +378,7 @@ function initAccount() {
   initCardRow();
   initStory();
   initPatchwork();
+  initBlockRail();
   // every Sign in / Create account button on the page; Auth0's window opens straight from the click (browsers block
   // windows opened later)
   for (const b of $('welcome').querySelectorAll('[data-auth]'))

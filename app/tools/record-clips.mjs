@@ -751,6 +751,71 @@ const CLIPS = {
     await browser.close();
   },
 
+  // The "Draw your own" card of the welcome page: a Sawtooth star drawn in the block editor, mirrored four ways. Square
+  // and close on the grid with the shapes and fabrics under it, and no words, so it suits every language.
+  async draw() {
+    const plain = () => newBlock('plain', [CREAM]);
+    const d = heroDesign({ corner: plain, edge: plain, inner: plain });
+    const { browser, page } = await openApp(d, { viewport: { width: 1000, height: 900 } });
+    await page.addStyleTag({
+      content: `
+      .drawblk { width: 490px !important; padding: 14px !important; overflow: hidden !important; }
+      .drawblk .dlg-head, #drawblk-mode, .drawblk-side > :not(#drawblk-cells-tools, :has(#drawblk-roles)), #drawblk-cells-tools .lbl, #drawblk-tools .wide, .drawblk-side .lbl, #drawblk-tools [data-tool="v"], #drawblk-tools [data-tool="<"], #drawblk-tools [data-tool=">"], .drawblk-role:nth-child(n + 4) { display: none !important; }
+      .drawblk-paper { width: 400px; margin: 0 auto; }
+      .drawblk-body { grid-template-columns: 1fr !important; gap: 12px !important; margin: 0 !important; }
+      .drawblk-side { flex-direction: row !important; align-items: center; justify-content: space-between; gap: 14px !important; }
+      #drawblk-cells-tools { flex: 1 1 0; }
+      #drawblk-tools button { height: 44px; padding: 0 !important; font-size: 1.2rem !important; }
+      .drawblk-role { width: 44px !important; height: 44px !important; }`,
+    });
+    const at0 = await blockSpot(page, d, 0);
+    await page.mouse.click(at0.x, at0.y);
+    await page.locator('#dz-patterns').hover();
+    await page.locator('#fab-more-float').click();
+    await page.locator('#blklib-draw').click();
+    await page.locator('#drawblk').waitFor();
+    await page.evaluate(() => {
+      const sym = document.getElementById('drawblk-sym'); // out of the picture
+      sym.value = 'mirror';
+      sym.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(400);
+    const box = await page.locator('#drawblk').boundingBox();
+    const side = Math.max(box.width, box.height) - 8; // inside the dialog's stitched edge
+    const clip = new Clip(page, 'draw', {
+      x: box.x + box.width / 2 - side / 2,
+      y: box.y + box.height / 2 - side / 2,
+      w: side,
+      h: side,
+    });
+    clip.square = true;
+    await clip.start();
+    await clip.hold(500);
+    const grid = await page.locator('#drawblk-canvas').boundingBox();
+    const cell = (x, y) => [grid.x + (x / 4) * grid.width, grid.y + (y / 4) * grid.height];
+    const pick = async selector => {
+      await clip.moveTo(page.locator(selector), 420);
+      await clip.click();
+    };
+    const place = async (x, y) => {
+      await clip.move(...cell(x, y), 420);
+      await clip.click();
+      await clip.hold(220);
+    };
+    await pick('#drawblk-roles [data-role="1"]');
+    await pick('#drawblk-tools [data-tool="\\\\"]');
+    await place(1.2, 0.8); // the star's points at the top, and by the mirror at the bottom
+    await place(0.8, 1.2); // its points at the sides
+    await pick('#drawblk-roles [data-role="2"]');
+    await pick('#drawblk-tools [data-tool="s"]');
+    await place(1.5, 1.5); // its middle
+    await clip.move(box.x + box.width + 40, box.y + box.height + 40, 400);
+    await clip.hold(1500);
+    clip.encode();
+    await browser.close();
+  },
+
   // Pick blocks (every pick lands in all its mirror places at once), then swap a fabric: the whole quilt follows.
   async block() {
     const plain = () => newBlock('plain', [CREAM]);
@@ -1184,4 +1249,4 @@ const CLIPS = {
 
 fs.mkdirSync(WORK, { recursive: true });
 const asked = process.argv.slice(2);
-for (const name of asked.length ? asked : ['story', 'block', 'cut', 'fabric', 'bed']) await CLIPS[name]();
+for (const name of asked.length ? asked : ['story', 'draw', 'block', 'cut', 'fabric', 'bed']) await CLIPS[name]();
