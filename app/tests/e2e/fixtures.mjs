@@ -1,6 +1,7 @@
 // Shared set-up for the browser tests: serves the built page (quilt.html) at http://x/ with the three.js
 // libraries from node_modules, so the tests need no network. Also helpers that read the app's state.
 import { test as base, expect } from '@playwright/test';
+import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { blockPlace, quiltMm } from '@quilt/shared/geometry.js';
@@ -17,8 +18,19 @@ const LIBS = [
   [/three-mesh-bvh@0\.9\.14\/(.*)$/, 'three-mesh-bvh'],
   [/three-gpu-pathtracer@0\.0\.24\/(.*)$/, 'three-gpu-pathtracer'],
 ];
-let html = null;
-const pageHtml = () => (html ??= fs.readFileSync(path.join(ROOT, 'quilt.html'), 'utf8'));
+// The page as the host serves it: with the security policy the build wrote. The tests bring a stand-in for Auth0's
+// library, so its fingerprint comes out of the import map, and the map's own fingerprint in the policy changes with it.
+let served = null;
+function servedPage() {
+  if (served) return served;
+  const built = fs.readFileSync(path.join(ROOT, 'quilt.html'), 'utf8');
+  const body = fs.readFileSync(path.join(ROOT, 'dist', '_headers'), 'utf8').match(/Content-Security-Policy: (.*)/)[1];
+  const mapOf = s => /<script type="importmap">([\s\S]*?)<\/script>/.exec(s)[1];
+  const sha = s => `'sha256-${createHash('sha256').update(s).digest('base64')}'`;
+  const html = built.replace(/\s*"[^"]*auth0-spa-js[^"]*": "sha384-[^"]*",/, '');
+  served = { html, csp: body.replace(sha(mapOf(built)), sha(mapOf(html))) };
+  return served;
+}
 
 export const test = base.extend({
   // set `firstVisit: true` in a test file to see the guided tour start by itself
@@ -58,7 +70,12 @@ export const test = base.extend({
       if (u.startsWith('https://fonts.')) return r.fulfill({ body: '', contentType: 'text/css' });
       if (u.startsWith(origin + '/assets/'))
         return r.fulfill({ path: path.join(ROOT, u.slice(origin.length + 1).split('#')[0]) });
-      if (u.startsWith(origin + '/')) return r.fulfill({ body: pageHtml(), contentType: 'text/html' });
+      if (u.startsWith(origin + '/'))
+        return r.fulfill({
+          body: servedPage().html,
+          contentType: 'text/html',
+          headers: { 'content-security-policy': servedPage().csp },
+        });
       if (u.startsWith('http://127.0.0.1:')) return r.continue(); // a real API server started by a test (sync.spec)
       return r.abort();
     });

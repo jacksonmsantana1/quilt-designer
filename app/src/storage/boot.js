@@ -5,7 +5,9 @@ import * as repo from './repo.js';
 import { flush, isPersistent, onStorageError, openStorage } from './repo.js';
 import { notify } from '../ui/notice.js';
 import { t } from '@quilt/shared/i18n.js';
+import { startErrorReports } from '../ui/error-reports.js';
 
+startErrorReports();
 onStorageError(() =>
   notify(t('Your quilt could not be saved: this browser’s storage for the page may be full. Delete some old designs.')),
 );

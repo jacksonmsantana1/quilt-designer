@@ -126,6 +126,15 @@ function registerDrawn(key, def) {
   PATTERNS[key] = { label: def.label, family: DRAWN_FAMILY, drawn: true, def, parts: () => gridParts(def) };
 }
 
+/** Makes the app forget every drawn block (the server: see server/src/read-quilt.js). */
+function forgetDrawn() {
+  for (const [key, p] of Object.entries(PATTERNS))
+    if (p.drawn) {
+      delete PATTERNS[key];
+      delete PCACHE[key];
+    }
+}
+
 /**
  * A quilt's drawings checked and made known: the good ones (registered as patterns), and how many were left out.
  * A drawing is left out when it can't be drawn or isn't stored under its own key.
@@ -148,4 +157,4 @@ function readDrawn(raw) {
   return { drawn, lost };
 }
 
-export { DRAWN_FAMILY, checkDrawn, drawnKey, readDrawn, registerDrawn, tidyRows };
+export { DRAWN_FAMILY, checkDrawn, drawnKey, forgetDrawn, readDrawn, registerDrawn, tidyRows };

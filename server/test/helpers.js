@@ -22,7 +22,7 @@ export async function setup(env = {}, makeStore = () => memoryStore(), keys) {
   await admin.query(`create database ${name}`);
   const url = new URL(ADMIN_URL);
   url.pathname = '/' + name;
-  const config = loadConfig({ NODE_ENV: 'test', DATABASE_URL: url.toString(), ...env });
+  const config = loadConfig({ NODE_ENV: 'test', AUTH_MODE: 'dev', DATABASE_URL: url.toString(), ...env });
   const pool = createPool(config.databaseUrl);
   await migrate(pool);
   const store = makeStore(config);
