@@ -1,7 +1,7 @@
 // Fingerprints of the libraries the page loads from the CDN, for the page's import map (build.py). The browser
 // refuses a library that doesn't match, so a tampered file on the CDN can't run in the page. They are worked out
 // from the same versions in node_modules, following the imports from the built app.
-//   node tools/import-integrity.mjs   prints { integrity: { url: hash }, prefixes: [url] } (run from app/)
+//   node tools/import-integrity.mjs [bundle]   prints { integrity: { url: hash }, prefixes: [url] } (run from app/)
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -46,7 +46,7 @@ const walk = url => {
 };
 
 walk(AUTH0);
-for (const [, name] of fs.readFileSync(path.join('dist', 'app.js'), 'utf8').matchAll(IMPORT)) {
+for (const [, name] of fs.readFileSync(process.argv[2] || path.join('dist', 'app.js'), 'utf8').matchAll(IMPORT)) {
   const url = resolve(name);
   if (url) walk(url);
 }
