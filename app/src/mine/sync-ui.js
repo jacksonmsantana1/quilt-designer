@@ -5,7 +5,7 @@ import '../timeline/timeline.js'; // load order: runs after timeline/timeline
 import { $ } from '../core/dom.js';
 import { design, mineCur, setMineCur } from '../core/store.js';
 import { createSync } from '../storage/sync.js';
-import { signIn, signInToken, signOut } from '../storage/auth0.js';
+import { API_URL, signIn, signInToken, signOut, tokenMayGoTo } from '../storage/auth0.js';
 import { onChange, repo } from '../storage/repo.js';
 import { notify } from '../ui/notice.js';
 import { openDesign } from '../designer/dispatch.js';
@@ -25,7 +25,13 @@ let arrived = [];
 
 /** what wants to know when the account or sync state changes (onAccount) @type {((c: any, s: import('../storage/sync.js').SyncStatus) => void)[]} */
 const watchers = [];
-const sync = createSync({ repo, onRemote: e => arrived.push(e), onStatus: showStatus, getToken: signInToken });
+// no token (so "please sign in") for an address it may not go to: one saved earlier, say
+const sync = createSync({
+  repo,
+  onRemote: e => arrived.push(e),
+  onStatus: showStatus,
+  getToken: async () => (tokenMayGoTo(sync.config()?.url) ? signInToken() : null),
+});
 
 const time = at => new Date(at).toLocaleTimeString([getLang()], { hour: '2-digit', minute: '2-digit' });
 /** @param {import('../storage/sync.js').SyncStatus} s */
@@ -52,7 +58,7 @@ function showStatus(s) {
 
 // ---- signing in and out, shared by the sync card, the welcome page and the account corner (mine/account.js)
 /** the quilt server signing in uses when none was set up on this device */
-const DEFAULT_SERVER = 'http://localhost:8787';
+const DEFAULT_SERVER = API_URL || 'http://localhost:8787';
 /** Calls fn now and whenever the account or sync state changes. @param {(typeof watchers)[number]} fn */
 function onAccount(fn) {
   watchers.push(fn);
@@ -63,6 +69,7 @@ function onAccount(fn) {
  * to show, or '' when signed in. @param {{ url?: string, signup?: boolean }} [o] @returns {Promise<string>}
  */
 async function signInAndSync({ url, signup = false } = {}) {
+  if (url && !tokenMayGoTo(url)) return t('Sign-in only works with this app’s own server.');
   let who;
   try {
     who = await signIn({ signup });
@@ -72,7 +79,8 @@ async function signInAndSync({ url, signup = false } = {}) {
       ? t('Sign-in was closed before it finished.')
       : t("Couldn't sign in: {why}", { why: e?.message || e });
   }
-  sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
+  const saved = sync.config()?.url;
+  sync.configure({ url: url || (tokenMayGoTo(saved) ? saved : DEFAULT_SERVER), auth0: who.sub, who: who.who });
   accountChanged();
   run();
   return '';

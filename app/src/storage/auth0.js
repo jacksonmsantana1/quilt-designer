@@ -10,6 +10,21 @@ const AUTH0 = {
   audience: 'https://api.quilt-designer',
 };
 const LIBRARY = 'https://cdn.jsdelivr.net/npm/@auth0/auth0-spa-js@2.28.4/dist/auth0-spa-js.production.esm.js';
+/** The app's quilt server on the internet, once it has one ('' until then: only a server on this computer). */
+const API_URL = '';
+
+/**
+ * Whether a sign-in token may be sent to an address: only to the app's own server or one on this computer, so a
+ * mistyped or suggested address can't collect it. @param {any} url @param {string} [api] @returns {boolean}
+ */
+function tokenMayGoTo(url, api = API_URL) {
+  try {
+    const u = new URL(url);
+    return ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname) || (!!api && u.origin === new URL(api).origin);
+  } catch (e) {
+    return false;
+  }
+}
 
 /** @type {Promise<any> | null} */
 let client = null;
@@ -77,4 +92,4 @@ async function signOut() {
   if (c) await c.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
 }
 
-export { AUTH0, signIn, signInToken, signOut };
+export { API_URL, AUTH0, signIn, signInToken, signOut, tokenMayGoTo };

@@ -50,6 +50,11 @@ function serverSays(json, status, otherwise = t('The server answered {status}.',
     wrong_image: t('The uploaded image is not the one this fabric id names.'),
     author_email: t('The author name is shown to everyone: please don’t use an email.'),
     photos_missing: t('Some of its fabric photos are not on the server yet: sync first.'),
+    rate_limited: t('Too many requests. Please wait a moment.'),
+    storage_full: t('There is no more room in this account.'),
+    too_large: t('This quilt is too large to share with the community.'),
+    share_blocked: t('This account can no longer share with the community.'),
+    taken_down: t('This quilt was taken down from the community.'),
   };
   return byCode[json?.error] ?? otherwise;
 }
@@ -159,7 +164,8 @@ function createSync({
     }
     const json = await r.json().catch(() => null);
     if (r.status === 401) throw new StopSync('login', serverSays(json, r.status, t('Not signed in.')));
-    if (r.status >= 500) throw new StopSync('error', serverSays(json, r.status));
+    // too many requests: stop here, nothing is lost, and the next sync carries on
+    if (r.status >= 500 || r.status === 429) throw new StopSync('error', serverSays(json, r.status));
     return { status: r.status, body: json };
   }
 
