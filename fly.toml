@@ -1,0 +1,36 @@
+# The API on Fly.io (server/README.md, "Going live"). The secrets (DATABASE_URL, the storage keys...) are not here:
+# `fly secrets set` keeps them. Change `app` if the name is taken: it decides the API's address.
+app = "block-and-bind-api"
+primary_region = "gru" # São Paulo
+
+[build]
+  dockerfile = "server/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8787"
+  STORAGE = "s3"
+  S3_REGION = "auto"
+  S3_FORCE_PATH_STYLE = "false"
+  # Fly's proxy always sets this one itself, so nobody can send their own to escape the limits
+  CLIENT_IP_HEADER = "fly-client-ip"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # always on, so nobody waits for it to wake. One machine: the request limits are kept in its memory
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  # /alive, not /health: asking the database every few seconds would never let it sleep, and it is paid by the hour
+  [[http_service.checks]]
+    method = "GET"
+    path = "/alive"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
