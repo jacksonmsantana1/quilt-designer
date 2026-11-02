@@ -38,7 +38,9 @@ Server tests and `app/tests/e2e/sync.spec.mjs` need PostgreSQL: `TEST_DATABASE_U
 `postgres://postgres@localhost:5433/postgres?host=/tmp`). With docker compose:
 `TEST_DATABASE_URL=postgres://quilt:quilt@localhost:5432/postgres`. sync.spec skips itself without a database.
 
-Everything must stay green: `npm run check` with zero lint warnings, and all browser tests.
+Everything must stay green: `npm run check` with zero lint warnings, and all browser tests. GitHub runs the same
+checks on every pull request and every change to main (`.github/workflows/ci.yml`), and also that the committed
+`app/quilt.html` is the build of the code next to it.
 
 ## Rules of the front end (app/src)
 
