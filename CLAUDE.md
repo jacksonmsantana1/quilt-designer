@@ -49,8 +49,8 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   `node app/tools/chain.mjs list | insert <mod> after <prev> | unchain <mod>`. `storage/boot.js` is first: its
   top-level `await` loads IndexedDB before anything else runs.
 - **Pure modules** (no side effects when loaded, importable in Node): `@quilt/shared/*`, `core/edits`,
-  `core/symmetry`, `core/store`, `core/dom`, `cutting/plan`, `storage/*` except boot, the `*-state.js` modules,
-  `ui/notice`. Keep them pure; unit tests import them directly.
+  `core/symmetry`, `core/store`, `core/dom`, `core/quilt-sig`, `cutting/plan`, `render/relief`, `storage/*` except
+  boot, the `*-state.js` modules, `ui/notice`. Keep them pure; unit tests import them directly.
 - **Edits are pure functions** `(design, ...args) => newDesign` (core/edits.js, core/symmetry.js): never mutate,
   share unchanged blocks, return the same object when nothing changes. The UI applies them only through
   `dispatch(edit, ...args)` (designer/dispatch.js), which mirrors (symmetry), repairs large blocks, saves, records
@@ -90,12 +90,20 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   reloads), so `t()` works in module-level constants. Saved quilts don't depend on it: piece names stay English in
   `design.drawn` and are translated when read (`partsOf`); `PATTERNS[k].family` stays English for the code (`t(family)`
   to show it). Node always starts in English, and the browser tests run in English except `i18n.spec.mjs`.
+- **Realistic picture** (`sim/picture.js`, button and card `sim/picture-ui.js`, room `sim/bedroom.js`, fine quilt
+  `sim/quilt-hero.js` + pure `render/relief.js`): made in the background on the person's own computer, with its own
+  copy of the physics and its own hidden WebGL context, from the design as it was when asked for; the live view and the
+  Photo render don't use any of this. Pictures are kept by the quilt's fingerprint (`core/quilt-sig.js`) in their own
+  IndexedDB database (`storage/pictures.js`), never synced; sharing a quilt sends its picture, or makes one and sends it
+  when ready (`mine/community.js`). The page must stay open. Don't call `getProgramInfoLog` for the path tracer: three's
+  shader check (`renderer.debug.checkShaderErrors`) holds the whole page up for ~15 s, hence off on the picture's renderer.
 - **Style**: Prettier (120 cols, single quotes). Comments say why in plain words. UI text is short and friendly.
 
 ## Server (server/)
 
 - Fastify; request bodies validated by JSON schema (unknown fields refused); errors `{ error, message }`.
-- Tables (migrations/001_init.sql): users, designs (PK owner_id + id, `doc` jsonb), fabrics (PK owner_id + id).
+- Tables (migrations/): users, designs (PK owner_id + id, `doc` jsonb), fabrics (PK owner_id + id), shared_designs
+  (with its realistic picture's `picture_key`, dropped when a changed quilt is shared).
   `rev` per record (409 on a stale baseRev), `seq` from one sequence per write, each user's writes serialized by
   `lockOwner` so sync by `seq` never misses a change. Deleted rows stay as markers.
 - Photos: signed upload link to a fresh `uploads/...` key, then `done` re-hashes and copies to `fabrics/...`.
@@ -130,6 +138,9 @@ popup may not open from inside claude.ai's frame: untested.
   provider, the owner's prices, and a decision on what happens to free accounts' synced designs.
 - The welcome page no longer offers "Continue without an account" (the owner's choice): a new visitor must sign in,
   which needs Auth0 and the API online. People who skipped earlier keep their `quilt-welcome.v1` and go straight in.
+- The makers' row on the welcome page (`BRANDS` in `mine/account.js`) shows logos taken from the makers' own websites
+  (`app/assets/brands`). No permission has been asked for yet, and the app's 1500 fabrics are drawn by code, not those
+  makers' fabrics: the heading and the logos need real fabrics and the makers' permission before the page goes public.
 - Block editor: drawn blocks can't be deleted from My blocks yet; drawing needs a pointer (no keyboard way).
 - The "Add fabric photos" button sits in a section that is always hidden, so people can't add their own fabrics
   (tests reach it through the code). Proposed: a "+ Add fabric" tile at the end of the fabric list (photo file).
@@ -138,9 +149,6 @@ popup may not open from inside claude.ai's frame: untested.
 - Undo timelines are all loaded into memory at start; load per design if people have hundreds of designs.
 - Later: "fabrics like this one" with pgvector (image embeddings in a background job) and dominant-colour palettes.
 - Parked by the owner: tests for the photo render, the 3D camera/controls and the guided tour.
-- The makers' row on the welcome page (`BRANDS` in `mine/account.js`) shows logos taken from the makers' own websites
-  (`app/assets/brands`). No permission has been asked for yet, and the app's 1500 fabrics are drawn by code, not those
-  makers' fabrics: the heading and the logos need real fabrics and the makers' permission before the page goes public.
 
 ## Commits
 

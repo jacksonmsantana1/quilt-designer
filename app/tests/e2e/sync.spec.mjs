@@ -581,3 +581,51 @@ test("Community draws a shared quilt in its own fabrics, even ones this browser 
   });
   expect(lum).toBeLessThan(90);
 });
+
+test('a quilt shared without a picture gets one made, and everyone sees it', async ({ app, page }) => {
+  test.setTimeout(240_000);
+  await app.open();
+  await connectAs(page, 'e2e-pic');
+  // very little, on the renderer that works without a graphics card; this test does want the picture made
+  await page.evaluate(() => {
+    globalThis.__noAutoPicture = false;
+    globalThis.__pictureQuality = 1;
+    const e = document.getElementById('engine');
+    e.value = 'raster';
+    e.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.getByRole('tab', { name: 'Quilt designer' }).click();
+  await page.locator('#dz-quilting').selectOption('fans'); // a quilt of this person's own
+  await page.locator('#dz-share').click();
+  await expect(page.locator('#share-note')).toContainText('A realistic picture of it is made on this computer');
+  await page.locator('#share-name').fill('Pictured star');
+  await page.locator('#share-author').fill('Pia');
+  await page.locator('#share-ok').click();
+  await expect(page.locator('#share-dlg')).toBeHidden({ timeout: 15_000 });
+  await expect(page.locator('#pic-job')).toBeVisible();
+  // shared at once, the picture following when it is ready
+  await expect(page.locator('#notice')).toContainText('Your realistic picture is ready', { timeout: 200_000 });
+  await expect
+    .poll(
+      async () =>
+        (await pool.query("select picture_key from shared_designs where name = 'Pictured star'")).rows[0].picture_key,
+      { timeout: 20_000 },
+    )
+    .toMatch(/^pictures[/]/);
+  // on the Community page: the picture, with the quilt's own drawing in its corner; a click shows it large
+  await page.getByRole('tab', { name: 'Community' }).click();
+  const card = page.locator('#com-grid .pin', { hasText: 'Pictured star' });
+  await expect(card.locator('.pin-inset')).toBeVisible();
+  await card.locator('.pin-photo').scrollIntoViewIfNeeded();
+  await expect.poll(() => card.locator('.pin-photo').evaluate(i => i.naturalWidth)).toBe(1500);
+  await card.locator('.pin-photo').click();
+  await expect(page.locator('#pic-dlg')).toBeVisible();
+  await expect.poll(() => page.locator('#pic-img').evaluate(i => i.naturalWidth)).toBe(1500);
+  await page.locator('#pic-close').click();
+  // shared again: the dialog says the picture goes with it
+  await page.getByRole('tab', { name: 'Quilt designer' }).click();
+  await page.locator('#dz-share').click();
+  await expect(page.locator('#share-note')).toContainText('Its realistic picture is shared too');
+  await expect(page.locator('#share-cv')).toHaveJSProperty('tagName', 'IMG');
+  await page.locator('#share-cancel').click();
+});

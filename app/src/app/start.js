@@ -12,6 +12,7 @@ import { BUNDLED, useSwatches } from '../sim/patchwork.js';
 import { resize } from '../sim/camera.js';
 import { initFabricLib } from '../designer/fabric-library.js';
 import { syncSimulation } from '../sim/design-maps.js';
+import { pictureHooks } from '../sim/picture-state.js';
 import { showPage } from './pages.js';
 import { fitSimSide } from './layout.js';
 import { frame } from './loop.js';
@@ -46,6 +47,7 @@ else showPage('design');
       setActiveFabric(activeFabric || 'b0');
     }
     syncSimulation();
+    pictureHooks.designChanged(); // the realistic picture's button can now tell whether this quilt has one
   } catch (e) {
     $('loading').textContent = t('Some photos or lighting could not load. Showing a plain preview.');
     setTimeout(() => {

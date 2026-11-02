@@ -27,12 +27,24 @@ designNormalCanvas.width = designNormalCanvas.height = 1024;
 setDesignNormalTex(new THREE.CanvasTexture(designNormalCanvas));
 designNormalTex.colorSpace = THREE.NoColorSpace;
 designNormalTex.anisotropy = maxAniso;
+const BINDING_MM = 12.7; // ½-inch indigo cotton
+function paintBinding(g, W, H, d = design) {
+  const quiltCm = quiltMm(d).W / 10,
+    bw = W * (BINDING_MM / 10 / quiltCm);
+  g.save();
+  g.beginPath();
+  g.rect(0, 0, W, H);
+  g.rect(bw, bw, W - 2 * bw, H - 2 * bw);
+  g.clip('evenodd');
+  g.fillStyle = fabricFill(g, fabricById('b1'), W / quiltCm, 3);
+  g.fillRect(0, 0, W, H);
+  g.restore();
+}
 function buildDesignMaps() {
   const qm = quiltMm(design);
   setQuiltDims(qm.W / 1000, qm.H / 1000);
   const W = patchCanvas.width,
-    H = patchCanvas.height,
-    quiltCm = qm.W / 10;
+    H = patchCanvas.height;
   const g = patchCanvas.getContext('2d');
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.globalCompositeOperation = 'source-over';
@@ -46,16 +58,7 @@ function buildDesignMaps() {
   g.imageSmoothingQuality = 'high';
   g.drawImage(cav, 0, 0, W, H);
   g.globalCompositeOperation = 'source-over';
-  // binding: ½-inch (12.7 mm) indigo cotton
-  const bw = W * (1.27 / quiltCm);
-  g.save();
-  g.beginPath();
-  g.rect(0, 0, W, H);
-  g.rect(bw, bw, W - 2 * bw, H - 2 * bw);
-  g.clip('evenodd');
-  g.fillStyle = fabricFill(g, fabricById('b1'), W / quiltCm, 3);
-  g.fillRect(0, 0, W, H);
-  g.restore();
+  paintBinding(g, W, H);
   patchTex.needsUpdate = true;
   // quilting relief -> normal map
   const NW = designNormalCanvas.width,
@@ -142,4 +145,4 @@ function syncSimulation() {
       : t('Simulation up to date');
 }
 
-export { designNormalCanvas, restoreBacking, scheduleSync, syncSimulation };
+export { BINDING_MM, designNormalCanvas, paintBinding, restoreBacking, scheduleSync, syncSimulation };

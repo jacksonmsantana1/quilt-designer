@@ -5,6 +5,7 @@ import { readDesign, readDesignOrDefault } from '@quilt/shared/format.js';
 import { notify } from '../ui/notice.js';
 import { getSession, setSession } from '../storage/repo.js';
 import { scheduleSync } from '../sim/design-maps.js';
+import { pictureHooks } from '../sim/picture-state.js';
 import { t } from '@quilt/shared/i18n.js';
 
 // ---- design state
@@ -22,6 +23,7 @@ function saveDesign() {
   if (readOnly) return; // a design from a newer version of the app: never saved over
   setSession('current', design);
   scheduleSync();
+  pictureHooks.designChanged();
 }
 
 export { loadDesign, saveDesign };

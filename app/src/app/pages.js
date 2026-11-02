@@ -1,5 +1,5 @@
 // Pages and tabs.
-import '../render/quilting.js'; // load order: runs after render/quilting
+import '../sim/picture-ui.js'; // load order: runs after sim/picture-ui
 import { design, setActiveFabric } from '../core/store.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';

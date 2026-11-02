@@ -1,7 +1,9 @@
 // Quilts shared with the community. The owner shares a copy of one of their designs (PUT, again to update it) and
 // can stop sharing (DELETE); anyone, signed in or not, can list them (GET /v1/community, newest first). A shared
 // quilt shows the author name its owner chose, never their email. Its fabric photos come with signed links, so
-// viewers see them (and can keep a copy when they copy the quilt).
+// viewers see them (and can keep a copy when they copy the quilt). Its realistic picture goes up like a photo: a signed
+// link to a fresh place, then `done` checks it and moves it to its lasting place.
+import { randomUUID } from 'node:crypto';
 import { readDesign } from '@quilt/shared/format.js';
 import { ApiError } from '../records.js';
 
@@ -14,6 +16,9 @@ const designIdParam = {
 };
 const PHOTO_ID = /^f[0-9a-f]{24}$/;
 const PAGE = 30;
+const MAX_PICTURE_BYTES = 8 * 1024 * 1024;
+/** Whether these bytes start the way a JPEG image does. @param {Uint8Array} b */
+const isJpeg = b => b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 
 /** The photo fabrics a quilt uses: every string in it that is a photo's id. @param {any} doc @returns {string[]} */
 function photoIds(doc) {
@@ -52,6 +57,7 @@ export function communityRoutes(app, pool, store) {
       mine: !!me && r.owner_id === me,
       sharedAt: new Date(r.shared_at).getTime(),
       updatedAt: new Date(r.updated_at).getTime(),
+      pictureUrl: r.picture_key ? await store.downloadUrl(r.picture_key) : undefined,
       fabrics: await Promise.all(
         photos.map(async f => ({ id: f.id, name: f.name, cm: f.cm, url: await store.downloadUrl(f.object_key) })),
       ),
@@ -176,15 +182,25 @@ export function communityRoutes(app, pool, store) {
             },
           );
       }
+      // a changed quilt no longer looks like its picture: the picture goes, until the new one arrives
+      const stale = (
+        await pool.query(
+          `select picture_key from shared_designs
+           where owner_id = $1 and design_id = $2 and doc <> $3::jsonb and picture_key is not null`,
+          [req.user.id, req.params.designId, JSON.stringify(r.design)],
+        )
+      ).rows[0]?.picture_key;
       const { rows } = await pool.query(
         `insert into shared_designs (owner_id, design_id, name, author, doc, fabric_ids)
          values ($1, $2, $3, $4, $5, $6)
          on conflict (owner_id, design_id) do update
            set name = excluded.name, author = excluded.author, doc = excluded.doc,
-               fabric_ids = excluded.fabric_ids, updated_at = now()
+               fabric_ids = excluded.fabric_ids, updated_at = now(),
+               picture_key = case when shared_designs.doc = excluded.doc then shared_designs.picture_key end
          returning *, (xmax = 0) as created`,
         [req.user.id, req.params.designId, name, author, r.design, ids],
       );
+      if (stale) await store.remove(stale);
       reply.code(rows[0].created ? 201 : 200);
       return { item: await sharedRecord(rows[0], req.user.id) };
     },
@@ -192,13 +208,77 @@ export function communityRoutes(app, pool, store) {
 
   // Stop sharing one of my designs.
   app.delete('/v1/shared/:designId', { schema: { params: designIdParam } }, async (/** @type {Req} */ req) => {
-    const { rowCount } = await pool.query('delete from shared_designs where owner_id = $1 and design_id = $2', [
+    const { rows } = await pool.query(
+      'delete from shared_designs where owner_id = $1 and design_id = $2 returning picture_key, picture_upload_key',
+      [req.user.id, req.params.designId],
+    );
+    if (!rows.length) throw new ApiError(404, 'not_found', 'That design is not shared.');
+    for (const key of [rows[0].picture_key, rows[0].picture_upload_key]) if (key) await store.remove(key);
+    return { ok: true };
+  });
+
+  /** My shared copy of this design, or a refusal. */
+  async function myShared(req) {
+    const { rows } = await pool.query('select * from shared_designs where owner_id = $1 and design_id = $2', [
       req.user.id,
       req.params.designId,
     ]);
-    if (!rowCount) throw new ApiError(404, 'not_found', 'That design is not shared.');
-    return { ok: true };
-  });
+    if (!rows.length) throw new ApiError(404, 'not_found', 'That design is not shared.');
+    return rows[0];
+  }
+
+  // The realistic picture of one of my shared quilts: a signed link to upload it to.
+  app.post(
+    '/v1/shared/:designId/picture/upload',
+    {
+      schema: {
+        params: designIdParam,
+        body: {
+          type: 'object',
+          required: ['type', 'bytes'],
+          additionalProperties: false,
+          properties: {
+            type: { type: 'string', enum: ['image/jpeg'] },
+            bytes: { type: 'integer', minimum: 1, maximum: MAX_PICTURE_BYTES },
+          },
+        },
+      },
+    },
+    async (/** @type {Req} */ req) => {
+      const row = await myShared(req);
+      // every upload goes to a new place, so a link can never change a picture already checked
+      const key = `uploads/${req.user.id}/picture-${randomUUID()}`;
+      await pool.query('update shared_designs set picture_upload_key = $1 where id = $2', [key, row.id]);
+      if (row.picture_upload_key) await store.remove(row.picture_upload_key);
+      return { status: 'upload', ...(await store.uploadUrl(key, req.body)) };
+    },
+  );
+
+  // The picture is uploaded: the server reads it back, checks it is a picture, and only then shows it to everyone.
+  app.post(
+    '/v1/shared/:designId/picture/done',
+    { schema: { params: designIdParam } },
+    async (/** @type {Req} */ req) => {
+      const row = await myShared(req);
+      if (!row.picture_upload_key) throw new ApiError(404, 'not_found', 'Ask for an upload link first.');
+      const bytes = await store.get(row.picture_upload_key);
+      if (!bytes) throw new ApiError(409, 'not_uploaded', 'The picture has not been uploaded yet.');
+      if (bytes.length > MAX_PICTURE_BYTES || !isJpeg(bytes)) {
+        await store.remove(row.picture_upload_key);
+        await pool.query('update shared_designs set picture_upload_key = null where id = $1', [row.id]);
+        throw new ApiError(400, 'not_a_picture', 'That file is not a JPEG picture of a suitable size.');
+      }
+      const key = `pictures/${row.id}/${randomUUID()}.jpg`;
+      await store.copy(row.picture_upload_key, key);
+      const { rows } = await pool.query(
+        'update shared_designs set picture_key = $1, picture_upload_key = null where id = $2 returning *',
+        [key, row.id],
+      );
+      await store.remove(row.picture_upload_key);
+      if (row.picture_key) await store.remove(row.picture_key);
+      return { item: await sharedRecord(rows[0], req.user.id) };
+    },
+  );
 }
 
 export { photoIds };

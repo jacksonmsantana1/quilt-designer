@@ -129,16 +129,27 @@ function upsample() {
   qGeo.attributes.position.needsUpdate = true;
   qGeo.computeVertexNormals();
   if (!aGeo.attributes.normal) aGeo.setAttribute('normal', qGeo.attributes.normal);
-  const n = qGeo.attributes.normal.array,
-    h = Math.max(0.003, state.params.thickness) / 2;
-  const tp = topGeo.attributes.position.array,
-    bp = botGeo.attributes.position.array;
+  layQuilt(qPos, qGeo.attributes.normal.array, Math.max(0.003, state.params.thickness) / 2, {
+    top: topGeo.attributes.position.array,
+    back: botGeo.attributes.position.array,
+    binding: bindGeo.attributes.position.array,
+  });
+  for (const g of [topGeo, botGeo, bindGeo]) {
+    g.attributes.position.needsUpdate = true;
+    g.computeVertexNormals();
+    g.computeBoundingSphere();
+  }
+}
+/** A backing and a binding of the same make as the quilt on show's, for another copy of it (the realistic picture). */
+const newBackAndBinding = () => ({ back: dynGeo(R * R, qIdxRev, qUv), binding: dynGeo(PL * PROF, bindIdx, bindUv) });
+/** The top, backing and binding laid around a mid-surface with these normals, each half-thickness h from it. */
+function layQuilt(qPos, n, h, layers) {
+  const { top: tp, back: bp, binding: bpos } = layers;
   for (let k = 0; k < R * R * 3; k++) {
     tp[k] = qPos[k] + n[k] * h;
     bp[k] = qPos[k] - n[k] * h;
   }
   // binding: half-round profile from the top face, out past the edge, to the backing
-  const bpos = bindGeo.attributes.position.array;
   for (let k = 0; k < PL; k++) {
     const [i, j] = perim[k],
       v = j * R + i;
@@ -169,11 +180,6 @@ function upsample() {
       bpos[o + 2] = qPos[3 * v + 2] + nz * c + oz * sn;
     }
   }
-  for (const g of [topGeo, botGeo, bindGeo]) {
-    g.attributes.position.needsUpdate = true;
-    g.computeVertexNormals();
-    g.computeBoundingSphere();
-  }
 }
 
 const handMat = new THREE.MeshStandardMaterial({ color: 0xd9a37e, roughness: 0.6 });
@@ -185,4 +191,16 @@ const handMeshes = [0, 1, 2].map(() => {
   return m;
 });
 
-export { handMeshes, qGeo, quiltBind, quiltBot, quiltTop, simPos, subdivide, updateBindUv, upsample };
+export {
+  handMeshes,
+  layQuilt,
+  newBackAndBinding,
+  qGeo,
+  quiltBind,
+  quiltBot,
+  quiltTop,
+  simPos,
+  subdivide,
+  updateBindUv,
+  upsample,
+};

@@ -79,4 +79,4 @@ async function applyLook() {
   }
 }
 
-export { applyLook, look };
+export { applyLook, loadHdri, look };
