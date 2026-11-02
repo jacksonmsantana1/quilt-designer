@@ -1,6 +1,7 @@
 // Opening saved designs: old saves are upgraded, damaged ones repaired with a message, newer ones never saved over.
 import { test, expect } from './fixtures.mjs';
 import fs from 'fs';
+import { FORMAT_VERSION } from '@quilt/shared/design.js';
 
 const fixture = f => fs.readFileSync(new URL(`../../../shared/tests/fixtures/designs/${f}`, import.meta.url), 'utf8');
 const saved = (page, text) =>
@@ -17,7 +18,7 @@ test('a save from before versions opens and is saved back as the current version
   await expect(page.locator('#notice')).toHaveCount(0);
   await page.locator('[data-step="c:1"]').click();
   const d = await app.current();
-  expect(d.v).toBe(1);
+  expect(d.v).toBe(FORMAT_VERSION);
   expect(d.cols).toBe(4);
   expect(d.blockMm).toBe(763);
 });
@@ -40,7 +41,7 @@ test('a design from a newer version is shown but never saved over', async ({ app
   expect(kept.cols).toBe(JSON.parse(text).cols);
   // starting a new design ends it: that one is saved as usual
   await page.locator('#dz-new').click();
-  expect((await app.current()).v).toBe(1);
+  expect((await app.current()).v).toBe(FORMAT_VERSION);
 });
 
 test('the sample designs open without repairs', async ({ app, page }) => {

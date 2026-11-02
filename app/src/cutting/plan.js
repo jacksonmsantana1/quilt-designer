@@ -1,5 +1,7 @@
 // Cutting plan (pure): cut sizes, piece IDs, fabric requirements.
 // @ts-check
+import { quiltMm, settingPieces } from '@quilt/shared/geometry.js';
+import { t, tn } from '@quilt/shared/i18n.js';
 
 // ------------------------------------------------------------- cutting guide core (millimetres)
 // Turns the designed quilt into cutting instructions, using standard quilting
@@ -11,11 +13,13 @@
 //                          on the diagonal: 4 triangles per square
 // Cut sizes round UP to the whole millimetre. Fabric is cut in strips across the
 // width of fabric (WOF) and the strips are sub-cut.
+import { buyLen, dims, len } from '../core/units.js';
+
 const CG = (() => {
   const upmm = x => Math.ceil(x - 1e-6);
-  const mm = x => `${Math.round(x)} mm`;
+  const mm = len;
   const close = (a, b) => Math.abs(a - b) < 1e-6;
-  const metres = x => `${(Math.ceil(x / 50 - 1e-6) * 0.05).toFixed(2)} m`; // rounded up to 5 cm
+  const metres = buyLen; // metres rounded up to 5 cm, or yards rounded up to an eighth
 
   function classify(poly, W, H, s) {
     const p = poly.map(([u, v]) => [u * W, v * H]);
@@ -30,12 +34,12 @@ const CG = (() => {
         ys = p.map(q => q[1]);
       const w = upmm(Math.max(...xs) - Math.min(...xs) + 2 * s),
         h = upmm(Math.max(...ys) - Math.min(...ys) + 2 * s);
-      if (w === h) return { kind: 'square', cut: [w, w], yield: 1, how: `square ${mm(w)}` };
+      if (w === h) return { kind: 'square', cut: [w, w], yield: 1, how: t('square {size}', { size: mm(w) }) };
       return {
         kind: 'rect',
         cut: [Math.max(w, h), Math.min(w, h)],
         yield: 1,
-        how: `rectangle ${Math.min(w, h)} × ${Math.max(w, h)} mm`,
+        how: t('rectangle {size}', { size: dims([Math.min(w, h), Math.max(w, h)]) }),
       };
     }
     if (p.length === 3) {
@@ -52,10 +56,62 @@ const CG = (() => {
         const legsAxis = (close(ra[0], 0) || close(ra[1], 0)) && (close(rb[0], 0) || close(rb[1], 0));
         if (legsAxis) {
           const c = upmm(leg + s * (2 + Math.SQRT2));
-          return { kind: 'hst', cut: [c, c], yield: 2, how: `square ${mm(c)}, cut once on the diagonal ◩` };
+          return {
+            kind: 'hst',
+            cut: [c, c],
+            yield: 2,
+            how: t('square {size}, cut once on the diagonal ◩', { size: mm(c) }),
+          };
         }
         const c = upmm(hyp + s * (2 + 2 * Math.SQRT2));
-        return { kind: 'qst', cut: [c, c], yield: 4, how: `square ${mm(c)}, cut twice on the diagonals ⊠` };
+        return {
+          kind: 'qst',
+          cut: [c, c],
+          yield: 4,
+          how: t('square {size}, cut twice on the diagonals ⊠', { size: mm(c) }),
+        };
+      }
+    }
+    // a diamond (tumbling blocks): four equal sides, not square; cut from strips as wide as it is across the flats
+    if (p.length === 4) {
+      const sides = p.map((a, i) => Math.hypot(p[(i + 1) % 4][0] - a[0], p[(i + 1) % 4][1] - a[1]));
+      if (sides.every(L => Math.abs(L - sides[0]) < 1e-6 * W)) {
+        const side = sides[0],
+          d1 = Math.hypot(p[2][0] - p[0][0], p[2][1] - p[0][1]),
+          d2 = Math.hypot(p[3][0] - p[1][0], p[3][1] - p[1][1]),
+          across = (d1 * d2) / (2 * side), // the diamond's height over one side
+          angle = Math.round((2 * Math.atan(Math.min(d1, d2) / Math.max(d1, d2)) * 180) / Math.PI),
+          flats = upmm(across + 2 * s),
+          long = upmm(Math.max(d1, d2) + 2 * s);
+        return {
+          kind: 'diamond',
+          cut: [long, flats],
+          yield: 1,
+          how: t('diamond template ({angle}°), finished side {side}; cut from a strip {width} wide', {
+            angle,
+            side: mm(side),
+            width: len(flats),
+          }),
+        };
+      }
+    }
+    // a regular hexagon (mosaics): a template; across the flats it is √3 × side, plus the seam allowance each side
+    if (p.length === 6) {
+      const sides = p.map((a, i) => Math.hypot(p[(i + 1) % 6][0] - a[0], p[(i + 1) % 6][1] - a[1]));
+      if (sides.every(L => Math.abs(L - sides[0]) < 1e-6 * W)) {
+        const side = sides[0],
+          flats = upmm(Math.sqrt(3) * side + 2 * s),
+          points = upmm(2 * side + (4 * s) / Math.sqrt(3));
+        return {
+          kind: 'hex',
+          cut: [points, flats],
+          yield: 1,
+          how: t('hexagon template, finished side {side}; cut {flats} across the flats ({points} point to point)', {
+            side: mm(side),
+            flats: len(flats),
+            points: len(points),
+          }),
+        };
       }
     }
     // other shapes (e.g. triangles in non-square blocks): cut from a template
@@ -72,14 +128,21 @@ const CG = (() => {
         kind: 'template',
         cut: [Math.max(w, h), Math.min(w, h), ...sides],
         yield: 1,
-        how: `triangle template, finished sides ${sides.join(' × ')} mm; add ${s} mm seam allowance all round (fits in ${Math.min(w, h)} × ${Math.max(w, h)} mm)`,
+        how: t('triangle template, finished sides {sides}; add {seam} seam allowance all round (fits in {box})', {
+          sides: dims(sides),
+          seam: len(s),
+          box: dims([Math.min(w, h), Math.max(w, h)]),
+        }),
       };
     }
     return {
       kind: 'template',
       cut: [Math.max(w, h), Math.min(w, h)],
       yield: 1,
-      how: `template piece in a ${Math.min(w, h)} × ${Math.max(w, h)} mm rectangle, ${s} mm seam allowance added`,
+      how: t('template piece in a {box} rectangle, {seam} seam allowance added', {
+        box: dims([Math.min(w, h), Math.max(w, h)]),
+        seam: len(s),
+      }),
     };
   }
 
@@ -99,21 +162,48 @@ const CG = (() => {
     return best || { stripH: a, pieceW: b, per: 1, strips: n, length: n * a, widthUsed: b };
   }
 
-  /** design {cols, rows, blocks:[{pattern, rot, fabrics}]}; opts {quiltMm, seam, fabricWidth, selvage, bindingFabric, bindingWidth, partsOf, label} */
+  /**
+   * design {cols, rows, blocks:[{pattern, rot, fabrics}]}; opts {quiltMm, seam, fabricWidth, selvage, bindingFabric, bindingWidth, partsOf, label,
+   * extraBlocks?: [{block, count, size, label}]} (blocks that are not in the grid, such as pieced cornerstones: corner groups)
+   */
   function plan(design, opts) {
     const s = opts.seam,
       usable = opts.fabricWidth - opts.selvage;
     const blockW = opts.blockMm,
       blockH = opts.blockMm; // blocks are square, of the size the user set
     const groups = new Map();
-    design.blocks.forEach((b, i) => {
-      if (b.under != null) return; // covered by a large block
-      const sp = b.span > 1 ? b.span : 1;
-      const key = b.pattern + '|' + sp + '|' + b.fabrics.join(','); // rotation does not change the cutting; size does
-      if (!groups.has(key))
-        groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
-      groups.get(key).count++;
-    });
+    // a shape mosaic: one group of its own, its shapes as the pieces (the blocks under it are not in the quilt)
+    if (opts.mosaic)
+      groups.set('mosaic', {
+        block: { pattern: 'mosaic', rot: 0, fabrics: opts.mosaic.fabrics },
+        count: 1,
+        index: 0,
+        span: 1,
+        size: opts.mosaic.size,
+        mosaic: true,
+        label: opts.mosaic.label,
+      });
+    else
+      design.blocks.forEach((b, i) => {
+        if (b.under != null) return; // covered by a large block
+        const sp = b.span > 1 ? b.span : 1;
+        const key = b.pattern + '|' + sp + '|' + b.fabrics.join(','); // rotation does not change the cutting; size does
+        if (!groups.has(key))
+          groups.set(key, { block: b, count: 0, index: i, span: sp, size: opts.sizeOf ? opts.sizeOf(sp) : blockW });
+        groups.get(key).count++;
+      });
+    // their own groups, even when the pattern and fabrics match a block: they are cut at another size
+    (opts.extraBlocks || []).forEach((x, k) =>
+      groups.set('extra|' + k, {
+        block: x.block,
+        count: x.count,
+        index: -1,
+        span: 1,
+        size: x.size,
+        corner: true,
+        label: x.label,
+      }),
+    );
     const letters = new Map();
     const letterOf = id => {
       if (!letters.has(id)) letters.set(id, String.fromCharCode(65 + letters.size));
@@ -121,7 +211,7 @@ const CG = (() => {
     };
     const blocks = [];
     for (const g of groups.values()) {
-      const pieces = opts.partsOf(g.block.pattern).map((p, i) => ({
+      const pieces = (g.mosaic ? opts.mosaic.parts : opts.partsOf(g.block.pattern)).map((p, i) => ({
         part: p,
         fabric: g.block.fabrics[i],
         letter: letterOf(g.block.fabrics[i]),
@@ -143,7 +233,10 @@ const CG = (() => {
                   cut: pc.cut,
                   yield: 1,
                   fussy: true,
-                  how: `${pc.how.replace(/, cut (once|twice) on the diagonals?.*$/, '')} · fussy cut: one at a time, centred on the chosen motif`,
+                  // (a triangle cut from a square is cut whole here: the square, without "cut on the diagonal")
+                  how: t('{how} · fussy cut: one at a time, centred on the chosen motif', {
+                    how: pc.kind === 'hst' || pc.kind === 'qst' ? t('square {size}', { size: mm(pc.cut[0]) }) : pc.how,
+                  }),
                   pieces: 0,
                 }
               : {
@@ -171,7 +264,7 @@ const CG = (() => {
       const nForm = {};
       for (const r of list) r.form = nForm[r.letter] = (nForm[r.letter] || 0) + 1;
       for (const pc of pieces) pc.form = rows.get(pc.rowKey).form;
-      blocks.push({ ...g, label: opts.label(g.block.pattern), pieces, list });
+      blocks.push({ ...g, label: g.label || opts.label(g.block.pattern), pieces, list });
     }
     const fabrics = new Map();
     for (const b of blocks)
@@ -198,7 +291,18 @@ const CG = (() => {
         sashList.push({
           ...x,
           letter,
-          how: `${strips} strip${strips > 1 ? 's' : ''} ${width} mm × WOF, joined and cut to ${x.lens.map(l => upmm(l + 2 * s)).join(' + ')} mm`,
+          how: tn(
+            strips,
+            '{n} strip {width} × WOF, joined and cut to {lens}',
+            '{n} strips {width} × WOF, joined and cut to {lens}',
+            {
+              width: len(width),
+              lens: dims(
+                x.lens.map(l => upmm(l + 2 * s)),
+                ' + ',
+              ),
+            },
+          ),
           n: x.lens.length,
         });
         continue;
@@ -213,7 +317,10 @@ const CG = (() => {
           ch = upmm(x.h + 2 * s);
         kind = cw === ch ? 'square' : 'rect';
         cut = [Math.max(cw, ch), Math.min(cw, ch)];
-        how = kind === 'square' ? `square ${mm(cw)}` : `rectangle ${Math.min(cw, ch)} × ${Math.max(cw, ch)} mm`;
+        how =
+          kind === 'square'
+            ? t('square {size}', { size: mm(cw) })
+            : t('rectangle {size}', { size: dims([Math.min(cw, ch), Math.max(cw, ch)]) });
       }
       const k = kind + '|' + cut.join('x');
       const c = f.cuts.get(k) || { kind, cut, yield: yld, how, pieces: 0 };
@@ -277,7 +384,7 @@ const CG = (() => {
     bf.small = false;
     for (const r of result) {
       const L = Math.ceil(r.length + 50); // 50 mm to straighten the edge
-      r.requirement = r.small ? `${Math.ceil(r.maxW)} × ${Math.ceil(r.length)} mm` : `${L} mm × WOF`;
+      r.requirement = r.small ? dims([Math.ceil(r.maxW), Math.ceil(r.length)]) : t('{size} × WOF', { size: len(L) });
       r.buy = r.small ? '' : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));
@@ -297,7 +404,43 @@ const CG = (() => {
       backing: { w: backW, h: backH, widths, buy: metres(widths * Math.max(backW, backH)) },
     };
   }
-  return { plan, mm, metres, classify };
+  /**
+   * On point: the setting triangles as extra cuts (like the sashing), sized by classify from their real shape.
+   * The side triangles have their long side on the quilt's edge, so they come out as quarter-square triangles
+   * (4 from a square cut twice on the diagonal); the corners have both short sides on the edges: half-square
+   * triangles (2 from a square cut once). Either way the straight grain runs along the quilt's edge.
+   * @param {import('@quilt/shared/types.js').Design} d @param {number} s seam allowance
+   */
+  function settingExtra(d, s) {
+    const q = quiltMm(d),
+      S = Math.max(q.W, q.H),
+      out = new Map();
+    for (const sp of settingPieces(d, q.W, q.H)) {
+      if (!out.has(sp.kind)) {
+        // classify takes the shape in fractions of a box: the quilt's longer side, here
+        const c = classify(
+          sp.poly.map(([x, y]) => [x / S, y / S]),
+          S,
+          S,
+          s,
+        );
+        out.set(sp.kind, {
+          group: 'setting',
+          setting: sp.kind,
+          what: sp.kind === 'side' ? t('Side triangles') : t('Corner triangles'),
+          fabric: d.settingFabric || 'b0',
+          kind: c.kind,
+          cut: c.cut,
+          yield: c.yield,
+          how: c.how,
+          n: 0,
+        });
+      }
+      out.get(sp.kind).n++;
+    }
+    return [...out.values()];
+  }
+  return { plan, mm, metres, classify, settingExtra };
 })();
 
 export { CG };

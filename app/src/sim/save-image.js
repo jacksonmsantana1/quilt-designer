@@ -2,6 +2,7 @@
 import '../platform/downloads.js'; // load order: runs after platform/downloads
 import { activeCam } from './sim-state.js';
 import { $ } from '../core/dom.js';
+import { t } from '@quilt/shared/i18n.js';
 import { state } from './config.js';
 import { canvas, renderer, scene } from './renderer.js';
 import { look } from './lighting.js';
@@ -25,7 +26,7 @@ function captureBlob() {
     } else {
       renderer.render(scene, activeCam);
     }
-    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('The image could not be captured.'))), 'image/png');
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error(t('The image could not be captured.')))), 'image/png');
   });
 }
 function imageName() {
@@ -56,7 +57,7 @@ async function saveImage() {
     const blob = await captureBlob();
     if (downloads) {
       const res = await downloads.save({ filename: imageName(), data: blob });
-      saveStatus(res && res.status === 'delivered' ? 'Picture sent' : 'Picture saved');
+      saveStatus(res && res.status === 'delivered' ? t('Picture sent') : t('Picture saved'));
     } else {
       // opened outside Claude: an ordinary browser download
       const a = document.createElement('a');
@@ -66,16 +67,16 @@ async function saveImage() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-      saveStatus('Picture saved');
+      saveStatus(t('Picture saved'));
     }
   } catch (e) {
     const code = e && e.code;
-    if (code === 'declined') saveStatus('Not saved');
-    else if (code === 'rate_limited') saveStatus('A save dialog is already open');
+    if (code === 'declined') saveStatus(t('Not saved'));
+    else if (code === 'rate_limited') saveStatus(t('A save dialog is already open'));
     else if (['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'].includes(code)) {
-      saveStatus('Saving isn’t available in this view');
+      saveStatus(t('Saving isn’t available in this view'));
       $('saveimg').hidden = $('saveimg2').hidden = true;
-    } else saveStatus((e && e.message) || 'The image could not be saved');
+    } else saveStatus((e && e.message) || t('The image could not be saved'));
   } finally {
     for (const id of ['saveimg', 'saveimg2', 'saveimg3']) $(id).disabled = false;
   }

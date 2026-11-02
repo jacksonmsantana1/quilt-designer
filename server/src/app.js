@@ -7,11 +7,13 @@ import { ApiError } from './records.js';
 import { designRoutes } from './routes/designs.js';
 import { fabricRoutes } from './routes/fabrics.js';
 import { changeRoutes } from './routes/changes.js';
+import { communityRoutes } from './routes/community.js';
 
 /**
- * @param {{ config: import('./config.js').Config, pool: import('pg').Pool, store: import('./objects.js').ObjectStore, logger?: any }} deps
+ * @param {{ config: import('./config.js').Config, pool: import('pg').Pool, store: import('./objects.js').ObjectStore, logger?: any, keys?: import('./auth.js').KeySet }} deps
+ *   keys: what Auth0 tokens are checked with (Auth0's public keys by default; the tests bring their own)
  */
-export async function buildApp({ config, pool, store, logger = false }) {
+export async function buildApp({ config, pool, store, logger = false, keys }) {
   const app = Fastify({
     logger,
     bodyLimit: config.maxDesignBytes,
@@ -41,9 +43,10 @@ export async function buildApp({ config, pool, store, logger = false }) {
   });
   // development storage (objects.js localStore) serves its own upload and download links
   if ('routes' in store && typeof store.routes === 'function') store.routes(app, config.maxFabricBytes);
-  registerAuth(app, config, pool);
+  registerAuth(app, config, pool, keys);
   designRoutes(app, pool);
   fabricRoutes(app, pool, store, config);
   changeRoutes(app, pool);
+  communityRoutes(app, pool, store);
   return app;
 }

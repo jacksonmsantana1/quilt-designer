@@ -1,5 +1,5 @@
 // Guided tour for first-time users.
-import '../designer/settings.js'; // load order: runs after designer/settings
+import '../designer/units-ui.js'; // load order: runs after designer/units-ui
 import { design, focusBlock, mineCur, selBlocks, selParts, setMineCur } from '../core/store.js';
 import { hideTools, toolsPanel } from '../designer/ui-state.js';
 import { $ } from '../core/dom.js';
@@ -14,6 +14,7 @@ import { tl, tlCopy, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
 import { timelines } from '../storage/repo.js';
 import { defaultDesign } from '@quilt/shared/design.js';
 import { ensureDesign, openDesign, replaceDesign } from '../designer/dispatch.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // ---- guided tour: a short exercise for first-time users. Every control is greyed out and switched
 // off except the ones the current step needs; the step moves on by itself once it has been done.
@@ -22,113 +23,135 @@ const tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null
 const blk = i => design && design.blocks[i];
 const TOUR = [
   {
-    title: 'Welcome to the Quilt designer!',
-    text: 'In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.',
+    title: t('Welcome to Block & Bind!'),
+    text: t(
+      'In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.',
+    ),
     center: true,
     buttons: [
-      ['Start the exercise', 'next', true],
-      ['Not now', 'skip'],
+      [t('Start the exercise'), 'next', true],
+      [t('Not now'), 'skip'],
     ],
   },
   {
-    title: 'Fewer columns',
-    text: 'A new quilt starts with 5 × 5 blocks. Above the quilt, click the <b>−</b> next to <b>Columns</b> until there are <b>3</b> columns.',
+    title: t('Fewer columns'),
+    text: t(
+      'A new quilt starts with 5 × 5 blocks. Above the quilt, click the <b>−</b> next to <b>Columns</b> until there are <b>3</b> columns.',
+    ),
     allow: ['[data-step="c:-1"]', '#dz-cols'],
     glow: '[data-step="c:-1"]',
     done: () => design.cols === 3,
   },
   {
-    title: 'Just one row',
-    text: 'Now click the <b>−</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side.',
+    title: t('Just one row'),
+    text: t(
+      'Now click the <b>−</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side.',
+    ),
     allow: ['[data-step="r:-1"]', '#dz-rows'],
     glow: '[data-step="r:-1"]',
     done: () => design.rows === 1,
   },
   {
-    title: 'Open the middle block',
-    text: '<b>Click the middle block</b> of your quilt. The side panel opens with its editor.',
+    title: t('Open the middle block'),
+    text: t('<b>Click the middle block</b> of your quilt. The side panel opens with its editor.'),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
     done: () => !$('dz-side').hidden && focusBlock === 1 && selBlocks.size === 1,
   },
   {
-    title: 'Choose a pattern',
-    text: 'Under <b>Block pattern</b> at the end of the Block parts card, click <b>Pinwheel</b>.',
+    title: t('Choose a pattern'),
+    text: t('Under <b>Block pattern</b> at the end of the Block parts card, click <b>Pinwheel</b>.'),
     allow: ['#dz-patterns'],
     glow: '#dz-patterns [data-p="pinwheel"]',
     done: () => blk(1).pattern === 'pinwheel',
   },
   {
-    title: 'Pick a piece',
-    text: 'In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it.',
+    title: t('Pick a piece'),
+    text: t(
+      'In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it.',
+    ),
     allow: ['#dz-block'],
     glow: '#dz-block',
     done: () => selParts.size > 0,
   },
   {
-    title: 'Give it a fabric',
-    text: 'Now click a fabric under <b>Fabric for the selected parts</b>, for example <b>Mustard cotton</b> (any fabric different from the one it has). The piece changes right away.',
+    title: t('Give it a fabric'),
+    text: t(
+      'Now click a fabric under <b>Fabric for the selected parts</b>, for example <b>Mustard cotton</b> (any fabric different from the one it has). The piece changes right away.',
+    ),
     allow: ['#dz-fabrics2'],
     glow: '#dz-fabrics2',
     done: s => blk(1).fabrics.join() !== s.f,
     start: () => ({ f: blk(1).fabrics.join() }),
   },
   {
-    title: 'Select all three blocks',
-    text: 'Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected.',
+    title: t('Select all three blocks'),
+    text: t(
+      'Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected.',
+    ),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
     done: () => selBlocks.size === 3,
   },
   {
-    title: 'Copy your block',
-    text: 'In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it.',
+    title: t('Copy your block'),
+    text: t(
+      'In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it.',
+    ),
     allow: ['#dz-library'],
     glow: '#dz-library',
     done: () => design.blocks.every(b => b.pattern === 'pinwheel' && blockKey(b) === blockKey(blk(1))),
   },
   {
-    title: 'Close the side panel',
-    text: 'Click the highlighted <b>round button</b> beside the quilt (Block parts) again to close the side panel and see the whole quilt.',
+    title: t('Close the side panel'),
+    text: t(
+      'Click the highlighted <b>round button</b> beside the quilt (Block parts) again to close the side panel and see the whole quilt.',
+    ),
     allow: ['#rail-parts'],
     glow: '#rail-parts',
     done: () => $('dz-side').hidden,
   },
   {
-    title: 'Go back in time',
-    text: 'Changed your mind? Press the <b>←</b> arrow key on your keyboard. The timeline opens at the bottom of the page and steps back one change.',
+    title: t('Go back in time'),
+    text: t(
+      'Changed your mind? Press the <b>←</b> arrow key on your keyboard. The timeline opens at the bottom of the page and steps back one change.',
+    ),
     allow: ['#tl-panel'],
     done: s => tl.i < s.i,
     start: () => ({ i: tl.i }),
   },
   {
-    title: 'And forward again',
-    text: 'Now press the <b>→</b> arrow key to bring the change back. Later, double-click an empty part of the page to close the timeline.',
+    title: t('And forward again'),
+    text: t(
+      'Now press the <b>→</b> arrow key to bring the change back. Later, double-click an empty part of the page to close the timeline.',
+    ),
     allow: ['#tl-panel'],
     done: s => tl.i > s.i,
     start: () => ({ i: tl.i }),
   },
   {
-    title: 'Open the borders',
-    text: 'Click the <b>Borders</b> round button beside the quilt — the one with a frame drawn on it.',
+    title: t('Open the borders'),
+    text: t('Click the <b>Borders</b> round button beside the quilt — the one with a frame drawn on it.'),
     allow: ['#rail-brd'],
     glow: '#rail-brd',
     done: () => !$('dz-side').hidden && toolsPanel === 'brd',
   },
   {
-    title: 'Add a border',
-    text: 'In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt.',
+    title: t('Add a border'),
+    text: t('In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt.'),
     allow: ['#brd-types'],
     glow: '.brd-type[data-t="piano"]',
     done: () => bordersOf(design).length > 0,
   },
   {
-    title: 'Well done!',
-    text: 'You made a three-block quilt, changed a block, copied it, used undo and redo and added a border. Every change also appears on the bed in <b>Simulation</b>. Keep this quilt, or go back to the one you had before. Restart the tour any time with <b>? Guided tour</b>.',
+    title: t('Well done!'),
+    text: t(
+      'You made a three-block quilt, changed a block, copied it, used undo and redo and added a border. Every change also appears on the bed in <b>Simulation</b>. Keep this quilt, or go back to the one you had before. Restart the tour any time with <b>? Guided tour</b>.',
+    ),
     center: true,
     buttons: [
-      ['Keep this quilt', 'keep', true],
-      ['Go back to my previous quilt', 'restore'],
+      [t('Keep this quilt'), 'keep', true],
+      [t('Go back to my previous quilt'), 'restore'],
     ],
   },
 ];
@@ -159,13 +182,13 @@ for (const ev of [
   'touchstart',
 ])
   document.addEventListener(ev, tourBlock, true);
-for (const id of ['dz-dialog', 'save-dlg', 'cam-dialog', 'cg-pop'])
+for (const id of ['dz-dialog', 'save-dlg', 'cg-pop'])
   $(id).addEventListener('cancel', e => {
     if (tour.on && !(TOUR[tour.i].allow || []).includes('#dz-done')) e.preventDefault();
   });
 function tourHost() {
   // the tour card must sit inside an open modal pop-up, or it would be blocked by it
-  for (const id of ['save-dlg', 'cam-dialog', 'cg-pop', 'dz-dialog']) {
+  for (const id of ['save-dlg', 'cg-pop', 'dz-dialog']) {
     const d = $(id);
     if (d && d.open) return d;
   }
@@ -279,7 +302,7 @@ function initTourDrag() {
     const box = $('tour');
     box.classList.toggle('min');
     $('tour-min').textContent = box.classList.contains('min') ? '▢' : '–';
-    $('tour-min').title = box.classList.contains('min') ? 'Show the instructions' : 'Fold the instructions';
+    $('tour-min').title = box.classList.contains('min') ? t('Show the instructions') : t('Fold the instructions');
     tourPlace();
   });
 }
@@ -294,7 +317,9 @@ function tourMark() {
 }
 function tourShow() {
   const st = TOUR[tour.i];
-  $('tour-count').textContent = st.center ? 'Guided tour' : `Step ${tour.i} of ${TOUR.length - 2}`;
+  $('tour-count').textContent = st.center
+    ? t('Guided tour')
+    : t('Step {n} of {all}', { n: tour.i, all: TOUR.length - 2 });
   $('tour-title').textContent = st.title;
   $('tour-text').innerHTML = st.text;
   $('tour-prog').style.width = `${Math.round((tour.i / (TOUR.length - 1)) * 100)}%`;
@@ -335,7 +360,7 @@ function tourBegin() {
   tour.i = 0;
   tour.userPos = null;
   document.body.classList.add('tour-active');
-  for (const id of ['dz-dialog', 'save-dlg', 'cam-dialog', 'cg-pop']) if ($(id).open) $(id).close();
+  for (const id of ['dz-dialog', 'save-dlg', 'cg-pop']) if ($(id).open) $(id).close();
   if (state.page !== 'design') showPage('design');
   hideTools();
   // the tour always starts from the same default quilt (5 × 5, 458 mm, Ohio star and nine patch), with its
@@ -407,11 +432,13 @@ document.addEventListener(
   },
   true,
 );
-// first visit: offer the tour once the designer is ready
-setTimeout(() => {
+// first visit: offer the tour once the designer is ready, and once the welcome page (mine/account.js) is closed
+function offerTour() {
+  if ($('welcome') && !$('welcome').hidden) return setTimeout(offerTour, 700);
   let seen = null;
   try {
     seen = localStorage.getItem(TOUR_KEY);
   } catch (e) {}
   if (!seen && !IS_PHONE && state.page === 'design') tourBegin();
-}, 1200);
+}
+setTimeout(offerTour, 1200);

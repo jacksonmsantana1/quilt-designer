@@ -3,7 +3,7 @@
 import { test as base, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { blockRect, quiltMm } from '@quilt/shared/geometry.js';
+import { blockPlace, quiltMm } from '@quilt/shared/geometry.js';
 import { defaultDesign } from '@quilt/shared/design.js';
 import MCR from 'monocart-coverage-reports';
 import { coverageOptions } from './coverage.mjs';
@@ -18,18 +18,16 @@ const LIBS = [
   [/three-gpu-pathtracer@0\.0\.24\/(.*)$/, 'three-gpu-pathtracer'],
 ];
 let html = null;
-const pageHtml = () =>
-  (html ??=
-    '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' +
-    fs.readFileSync(path.join(ROOT, 'quilt.html'), 'utf8') +
-    '</body></html>');
+const pageHtml = () => (html ??= fs.readFileSync(path.join(ROOT, 'quilt.html'), 'utf8'));
 
 export const test = base.extend({
   // set `firstVisit: true` in a test file to see the guided tour start by itself
   firstVisit: [false, { option: true }],
-  // where the page is served: http://localhost/ is a secure context (camera, Web Crypto), http://x/ is not
+  // set `welcome: true` to see the welcome page at start
+  welcome: [false, { option: true }],
+  // where the page is served: http://localhost/ is a secure context (Web Crypto), http://x/ is not
   origin: ['http://x', { option: true }],
-  app: async ({ page, firstVisit, origin }, use) => {
+  app: async ({ page, firstVisit, welcome, origin }, use) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     if (COVERAGE) await page.coverage.startJSCoverage({ resetOnNavigation: false });
@@ -39,6 +37,12 @@ export const test = base.extend({
         localStorage.setItem('quilt-freeze.v1', '1');
       } catch (e) {}
     });
+    if (!welcome)
+      await page.addInitScript(() => {
+        try {
+          localStorage.setItem('quilt-welcome.v1', 'skip');
+        } catch (e) {}
+      });
     if (!firstVisit)
       await page.addInitScript(() => {
         try {
@@ -69,6 +73,7 @@ export const test = base.extend({
       },
       /** the design on screen: saved on every change (before the first change, the default 5 × 5 quilt) */
       async current() {
+        await page.waitForFunction(() => globalThis.__quiltStorage); // after a reload, the storage opens a moment later
         const d = await page.evaluate(async () => {
           const s = globalThis.__quiltStorage;
           await s.flush();
@@ -79,17 +84,18 @@ export const test = base.extend({
       },
       /** the app's storage (storage/repo.js) after pending writes: run fn(storage) in the page */
       async storage(fn, arg) {
+        await page.waitForFunction(() => globalThis.__quiltStorage);
         await page.evaluate(() => globalThis.__quiltStorage.flush());
         return page.evaluate(
           ([f, a]) => new Function('s', 'a', `return (${f})(s, a)`)(globalThis.__quiltStorage, a),
           [fn.toString(), arg],
         );
       },
-      /** page coordinates of the centre of block i of design d, on the designer's quilt canvas */
+      /** page coordinates of the centre of block i of design d, on the designer's quilt canvas (on point too) */
       async blockCentre(d, i) {
         const box = await page.locator('#dz-quilt').boundingBox();
-        const R = blockRect(d, i % d.cols, Math.floor(i / d.cols), box.width, box.height);
-        return { x: box.x + R.x + R.w / 2, y: box.y + R.y + R.h / 2, w: R.w };
+        const P = blockPlace(d, i, box.width, box.height);
+        return { x: box.x + P.x + P.w / 2, y: box.y + P.y + P.h / 2, w: P.w };
       },
       quiltMm,
     };

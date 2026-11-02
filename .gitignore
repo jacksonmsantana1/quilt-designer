@@ -1,4 +1,6 @@
 *.png
+# ...except the images the app itself loads (only screenshots are kept out)
+!app/assets/**/*.png
 *.pdf
 *.log
 quilt_dbg.html
@@ -17,3 +19,13 @@ server/.env
 
 # development photo storage (STORAGE=local)
 server/.data/
+
+# the block review sheet (node shared/tools/block-sheet.mjs)
+/block-sheet.html
+
+# review pages made by shared/tools/drawing-review.mjs (they hold the pictures)
+/drawing-review*.html
+/diagram-review*.html
+
+# GIF copies of the clips (the page uses the jpg, mp4 and webm)
+app/assets/clips/*.gif

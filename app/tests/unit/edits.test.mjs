@@ -18,9 +18,11 @@ import {
   setBlockMm,
   setBackFabric,
   resize,
+  setSetting,
+  setSettingFabric,
 } from '../../src/core/edits.js';
 import { withSymmetry, setSymmetry } from '../../src/core/symmetry.js';
-import { setSpan } from '@quilt/shared/geometry.js';
+import { cellCount, isOnPoint, setSpan } from '@quilt/shared/geometry.js';
 import { grid, newBlockData } from './fixtures.mjs';
 
 // a frozen design: any edit that changed its input in place would throw (modules run in strict mode)
@@ -177,4 +179,39 @@ test('border edits: add, change, move, fabric slots, remove', () => {
     removeBorder(d, 0).borders.map(b => b.type),
     ['piano'],
   );
+});
+
+test('on point: a plain block goes between each 2 × 2; straight again drops them', () => {
+  const d = setSpan({ ...grid(3, 3), sym: 'lr' }, 0, 2),
+    on = setSetting(d, true);
+  assert.equal(isOnPoint(on), true);
+  assert.equal(on.blocks.length, 9 + 4);
+  assert.deepEqual(
+    on.blocks.slice(0, 9).map(b => b.pattern),
+    d.blocks.map(b => b.pattern),
+  ); // the blocks keep their places
+  assert.ok(on.blocks.slice(9).every(b => b.pattern === 'plain'));
+  assert.ok(
+    on.blocks.every(b => !('span' in b) && !('under' in b)),
+    'large blocks become single ones',
+  );
+  assert.equal('sym' in on, false, 'symmetry goes off');
+  assert.equal(setSetting(on, true), on); // nothing to change: the same design
+  const off = setSetting({ ...on, sym: 'both' }, false);
+  assert.equal(isOnPoint(off), false);
+  assert.equal(off.blocks.length, 9);
+  assert.equal('sym' in off, false, 'symmetry goes off going straight too');
+  assert.equal(setSettingFabric(on, 'b5').settingFabric, 'b5');
+});
+
+test('on point: resizing keeps the blocks between the others in step', () => {
+  const on = setSetting(grid(3, 3), true),
+    marked = { ...on, blocks: on.blocks.map((b, i) => (i === 9 ? { ...b, pattern: 'nine' } : b)) }, // between 1 and 2
+    big = resize(marked, 4, 4);
+  assert.equal(big.blocks.length, cellCount(big));
+  assert.equal(big.blocks.length, 16 + 9);
+  assert.equal(big.blocks[16].pattern, 'nine', 'the first one stays first');
+  const small = resize(big, 2, 2);
+  assert.equal(small.blocks.length, 4 + 1);
+  assert.equal(small.blocks[4].pattern, 'nine');
 });

@@ -7,6 +7,9 @@
 import { PATTERNS, partsOf } from './patterns.js';
 import { BORDER_TYPES, normalizeSpans } from './geometry.js';
 import { FORMAT_VERSION, ROLE_DEFAULT, defaultDesign } from './design.js';
+import { MOSAIC_SHAPES, tileCount } from './mosaic.js';
+import { readDrawn } from './drawn-blocks.js';
+import { t, tn } from './i18n.js';
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Block} Block */
 
 /**
@@ -22,10 +25,34 @@ const MIGRATIONS = [
     backFabric: d.backFabric || 'b0',
     v: 1,
   }),
+  // 1 → 2: sashing can leave out its cornerstones (sashing.cornerstones false); older saves all have them,
+  // which is what a missing value means, so nothing changes. (Older apps open version 2 read-only, so they
+  // can't save over the setting.)
+  d => ({ ...d, v: 2 }),
+  // 2 → 3: cornerstones can be pieced as a block (sashing.cornerBlock); older saves have plain ones
+  d => ({ ...d, v: 3 }),
+  // 3 → 4: quilts can be set on point (setting 'onpoint', settingFabric); older saves are straight
+  d => ({ ...d, v: 4 }),
+  // 4 → 5: on point can have large blocks too (a bigger diamond of k × k diamonds); version 4 dropped them there
+  d => ({ ...d, v: 5 }),
+  // 5 → 6: square quilts on point can have a symmetry (sym); older saves on point have none
+  d => ({ ...d, v: 6 }),
+  // 6 → 7: a quilt can be a shape mosaic (mosaic) instead of blocks; older saves are blocks
+  d => ({ ...d, v: 7 }),
+  // 7 → 8: a quilt can carry blocks drawn in the block editor (drawn); older saves have none
+  d => ({ ...d, v: 8 }),
 ];
 
 /** @type {Record<string, [number, number]>} */
-const LIMITS = { grid: [1, 20], blockMm: [50, 1000], borderMm: [10, 400], sashMm: [0, 400], span: [2, 4] };
+const LIMITS = {
+  grid: [1, 20],
+  blockMm: [50, 1000],
+  borderMm: [10, 400],
+  sashMm: [0, 400],
+  span: [2, 4],
+  mosaicGrid: [1, 60],
+  mosaicMm: [10, 200],
+};
 const SYMS = ['off', 'lr', 'tb', 'both', 'kal'];
 const QUILTING = ['ditch', 'cross', 'fans', 'meander'];
 
@@ -34,7 +61,6 @@ const isFabric = x => typeof x === 'string' && x.length > 0 && x.length < 64;
 const num = x => typeof x === 'number' && Number.isFinite(x);
 /** @param {number} x @param {[number, number]} r */
 const clamp = (x, [lo, hi]) => Math.max(lo, Math.min(hi, x));
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 /**
  * Checks a current-version design and repairs what can be repaired safely. Never changes its input.
@@ -45,13 +71,28 @@ function check(d) {
   if (!isObj(d) || !num(d.cols) || !num(d.rows) || !Array.isArray(d.blocks)) return null;
   const problems = [];
   const count = {};
+  // the quilt's own drawn blocks first: they become patterns its blocks can use
+  const drawn = readDrawn(d.drawn);
+  if (drawn.lost)
+    problems.push(
+      tn(
+        drawn.lost,
+        '{n} drawn block could not be read and was left out.',
+        '{n} drawn blocks could not be read and were left out.',
+      ),
+    );
   const note = (key, n = 1) => (count[key] = (count[key] || 0) + n);
   const cols = clamp(Math.round(d.cols), LIMITS.grid),
     rows = clamp(Math.round(d.rows), LIMITS.grid);
-  if (cols !== d.cols || rows !== d.rows) problems.push(`The layout was changed to ${cols} × ${rows}.`);
+  if (cols !== d.cols || rows !== d.rows)
+    problems.push(t('The layout was changed to {cols} × {rows}.', { cols, rows }));
 
-  // blocks: one per cell; a missing cell becomes a plain block, extra blocks are dropped
-  const n = cols * rows;
+  // layout: straight, or on point (an unknown setting goes back to straight)
+  const onPoint = d.setting === 'onpoint';
+  if (d.setting !== undefined && !onPoint) problems.push(t('The layout went back to straight.'));
+  // blocks: one per cell (on point, also one between each 2 × 2); a missing cell becomes a plain block,
+  // extra blocks are dropped
+  const n = cols * rows + (onPoint ? (cols - 1) * (rows - 1) : 0);
   if (d.blocks.length !== n) {
     if (d.blocks.length > n) note('extra', d.blocks.length - n); // missing ones are counted by checkBlock
   }
@@ -60,32 +101,54 @@ function check(d) {
   for (let i = 0; i < n; i++) blocks.push(checkBlock(d.blocks[i], note));
   if (count.missing)
     problems.push(
-      `${plural(count.missing, 'missing block')} ${count.missing === 1 ? 'was' : 'were'} filled with a plain square.`,
+      tn(
+        count.missing,
+        '{n} missing block was filled with a plain square.',
+        '{n} missing blocks were filled with a plain square.',
+      ),
     );
-  if (count.extra)
-    problems.push(`${plural(count.extra, 'extra block')} ${count.extra === 1 ? 'was' : 'were'} left out.`);
+  if (count.extra) problems.push(tn(count.extra, '{n} extra block was left out.', '{n} extra blocks were left out.'));
   if (count.pattern)
     problems.push(
-      `${plural(count.pattern, 'block')} with an unknown pattern became ${count.pattern === 1 ? 'a plain square' : 'plain squares'}.`,
+      tn(
+        count.pattern,
+        '{n} block with an unknown pattern became a plain square.',
+        '{n} blocks with an unknown pattern became plain squares.',
+      ),
     );
   if (count.fabric)
     problems.push(
-      `${plural(count.fabric, 'missing fabric')} ${count.fabric === 1 ? 'was' : 'were'} filled in with the default colours.`,
+      tn(
+        count.fabric,
+        '{n} missing fabric was filled in with the default colours.',
+        '{n} missing fabrics were filled in with the default colours.',
+      ),
     );
   if (count.block)
     problems.push(
-      `${plural(count.block, 'block setting')} that could not be read ${count.block === 1 ? 'was' : 'were'} reset.`,
+      tn(
+        count.block,
+        '{n} block setting that could not be read was reset.',
+        '{n} block settings that could not be read were reset.',
+      ),
     );
 
   /** @type {Design} */
   const out = { ...d, v: FORMAT_VERSION, cols, rows, blocks };
+  if (!onPoint) delete out.setting;
+  if (Object.keys(drawn.drawn).length) out.drawn = drawn.drawn;
+  else delete out.drawn;
+  if (d.settingFabric !== undefined && !isFabric(d.settingFabric)) {
+    delete out.settingFabric;
+    problems.push(t('The fabric of the setting triangles was reset.'));
+  }
   if (!num(d.blockMm) || d.blockMm !== clamp(Math.round(d.blockMm), LIMITS.blockMm)) {
     out.blockMm = num(d.blockMm) ? clamp(Math.round(d.blockMm), LIMITS.blockMm) : Math.round(2290 / cols);
-    problems.push(`The block size was changed to ${out.blockMm} mm.`);
+    problems.push(t('The block size was changed to {mm} mm.', { mm: out.blockMm }));
   }
   if (!isFabric(d.backFabric)) {
     out.backFabric = 'b0';
-    if (d.backFabric !== undefined) problems.push('The backing fabric was reset.');
+    if (d.backFabric !== undefined) problems.push(t('The backing fabric was reset.'));
   }
 
   if (d.sashing !== undefined) {
@@ -96,10 +159,20 @@ function check(d) {
         fabric: isFabric(s.fabric) ? s.fabric : 'b0',
         corner: isFabric(s.corner) ? s.corner : 'b3',
         border: s.border === true,
+        ...(s.cornerstones === false ? { cornerstones: false } : {}), // kept only when off (the default is on)
       };
+      if (s.cornerBlock !== undefined) {
+        // a block of a known pattern: its fabrics are filled in or trimmed like any block's; anything else goes
+        let bad = 0;
+        const cb =
+          isObj(s.cornerBlock) && PATTERNS[s.cornerBlock.pattern] ? checkBlock(s.cornerBlock, () => bad++) : null;
+        if (cb) out.sashing.cornerBlock = { pattern: cb.pattern, rot: cb.rot, fabrics: cb.fabrics };
+        if (!cb) problems.push(t('The cornerstone block could not be read and was taken off.'));
+        else if (bad) problems.push(t('The cornerstone block was repaired.'));
+      }
     } else {
       delete out.sashing;
-      problems.push('The sashing could not be read and was taken off.');
+      problems.push(t('The sashing could not be read and was taken off.'));
     }
   }
 
@@ -119,20 +192,67 @@ function check(d) {
       });
     if (!out.borders.length) delete out.borders;
     const lost = (Array.isArray(d.borders) ? d.borders.length : 1) - (out.borders || []).length;
-    if (adjusted) problems.push(`${plural(adjusted, 'border')} had a width or fabric that was put right.`);
+    if (adjusted)
+      problems.push(
+        tn(
+          adjusted,
+          '{n} border had a width or fabric that was put right.',
+          '{n} borders had a width or fabric that was put right.',
+        ),
+      );
     if (lost)
-      problems.push(`${plural(lost, 'border')} that could not be read ${lost === 1 ? 'was' : 'were'} taken off.`);
+      problems.push(
+        tn(
+          lost,
+          '{n} border that could not be read was taken off.',
+          '{n} borders that could not be read were taken off.',
+        ),
+      );
+  }
+
+  if (d.mosaic !== undefined) {
+    const m = checkMosaic(d.mosaic);
+    if (m) out.mosaic = m.mosaic;
+    else delete out.mosaic;
+    if (!m) problems.push(t('The mosaic could not be read; the quilt shows its blocks.'));
+    else if (m.repaired) problems.push(t('The mosaic was repaired.'));
   }
 
   if (d.sym !== undefined && !SYMS.includes(d.sym)) {
     delete out.sym;
-    problems.push('The symmetry setting was turned off.');
+    problems.push(t('The symmetry setting was turned off.'));
   }
   if (d.quilting !== undefined && !QUILTING.includes(d.quilting)) {
     delete out.quilting;
-    problems.push('The quilting went back to stitch in the ditch.');
+    problems.push(t('The quilting went back to stitch in the ditch.'));
   }
   return { design: normalizeSpans(out), problems };
+}
+
+/**
+ * A mosaic made safe: a known shape, a size and counts in range, one fabric per shape (missing ones are the
+ * background fabric, extra ones dropped). Null when it isn't a mosaic at all.
+ * @param {any} m @returns {{ mosaic: import('./types.js').Mosaic, repaired: boolean } | null}
+ */
+function checkMosaic(m) {
+  if (!isObj(m) || !MOSAIC_SHAPES.includes(m.shape) || !num(m.mm) || !num(m.cols) || !num(m.rows)) return null;
+  const mosaic = {
+    shape: m.shape,
+    mm: clamp(Math.round(m.mm), LIMITS.mosaicMm),
+    cols: clamp(Math.round(m.cols), LIMITS.mosaicGrid),
+    rows: clamp(Math.round(m.rows), LIMITS.mosaicGrid),
+    fabrics: [],
+  };
+  const given = Array.isArray(m.fabrics) ? m.fabrics : [],
+    n = tileCount(mosaic);
+  for (let i = 0; i < n; i++) mosaic.fabrics.push(isFabric(given[i]) ? given[i] : 'b0');
+  const repaired =
+    mosaic.mm !== m.mm ||
+    mosaic.cols !== m.cols ||
+    mosaic.rows !== m.rows ||
+    given.length !== n ||
+    !given.every(isFabric);
+  return { mosaic, repaired };
 }
 
 /** @param {any} b @param {(key: string) => void} note @returns {Block} */

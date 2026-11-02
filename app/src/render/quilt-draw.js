@@ -4,17 +4,21 @@ import { design } from '../core/store.js';
 import { dimUnlessHi } from './highlight.js';
 import { fabricById } from '../designer/fabric-library.js';
 import {
-  blockPolys,
-  blockRect,
+  blockOutline,
+  blockPlace,
   borderCornerSlot,
   borderFab,
   borderSidePieces,
   bordersOf,
+  cellCount,
   pathPoly,
+  placedPolys,
   plainButted,
   quiltMm,
   sashOf,
   sashRects,
+  settingPieces,
+  tilePolys,
 } from '@quilt/shared/geometry.js';
 import { fabricFill, pieceFill } from './fabric-fill.js';
 
@@ -146,7 +150,7 @@ function drawBordersExploded(g, W, gap, focus = -1) {
     g.beginPath();
     g.rect(x, y, w, h);
     if (t) g.rect(x + t, y + t, w - 2 * t, h - 2 * t);
-    g.fillStyle = 'rgba(236,239,244,.78)';
+    g.fillStyle = 'rgba(250,243,232,.78)';
     g.fill('evenodd');
   };
   let off = 0; // px from the outside edge
@@ -177,46 +181,97 @@ function drawBordersExploded(g, W, gap, focus = -1) {
  * @param {CanvasRenderingContext2D} g @param {number} W @param {number} H
  * @param {{ seams?: boolean, design?: import('@quilt/shared/types.js').Design }} [opts] design: the one being edited by default
  */
+// a cornerstone pieced as a block (sashing.cornerBlock), filling the cornerstone rc
+// (rc may be turned, on point: the block turns with it)
+function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
+  const polys = placedPolys(cb, rc);
+  polys.forEach((poly, pi) => {
+    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi, rc.turn || 0);
+    pathPoly(g, poly);
+    g.fill();
+    dimUnlessHi(g, { t: 'sash', kind: 'corner', fabric: cb.fabrics[pi] });
+  });
+  if (!seams) return;
+  g.strokeStyle = 'rgba(40,30,20,.35)';
+  g.lineWidth = lineW;
+  for (const poly of polys) {
+    pathPoly(g, poly);
+    g.stroke();
+  }
+}
 function drawQuilt(g, W, H, opts = {}) {
   const d = opts.design || design;
   if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
   const q = quiltMm(d),
     pxPerCm = W / (q.W / 10),
     s = sashOf(d);
+  if (d.mosaic) {
+    // a shape mosaic instead of blocks: each shape in its fabric
+    const polys = tilePolys(d, W, H);
+    polys.forEach((poly, i) => {
+      g.fillStyle = fabricFill(g, fabricById(d.mosaic.fabrics[i]), pxPerCm, 500 + i);
+      pathPoly(g, poly);
+      g.fill();
+      dimUnlessHi(g, { t: 'qpiece', fabric: d.mosaic.fabrics[i] });
+    });
+    if (opts.seams) {
+      g.strokeStyle = 'rgba(40,30,20,.35)';
+      g.lineWidth = Math.max(1, W / 1400);
+      for (const poly of polys) {
+        pathPoly(g, poly);
+        g.stroke();
+      }
+    }
+    return;
+  }
   for (const [k, rc] of sashRects(d, W, H).entries()) {
-    g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + k);
-    g.fillRect(rc.x, rc.y, rc.w, rc.h);
-    g.beginPath();
-    g.rect(rc.x, rc.y, rc.w, rc.h);
+    if (rc.kind === 'corner' && s.cornerBlock) {
+      drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
+      continue;
+    }
+    // a strip or cornerstone: turned on point, its print along it
+    g.fillStyle = fabricFill(g, fabricById(rc.kind === 'corner' ? s.corner : s.fabric), pxPerCm, 900 + k, rc.turn || 0);
+    pathPoly(g, blockOutline(rc));
+    g.fill();
     dimUnlessHi(g, { t: 'sash', kind: rc.kind });
     if (opts.seams) {
       g.strokeStyle = 'rgba(40,30,20,.35)';
       g.lineWidth = Math.max(1, W / 1400);
-      g.strokeRect(rc.x, rc.y, rc.w, rc.h);
+      g.stroke();
     }
   }
-  for (let r = 0; r < d.rows; r++)
-    for (let c = 0; c < d.cols; c++) {
-      const bi = r * d.cols + c,
-        b = d.blocks[bi];
-      if (b.under != null) continue;
-      const R = blockRect(d, c, r, W, H),
-        polys = blockPolys(b, R.x, R.y, R.w, R.h);
-      polys.forEach((poly, pi) => {
-        g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi);
-        pathPoly(g, poly);
-        g.fill();
-        dimUnlessHi(g, { t: 'qpiece', fabric: b.fabrics[pi] });
-      });
-      if (opts.seams) {
-        g.strokeStyle = 'rgba(40,30,20,.35)';
-        g.lineWidth = Math.max(1, W / 1400);
-        polys.forEach(poly => {
-          pathPoly(g, poly);
-          g.stroke();
-        });
-      }
+  // on point: the setting triangles along the edges
+  for (const [k, sp] of settingPieces(d, W, H).entries()) {
+    g.fillStyle = fabricFill(g, fabricById(d.settingFabric || 'b0'), pxPerCm, 700 + k);
+    pathPoly(g, sp.poly);
+    g.fill();
+    dimUnlessHi(g, { t: 'setting', kind: sp.kind });
+    if (opts.seams) {
+      g.strokeStyle = 'rgba(40,30,20,.35)';
+      g.lineWidth = Math.max(1, W / 1400);
+      g.stroke();
     }
+  }
+  for (let bi = 0, n = cellCount(d); bi < n; bi++) {
+    const b = d.blocks[bi];
+    if (!b || b.under != null) continue;
+    const Pl = blockPlace(d, bi, W, H),
+      polys = placedPolys(b, Pl);
+    polys.forEach((poly, pi) => {
+      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi, Pl.turn); // the print turns with the block
+      pathPoly(g, poly);
+      g.fill();
+      dimUnlessHi(g, { t: 'qpiece', fabric: b.fabrics[pi] });
+    });
+    if (opts.seams) {
+      g.strokeStyle = 'rgba(40,30,20,.35)';
+      g.lineWidth = Math.max(1, W / 1400);
+      polys.forEach(poly => {
+        pathPoly(g, poly);
+        g.stroke();
+      });
+    }
+  }
 }
 
-export { drawBorders, drawBordersExploded, drawQuilt, explodedH };
+export { drawBorders, drawBordersExploded, drawCornerBlock, drawQuilt, explodedH };

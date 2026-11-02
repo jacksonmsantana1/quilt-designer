@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check the diagrams</title>
+<style>
+  :root { --bg: #f4f1ea; --card: #fff; --ink: #1c2438; --muted: #5b6478; --line: #d9d4c7; --accent: #e0592a; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151a24; --card: #1e2532; --ink: #e8ecf3; --muted: #9aa4b8; --line: #2e3748; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, 'Segoe UI', sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+  header h1 { font-size: 18px; margin: 0; }
+  .tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .tools label.mode { border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  .tools input[type=radio] { display: none; }
+  .tools input[type=radio]:checked + span { font-weight: 700; color: var(--accent); }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .help { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .block { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 14px; margin: 0 0 16px; }
+  .block.ok { border-color: #3a9a4a; }
+  .block h2 { font-size: 17px; margin: 0 0 8px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .block h2 small { color: var(--muted); font-weight: 400; }
+  .sw { width: 28px; height: 28px; border-radius: 6px; border: 2px solid var(--line); cursor: pointer; display: inline-grid; place-items: center; font-size: 11px; padding: 0; }
+  .sw[aria-pressed=true] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  figcaption { color: var(--muted); font-size: 13px; text-align: center; margin-top: 3px; }
+  .pic { position: relative; width: 100%; aspect-ratio: 1; background: #fff; border: 1px solid var(--line); }
+  .pic img, .pic svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .reading svg { cursor: pointer; }
+  .foot { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 8px; }
+  .foot input[type=text] { flex: 1; min-width: 200px; font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+  pre { margin: 8px 0 0; font-size: 12px; background: var(--bg); padding: 6px 8px; border-radius: 6px; overflow: auto; }
+  .warn { color: #b23a3a; font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Check the diagrams</h1>
+  <div class="tools" role="radiogroup" aria-label="What a click does">
+    <label class="mode"><input type="radio" name="mode" value="paint" checked><span>Fabric: click a piece to paint it</span></label>
+    <label class="mode"><input type="radio" name="mode" value="join"><span>Join / split: click the line between two squares</span></label>
+    <label class="mode"><input type="radio" name="mode" value="shape"><span>Cut: click a square to cut it</span></label>
+  </div>
+  <div class="tools">
+    <span id="count" style="color: var(--muted); font-size: 14px"></span>
+    <button id="copy" class="primary" type="button">Copy corrections</button>
+    <button id="download" type="button">Download</button>
+  </div>
+</header>
+<main>
+  <p class="help">Left: the diagram, with the grid found. Right: what was read, the greys as found. <b>Fabric</b>: pick a swatch in the block's header, then click a piece (a joined piece is painted whole). <b>Join / split</b>: click right on the line between two squares to join them into one piece, or to split a joined piece again. <b>Cut</b>: every click on a square goes whole → “/” → “\” → both. Orange = you changed it; “?” = the reader was unsure. Tick “Looks right” when a block is correct, add a note for anything the page cannot show, then press <b>Copy corrections</b> and paste them in the chat.</p>
+  <div id="blocks"></div>
+</main>
+<script>
+const DATA = __DATA__;
+const BS = String.fromCharCode(92);
+const SHAPES = ['S', '/', BS, 'X'];
+const POLYS = {
+  S: [[[0, 0], [1, 0], [1, 1], [0, 1]]],
+  '/': [[[0, 0], [1, 0], [0, 1]], [[1, 0], [1, 1], [0, 1]]],
+  X: [[[0, 0], [1, 0], [.5, .5]], [[1, 0], [1, 1], [.5, .5]], [[1, 1], [0, 1], [.5, .5]], [[0, 1], [0, 0], [.5, .5]]],
+};
+POLYS[BS] = [[[0, 0], [0, 1], [1, 1]], [[0, 0], [1, 0], [1, 1]]];
+const KEY = 'diagram-review:' + DATA.id;
+const copyOf = o => JSON.parse(JSON.stringify(o));
+const ORIGINAL = DATA.blocks.map(b => copyOf({ cells: b.cells, hj: b.hj, vj: b.vj }));
+let mode = 'paint', brush = 1;
+const state = { ok: {}, notes: {} };
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+  Object.assign(state, saved.state || {});
+  if (saved.blocks) DATA.blocks.forEach((b, i) => { if (saved.blocks[i]) Object.assign(b, saved.blocks[i]); });
+} catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ state, blocks: DATA.blocks.map(b => ({ cells: b.cells, hj: b.hj, vj: b.vj })) })); } catch (e) {} };
+
+const rgb = c => 'rgb(' + c.join(',') + ')';
+const sameCell = (a, b) => a.shape === b.shape && a.roles.join() === b.roles.join();
+
+/** the pieces: cells joined by the lines taken away, and whether each is a whole rectangle of one fabric */
+function pieces(b) {
+  const n = b.n, seen = b.cells.map(r => r.map(() => false)), out = [];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (seen[r][c]) continue;
+    const cells = [], stack = [[r, c]]; seen[r][c] = true;
+    while (stack.length) {
+      const [y, x] = stack.pop(); cells.push([y, x]);
+      const next = [];
+      if (b.hj[y][x] && x + 1 < n) next.push([y, x + 1]);
+      if (x > 0 && b.hj[y][x - 1]) next.push([y, x - 1]);
+      if (b.vj[y][x] && y + 1 < n) next.push([y + 1, x]);
+      if (y > 0 && b.vj[y - 1][x]) next.push([y - 1, x]);
+      for (const [yy, xx] of next) if (!seen[yy][xx]) { seen[yy][xx] = true; stack.push([yy, xx]); }
+    }
+    const ys = cells.map(p => p[0]), xs = cells.map(p => p[1]);
+    const y0 = Math.min(...ys), y1 = Math.max(...ys), x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const rect = (y1 - y0 + 1) * (x1 - x0 + 1) === cells.length;
+    const plain = cells.every(([y, x]) => b.cells[y][x].shape === 'S');
+    const role = b.cells[cells[0][0]][cells[0][1]].roles[0];
+    const one = cells.every(([y, x]) => b.cells[y][x].shape === 'S' && b.cells[y][x].roles[0] === role);
+    out.push({ cells, y0, x0, y1, x1, valid: cells.length === 1 || (rect && plain && one) });
+  }
+  return out;
+}
+function rowsOf(b) {
+  const n = b.n, grid = Array.from({ length: n }, () => Array(n).fill('?')), bad = [];
+  for (const p of pieces(b)) {
+    if (!p.valid) { bad.push(p); for (const [y, x] of p.cells) grid[y][x] = tok(b.cells[y][x]); continue; }
+    if (p.cells.length === 1) { const [y, x] = p.cells[0]; grid[y][x] = tok(b.cells[y][x]); continue; }
+    for (let y = p.y0; y <= p.y1; y++) for (let x = p.x0; x <= p.x1; x++)
+      grid[y][x] = y === p.y0 && x === p.x0 ? String(b.cells[y][x].roles[0]) : y === p.y0 ? '-' : x === p.x0 ? '|' : '+';
+  }
+  return { text: grid.map(r => r.join(' ')).join('\n'), bad };
+}
+function tok(c) {
+  if (c.shape === '/') return c.roles[0] + '/' + c.roles[1];
+  if (c.shape === BS) return c.roles[0] + BS + c.roles[1];
+  if (c.shape === 'X') return 'q' + c.roles.join('');
+  return String(c.roles[0]);
+}
+function changes(i) {
+  const b = DATA.blocks[i], o = ORIGINAL[i], out = [];
+  b.cells.forEach((row, r) => row.forEach((c, k) => { if (!sameCell(c, o.cells[r][k])) out.push({ type: 'square', r: r + 1, c: k + 1, from: o.cells[r][k], to: c }); }));
+  b.hj.forEach((row, r) => row.forEach((v, k) => { if (v !== o.hj[r][k]) out.push({ type: 'line', between: [[r + 1, k + 1], [r + 1, k + 2]], joined: v }); }));
+  b.vj.forEach((row, r) => row.forEach((v, k) => { if (v !== o.vj[r][k]) out.push({ type: 'line', between: [[r + 1, k + 1], [r + 2, k + 1]], joined: v }); }));
+  return out;
+}
+
+function drawReading(i) {
+  const b = DATA.blocks[i], n = b.n, svg = document.getElementById('reading' + i), o = ORIGINAL[i];
+  let s = '';
+  b.cells.forEach((row, r) => row.forEach((c, k) => POLYS[c.shape].forEach((poly, p) => {
+    const pts = poly.map(([u, v]) => (k + u) + ',' + (r + v)).join(' ');
+    s += '<polygon data-r="' + r + '" data-c="' + k + '" data-p="' + p + '" points="' + pts + '" fill="' + rgb(b.palette[c.roles[p]]) + '"/>';
+  })));
+  // the lines between squares that are not joined
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    if (c + 1 < n && !b.hj[r][c]) s += '<line x1="' + (c + 1) + '" y1="' + r + '" x2="' + (c + 1) + '" y2="' + (r + 1) + '" stroke="rgba(0,0,0,.5)" stroke-width=".02"/>';
+    if (r + 1 < n && !b.vj[r][c]) s += '<line x1="' + c + '" y1="' + (r + 1) + '" x2="' + (c + 1) + '" y2="' + (r + 1) + '" stroke="rgba(0,0,0,.5)" stroke-width=".02"/>';
+    if (b.cells[r][c].shape !== 'S') s += '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="none" stroke="rgba(0,0,0,.5)" stroke-width=".02"/>';
+  }
+  // what you changed, and what is unsure
+  b.cells.forEach((row, r) => row.forEach((c, k) => {
+    if (!sameCell(c, o.cells[r][k])) s += '<rect x="' + (k + .05) + '" y="' + (r + .05) + '" width=".9" height=".9" fill="none" stroke="#e0592a" stroke-width=".06" pointer-events="none"/>';
+    else if (c.unsure) s += '<text x="' + (k + .5) + '" y="' + (r + .65) + '" font-size=".5" text-anchor="middle" fill="#e0592a" stroke="#fff" stroke-width=".05" paint-order="stroke" pointer-events="none">?</text>';
+  }));
+  b.hj.forEach((row, r) => row.forEach((v, k) => { if (v !== o.hj[r][k]) s += '<line x1="' + (k + 1) + '" y1="' + r + '" x2="' + (k + 1) + '" y2="' + (r + 1) + '" stroke="#e0592a" stroke-width=".08" pointer-events="none"/>'; }));
+  b.vj.forEach((row, r) => row.forEach((v, k) => { if (v !== o.vj[r][k]) s += '<line x1="' + k + '" y1="' + (r + 1) + '" x2="' + (k + 1) + '" y2="' + (r + 1) + '" stroke="#e0592a" stroke-width=".08" pointer-events="none"/>'; }));
+  const { text, bad } = rowsOf(b);
+  for (const p of bad) for (const [y, x] of p.cells) s += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="none" stroke="#b23a3a" stroke-width=".05" stroke-dasharray=".12 .08" pointer-events="none"/>';
+  svg.innerHTML = s;
+  document.getElementById('rows' + i).textContent = text;
+  document.getElementById('warn' + i).textContent = bad.length ? 'Some joined squares are not one rectangle of one fabric (dashed red): split them or paint them alike.' : '';
+  const m = changes(i).length;
+  document.getElementById('chg' + i).textContent = m ? m + ' changed' : 'no changes';
+  document.getElementById('block' + i).classList.toggle('ok', !!state.ok[i]);
+  const total = DATA.blocks.reduce((a, _, j) => a + changes(j).length, 0), done = Object.values(state.ok).filter(Boolean).length;
+  document.getElementById('count').textContent = total + ' changes · ' + done + ' of ' + DATA.blocks.length + ' blocks marked right';
+}
+
+function click(i, e) {
+  const b = DATA.blocks[i], n = b.n, svg = document.getElementById('reading' + i), box = svg.getBoundingClientRect();
+  const u = ((e.clientX - box.left) / box.width) * n, v = ((e.clientY - box.top) / box.height) * n;
+  const r = Math.min(n - 1, Math.max(0, Math.floor(v))), c = Math.min(n - 1, Math.max(0, Math.floor(u)));
+  const cell = b.cells[r][c];
+  if (mode === 'paint') {
+    const t = e.target.closest && e.target.closest('polygon');
+    const p = t ? +t.dataset.p : 0;
+    if (cell.shape === 'S') {
+      const here = pieces(b).find(q => q.cells.some(([y, x]) => y === r && x === c));
+      for (const [y, x] of here.cells) if (b.cells[y][x].shape === 'S') b.cells[y][x].roles[0] = brush;
+    } else cell.roles[p] = brush;
+  } else if (mode === 'shape') {
+    const was = cell.shape, first = cell.roles[0];
+    cell.shape = SHAPES[(SHAPES.indexOf(was) + (e.shiftKey ? 3 : 1)) % 4];
+    const want = POLYS[cell.shape].length;
+    cell.roles = Array.from({ length: want }, (_, q) => (cell.roles[q] != null ? cell.roles[q] : first));
+    if (cell.shape !== 'S') { // a cut square is its own piece
+      if (c > 0) b.hj[r][c - 1] = false; b.hj[r][c] = false; if (r > 0) b.vj[r - 1][c] = false; b.vj[r][c] = false;
+    }
+  } else {
+    const fx = u - c, fy = v - r, d = [fx, 1 - fx, fy, 1 - fy], m = Math.min(...d);
+    if (m > 0.3) return;
+    const side = d.indexOf(m); // 0 left, 1 right, 2 top, 3 bottom
+    let a, o, flag;
+    if (side === 0 && c > 0) { a = [r, c - 1]; o = [r, c]; flag = b.hj[r]; flag = [flag, c - 1]; }
+    else if (side === 1 && c + 1 < n) { a = [r, c]; o = [r, c + 1]; flag = [b.hj[r], c]; }
+    else if (side === 2 && r > 0) { a = [r - 1, c]; o = [r, c]; flag = [b.vj[r - 1], c]; }
+    else if (side === 3 && r + 1 < n) { a = [r, c]; o = [r + 1, c]; flag = [b.vj[r], c]; }
+    else return;
+    if (b.cells[a[0]][a[1]].shape !== 'S' || b.cells[o[0]][o[1]].shape !== 'S') return;
+    const joined = !flag[0][flag[1]];
+    flag[0][flag[1]] = joined;
+    if (joined) { // one piece is one fabric: the other side takes this square's fabric
+      const role = b.cells[r][c].roles[0], other = pieces(b).find(q => q.cells.some(([y, x]) => y === o[0] && x === o[1]));
+      for (const [y, x] of other.cells) if (b.cells[y][x].shape === 'S') b.cells[y][x].roles[0] = role;
+    }
+  }
+  state.ok[i] = false; document.getElementById('ok' + i).checked = false;
+  save(); drawReading(i);
+}
+
+function build() {
+  const root = document.getElementById('blocks');
+  DATA.blocks.forEach((b, i) => {
+    const el = document.createElement('section');
+    el.className = 'block'; el.id = 'block' + i;
+    const lines = [...b.LX.map(x => '<line x1="' + x + '" y1="0" x2="' + x + '" y2="' + b.h + '"/>'), ...b.LY.map(y => '<line x1="0" y1="' + y + '" x2="' + b.w + '" y2="' + y + '"/>')].join('');
+    const sw = b.palette.map((c, q) => '<button type="button" class="sw" data-i="' + i + '" data-q="' + q + '" style="background:' + rgb(c) + '; color:' + (c[0] > 128 ? '#000' : '#fff') + '" title="fabric ' + q + '">' + q + '</button>').join('');
+    el.innerHTML = '<h2>' + b.name + ' <small>' + b.n + ' × ' + b.n + '</small> <span class="tools">' + sw + '</span> <small id="chg' + i + '"></small></h2>' +
+      '<div class="pair"><figure><div class="pic"><img src="' + b.image + '" alt="Diagram ' + b.name + '"><svg viewBox="0 0 ' + b.w + ' ' + b.h + '" preserveAspectRatio="none" stroke="rgba(224,89,42,.8)" stroke-width="1" pointer-events="none">' + lines + '</svg></div><figcaption>the diagram, with the grid found</figcaption></figure>' +
+      '<figure class="reading"><div class="pic"><svg id="reading' + i + '" viewBox="0 0 ' + b.n + ' ' + b.n + '" preserveAspectRatio="none"></svg></div><figcaption>what was read</figcaption></figure></div>' +
+      '<div class="warn" id="warn' + i + '"></div>' +
+      '<div class="foot"><label><input type="checkbox" id="ok' + i + '"> Looks right</label><input type="text" id="note' + i + '" placeholder="Note (a piece that is not a rectangle, a fabric that is a pattern, anything the picture cannot show)"><button type="button" data-undo="' + i + '">Undo my changes</button></div><pre id="rows' + i + '"></pre>';
+    root.appendChild(el);
+    document.getElementById('ok' + i).checked = !!state.ok[i];
+    document.getElementById('note' + i).value = state.notes[i] || '';
+    document.getElementById('ok' + i).addEventListener('change', e => { state.ok[i] = e.target.checked; save(); drawReading(i); });
+    document.getElementById('note' + i).addEventListener('input', e => { state.notes[i] = e.target.value; save(); });
+    document.getElementById('reading' + i).addEventListener('click', e => click(i, e));
+    el.querySelector('[data-undo]').addEventListener('click', () => { Object.assign(b, copyOf(ORIGINAL[i])); save(); drawReading(i); });
+    el.querySelectorAll('.sw').forEach(s => s.addEventListener('click', () => { brush = +s.dataset.q; mode = 'paint'; document.querySelector('input[value=paint]').checked = true; refreshSwatches(); }));
+    drawReading(i);
+  });
+  refreshSwatches();
+}
+function refreshSwatches() { document.querySelectorAll('.sw').forEach(s => s.setAttribute('aria-pressed', String(+s.dataset.q === brush))); }
+document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', e => { mode = e.target.value; }));
+
+function corrections() {
+  return JSON.stringify({
+    tool: 'diagram-review', version: 1,
+    blocks: DATA.blocks.map((b, i) => ({ name: b.name, n: b.n, confirmed: !!state.ok[i], note: state.notes[i] || '', rows: rowsOf(b).text, invalid: rowsOf(b).bad.length, changed: changes(i), palette: b.palette })),
+  });
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+  const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); return ok;
+}
+document.getElementById('copy').addEventListener('click', async e => {
+  const ok = await copyText(corrections());
+  e.target.textContent = ok ? 'Copied: paste it in the chat' : 'Could not copy: use Download';
+  setTimeout(() => { e.target.textContent = 'Copy corrections'; }, 3500);
+});
+document.getElementById('download').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([corrections()], { type: 'application/json' }));
+  a.download = 'diagram-corrections.json'; a.click();
+});
+build();
+</script>
+</body>
+</html>

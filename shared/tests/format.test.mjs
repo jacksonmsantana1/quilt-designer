@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
 import { FORMAT_VERSION, MIGRATIONS, readDesign, readDesignOrDefault } from '@quilt/shared/format.js';
-import { defaultDesign } from '@quilt/shared/design.js';
-import { normalizeSpans } from '@quilt/shared/geometry.js';
+import { defaultDesign, newDesign } from '@quilt/shared/design.js';
+import { cellCount, normalizeSpans } from '@quilt/shared/geometry.js';
 
 const DIR = new URL('./fixtures/designs/', import.meta.url);
 const text = f => fs.readFileSync(new URL(f, DIR), 'utf8');
@@ -35,7 +35,7 @@ test('every saved example opens at the current version', () => {
     const r = readDesign(text(f));
     assert.ok(r, f);
     if (!r.newer) assert.equal(r.design.v, FORMAT_VERSION, f);
-    assert.equal(r.design.blocks.length, r.design.cols * r.design.rows, f);
+    assert.equal(r.design.blocks.length, cellCount(r.design), f);
   }
 });
 
@@ -47,6 +47,70 @@ test('good saves from before versions open unchanged, with no problems', () => {
     assert.deepEqual(r.problems, [], f);
     assert.deepEqual(r.design, { ...normalizeSpans(raw), v: FORMAT_VERSION }, f);
   }
+});
+
+test('sashing without cornerstones is kept; with them, nothing extra is stored', () => {
+  const raw = JSON.parse(text('v2-sashing-without-cornerstones.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION }); // upgraded, nothing else changed
+  const on = readDesign({ ...raw, sashing: { ...raw.sashing, cornerstones: true } });
+  assert.equal('cornerstones' in on.design.sashing, false); // on is the default
+});
+
+test('on point: kept with its blocks between; a wrong count or setting is repaired and reported', () => {
+  const raw = JSON.parse(text('v4-on-point.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+  assert.equal(r.design.blocks.length, 9 + 4);
+  // a block between the others missing: filled in, like any missing block
+  const short = readDesign({ ...raw, blocks: raw.blocks.slice(0, 12) });
+  assert.equal(short.design.blocks.length, 13);
+  assert.deepEqual(short.problems, ['1 missing block was filled with a plain square.']);
+  // an unknown layout: straight again, and the blocks between are left out
+  const odd = readDesign({ ...raw, setting: 'sideways' });
+  assert.equal('setting' in odd.design, false);
+  assert.equal(odd.design.blocks.length, 9);
+  assert.ok(odd.problems.includes('The layout went back to straight.'));
+});
+
+test('on point with a large block (version 5): kept as it is', () => {
+  const raw = JSON.parse(text('v5-on-point-large-block.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+});
+
+test('on point with a symmetry (version 6): kept as it is', () => {
+  const raw = JSON.parse(text('v6-on-point-symmetry.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+});
+
+test('a hexagon mosaic (version 7): kept as it is, its blocks too', () => {
+  const raw = JSON.parse(text('v7-hexagon-mosaic.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+  assert.equal(r.design.mosaic.fabrics.length, 28);
+});
+
+test('a cornerstone block is kept; an unreadable one is taken off and reported', () => {
+  const raw = JSON.parse(text('v3-cornerstone-block.json')),
+    r = readDesign(raw);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, { ...raw, v: FORMAT_VERSION });
+  const bad = readDesign({ ...raw, sashing: { ...raw.sashing, cornerBlock: { pattern: 'no-such-pattern' } } });
+  assert.equal('cornerBlock' in bad.design.sashing, false);
+  assert.deepEqual(bad.problems, ['The cornerstone block could not be read and was taken off.']);
+  const short = readDesign({
+    ...raw,
+    sashing: { ...raw.sashing, cornerBlock: { pattern: 'four', rot: 0, fabrics: [] } },
+  });
+  assert.equal(short.design.sashing.cornerBlock.fabrics.length, 4); // missing fabrics filled in
+  assert.deepEqual(short.problems, ['The cornerstone block was repaired.']);
 });
 
 test('the oldest saves get a block size and a backing fabric', () => {
@@ -100,4 +164,17 @@ test('the default design is current and needs no repairs', () => {
   assert.equal(r.from, FORMAT_VERSION);
   assert.deepEqual(r.problems, []);
   assert.deepEqual(r.design, defaultDesign());
+});
+
+test('a new design starts as three plain cream squares in a row, and is a valid current design', () => {
+  const d = newDesign();
+  assert.deepEqual([d.cols, d.rows, d.blockMm], [3, 1, 300]);
+  assert.deepEqual(
+    d.blocks.map(b => [b.pattern, b.fabrics]),
+    [0, 1, 2].map(() => ['plain', ['b0']]),
+  );
+  const r = readDesign(d);
+  assert.deepEqual(r.problems, []);
+  assert.deepEqual(r.design, d);
+  assert.notEqual(newDesign().blocks[0], d.blocks[0], 'every call makes its own blocks');
 });

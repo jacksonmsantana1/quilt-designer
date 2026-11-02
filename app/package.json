@@ -2,7 +2,7 @@
   "name": "@quilt/app",
   "private": true,
   "scripts": {
-    "build": "python3 build.py",
+    "build": "node tools/python.mjs build.py",
     "format": "prettier --write \"src/**/*.js\" \"tests/**/*.mjs\"",
     "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.mjs\"",
     "lint": "eslint src tests",

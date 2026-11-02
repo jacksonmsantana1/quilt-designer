@@ -1,7 +1,17 @@
 // Quilting stitches and seam lines.
 import '../sim/quilt-size.js'; // load order: runs after sim/quilt-size
 import { design } from '../core/store.js';
-import { blockPolys, blockRect, pathPoly, quiltMm, sashRects } from '@quilt/shared/geometry.js';
+import {
+  blockOutline,
+  blockPlace,
+  cellCount,
+  pathPoly,
+  placedPolys,
+  quiltMm,
+  sashRects,
+  settingPieces,
+  tilePolys,
+} from '@quilt/shared/geometry.js';
 
 // ---- quilting: the stitching that holds the layers together, drawn over the whole top.
 // 'ditch' = along the seams only; the others add a pattern of their own over the top
@@ -69,16 +79,26 @@ function drawQuiltingLines(g, W, H, kind) {
 }
 function strokeSeams(g, W, H) {
   const d = design;
-  for (const rc of sashRects(d, W, H)) g.strokeRect(rc.x, rc.y, rc.w, rc.h);
-  for (let r = 0; r < d.rows; r++)
-    for (let c = 0; c < d.cols; c++) {
-      if (d.blocks[r * d.cols + c].under != null) continue;
-      const R = blockRect(d, c, r, W, H);
-      for (const poly of blockPolys(d.blocks[r * d.cols + c], R.x, R.y, R.w, R.h)) {
-        pathPoly(g, poly);
-        g.stroke();
-      }
+  for (const poly of tilePolys(d, W, H)) {
+    pathPoly(g, poly); // a mosaic's shapes (none when it isn't one)
+    g.stroke();
+  }
+  if (d.mosaic) return; // its blocks are not showing
+  for (const rc of sashRects(d, W, H)) {
+    pathPoly(g, blockOutline(rc)); // (turned on point)
+    g.stroke();
+  }
+  for (const sp of settingPieces(d, W, H)) {
+    pathPoly(g, sp.poly);
+    g.stroke();
+  }
+  for (let i = 0, n = cellCount(d); i < n; i++) {
+    if (d.blocks[i].under != null) continue;
+    for (const poly of placedPolys(d.blocks[i], blockPlace(d, i, W, H))) {
+      pathPoly(g, poly);
+      g.stroke();
     }
+  }
 }
 // The design's seams drawn at 1/f size and returned for scaling up: scaling up a small drawing
 // with smoothing gives a blur of about f pixels, at a tiny fraction of a blur filter's cost.

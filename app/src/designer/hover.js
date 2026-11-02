@@ -1,32 +1,42 @@
 // Hover highlight on blocks, parts, sashing and borders, with the rotate and mirror buttons.
-import '../camera/fabric-camera.js'; // load order: runs after camera/fabric-camera
+import '../app/layout.js'; // load order: runs after app/layout
 import { design, selBlocks, setFocusBlock, setSelBlocks, setSelParts } from '../core/store.js';
-import { $ } from '../core/dom.js';
-import { partsOf } from '@quilt/shared/patterns.js';
+import { $, themeColour } from '../core/dom.js';
+import { len } from '../core/units.js';
+import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
 import {
   BORDER_TYPES,
   blockAt,
-  blockPolys,
-  blockRect,
+  blockOutline,
+  blockPlace,
   borderTotal,
   bordersOf,
   pathPoly,
   pathPolyInto,
+  placeBox,
+  placedPolys,
   pointInPoly,
   quiltMm,
   sashOf,
   sashRects,
+  settingPieces,
+  tileAtPx,
+  tilePolys,
+  spanOf,
 } from '@quilt/shared/geometry.js';
 import { flipped } from './canvas.js';
+import { mosaicTool } from './ui-state.js';
+import { tilesForTool } from '@quilt/shared/mosaic.js';
 import { drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { openBlockEditor } from './side-panel.js';
 import { dispatch } from './dispatch.js';
-import { flipBlocks, rotateBlocks } from '../core/edits.js';
+import { flipBlocks, rotateBlocks, setBlockSpan } from '../core/edits.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // ---- hover: highlight the block under the mouse; rest on one part and only that part lights up.
 // A click while a part is lit opens a small pop-up with just the fabrics, for that part.
-const hover = { bi: -1, part: -1, cand: -1, timer: 0, x: 0, y: 0, zone: null, zr: null, zi: -1 };
+const hover = { bi: -1, part: -1, cand: -1, timer: 0, x: 0, y: 0, zone: null, zr: null, zi: -1, tile: -1 };
 const PART_DWELL = 650; // ms the mouse must rest on a part
 function hoverGeom() {
   const cv = $('dz-quilt'),
@@ -35,9 +45,8 @@ function hoverGeom() {
   return { w, h };
 }
 function partAt(bi, x, y) {
-  const { w, h } = hoverGeom(),
-    R = blockRect(design, bi % design.cols, Math.floor(bi / design.cols), w, h);
-  return blockPolys(design.blocks[bi], R.x, R.y, R.w, R.h).findIndex(p => pointInPoly(x, y, p));
+  const { w, h } = hoverGeom();
+  return placedPolys(design.blocks[bi], blockPlace(design, bi, w, h)).findIndex(p => pointInPoly(x, y, p));
 }
 // what lies under (x, y) outside the blocks: a sashing strip / cornerstone, or one of the borders
 function zoneAt(x, y) {
@@ -55,20 +64,23 @@ function zoneAt(x, y) {
       o += bs[i].mm;
     }
   }
+  for (const sp of settingPieces(design, W, H))
+    if (pointInPoly(x, y, sp.poly)) return { zone: 'setting', zi: -1, zr: sp };
   for (const r of sashRects(design, W, H))
-    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { zone: 'sash', zi: -1, zr: r };
+    // (turned on point)
+    if (pointInPoly(x, y, blockOutline(r))) return { zone: 'sash', zi: -1, zr: r };
   return null;
 }
 function hoverLabel(g, txt, W) {
-  g.font = '600 12px system-ui, sans-serif';
+  g.font = '700 12px Karla, system-ui, sans-serif';
   const tw = g.measureText(txt).width + 14;
   const lx = Math.min(Math.max(4, hover.x + 14), W - tw - 4),
     ly = Math.max(4, hover.y - 30);
-  g.fillStyle = 'rgba(25,28,36,.88)';
+  g.fillStyle = 'rgba(46,33,28,.9)'; // dark brown labels, cream text
   g.beginPath();
   g.roundRect ? g.roundRect(lx, ly, tw, 22, 6) : g.rect(lx, ly, tw, 22);
   g.fill();
-  g.fillStyle = '#fff';
+  g.fillStyle = '#faf3e8';
   g.textBaseline = 'middle';
   g.fillText(txt, lx + 7, ly + 11);
 }
@@ -81,10 +93,32 @@ function drawHover() {
   g.clearRect(0, 0, cv.width, cv.height);
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const rb = $('dz-hrot');
+  if (design.mosaic && hover.tile >= 0) {
+    // a mosaic: the shape under the mouse, which a click paints
+    for (const id of ['dz-hrot', 'dz-hflip', 'dz-hsplit']) if ($(id)) $(id).hidden = true;
+    // with the rosette or row tool: every shape a click would paint
+    const { w: W, h: H } = hoverGeom(),
+      polys = tilePolys(design, W, H),
+      ids = mosaicTool === 'random' ? [hover.tile] : tilesForTool(design.mosaic, hover.tile, mosaicTool);
+    g.lineJoin = 'round';
+    for (const [lw, c] of [
+      [3, 'rgba(255,255,255,.95)'],
+      [1.5, themeColour('--mark', '#d2602f')],
+    ]) {
+      g.lineWidth = lw;
+      g.strokeStyle = c;
+      for (const i of ids) {
+        pathPoly(g, polys[i]);
+        g.stroke();
+      }
+    }
+    return;
+  }
   if (hover.zone) {
     // sashing or a border: light it up like a block, with its name
     if (rb) rb.hidden = true;
     if ($('dz-hflip')) $('dz-hflip').hidden = true;
+    if ($('dz-hsplit')) $('dz-hsplit').hidden = true;
     const { w: W, h: H } = hoverGeom(),
       z = hover.zr;
     g.save();
@@ -92,44 +126,70 @@ function drawHover() {
     if (hover.zone === 'brd') {
       g.rect(z.o, z.o, W - 2 * z.o, H - 2 * z.o);
       g.rect(z.o + z.t, z.o + z.t, W - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
-    } else for (const r of sashRects(design, W, H)) g.rect(r.x, r.y, r.w, r.h);
+    } else if (hover.zone === 'setting') for (const sp of settingPieces(design, W, H)) pathPolyInto(g, sp.poly);
+    else for (const r of sashRects(design, W, H)) pathPolyInto(g, blockOutline(r));
     g.fillStyle = 'rgba(255,255,255,.26)';
     g.fill('evenodd');
     g.lineJoin = 'round';
     for (const [lw, c] of [
       [3, 'rgba(255,255,255,.95)'],
-      [1.5, '#e0592a'],
+      [1.5, themeColour('--mark', '#d2602f')],
     ]) {
       g.lineWidth = lw;
       g.strokeStyle = c;
       if (hover.zone === 'brd') {
         g.strokeRect(z.o + 1, z.o + 1, W - 2 * z.o - 2, H - 2 * z.o - 2);
         g.strokeRect(z.o + z.t, z.o + z.t, W - 2 * (z.o + z.t), H - 2 * (z.o + z.t));
-      } else g.strokeRect(z.x + 1, z.y + 1, z.w - 2, z.h - 2);
+      } else if (hover.zone === 'setting') {
+        pathPoly(g, z.poly);
+        g.stroke();
+      } else {
+        pathPoly(g, blockOutline(z));
+        g.stroke();
+      }
     }
     g.restore();
     const s = sashOf(design),
       b = hover.zone === 'brd' ? bordersOf(design)[hover.zi] : null;
-    hoverLabel(
-      g,
-      hover.zone === 'brd'
-        ? `Border ${hover.zi + 1} · ${BORDER_TYPES[b.type].label} · ${b.mm} mm · click to edit`
-        : `${z.kind === 'corner' ? 'Cornerstone' : 'Sashing'} · ${fabricById(z.kind === 'corner' ? s.corner : s.fabric).name} · ${s.mm} mm · click to edit`,
-      W,
-    );
+    /** The label of a setting triangle or of the sashing: which one it is decides the whole sentence. */
+    const zoneLabel = () => {
+      if (hover.zone === 'setting') {
+        const fabric = fabricById(design.settingFabric || 'b0').name;
+        return z.kind === 'corner'
+          ? t('Corner triangle · {fabric} · click to edit', { fabric })
+          : t('Setting triangle · {fabric} · click to edit', { fabric });
+      }
+      if (hover.zone === 'brd')
+        return t('Border {n} · {type} · {size} · click to edit', {
+          n: hover.zi + 1,
+          type: BORDER_TYPES[b.type].label,
+          size: len(b.mm),
+        });
+      const what =
+          z.kind === 'corner' && s.cornerBlock
+            ? PATTERNS[s.cornerBlock.pattern].label
+            : fabricById(z.kind === 'corner' ? s.corner : s.fabric).name,
+        size = len(s.mm);
+      return z.kind === 'corner'
+        ? t('Cornerstone · {what} · {size} · click to edit', { what, size })
+        : t('Sashing · {what} · {size} · click to edit', { what, size });
+    };
+    hoverLabel(g, zoneLabel(), W);
     return;
   }
   if (hover.bi < 0 || hover.bi >= design.blocks.length) {
     if (rb) rb.hidden = true;
     if ($('dz-hflip')) $('dz-hflip').hidden = true;
+    if ($('dz-hsplit')) $('dz-hsplit').hidden = true;
     return;
   }
   const { w: HW, h: HH } = hoverGeom(),
-    RR = blockRect(design, hover.bi % design.cols, Math.floor(hover.bi / design.cols), HW, HH),
+    PP = blockPlace(design, hover.bi, HW, HH),
+    outline = blockOutline(PP),
+    RR = placeBox(PP), // the buttons sit in the corner of the upright box around it
     x = RR.x,
     y = RR.y,
-    bw = RR.w,
-    bh = RR.h;
+    bw = RR.w;
   if (rb) {
     // small round rotate button in the block's top-right corner
     const sz = bw < 70 ? 22 : 28;
@@ -144,27 +204,44 @@ function drawHover() {
       fb.style.top = rb.style.top;
       fb.hidden = rb.hidden || bw < 70;
     }
+    // a large block: Split, back to separate blocks
+    const sb = $('dz-hsplit');
+    if (sb) {
+      sb.style.width = sb.style.height = sz + 'px';
+      sb.style.left = cv.offsetLeft + x + bw - 3 * sz - 13 + 'px';
+      sb.style.top = rb.style.top;
+      sb.hidden = rb.hidden || spanOf(design.blocks[hover.bi]) < 2;
+    }
   }
   if (hover.part < 0) {
+    pathPoly(g, outline);
     g.fillStyle = 'rgba(255,255,255,.22)';
-    g.fillRect(x, y, bw, bh);
+    g.fill();
+    // the edge, drawn 1.5 px inside the block
+    const cx = PP.x + PP.w / 2,
+      cy = PP.y + PP.h / 2,
+      k = 1 - 3 / Math.max(PP.w, 6);
+    pathPoly(
+      g,
+      outline.map(([px, py]) => [cx + (px - cx) * k, cy + (py - cy) * k]),
+    );
     g.lineWidth = 3;
     g.strokeStyle = 'rgba(255,255,255,.95)';
-    g.strokeRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
+    g.stroke();
     g.lineWidth = 1.5;
-    g.strokeStyle = '#e0592a';
-    g.strokeRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
+    g.strokeStyle = themeColour('--mark', '#d2602f');
+    g.stroke();
     return;
   }
-  const polys = blockPolys(design.blocks[hover.bi], x, y, bw, bh),
+  const polys = placedPolys(design.blocks[hover.bi], PP),
     p = polys[hover.part];
   if (!p) return;
   // dim the rest of the block a little so the part stands out
   g.save();
   g.beginPath();
-  g.rect(x, y, bw, bh);
+  pathPolyInto(g, outline);
   pathPolyInto(g, p);
-  g.fillStyle = 'rgba(20,24,34,.28)';
+  g.fillStyle = 'rgba(60,36,24,.28)';
   g.fill('evenodd');
   g.restore();
   pathPoly(g, p);
@@ -175,27 +252,28 @@ function drawHover() {
   g.strokeStyle = '#ffffff';
   g.stroke();
   g.lineWidth = 1.5;
-  g.strokeStyle = '#e0592a';
+  g.strokeStyle = themeColour('--mark', '#d2602f');
   g.stroke();
   // label: part name and fabric
   const b = design.blocks[hover.bi],
     txt = `${partsOf(b.pattern)[hover.part].name} · ${fabricById(b.fabrics[hover.part]).name}`;
-  g.font = '600 12px system-ui, sans-serif';
+  g.font = '700 12px Karla, system-ui, sans-serif';
   const tw = g.measureText(txt).width + 14;
   const W = parseFloat(cv.style.width),
     lx = Math.min(Math.max(4, hover.x + 14), W - tw - 4),
     ly = Math.max(4, hover.y - 30);
-  g.fillStyle = 'rgba(25,28,36,.88)';
+  g.fillStyle = 'rgba(46,33,28,.9)'; // dark brown labels, cream text
   g.beginPath();
   g.roundRect ? g.roundRect(lx, ly, tw, 22, 6) : g.rect(lx, ly, tw, 22);
   g.fill();
-  g.fillStyle = '#fff';
+  g.fillStyle = '#faf3e8';
   g.textBaseline = 'middle';
   g.fillText(txt, lx + 7, ly + 11);
 }
 function clearHover() {
   clearTimeout(hover.timer);
-  if (hover.bi !== -1 || hover.part !== -1 || hover.zone) {
+  if (hover.bi !== -1 || hover.part !== -1 || hover.zone || hover.tile !== -1) {
+    hover.tile = -1;
     hover.bi = -1;
     hover.part = -1;
     hover.cand = -1;
@@ -215,6 +293,18 @@ function initHover() {
       y = e.clientY - r.top;
     const { w: HW, h: HH } = hoverGeom(),
       bi = blockAt(design, x, y, HW, HH);
+    const ti = design.mosaic ? tileAtPx(design, x, y, HW, HH) : -1;
+    if (ti >= 0) {
+      clearTimeout(hover.timer);
+      hover.timer = 0;
+      hover.zone = null;
+      if (ti !== hover.tile) {
+        hover.tile = ti;
+        drawHover();
+      }
+      return;
+    }
+    hover.tile = -1;
     if (bi < 0) {
       const z = zoneAt(x, y);
       if (!z) {
@@ -264,7 +354,8 @@ function initHover() {
   });
   const hrot = $('dz-hrot');
   const hflip = $('dz-hflip'),
-    onBtn = el => el && (hrot.contains(el) || hflip.contains(el));
+    hsplit = $('dz-hsplit'),
+    onBtn = el => el && (hrot.contains(el) || hflip.contains(el) || hsplit.contains(el));
   qcv.addEventListener('pointerleave', e => {
     if (onBtn(e.relatedTarget)) return;
     clearHover();
@@ -280,6 +371,13 @@ function initHover() {
     if (hover.part >= 0) hover.part = -1;
     clearTimeout(hover.timer);
     hover.timer = 0;
+    drawHover();
+  });
+  hsplit.addEventListener('click', e => {
+    e.stopPropagation();
+    const bi = hover.bi;
+    if (bi < 0 || !design) return;
+    dispatch(setBlockSpan, bi, 1); // its cells show their own blocks again
     drawHover();
   });
   hflip.addEventListener('click', e => {

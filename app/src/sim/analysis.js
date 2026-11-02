@@ -3,7 +3,8 @@ import './camera.js'; // load order: runs after sim/camera
 import * as THREE from 'three';
 import { colliders, havePos, setColliders } from './sim-state.js';
 import { $ } from '../core/dom.js';
-import { N, R, WOOD_PARTS, bedM, isTableSim, quilt, state } from './config.js';
+import { fix, t } from '@quilt/shared/i18n.js';
+import { N, R, WOOD_PARTS, bedM, isBedSim, quilt, state } from './config.js';
 import { scene } from './renderer.js';
 import { colliderMeshes, legs, roundedBoxGeometry } from './stage.js';
 import { applyLook } from './lighting.js';
@@ -15,27 +16,27 @@ import { qGeo, quiltBind, quiltBot, quiltTop, simPos, subdivide } from './quilt-
 // on the quilt, the simulation mesh overlaid, a neutral grey workspace with
 // outlined parts and a floor grid, and drape measurements.
 
-const MAT = { top: ClothSim.surfaceTop(bedM()), headFace: isTableSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055 };
+const MAT = { top: ClothSim.surfaceTop(bedM()), headFace: !isBedSim() ? -bedM().l / 2 : -bedM().l / 2 - 0.055 };
 const FIELDS = {
   strain: {
-    label: 'Membrane strain',
+    label: t('Membrane strain'),
     unit: '%',
-    fmt: v => v.toFixed(2),
-    note: 'Stretch of the fabric relative to its flat, unloaded size.',
+    fmt: v => fix(v, 2),
+    note: t('Stretch of the fabric relative to its flat, unloaded size.'),
   },
   curvature: {
-    label: 'Curvature κ',
+    label: t('Curvature κ'),
     unit: '1/m',
-    fmt: v => v.toFixed(1),
-    note: 'κ = 1/R. Red marks folds and the tightest bends.',
+    fmt: v => fix(v, 1),
+    note: t('κ = 1/R. Red marks folds and the tightest bends.'),
   },
   clearance: {
-    label: 'Gap to bed or floor',
+    label: t('Gap to bed or floor'),
     unit: 'mm',
-    fmt: v => v.toFixed(0),
-    note: 'Blue is touching (≤ 1 mm). Red is hanging free.',
+    fmt: v => fix(v, 0),
+    note: t('Blue is touching (≤ 1 mm). Red is hanging free.'),
   },
-  height: { label: 'Height above floor', unit: 'm', fmt: v => v.toFixed(2), note: 'Mattress top is at 0.62 m.' },
+  height: { label: t('Height above floor'), unit: 'm', fmt: v => fix(v, 2), note: t('Mattress top is at 0.62 m.') },
 };
 const BANDS = 10;
 const easeIO = u => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(Math.max(u, 0), 1));
@@ -353,7 +354,7 @@ function stepAnalysis(dt) {
   meshLines.material.opacity = sweeping ? 0.42 * Math.max(0, (u - 0.6) / 0.4) : 0.42;
 }
 function fmtCm(v) {
-  return (v * 100).toFixed(1) + ' cm';
+  return fix(v * 100, 1) + ' cm';
 }
 function analysisOnStats(s) {
   if (!analysis.fields) return;
@@ -381,14 +382,14 @@ function analysisOnStats(s) {
   $('r-dr').textContent = fmtCm(drop(minR));
   $('r-df').textContent = fmtCm(drop(minF));
   $('r-head').textContent = fmtCm(headZ - MAT.headFace);
-  $('r-hem').textContent = minAll - T < 0.002 ? 'on the floor' : fmtCm(minAll - T);
+  $('r-hem').textContent = minAll - T < 0.002 ? t('on the floor') : fmtCm(minAll - T);
   let touch = 0;
   for (const g of F.clearance) if (g <= 1) touch++;
-  $('r-touch').textContent = ((100 * touch) / F.clearance.length).toFixed(0) + ' %';
+  $('r-touch').textContent = fix((100 * touch) / F.clearance.length, 0) + ' %';
   const ss = sortedCopy(F.strain);
-  $('r-strain').textContent = `${quant(ss, 0.98).toFixed(2)} % · max ${ss[ss.length - 1].toFixed(2)} %`;
+  $('r-strain').textContent = t('{a} % · max {b} %', { a: fix(quant(ss, 0.98), 2), b: fix(ss[ss.length - 1], 2) });
   const kc = quant(sortedCopy(F.curvature), 0.99);
-  $('r-fold').textContent = kc > 0.5 ? `${(100 / kc).toFixed(1)} cm` : 'flat';
+  $('r-fold').textContent = kc > 0.5 ? `${fix(100 / kc, 1)} cm` : t('flat');
 }
 
 export {

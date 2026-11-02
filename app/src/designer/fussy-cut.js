@@ -1,12 +1,13 @@
 // Fussy cut: choosing which part of a print shows in a piece.
 import './canvas.js'; // load order: runs after designer/canvas
 import { design, focusBlock, selBlocks, selParts } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
 import { orientPoly, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from './fabric-library.js';
 import { blockSizeMm, pathPoly, pathPolyInto, polyCentre, spanOf } from '@quilt/shared/geometry.js';
 import { dispatch } from './dispatch.js';
 import { setFussy as setFussyEdit } from '../core/edits.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // ---- fussy cut: with one part selected in a printed fabric, click the print to choose what shows in that part
 function drawFussy() {
@@ -29,8 +30,8 @@ function drawFussy() {
   g.drawImage(fab.canvas, 0, 0, S, S); // one repeat of the print
   const f = b.fussy && b.fussy[pi];
   $('dz-fussy-st').textContent = f
-    ? 'Fussy cut: the outline shows the part of the print that will be in this piece. Click or drag to move it.'
-    : 'Click the print to choose which part of it shows in this piece (a fussy cut).';
+    ? t('Fussy cut: the outline shows the part of the print that will be in this piece. Click or drag to move it.')
+    : t('Click the print to choose which part of it shows in this piece (a fussy cut).');
   $('dz-fussy-clear').hidden = !f;
   if (!f) return;
   // the piece at its real size on this repeat (the repeat is fab.cm wide)
@@ -54,7 +55,7 @@ function drawFussy() {
   for (const p of offs) {
     pathPoly(g, p);
     g.lineWidth = 2;
-    g.strokeStyle = '#e0592a';
+    g.strokeStyle = themeColour('--mark', '#d2602f');
     g.stroke();
   }
   g.restore();

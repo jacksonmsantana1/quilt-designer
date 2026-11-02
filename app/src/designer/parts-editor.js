@@ -1,10 +1,13 @@
 // Block parts panel: the enlarged block, its parts, patterns and fabrics.
 import './fussy-cut.js'; // load order: runs after designer/fussy-cut
 import { activeFabric, design, focusBlock, selBlocks, selParts, setFocusBlock } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, themeColour } from '../core/dom.js';
+import { inputRange, toInput } from '../core/units.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
-import { fabricById, fabricLib } from './fabric-library.js';
-import { blockPolys, pathPoly } from '@quilt/shared/geometry.js';
+import { fabricById } from './fabric-library.js';
+import { drawShortList } from './fabric-picker.js';
+import { drawPatternList } from './block-picker.js';
+import { blockPolys, cellName, isOnPoint, pathPoly } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas } from './canvas.js';
 import { drawFussy } from './fussy-cut.js';
 import { drawBlockLibrary } from './block-library.js';
@@ -14,6 +17,8 @@ import { renderBorderUI } from './borders-ui.js';
 import { syncSymUI } from './settings.js';
 import { tlEnsure } from '../timeline/timeline.js';
 import { pieceFill } from '../render/fabric-fill.js';
+import { mosaicBrush } from './ui-state.js';
+import { t } from '@quilt/shared/i18n.js';
 
 function drawPartsEditor() {
   if (!design) return;
@@ -39,13 +44,13 @@ function drawPartsEditor() {
   polys.forEach((poly, pi) => {
     pathPoly(g, poly);
     if (selParts.has(pi)) {
-      g.fillStyle = 'rgba(224,89,42,.28)';
+      g.fillStyle = 'rgba(214,98,52,.28)';
       g.fill();
       g.lineWidth = 3;
       g.strokeStyle = '#ffffff';
       g.stroke();
       g.lineWidth = 1.5;
-      g.strokeStyle = '#e0592a';
+      g.strokeStyle = themeColour('--mark', '#d2602f');
       g.stroke();
     } else {
       g.lineWidth = 1;
@@ -53,83 +58,63 @@ function drawPartsEditor() {
       g.stroke();
     }
   });
-  const names = [...selParts].map(i => partsOf(b.pattern)[i].name);
+  const names = [...selParts].map(i => partsOf(b.pattern)[i].name),
+    one = [...selParts][0],
+    picked = selParts.size === 1 ? { part: names[0], fabric: fabricById(b.fabrics[one]).name } : null;
   $('dz-parts-info').textContent =
     selParts.size === 0
-      ? 'Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric.'
+      ? t('Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric.')
       : selParts.size === 1
-        ? `Selected: ${names[0]} · ${fabricById(b.fabrics[[...selParts][0]]).name}${b.fussy && b.fussy[[...selParts][0]] ? ' · fussy cut' : ''}`
-        : `${selParts.size} parts selected`;
+        ? b.fussy && b.fussy[one]
+          ? t('Selected: {part} · {fabric} · fussy cut', picked)
+          : t('Selected: {part} · {fabric}', picked)
+        : t('{n} parts selected', { n: selParts.size });
   drawFussy();
   $('dz-blockname').textContent =
-    `${PATTERNS[b.pattern].label} · block ${Math.floor(focusBlock / design.cols) + 1}, ${(focusBlock % design.cols) + 1}` +
-    (selBlocks.size > 1 ? ` · editing ${selBlocks.size} blocks` : '');
+    t('{name} · block {cell}', { name: PATTERNS[b.pattern].label, cell: cellName(design, focusBlock) }) +
+    (selBlocks.size > 1 ? ` · ${t('editing {n} blocks', { n: selBlocks.size })}` : '');
 }
+/** The list under "Block pattern" (designer/block-picker.js). */
 function drawPatternButtons() {
-  if (!design) return;
-  const box = $('dz-patterns');
-  if (!box.childElementCount) {
-    for (const [key, p] of Object.entries(PATTERNS)) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'pat';
-      b.dataset.p = key;
-      b.title = p.label;
-      const c = document.createElement('canvas');
-      c.width = c.height = 96;
-      const g = c.getContext('2d');
-      const cols = ['#efe5cf', '#2f466f', '#c79a45'];
-      partsOf(key).forEach(part => {
-        g.fillStyle = cols[part.role];
-        pathPoly(
-          g,
-          part.poly.map(([u, v]) => [u * 96, v * 96]),
-        );
-        g.fill();
-        g.strokeStyle = 'rgba(0,0,0,.25)';
-        g.stroke();
-      });
-      const s = document.createElement('span');
-      s.textContent = p.label;
-      b.append(c, s);
-      box.appendChild(b);
-    }
-  }
-  const cur = design.blocks[focusBlock].pattern;
-  for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.p === cur));
+  drawPatternList();
 }
 function drawFabricPalette() {
   for (const id of ['dz-fabrics', 'dz-fabrics2']) if ($(id)) drawPaletteInto($(id));
-  if (design) drawPaletteInto($('dz-backfabs'), design.backFabric);
-}
-function drawPaletteInto(box, selected = activeFabric) {
-  box.innerHTML = '';
-  for (const f of fabricLib) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'fab';
-    b.dataset.f = f.id;
-    b.title = f.name;
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const k = Math.min(f.canvas.width, f.canvas.height, 360);
-    c.getContext('2d').drawImage(f.canvas, 0, 0, k, k, 0, 0, 64, 64);
-    const s = document.createElement('span');
-    s.textContent = f.name;
-    b.append(c, s);
-    b.setAttribute('aria-pressed', String(f.id === selected));
-    box.appendChild(b);
+  if (design) {
+    drawPaletteInto($('dz-backfabs'), design.backFabric);
+    if ($('set-fabs')) drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');
   }
+}
+/** A fabric choice: its short list (designer/fabric-picker.js) with the chosen fabric pressed. */
+function drawPaletteInto(box, selected = activeFabric) {
+  drawShortList(box, selected);
 }
 function renderDesigner() {
   if (!design) return;
   if (design.blocks[focusBlock] && design.blocks[focusBlock].under != null)
     setFocusBlock(design.blocks[focusBlock].under);
-  $('dz-cols').value = design.cols;
-  $('dz-rows').value = design.rows;
+  // a mosaic: the steppers count its shapes across and down (up to 60)
+  const grid = design.mosaic || design;
+  $('dz-cols').value = grid.cols;
+  $('dz-rows').value = grid.rows;
+  $('dz-cols').max = $('dz-rows').max = design.mosaic ? '60' : '20';
+  // layout: on point, the setting triangles have a fabric (symmetry and large blocks wait, see syncSymUI)
+  $('dz-setting').value = design.mosaic ? 'mosaic' : isOnPoint(design) ? 'onpoint' : 'straight';
+  // the block tools would change the blocks under a mosaic, which don't show: they wait until it's blocks again
+  for (const id of ['rail-parts', 'rail-sash', 'sym-wrap']) if ($(id)) $(id).hidden = !!design.mosaic;
+  if (design.mosaic) {
+    Object.assign($('mos-mm'), inputRange(10, 200));
+    if (document.activeElement !== $('mos-mm')) $('mos-mm').value = String(toInput(design.mosaic.mm));
+    $('mos-shape').value = design.mosaic.shape;
+    // Same way: for diamonds and triangles (all hexagons lie the same way)
+    $('mos-tools').querySelector('[data-tool="way"]').hidden = design.mosaic.shape === 'hex';
+    drawPaletteInto($('mos-fabs'), mosaicBrush);
+  }
+  drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');
   syncSymUI();
-  for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = design.blockMm;
-  $('dz-rot').textContent = `Rotate 90° (${design.blocks[focusBlock].rot * 90}°)`;
+  Object.assign($('dz-bmm3'), inputRange(50, 1000));
+  for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = String(toInput(design.blockMm));
+  $('dz-rot').textContent = t('Rotate 90° ({deg}°)', { deg: design.blocks[focusBlock].rot * 90 });
   drawDesignerCanvas();
   drawPartsEditor();
   drawPatternButtons();

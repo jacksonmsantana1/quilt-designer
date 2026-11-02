@@ -11,5 +11,6 @@ export default defineConfig({
   reporter: [['list']],
   // COVERAGE=1 (npm run coverage:e2e): each test's JavaScript coverage is collected, and reported at the end
   globalTeardown: process.env.COVERAGE ? './tests/e2e/coverage.mjs' : undefined,
-  use: { viewport: { width: 1300, height: 1000 }, actionTimeout: 15_000 },
+  // the tests read English text, whatever language this computer is in (i18n.spec chooses its own)
+  use: { locale: 'en-US', viewport: { width: 1300, height: 1000 }, actionTimeout: 15_000 },
 });

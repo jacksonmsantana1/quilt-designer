@@ -2,13 +2,14 @@
 import './parts-editor.js'; // load order: runs after designer/parts-editor
 
 import { design, focusBlock, selBlocks, selParts, setSelParts } from '../core/store.js';
-import { $ } from '../core/dom.js';
+import { $, sideRoller } from '../core/dom.js';
 import { PATTERNS } from '@quilt/shared/patterns.js';
 import { blockPolys, pathPoly } from '@quilt/shared/geometry.js';
 import { drawPartsEditor } from './parts-editor.js';
 import { pieceFill } from '../render/fabric-fill.js';
 import { dispatch } from './dispatch.js';
 import { copyBlock } from '../core/edits.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // ---- library of the distinct blocks in the quilt (pop-up)
 // Two blocks count as the same when they look the same: same fabric on the same piece positions,
@@ -63,7 +64,7 @@ function drawBlockLibrary() {
     btn.className = 'blib-item';
     btn.dataset.src = i;
     btn.setAttribute('aria-pressed', String(k === cur));
-    btn.title = `${PATTERNS[b.pattern].label} · used ${n}×`;
+    btn.title = t('{name} · used {n}×', { name: PATTERNS[b.pattern].label, n });
     const c = document.createElement('canvas');
     c.width = c.height = S * dpr;
     const g = c.getContext('2d');
@@ -84,6 +85,8 @@ function drawBlockLibrary() {
     btn.append(c, s);
     box.appendChild(btn);
   }
+  // one row that scrolls sideways, like the fabrics, with the block being edited in view
+  sideRoller(box, '.blib-item[aria-pressed="true"]');
 }
 function copyBlockFrom(srcIndex) {
   selParts.clear();

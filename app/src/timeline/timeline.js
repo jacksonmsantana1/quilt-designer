@@ -2,6 +2,7 @@
 import '../mine/samples.js'; // load order: runs after mine/samples
 import { design, mineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { len } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { PATTERNS } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -11,6 +12,7 @@ import { drawDesignerCanvas } from '../designer/canvas.js';
 import { openDesign } from '../designer/dispatch.js';
 import { readDesign, readDesignOrDefault } from '@quilt/shared/format.js';
 import { timelines } from '../storage/repo.js';
+import { getLang, t, tn } from '@quilt/shared/i18n.js';
 
 // ---- design timeline: every change is a step (the last 100 are kept, in storage/repo.js timelines);
 // undo / redo, or jump to any step from the timeline strip.
@@ -50,7 +52,7 @@ function tlEnsure() {
     tl.seq = o.seq || o.steps.length;
   }
   const cur = JSON.stringify(design);
-  if (!tl.steps.length || tl.steps[tl.i].d !== cur) tlPush(cur, tl.steps.length ? 'Opened' : 'Start');
+  if (!tl.steps.length || tl.steps[tl.i].d !== cur) tlPush(cur, tl.steps.length ? t('Opened') : t('Start'));
   tlUI();
 }
 function tlPush(d, label, merge) {
@@ -88,26 +90,25 @@ function tlCommit() {
   if (top) top.merge = null;
 }
 function tlDescribe(a, b) {
-  if (!a) return 'Start';
-  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-  if (a.cols !== b.cols || a.rows !== b.rows) return `Layout ${b.cols} × ${b.rows}`;
-  if (a.blockMm !== b.blockMm) return `Block size ${b.blockMm} mm`;
-  if (a.backFabric !== b.backFabric) return `Backing: ${fabricById(b.backFabric).name}`;
+  if (!a) return t('Start');
+  if (a.cols !== b.cols || a.rows !== b.rows) return t('Layout {cols} × {rows}', { cols: b.cols, rows: b.rows });
+  if (a.blockMm !== b.blockMm) return t('Block size {size}', { size: len(b.blockMm) });
+  if (a.backFabric !== b.backFabric) return t('Backing: {fabric}', { fabric: fabricById(b.backFabric).name });
   if (JSON.stringify(a.borders || []) !== JSON.stringify(b.borders || [])) {
     const na = bordersOf(a).length,
       nb = bordersOf(b).length;
-    if (nb > na) return `Add border: ${BORDER_TYPES[bordersOf(b)[nb - 1].type].label}`;
-    if (nb < na) return 'Remove border';
-    return 'Change border';
+    if (nb > na) return t('Add border: {type}', { type: BORDER_TYPES[bordersOf(b)[nb - 1].type].label });
+    if (nb < na) return t('Remove border');
+    return t('Change border');
   }
   if (JSON.stringify(a.sashing || null) !== JSON.stringify(b.sashing || null)) {
     const p = sashOf(a),
       s = sashOf(b);
-    if (!s.mm) return 'No sashing';
-    if (p.mm !== s.mm) return `Sashing ${s.mm} mm`;
-    if (p.border !== s.border) return s.border ? 'Sashing border on' : 'Sashing border off';
-    if (p.fabric !== s.fabric) return `Sashing: ${fabricById(s.fabric).name}`;
-    return `Cornerstones: ${fabricById(s.corner).name}`;
+    if (!s.mm) return t('No sashing');
+    if (p.mm !== s.mm) return t('Sashing {size}', { size: len(s.mm) });
+    if (p.border !== s.border) return s.border ? t('Sashing border on') : t('Sashing border off');
+    if (p.fabric !== s.fabric) return t('Sashing: {fabric}', { fabric: fabricById(s.fabric).name });
+    return t('Cornerstones: {fabric}', { fabric: fabricById(s.corner).name });
   }
   let pat = 0,
     rot = 0,
@@ -132,10 +133,16 @@ function tlDescribe(a, b) {
     });
     if (ch) fab++;
   });
-  if (pat) return `${patNames.size === 1 ? [...patNames][0] : 'Patterns'} in ${plural(pat, 'block')}`;
-  if (fab) return `${newFabs.size === 1 ? fabricById([...newFabs][0]).name : 'Fabrics'} in ${plural(fab, 'block')}`;
-  if (rot) return `Rotate ${plural(rot, 'block')}`;
-  return 'Change';
+  if (pat)
+    return tn(pat, '{what} in {n} block', '{what} in {n} blocks', {
+      what: patNames.size === 1 ? [...patNames][0] : t('Patterns'),
+    });
+  if (fab)
+    return tn(fab, '{what} in {n} block', '{what} in {n} blocks', {
+      what: newFabs.size === 1 ? fabricById([...newFabs][0]).name : t('Fabrics'),
+    });
+  if (rot) return tn(rot, 'Rotate {n} block', 'Rotate {n} blocks');
+  return t('Change');
 }
 function tlGo(to) {
   if (!tl.steps.length) return;
@@ -172,7 +179,7 @@ function tlUI() {
   const n = tl.steps.length;
   $('tl-undo').disabled = tl.i <= 0;
   $('tl-redo').disabled = tl.i >= n - 1;
-  $('tl-open').textContent = `Timeline · ${tl.i + 1}/${n}`;
+  $('tl-open').textContent = t('Timeline · {i}/{n}', { i: tl.i + 1, n });
   if ($('tl-panel').hidden) return;
   $('tl-first').disabled = $('tl-back').disabled = tl.i <= 0;
   $('tl-last').disabled = $('tl-fwd').disabled = tl.i >= n - 1;
@@ -183,19 +190,19 @@ function tlUI() {
   const list = $('tl-list');
   list.innerHTML = '';
   const now = Date.now(),
-    ago = t => {
-      const s = Math.round((now - t) / 1000);
+    ago = at => {
+      const s = Math.round((now - at) / 1000);
       return s < 60
-        ? `${s}s ago`
+        ? t('{s}s ago', { s })
         : s < 3600
-          ? `${Math.round(s / 60)} min ago`
-          : new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          ? t('{m} min ago', { m: Math.round(s / 60) })
+          : new Date(at).toLocaleTimeString([getLang()], { hour: '2-digit', minute: '2-digit' });
     };
   tl.steps.forEach((st, k) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'tl-step' + (k === tl.i ? ' cur' : '') + (k > tl.i ? ' future' : '');
-    b.title = `Step ${k + 1}: ${st.label} · ${ago(st.t)}`;
+    b.title = t('Step {n}: {label} · {when}', { n: k + 1, label: st.label, when: ago(st.t) });
     const num = document.createElement('span');
     num.className = 'n';
     num.textContent = `${k + 1}`;
@@ -237,7 +244,7 @@ function initTimeline() {
     clearInterval(playT);
     playT = 0;
     $('tl-play').textContent = '▶';
-    $('tl-play').setAttribute('aria-label', 'Play');
+    $('tl-play').setAttribute('aria-label', t('Play'));
   }
   $('tl-play').addEventListener('click', () => {
     if (playT) {
@@ -246,7 +253,7 @@ function initTimeline() {
     }
     if (tl.i >= tl.steps.length - 1) tlGo(0);
     $('tl-play').textContent = '❚❚';
-    $('tl-play').setAttribute('aria-label', 'Pause');
+    $('tl-play').setAttribute('aria-label', t('Pause'));
     playT = setInterval(() => {
       if (tl.i >= tl.steps.length - 1) {
         stopPlay();
@@ -272,7 +279,7 @@ function initTimeline() {
     tl.steps = [];
     tl.i = -1;
     tl.thumbs.clear();
-    tlPush(JSON.stringify(design), 'Start');
+    tlPush(JSON.stringify(design), t('Start'));
     tlUI();
   });
   // the undo / redo / Timeline buttons stay hidden until the left or right arrow key is pressed

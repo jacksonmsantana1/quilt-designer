@@ -1,4 +1,4 @@
-// Object storage for fabric photos: S3-compatible (Cloudflare R2 in production, MinIO in development), and an
+// Object storage for fabric photos: S3-compatible (Cloudflare R2 in production, SeaweedFS in development), and an
 // in-memory stand-in for the tests. The browser uploads straight to storage through a short-lived signed link,
 // so photos never pass through the API server.
 import {
@@ -34,6 +34,10 @@ export function s3Store(cfg) {
     endpoint: cfg.endpoint,
     forcePathStyle: cfg.forcePathStyle,
     credentials: { accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey },
+    // no checksums unless an operation needs one: by default the SDK puts the checksum of an empty body into
+    // signed upload links (it can't know the photo yet), and storage that checks it (SeaweedFS, R2) refuses the upload
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
   });
   const Bucket = cfg.bucket;
   return {
@@ -83,7 +87,7 @@ export function memoryStore() {
 
 /**
  * Development only: photos kept in a folder on this computer and served by the API itself under /dev-files/,
- * so the app can sync photos without MinIO. Links carry a signature and an expiry like S3's. Refused in
+ * so the app can sync photos without SeaweedFS. Links carry a signature and an expiry like S3's. Refused in
  * production (config.js).
  * @param {string} dir @param {string | (() => string)} publicUrl the API's address as the browser sees it
  *   (a function when it is known only once the server listens)

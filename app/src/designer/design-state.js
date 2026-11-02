@@ -1,10 +1,11 @@
 // The design being edited: loading, saving, new design, resizing.
-import './fabric-library.js'; // load order: runs after designer/fabric-library
+import './block-picker.js'; // load order: runs after designer/block-picker
 import { design, readOnly } from '../core/store.js';
 import { readDesign, readDesignOrDefault } from '@quilt/shared/format.js';
 import { notify } from '../ui/notice.js';
 import { getSession, setSession } from '../storage/repo.js';
 import { scheduleSync } from '../sim/design-maps.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // ---- design state
 /**
@@ -14,7 +15,7 @@ import { scheduleSync } from '../sim/design-maps.js';
 function loadDesign() {
   const raw = getSession('current');
   const r = raw ? readDesign(raw) : null;
-  if (raw && !r) notify('The quilt saved in this browser could not be read, so a new one was started.');
+  if (raw && !r) notify(t('The quilt saved in this browser could not be read, so a new one was started.'));
   return r || readDesignOrDefault(null);
 }
 function saveDesign() {

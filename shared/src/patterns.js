@@ -10,7 +10,11 @@
 // design's own seams, then drops it on the bed.
 
 // Each pattern is a list of parts: a polygon in the unit square (y down) and
-// a colour role (0 background, 1 main, 2 accent) used for default fabrics.
+// a colour role (0 background, 1 main, 2 accent, 3 to 5 for more fabrics) used for default fabrics.
+import { GRID_BLOCKS } from './blocks.js';
+import { gridParts } from './grid-blocks.js';
+import { blockName, pieceText } from './i18n.js';
+
 const P_ = (name, role, poly) => ({ name, role, poly });
 /** Turns a unit-square polygon k quarter turns clockwise. @param {import('./types.js').Poly} poly @param {number} k @returns {import('./types.js').Poly} */
 function rotPoly(poly, k) {
@@ -858,8 +862,28 @@ Object.assign(PATTERNS, {
     },
   },
 });
+// The families the block library groups blocks by (the grid blocks bring their own)
+const FAMILY = {
+  Basics: ['plain', 'hst', 'hourglass', 'four', 'nine', 'pinwheel', 'geese', 'sqsq', 'economy'],
+  Stars: ['ohio', 'sawstar', 'eightstar', 'fanstar'],
+  'Nine patch': ['churn', 'dnine'],
+  'Strips and logs': ['logcabin'],
+  'Your drawings': Object.keys(TRACED),
+};
+for (const [family, keys] of Object.entries(FAMILY)) for (const k of keys) PATTERNS[k].family = family;
+for (const [key, def] of Object.entries(GRID_BLOCKS))
+  PATTERNS[key] = { label: def.label, family: def.family, parts: () => gridParts(def) };
+for (const p of Object.values(PATTERNS)) p.family ??= 'Other';
+// names in the language in use; `en` keeps the English one, so a search finds a block by either. `family` stays in
+// English: it is what the code groups by (t(family) to show it)
+for (const p of Object.values(PATTERNS)) {
+  p.en = p.label;
+  p.label = blockName(p.label);
+}
+
 const PCACHE = {};
-/** The parts of a pattern (cached). @param {string} name @returns {import('./types.js').Part[]} */
-const partsOf = name => (PCACHE[name] = PCACHE[name] || PATTERNS[name].parts());
+/** The parts of a pattern (cached), named in the language in use. @param {string} name @returns {import('./types.js').Part[]} */
+const partsOf = name =>
+  (PCACHE[name] = PCACHE[name] || PATTERNS[name].parts().map(p => ({ ...p, name: pieceText(p.name) })));
 
 export { PATTERNS, PCACHE, P_, TRACED, orientPoly, partsOf, rotPoly, sq };

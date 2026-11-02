@@ -16,10 +16,13 @@ import { readDesign } from '@quilt/shared/format.js';
 import { notify } from '../ui/notice.js';
 import { normalizeSpans } from '@quilt/shared/geometry.js';
 import { withSymmetry } from '../core/symmetry.js';
-import { resize } from '../core/edits.js';
+import { resize, resizeMosaic } from '../core/edits.js';
 import { loadDesign, saveDesign } from './design-state.js';
 import { tlRecord, tlSwitch } from '../timeline/timeline.js';
 import { drawFabricPalette, renderDesigner } from './parts-editor.js';
+import { isFabric, loadFabrics } from './fabric-library.js';
+import { fabricIdsIn } from '../core/fabric-picks.js';
+import { t } from '@quilt/shared/i18n.js';
 /** @typedef {import('@quilt/shared/types.js').Design} Design */
 
 // In tests (localStorage 'quilt-freeze.v1' = '1') the design is frozen after every change, so any code that
@@ -35,9 +38,10 @@ const deepFreeze = o => {
   }
   return o;
 };
-/** Makes a design the one being edited. @param {Design} d */
+/** Makes a design the one being edited, and starts making the pictures of the photos it uses. @param {Design} d */
 function setCurrent(d) {
   setDesign(freezeOn ? deepFreeze(d) : d);
+  loadFabrics(fabricIdsIn(d, isFabric));
 }
 
 /** The blocks an edit changed (a new object in the same place), not counting cells covered by a large block. */
@@ -65,6 +69,14 @@ function dispatch(edit, ...args) {
   if (next === prev) return false;
   if (edit.mirror !== false) next = withSymmetry(next, changedBlocks(prev, next));
   setCurrent(normalizeSpans(next));
+  // an edit that removed blocks (back to straight from on point, …) takes them out of the selection too
+  const n = design.blocks.length;
+  if (focusBlock >= n || [...selBlocks].some(i => i >= n)) {
+    const keep = [...selBlocks].filter(i => i < n);
+    setSelBlocks(new Set(keep.length ? keep : [0]));
+    setFocusBlock(focusBlock < n ? focusBlock : [...selBlocks][0]);
+    selParts.clear();
+  }
   saveDesign();
   tlRecord(edit.merge ? edit.name : null);
   renderDesigner();
@@ -76,6 +88,7 @@ function dispatch(edit, ...args) {
 function resizeTo(cols, rows) {
   const d = design;
   if (!d) return false;
+  if (d.mosaic) return dispatch(resizeMosaic, cols, rows); // shapes across and down
   const n = Math.max(1, Math.min(20, cols | 0)) * Math.max(1, Math.min(20, rows | 0));
   setSelBlocks(new Set([Math.min(focusBlock, n - 1)]));
   setFocusBlock([...selBlocks][0]);
@@ -106,12 +119,16 @@ function replaceDesign(d, opts = {}) {
  * Tells the user what opening a saved design repaired (core/format.js), and warns when it comes from a newer
  * version of the app. @param {NonNullable<ReturnType<typeof readDesign>>} r @param {string} [what]
  */
-function announce(r, what = 'This quilt') {
+function announce(r, what = t('This quilt')) {
   if (r.newer)
     notify(
-      `${what} was made with a newer version of the app. You can look at it here, but changes will not be saved: open it in the newer version to edit it.`,
+      t(
+        '{what} was made with a newer version of the app. You can look at it here, but changes will not be saved: open it in the newer version to edit it.',
+        { what },
+      ),
     );
-  else if (r.problems.length) notify(`${what} needed some repairs:\n• ${r.problems.join('\n• ')}`);
+  else if (r.problems.length)
+    notify(t('{what} needed some repairs:\n• {list}', { what, list: r.problems.join('\n• ') }));
 }
 
 /**
@@ -123,7 +140,7 @@ function announce(r, what = 'This quilt') {
 function openDesign(raw, opts = {}) {
   const r = readDesign(raw);
   if (!r) {
-    notify(`${opts.what || 'This quilt'} could not be read.`);
+    notify(t('{what} could not be read.', { what: opts.what || t('This quilt') }));
     return false;
   }
   if (!opts.quiet) announce(r, opts.what);
@@ -136,7 +153,7 @@ function openDesign(raw, opts = {}) {
 function ensureDesign() {
   if (design) return;
   const r = loadDesign();
-  announce(r, 'The quilt saved in this browser');
+  announce(r, t('The quilt saved in this browser'));
   setReadOnly(r.newer);
   setCurrent(r.design);
   setSelBlocks(new Set([0]));

@@ -9,9 +9,10 @@ import path from 'path';
 
 const SRC = path.resolve(import.meta.dirname, '../src'); // works from any folder
 const file = m => path.join(SRC, m + '.js');
+const posix = p => p.split(path.sep).join('/'); // imports and module names use /, also on Windows (path gives \ there)
 const LINE = /^import '([^']+)';\s*\/\/ load order: runs after (\S+)\n/m;
-const rel = (from, to) => { let r = path.relative(path.dirname(file(from)), file(to)); if (!r.startsWith('.')) r = './' + r; return r; };
-const all = () => { const out = []; const w = d => { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) w(p); else if (p.endsWith('.js') && !p.endsWith('/main.js')) out.push(path.relative(SRC, p).replace(/\.js$/, '')); } }; w(SRC); return out; };
+const rel = (from, to) => { let r = posix(path.relative(path.dirname(file(from)), file(to))); if (!r.startsWith('.')) r = './' + r; return r; };
+const all = () => { const out = []; const w = d => { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) w(p); else if (p.endsWith('.js') && !posix(p).endsWith('/main.js')) out.push(posix(path.relative(SRC, p)).replace(/\.js$/, '')); } }; w(SRC); return out; };
 const prevOf = m => { const s = fs.readFileSync(file(m), 'utf8'), x = s.match(LINE); return x ? x[2] : null; };
 function setPrev(m, p) {
   let s = fs.readFileSync(file(m), 'utf8');
@@ -22,7 +23,7 @@ function setPrev(m, p) {
 }
 export function chain() {
   const main = fs.readFileSync(path.join(SRC, 'main.js'), 'utf8');
-  let cur = path.relative(SRC, path.resolve(SRC, main.match(/^import '([^']+)';/m)[1])).replace(/\.js$/, '');
+  let cur = posix(path.relative(SRC, path.resolve(SRC, main.match(/^import '([^']+)';/m)[1]))).replace(/\.js$/, '');
   const out = [];
   while (cur) { out.unshift(cur); cur = prevOf(cur); }
   return out;

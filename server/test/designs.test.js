@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { defaultDesign } from '@quilt/shared/design.js';
+import { FORMAT_VERSION, defaultDesign } from '@quilt/shared/design.js';
 import { setup } from './helpers.js';
 
 const { as } = await setup();
@@ -30,7 +30,7 @@ test('create, read, change; the save counter goes up', async () => {
   assert.equal(r.body.record.rev, 2);
   r = await ana('GET', `/v1/designs/${id}`);
   assert.equal(r.body.name, 'Star 2');
-  assert.equal(r.body.design.v, 1);
+  assert.equal(r.body.design.v, FORMAT_VERSION);
 });
 
 test('two devices: the second save based on an old copy gets 409 and the server copy', async () => {
@@ -69,7 +69,7 @@ test('the format checks are the app’s: old saves upgraded, damaged ones repair
   ]) {
     const r = await ana('PUT', `/v1/designs/${randomUUID()}`, { name: f, design: fixture(f), baseRev: 0 });
     assert.equal(r.status, 201, f);
-    assert.equal(r.body.record.design.v, 1, f);
+    assert.equal(r.body.record.design.v, FORMAT_VERSION, f);
     assert.deepEqual(r.body.problems, [], f);
   }
   const broken = await ana('PUT', `/v1/designs/${randomUUID()}`, {

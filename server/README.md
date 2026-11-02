@@ -2,23 +2,24 @@
 
 The API that syncs quilts and fabric photos between a person's devices. Node 22, [Fastify](https://fastify.dev)
 (web framework: routes, and every request body checked against a JSON schema), PostgreSQL 16 with pgvector,
-photos in S3-compatible storage (Cloudflare R2 in production, [MinIO](https://min.io) in development).
+photos in S3-compatible storage (Cloudflare R2 in production, [SeaweedFS](https://github.com/seaweedfs/seaweedfs) in development).
 
 ## Run it
 
 ```
-docker compose up -d                       # PostgreSQL + MinIO (docker-compose.yml, top folder)
+docker compose up -d                       # PostgreSQL + SeaweedFS (docker-compose.yml, top folder)
 cp server/.env.example server/.env
 npm run dev -w @quilt/server               # http://localhost:8787, restarts on changes; migrates the database
 API_URL=http://localhost:8787 npm run smoke -w @quilt/server   # end-to-end check of a running server
+npm run seed -w @quilt/server             # 500 test fabrics (patterns + Met museum photos) for user "seed"
 ```
 
-Without MinIO, `STORAGE=local` keeps photos in `server/.data/photos` and the API serves them itself (signed
+Without SeaweedFS, `STORAGE=local` keeps photos in `server/.data/photos` and the API serves them itself (signed
 links like S3's). It is for development only: production refuses it.
 
 To try sync with the app: serve the app from `http://localhost:8000` (for example `python3 -m http.server 8000`
-in `app/`, then open `quilt.html`), open **My designs → Set up sync**, enter `http://localhost:8787` and a
-name. A second browser profile with the same name is a second device. The page must be served from localhost:
+in `app/`, `py -m` on Windows, then open `quilt.html`), open **My designs → Set up sync**, enter
+`http://localhost:8787` and a name. A second browser profile with the same name is a second device. The page must be served from localhost:
 the published page on claude.ai can't reach a server on your computer, and needs the server on the internet.
 
 `npm run migrate -w @quilt/server` applies new migrations (`migrations/*.sql`, in name order, each once).
@@ -32,10 +33,15 @@ in memory (`app.inject`). Photos go to an in-memory store; `config.test.js` chec
 
 ## Login
 
-Only the **stand-in login for development** for now: a request with `X-Dev-User: ana` is user "ana" (made on
-first use). It is on by default in development and tests, and refused when `NODE_ENV=production`
-(`AUTH_MODE=dev` there stops the server from starting; without it every `/v1` request is 401). A real login
-provider will replace it with a check of the provider's signed token.
+**Auth0.** The app signs people in with Auth0 and sends `Authorization: Bearer <token>`. The server checks the
+token against Auth0's public keys (`AUTH0_DOMAIN`): issued by that tenant, for this API (`AUTH0_AUDIENCE`),
+RS256-signed, not expired. The token's `sub` is the user (made on first use). With `AUTH0_DOMAIN` set, `auth0` is
+the production default; without it, every `/v1` request is 401.
+
+The **stand-in login for development** stays: with `AUTH_MODE=dev` (the default in development and tests), a
+request with `X-Dev-User: ana` is user "ana", and Auth0 tokens work too. It is refused when
+`NODE_ENV=production` (`AUTH_MODE=dev` there stops the server from starting). The tests never reach Auth0: they
+sign their own tokens with a test key (`buildApp({ keys })`, see `test/auth0.test.js`).
 
 ## API
 

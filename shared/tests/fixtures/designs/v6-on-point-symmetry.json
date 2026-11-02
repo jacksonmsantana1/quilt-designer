@@ -1,0 +1,221 @@
+{
+ "v": 6,
+ "cols": 3,
+ "rows": 3,
+ "blockMm": 300,
+ "backFabric": "b0",
+ "setting": "onpoint",
+ "settingFabric": "b2",
+ "sym": "both",
+ "blocks": [
+  {
+   "pattern": "logcabin",
+   "rot": 0,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ]
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4"
+   ]
+  },
+  {
+   "pattern": "logcabin",
+   "rot": 1,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ],
+   "flip": true
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4"
+   ]
+  },
+  {
+   "pattern": "ohio",
+   "rot": 0,
+   "fabrics": [
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3",
+    "b3"
+   ]
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4"
+   ]
+  },
+  {
+   "pattern": "logcabin",
+   "rot": 3,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ],
+   "flip": true
+  },
+  {
+   "pattern": "nine",
+   "rot": 0,
+   "fabrics": [
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4",
+    "b4"
+   ]
+  },
+  {
+   "pattern": "logcabin",
+   "rot": 2,
+   "fabrics": [
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1",
+    "b1"
+   ]
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b0"
+   ]
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b0"
+   ]
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b0"
+   ]
+  },
+  {
+   "pattern": "plain",
+   "rot": 0,
+   "fabrics": [
+    "b0"
+   ]
+  }
+ ]
+}

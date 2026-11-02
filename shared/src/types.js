@@ -7,7 +7,7 @@
  * One part of a block pattern.
  * @typedef {object} Part
  * @property {string} name
- * @property {0 | 1 | 2} role   colour role: 0 background, 1 main, 2 accent (picks the default fabric)
+ * @property {number} role   colour role 0 to 5: 0 background, 1 main, 2 accent, 3–5 more (picks the default fabric)
  * @property {Poly} poly        polygon in the block's unit square
  */
 
@@ -31,6 +31,9 @@
  * @property {string} [fabric]
  * @property {string} [corner]    fabric of the cornerstones
  * @property {boolean} [border]   also all round the outside
+ * @property {boolean} [cornerstones]  false: no cornerstones, the strips between rows run the full width
+ * @property {Block} [cornerBlock]  cornerstones pieced as this block (pattern and fabrics) instead of plain fabric;
+ *                                  used only while the sashing is wider than 75 mm (CORNER_BLOCK_MIN_MM)
  */
 
 /**
@@ -39,6 +42,16 @@
  * @property {'plain' | 'piano' | 'squares' | 'checker' | 'sawtooth' | 'geese'} type
  * @property {number} mm          finished width
  * @property {string[]} fabrics   fabric slots (see BORDER_TYPES[type].slots)
+ */
+
+/**
+ * A shape mosaic (shared/src/mosaic.js): the quilt top is one shape repeated all over instead of blocks.
+ * @typedef {object} Mosaic
+ * @property {'hex' | 'diamond' | 'triangle'} shape  hexagons, diamonds (tumbling blocks) or triangles
+ * @property {number} mm          finished length of one side of the shape
+ * @property {number} cols        shapes across
+ * @property {number} rows        rows of shapes
+ * @property {string[]} fabrics   fabric of each shape, row by row (see mosaicTiles)
  */
 
 /** @typedef {'off' | 'lr' | 'tb' | 'both' | 'kal'} SymmetryMode */
@@ -52,11 +65,26 @@
  * @property {number} rows
  * @property {number} blockMm      finished size of one grid cell
  * @property {string} backFabric
- * @property {Block[]} blocks      row by row: blocks[r * cols + c]
+ * @property {Block[]} blocks      row by row: blocks[r * cols + c]; on point, then the (cols-1) × (rows-1) between
+ * @property {'onpoint'} [setting] blocks turned 45° in diagonal rows (missing: straight)
+ * @property {string} [settingFabric] on point: the fabric of the triangles along the edges
+ * @property {Mosaic} [mosaic]    a shape mosaic instead of the blocks (the blocks are kept for going back)
  * @property {Sashing} [sashing]
  * @property {Border[]} [borders]
  * @property {SymmetryMode} [sym]
  * @property {QuiltingKind} [quilting]
+ * @property {Record<string, DrawnBlock>} [drawn]  blocks drawn in the block editor, by pattern key (drawn-blocks.js)
+ */
+
+/**
+ * A block someone drew: the grid notation of grid-blocks.js, n × n cells.
+ * @typedef {object} DrawnBlock
+ * @property {string} label   its name
+ * @property {number} n       cells per side
+ * @property {string} rows    one line per row, one token per cell ("x" for cells covered by `extra`)
+ * @property {[string, number, number[]][]} [extra]  graph paper: the pieces, [name, role, [x, y, x, y, …] in cells]
+ * @property {{ lines: number[][], fills: number[][] }} [paper]  graph paper: the seam lines [x1, y1, x2, y2] and the
+ *                                                     fills [x, y, role] it was drawn with, for opening it again
  */
 
 /** Orientation of a block. @typedef {{ rot: number, flip: boolean }} Orientation */

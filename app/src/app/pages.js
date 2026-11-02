@@ -5,11 +5,13 @@ import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { resize } from '../sim/camera.js';
 import { startRender, stopRender } from '../sim/photo-render.js';
-import { initFabricLib } from '../designer/fabric-library.js';
+import { initFabricLib, onFabricsLoaded } from '../designer/fabric-library.js';
+import { scheduleSync } from '../sim/design-maps.js';
 import { drawFabricPalette, renderDesigner } from '../designer/parts-editor.js';
 import { initDesignerUI } from '../designer/designer-ui.js';
 import { renderCut } from '../cutting/page.js';
 import { renderMine } from '../mine/my-designs.js';
+import { communityHooks } from '../mine/shared-state.js';
 import { tlBarOn, tlUI } from '../timeline/timeline.js';
 import { fitSimSide } from './layout.js';
 import { ensureDesign } from '../designer/dispatch.js';
@@ -24,6 +26,7 @@ function showPage(p) {
   $('page-design').hidden = p !== 'design' && p !== 'sim';
   $('page-cut').hidden = p !== 'cut';
   $('page-mine').hidden = p !== 'mine';
+  $('page-community').hidden = p !== 'community';
   for (const b of $('tabs').children)
     b.setAttribute('aria-selected', String(b.dataset.page === (p === 'sim' ? 'design' : p)));
   if ($('tl-panel')) {
@@ -65,9 +68,19 @@ function showPage(p) {
       drawFabricPalette();
       renderDesigner();
     } else if (p === 'mine') renderMine();
+    else if (p === 'community') communityHooks.render?.();
     else renderCut();
   })();
 }
+// a photo's picture was made after the page was drawn with a stand-in for it: draw again, and the quilt on the bed
+onFabricsLoaded(() => {
+  if (!design) return;
+  scheduleSync();
+  if (state.page === 'design' || state.page === 'sim') {
+    renderDesigner();
+    drawFabricPalette();
+  } else if (state.page === 'cut') renderCut();
+});
 $('tabs').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (b) showPage(b.dataset.page);

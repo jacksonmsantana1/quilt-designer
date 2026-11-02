@@ -1,4 +1,4 @@
-// Bedroom and photo-studio stages, and the bed or table built from the physics colliders.
+// Bedroom and photo-studio stages, and the bed, table or couch built from the physics colliders.
 import './textures.js'; // load order: runs after sim/textures
 import * as THREE from 'three';
 import { WOOD_PARTS, bedM } from './config.js';
@@ -134,7 +134,7 @@ function buildBedMeshes() {
     const isWood = WOOD_PARTS(b.name);
     const mesh = new THREE.Mesh(
       roundedBoxGeometry(b.h, b.r, isWood ? 4 : 8, isWood ? 3 : 7),
-      isWood ? M.wood : b.name === 'mattress' ? M.sheet : M.pillow,
+      isWood ? M.wood : b.name === 'mattress' ? M.sheet : b.name.startsWith('couch') ? M.couch : M.pillow,
     );
     mesh.position.set(...b.c);
     mesh.castShadow = true;
@@ -144,7 +144,8 @@ function buildBedMeshes() {
     scene.add(mesh);
     colliderMeshes[b.name] = mesh;
   }
-  if (bed.kind !== 'table')
+  if (!bed.kind)
+    // a bed's own short legs (a table's and a couch's are colliders)
     for (const sx of [-1, 1])
       for (const sz of [-1, 1]) {
         const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.1, 0.07), M.wood);

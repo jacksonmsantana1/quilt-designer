@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PATTERNS, partsOf, rotPoly, orientPoly } from '@quilt/shared/patterns.js';
 import { area, close, shapeKey } from './helpers.mjs';
+import { pointInPoly } from '@quilt/shared/geometry.js';
+import { gridParts, parseGrid } from '@quilt/shared/grid-blocks.js';
+import { GRID_BLOCKS } from '@quilt/shared/blocks.js';
 
 test('every block pattern covers its unit square exactly once', () => {
   for (const key of Object.keys(PATTERNS)) {
@@ -18,11 +21,11 @@ test('every block pattern covers its unit square exactly once', () => {
   }
 });
 
-test('every part has a name and a colour role 0, 1 or 2', () => {
+test('every part has a name and a colour role 0 to 5', () => {
   for (const key of Object.keys(PATTERNS))
     for (const p of partsOf(key)) {
       assert.equal(typeof p.name, 'string');
-      assert.ok([0, 1, 2].includes(p.role), `${key} / ${p.name}: role ${p.role}`);
+      assert.ok([0, 1, 2, 3, 4, 5].includes(p.role), `${key} / ${p.name}: role ${p.role}`);
     }
 });
 
@@ -56,4 +59,76 @@ test('mirroring twice is the identity; mirroring flips x', () => {
   );
   const twice = orientPoly(orientPoly(tri, { rot: 0, flip: true }), { rot: 0, flip: true });
   assert.equal(shapeKey(twice), shapeKey(tri));
+});
+
+test('no two parts of a block overlap: every point is in exactly one part', () => {
+  // points on an odd grid, nudged off every seam (seams sit on simple fractions)
+  const pts = [];
+  for (let j = 0; j < 23; j++) for (let i = 0; i < 23; i++) pts.push([(i + 0.5137) / 23, (j + 0.4721) / 23]);
+  for (const key of Object.keys(PATTERNS)) {
+    const parts = partsOf(key);
+    for (const [x, y] of pts) {
+      const n = parts.filter(p => pointInPoly(x, y, p.poly)).length;
+      assert.equal(n, 1, `${key}: point (${x.toFixed(3)}, ${y.toFixed(3)}) is in ${n} parts`);
+    }
+  }
+});
+
+test('every block has a label and a family; a grid block names each part differently', () => {
+  for (const [key, p] of Object.entries(PATTERNS)) assert.ok(p.label && p.family, key);
+  for (const key of Object.keys(GRID_BLOCKS)) {
+    const names = partsOf(key).map(q => q.name);
+    assert.equal(new Set(names).size, names.length, `${key}: a name used twice`);
+  }
+});
+
+test('grid notation: shapes, pieces spanning cells, and clear mistakes', () => {
+  const shapes = parseGrid(String.raw`
+    1/0 2\0 q0120
+    ^12 -   1
+    1   -   |`);
+  assert.deepEqual(
+    shapes.map(([kind, role]) => kind + role),
+    ['tri1', 'tri0', 'tri2', 'tri0', 'tri0', 'tri1', 'tri2', 'tri0', 'goose1', 'sky2', 'sky2', 'rect1', 'rect1'],
+  );
+  const goose = shapes[8][2]; // two cells wide, its point at the top middle
+  assert.deepEqual(goose, [
+    [0, 2],
+    [1, 1],
+    [2, 2],
+  ]);
+  assert.throws(() => parseGrid('1 |'), /belongs to no piece/);
+  assert.throws(() => parseGrid('1 -\n| 0'), /expected "\+"/);
+  assert.throws(() => parseGrid('6'), /not a piece|colour role/);
+  assert.throws(() => parseGrid('1/7'), /not a piece|colour role/);
+});
+
+test('a three-triangle unit: a half-square triangle with one half cut in two quarters', () => {
+  const tris = parseGrid(String.raw`10\0`);
+  assert.deepEqual(
+    tris.map(([kind, role, poly]) => [kind, role, poly.length]),
+    [
+      ['tri', 1, 3], // the bottom quarter
+      ['tri', 0, 3], // the left quarter
+      ['tri', 0, 3], // the upper-right half
+    ],
+  );
+  assert.deepEqual(tris[0][2], [
+    [1, 1],
+    [0, 1],
+    [0.5, 0.5],
+  ]);
+  assert.equal(parseGrid('0/10').length, 3);
+  assert.equal(parseGrid('01/23').length, 4, 'both halves cut: four quarters, like an hourglass');
+});
+
+test('a fourfold block turns its corner about the centre', () => {
+  const parts = gridParts({ n: 2, fourfold: true, rows: '1' });
+  assert.equal(parts.length, 4);
+  assert.deepEqual(parts.map(p => p.name).sort(), [
+    'Square · row 1, column 1',
+    'Square · row 1, column 2',
+    'Square · row 2, column 1',
+    'Square · row 2, column 2',
+  ]);
 });

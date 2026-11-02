@@ -5,6 +5,7 @@ import '../timeline/timeline.js'; // load order: runs after timeline/timeline
 import { $ } from '../core/dom.js';
 import { design, mineCur, setMineCur } from '../core/store.js';
 import { createSync } from '../storage/sync.js';
+import { signIn, signInToken, signOut } from '../storage/auth0.js';
 import { onChange, repo } from '../storage/repo.js';
 import { notify } from '../ui/notice.js';
 import { openDesign } from '../designer/dispatch.js';
@@ -12,6 +13,7 @@ import { addStoredFabric } from '../designer/fabric-library.js';
 import { drawFabricPalette } from '../designer/parts-editor.js';
 import { adoptDesignId, mineSave, renderMine } from './my-designs.js';
 import { state } from '../sim/config.js';
+import { getLang, t, tn } from '@quilt/shared/i18n.js';
 
 const AFTER_CHANGE_MS = 2500,
   EVERY_MS = 60_000;
@@ -21,25 +23,100 @@ let before = null;
 /** @type {import('../storage/sync.js').RemoteEvent[]} */
 let arrived = [];
 
-const sync = createSync({ repo, onRemote: e => arrived.push(e), onStatus: showStatus });
+/** what wants to know when the account or sync state changes (onAccount) @type {((c: any, s: import('../storage/sync.js').SyncStatus) => void)[]} */
+const watchers = [];
+const sync = createSync({ repo, onRemote: e => arrived.push(e), onStatus: showStatus, getToken: signInToken });
 
-const time = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const time = at => new Date(at).toLocaleTimeString([getLang()], { hour: '2-digit', minute: '2-digit' });
 /** @param {import('../storage/sync.js').SyncStatus} s */
 function showStatus(s) {
   const c = sync?.config?.();
   $('sync-dot').dataset.state = s.state;
-  const waiting = s.pending ? ` · ${s.pending} change${s.pending === 1 ? '' : 's'} waiting` : '';
+  const waiting = s.pending ? tn(s.pending, ' · {n} change waiting', ' · {n} changes waiting') : '';
   const text = {
-    off: 'Sync is off: your designs are kept in this browser only.',
-    syncing: 'Syncing…',
-    ok: s.at ? `Synced at ${time(s.at)}${waiting}` : `Connected${waiting}`,
-    offline: `Can't reach the server: changes wait here and go when it's back${waiting}.`,
-    login: `Signed out: ${s.message || 'connect again'}`,
-    error: s.message || 'Something went wrong.',
+    off: t('Sync is off: your designs are kept in this browser only.'),
+    syncing: t('Syncing…'),
+    ok: s.at ? t('Synced at {time}{waiting}', { time: time(s.at), waiting }) : t('Connected{waiting}', { waiting }),
+    offline: t("Can't reach the server: changes wait here and go when it's back{waiting}.", { waiting }),
+    login: t('Signed out: {why}', { why: s.message || t('sign in again') }),
+    error: s.message || t('Something went wrong.'),
   }[s.state];
-  $('sync-state').textContent = c && s.state !== 'off' ? `${text} (${c.user} at ${new URL(c.url).host})` : text;
-  $('sync-now').hidden = !c;
-  $('sync-setup').textContent = c ? 'Change' : 'Set up sync';
+  $('sync-state').textContent =
+    c && s.state !== 'off'
+      ? t('{status} ({who} at {host})', { status: text, who: c.who || c.user, host: new URL(c.url).host })
+      : text;
+  $('sync-now').hidden = !c || s.state === 'login';
+  $('sync-setup').textContent = !c ? t('Sign in to sync') : s.state === 'login' ? t('Sign in') : t('Account');
+  for (const fn of watchers) fn(c, s);
+}
+
+// ---- signing in and out, shared by the sync card, the welcome page and the account corner (mine/account.js)
+/** the quilt server signing in uses when none was set up on this device */
+const DEFAULT_SERVER = 'http://localhost:8787';
+/** Calls fn now and whenever the account or sync state changes. @param {(typeof watchers)[number]} fn */
+function onAccount(fn) {
+  watchers.push(fn);
+  fn(sync.config(), sync.status());
+}
+/**
+ * Signs in with Auth0 (from a click: its window opens at once) and syncs with the server. Resolves with an error
+ * to show, or '' when signed in. @param {{ url?: string, signup?: boolean }} [o] @returns {Promise<string>}
+ */
+async function signInAndSync({ url, signup = false } = {}) {
+  let who;
+  try {
+    who = await signIn({ signup });
+  } catch (e) {
+    const closed = /popup|cancel/i.test(`${e?.error || ''} ${e?.message || ''}`);
+    return closed
+      ? t('Sign-in was closed before it finished.')
+      : t("Couldn't sign in: {why}", { why: e?.message || e });
+  }
+  sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
+  accountChanged();
+  run();
+  return '';
+}
+/**
+ * Signs out on this device: sync stops; the account's designs stay here but out of sight (storage/repo.js) until
+ * it signs in again, and a new design is opened, so the next person doesn't find the last one's quilt open.
+ */
+async function signOutAndStop() {
+  const was = sync.config();
+  if (was) $('dz-new').click(); // New design (mine/my-designs.js): the open quilt's timeline is kept with it
+  sync.configure(null);
+  accountChanged();
+  // signing out of Auth0 leaves the page for a moment: what's waiting to be saved here goes first
+  await repo.flush();
+  if (was?.auth0) await signOut().catch(() => {});
+}
+/** Another account (or none): My designs shows its designs; designs made here without one are offered to it. */
+function accountChanged() {
+  if (state.page === 'mine') renderMine();
+  if (!repo.account()) return;
+  const d = repo.designs.strays().length,
+    f = repo.fabrics.strays().length;
+  if (!d && !f) return;
+  const someDesigns = tn(d, '{n} design', '{n} designs'),
+    somePhotos = tn(f, '{n} fabric photo', '{n} fabric photos'),
+    what =
+      d && f ? t('{designs} and {photos}', { designs: someDesigns, photos: somePhotos }) : d ? someDesigns : somePhotos;
+  const offer =
+    d + f === 1
+      ? t('{what} made on this device without an account. Add it to your account?', { what })
+      : t('{what} made on this device without an account. Add them to your account?', { what });
+  notify(offer, {
+    ms: 20000,
+    action: {
+      label: t('Add to my account'),
+      run: () => {
+        repo.designs.adoptStrays();
+        repo.fabrics.adoptStrays();
+        if (state.page === 'mine') renderMine();
+        run();
+      },
+    },
+  });
 }
 
 async function run() {
@@ -59,17 +136,22 @@ async function fitIn(events) {
     if (e.kind === 'fabric') {
       const f = repo.fabrics.get(e.id);
       if (f?.blob) {
-        await addStoredFabric(f).catch(() => {});
+        addStoredFabric(f);
         fabricsChanged = true;
       }
       continue;
     }
     designsChanged = true;
     if (e.kind === 'conflict') {
-      notify(`“${e.name}” was also changed on another device. Both are kept: yours is now “${e.name} (this device)”.`);
+      notify(
+        t('“{name}” was also changed on another device. Both are kept: yours is now “{name} (this device)”.', {
+          name: e.name,
+        }),
+      );
       // the quilt open here is this device's version: it carries on as the copy
       if (before?.id === e.id) adoptDesignId(e.copyId);
-    } else if (e.kind === 'restored') notify(`“${e.name}” was changed on another device, so it is back in My designs.`);
+    } else if (e.kind === 'restored')
+      notify(t('“{name}” was changed on another device, so it is back in My designs.', { name: e.name }));
     else if (e.kind === 'design' && before?.id === e.id) openOrKeep(e);
   }
   if (fabricsChanged) drawFabricPalette();
@@ -82,13 +164,17 @@ function openOrKeep(e) {
   if (e.deleted) {
     setMineCur(null);
     mineSave();
-    notify(`“${e.name}” was deleted on another device. It stays open here as an unsaved quilt.`);
+    notify(t('“{name}” was deleted on another device. It stays open here as an unsaved quilt.', { name: e.name }));
   } else if (unsaved)
-    notify(`“${e.name}” was changed on another device. Your unsaved changes here are kept; save to keep yours.`);
+    notify(
+      t('“{name}” was changed on another device. Your unsaved changes here are kept; save to keep yours.', {
+        name: e.name,
+      }),
+    );
   else {
     const r = repo.designs.get(e.id);
     if (r) openDesign(r.design, { keepFocus: true, quiet: true });
-    notify(`“${e.name}” was updated from another device.`);
+    notify(t('“{name}” was updated from another device.', { name: e.name }));
   }
 }
 
@@ -99,24 +185,42 @@ const soon = (ms = AFTER_CHANGE_MS) => {
 };
 
 function initSyncUI() {
-  const form = $('sync-form');
+  const form = $('sync-form'),
+    err = $('sync-err');
+  const say = msg => {
+    err.textContent = msg;
+    err.hidden = !msg;
+  };
   const openForm = () => {
     const c = sync.config();
-    $('sync-url').value = c?.url || 'http://localhost:8787';
+    $('sync-url').value = c?.url || DEFAULT_SERVER;
     $('sync-user').value = c?.user || '';
     $('sync-off').hidden = !c;
+    $('sync-off').textContent = c?.auth0 ? t('Sign out') : t('Turn sync off');
+    $('sync-signin').textContent = c?.auth0 ? t('Sign in again') : t('Sign in');
+    say('');
     form.hidden = false;
-    $('sync-user').focus();
+    $('sync-signin').focus();
   };
   $('sync-setup').addEventListener('click', () => (form.hidden ? openForm() : (form.hidden = true)));
   $('sync-cancel').addEventListener('click', () => (form.hidden = true));
   $('sync-off').addEventListener('click', () => {
-    sync.configure(null);
     form.hidden = true;
+    signOutAndStop();
+  });
+  // Auth0's window opens straight from the click (browsers block windows opened later)
+  $('sync-signin').addEventListener('click', async () => {
+    if (!$('sync-url').reportValidity()) return;
+    say('');
+    const msg = await signInAndSync({ url: $('sync-url').value });
+    say(msg);
+    if (!msg) form.hidden = true;
   });
   form.addEventListener('submit', e => {
     e.preventDefault();
+    if (!$('sync-user').value.trim()) return $('sync-user').focus();
     sync.configure({ url: $('sync-url').value, user: $('sync-user').value });
+    accountChanged();
     form.hidden = true;
     run();
   });
@@ -132,4 +236,20 @@ function initSyncUI() {
 }
 initSyncUI();
 
-export { run as syncNow };
+// ---- the server, for the community (mine/community.js)
+/** Who is signed in for sync (null: nobody). */
+const signedIn = () => sync.config();
+/** A call as the signed-in account: { status, body }. @param {string} method @param {string} path @param {any} [body] */
+const serverCall = (method, path, body) => sync.request(method, path, body);
+/**
+ * A call anyone may make (the community's quilts): as the signed-in account when there is one (so its own are
+ * marked), otherwise without signing in, to the server set up here or the usual one. @param {string} path
+ * @returns {Promise<{ status: number, body: any }>}
+ */
+async function publicCall(path) {
+  if (sync.config()) return sync.request('GET', path);
+  const r = await fetch(DEFAULT_SERVER + path);
+  return { status: r.status, body: await r.json().catch(() => null) };
+}
+
+export { run as syncNow, onAccount, publicCall, serverCall, signedIn, signInAndSync, signOutAndStop };

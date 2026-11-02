@@ -5,6 +5,7 @@ import fs from 'fs';
 import { memoryDb } from '../../src/storage/idb.js';
 import { migrateLocalStorage } from '../../src/storage/migrate.js';
 import * as repo from '../../src/storage/repo.js';
+import { FORMAT_VERSION } from '@quilt/shared/design.js';
 
 const createRepoFresh = repo.createRepo;
 
@@ -46,7 +47,7 @@ test('migration: designs upgraded, damaged ones kept as they were, timelines and
     out.designs.map(d => d.id),
     ['a', 'b'],
   );
-  assert.equal(out.designs[0].design.v, 1);
+  assert.equal(out.designs[0].design.v, FORMAT_VERSION);
   assert.equal(out.designs[0].createdAt, 5);
   assert.equal(out.designs[1].design.blocks[0].pattern, 'no-such-pattern');
   assert.equal(out.session.find(([k]) => k === 'current')[1].blockMm, Math.round(2290 / 3));

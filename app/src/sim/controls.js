@@ -12,7 +12,9 @@ import {
   setRenderT0,
 } from './sim-state.js';
 import { $ } from '../core/dom.js';
-import { PARAMS, PRESETS, SUBSTEPS, bedM, bedState, isTableSim, quilt, state } from './config.js';
+import { fix, t } from '@quilt/shared/i18n.js';
+import { len } from '../core/units.js';
+import { PARAMS, PRESETS, SUBSTEPS, bedM, bedState, isBedSim, isTableSim, quilt, state } from './config.js';
 import { dropPosM, send } from './worker-link.js';
 import { camera, canvas, renderer, scene, sun } from './renderer.js';
 import { colliderMeshes } from './stage.js';
@@ -84,7 +86,7 @@ $('pillows').addEventListener('change', e => {
 });
 $('selfc').addEventListener('change', e => send({ type: 'self', value: e.target.checked }));
 const dropOut = () => {
-  $('dropH-o').textContent = state.dropHeight.toFixed(2) + ' m';
+  $('dropH-o').textContent = fix(state.dropHeight, 2) + ' m';
 };
 $('dropH').addEventListener('input', e => {
   state.dropHeight = +e.target.value;
@@ -95,7 +97,10 @@ $('dropH').addEventListener('change', () => {
 });
 dropOut();
 const subOut = () => {
-  $('substeps-o').textContent = `${state.substeps} substeps · Δt = ${(1000 / 60 / state.substeps).toFixed(2)} ms`;
+  $('substeps-o').textContent = t('{n} substeps · Δt = {ms} ms', {
+    n: state.substeps,
+    ms: fix(1000 / 60 / state.substeps, 2),
+  });
 };
 $('substeps').addEventListener('input', e => {
   state.substeps = SUBSTEPS[+e.target.value];
@@ -120,7 +125,7 @@ function restart() {
 }
 function setRunning(v, quiet) {
   state.running = v;
-  $('pause').textContent = v ? 'Pause' : 'Resume';
+  $('pause').textContent = v ? t('Pause') : t('Resume');
   send({ type: 'run', value: v });
   if (!quiet && v && state.view === 'render') setView('photo');
 }
@@ -129,7 +134,9 @@ function syncTurnBtn() {
   const b = $('sim-turn');
   if (!b) return;
   b.setAttribute('aria-pressed', String(quiltTurned));
-  b.title = quiltTurned ? 'Quilt turned 90° · click to drop it straight again' : 'Turn the quilt 90° and drop it again';
+  b.title = quiltTurned
+    ? t('Quilt turned 90° · click to drop it straight again')
+    : t('Turn the quilt 90° and drop it again');
 }
 $('sim-turn').addEventListener('click', () => {
   setQuiltTurned(!quiltTurned);
@@ -151,12 +158,12 @@ const alongZ = () => bedState.l >= bedState.w;
 // (starting over the headboard would make it drape on both sides of the board)
 function dropMin() {
   const L = Math.max(bedState.w, bedState.l);
-  if (isTableSim() || !alongZ()) return -Math.round(L / 2);
+  if (!isBedSim() || !alongZ()) return -Math.round(L / 2);
   const len = (quiltTurned ? quilt.w : quilt.l) * 1000;
   return Math.round(-bedState.l / 2 + 20 + len / 2);
 }
 function defaultDropPos() {
-  if (isTableSim() || !alongZ()) return 0;
+  if (!isBedSim() || !alongZ()) return 0;
   const len = (quiltTurned ? quilt.w : quilt.l) * 1000;
   return Math.round(-bedState.l / 2 + 70 + len / 2); // head edge of the quilt 7 cm from the head of the bed
 }
@@ -238,11 +245,14 @@ function syncDropUI() {
   el.max = String(hi);
   el.step = '10';
   el.value = String(dropPos == null ? v : dropPos);
-  const far = z =>
-    Math.abs(z) < 5
-      ? 'centre'
-      : `${Math.abs(z)} mm toward the ${alongZ() ? (z > 0 ? (isTableSim() ? 'near end' : 'foot') : isTableSim() ? 'far end' : 'head') : z > 0 ? 'right' : 'left'}`;
-  $('drop-pos-v').textContent = dropPos == null ? `${far(v)} (usual spot)` : far(v);
+  const far = z => {
+    if (Math.abs(z) < 5) return t('centre');
+    const away = { len: len(Math.abs(z)) };
+    if (!alongZ()) return z > 0 ? t('{len} toward the right', away) : t('{len} toward the left', away);
+    if (isTableSim()) return z > 0 ? t('{len} toward the near end', away) : t('{len} toward the far end', away);
+    return z > 0 ? t('{len} toward the foot', away) : t('{len} toward the head', away);
+  };
+  $('drop-pos-v').textContent = dropPos == null ? t('{place} (usual spot)', { place: far(v) }) : far(v);
 }
 $('drop-pos').addEventListener('input', e => {
   setDropPos(+e.target.value);
@@ -275,7 +285,9 @@ $('modes').addEventListener('click', e => {
   state.mode = b.dataset.mode;
   for (const x of $('modes').children) x.setAttribute('aria-pressed', String(x === b));
   $('hint').textContent =
-    state.mode === 'grab' ? 'Drag the quilt to pull it · drag empty space to orbit' : 'Drag to orbit · scroll to zoom';
+    state.mode === 'grab'
+      ? t('Drag the quilt to pull it · drag empty space to orbit')
+      : t('Drag to orbit · scroll to zoom');
   canvas.classList.remove('can-grab');
 });
 $('views').addEventListener('click', e => {
@@ -312,7 +324,7 @@ $('lightsel').addEventListener('change', e => {
   });
 });
 const expOut = () => {
-  $('exposure-o').textContent = look.exposure.toFixed(2) + '×';
+  $('exposure-o').textContent = fix(look.exposure, 2) + '×';
 };
 $('exposure').addEventListener('input', e => {
   look.exposure = +e.target.value;
@@ -321,7 +333,7 @@ $('exposure').addEventListener('input', e => {
 });
 expOut();
 const fOut = () => {
-  $('fstop-o').textContent = 'f/' + look.fstop.toFixed(1);
+  $('fstop-o').textContent = 'f/' + fix(look.fstop, 1);
 };
 $('dof').addEventListener('change', e => {
   look.dof = e.target.checked;

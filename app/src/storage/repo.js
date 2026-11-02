@@ -13,14 +13,19 @@
 // on (0: never uploaded); `dirty` means "changed here since the last upload"; `deleted` records stay as markers
 // until the server has them.
 //
+// Several people can use one browser: each design and fabric carries `owner`, the account it belongs to (none:
+// made here while nobody was signed in). Only the signed-in account's records and the ones without an owner are
+// listed, and only the signed-in account's are synced; another account's stay on the device, out of sight, until
+// it signs in again. The account is set by the sync (setAccount) and kept in the session.
+//
 // createRepo() makes an independent storage (the tests make one per "device"); the app uses the one exported
 // below.
 import { memoryDb, openIdb } from './idb.js';
 import { migrateLocalStorage } from './migrate.js';
 
 /** @typedef {import('./idb.js').Db} Db */
-/** @typedef {{ id: string, name: string, design: any, createdAt: number, updatedAt: number, rev: number, syncRev?: number, deleted: boolean, dirty: boolean }} DesignRecord */
-/** @typedef {{ id: string, name: string, cm: number, blob: Blob | null, createdAt: number, updatedAt: number, rev: number, syncRev?: number, deleted: boolean, dirty: boolean }} FabricRecord */
+/** @typedef {{ id: string, name: string, design: any, createdAt: number, updatedAt: number, rev: number, syncRev?: number, deleted: boolean, dirty: boolean, owner?: string, sample?: boolean, from?: { id: string, name: string, author: string, sig: string } }} DesignRecord */
+/** @typedef {{ id: string, name: string, cm: number, blob: Blob | null, createdAt: number, updatedAt: number, rev: number, syncRev?: number, deleted: boolean, dirty: boolean, owner?: string }} FabricRecord */
 /** @typedef {'designs' | 'fabrics'} SyncedStore */
 
 /** A new id for a record (a UUID). */
@@ -146,10 +151,20 @@ function createRepo() {
     else put('session', key, { key, value });
   }
 
+  // ---- whose records: the account signed in on this device (null: nobody)
+  /** @returns {string | null} */
+  const account = () => getSession('account') || null;
+  /** Shown to the account signed in: its own, and the ones made here while nobody was signed in. */
+  const visible = r => !r.deleted && (r.owner == null || r.owner === account());
+  /** The account's own (what the sync shares); none while nobody is signed in. */
+  const mine = r => r.owner != null && r.owner === account();
+  /** A new record belongs to whoever is signed in. */
+  const ownedNow = () => (account() ? { owner: account() } : {});
+
   /** What sync needs from designs and fabrics alike. @param {SyncedStore} store */
   const syncSide = store => ({
-    /** records changed here since the last upload, deletion markers included */
-    dirty: () => [...cache[store].values()].filter(r => r.dirty),
+    /** the signed-in account's records changed here since the last upload, deletion markers included */
+    dirty: () => [...cache[store].values()].filter(r => r.dirty && mine(r)),
     /** the record, deleted or not */
     raw: id => cache[store].get(id) || null,
     /**
@@ -174,6 +189,7 @@ function createRepo() {
         createdAt: rec.createdAt || now(),
         ...old,
         ...rec,
+        ...ownedNow(), // it came from the signed-in account's space on the server
         rev: (old?.rev || 0) + 1,
         syncRev: rec.rev,
         deleted: false,
@@ -182,23 +198,45 @@ function createRepo() {
     },
     /** Removes a record outright (a deletion marker the server never needed to know about). @param {string} id */
     purge: id => cache[store].has(id) && del(store, id),
-    /** Connecting to another server or account: everything here is new to it (deletion markers are dropped). */
+    /**
+     * Connecting the account to another server: its records here are all new to it (its deletion markers are
+     * dropped). Other accounts' records are not touched.
+     */
     resetSync() {
       for (const r of [...cache[store].values()]) {
+        if (!mine(r)) continue;
         if (r.deleted) del(store, r.id);
         else put(store, r.id, { ...r, syncRev: 0, dirty: true });
       }
+    },
+    /** The ones made here while nobody was signed in (not the samples): what Sign in offers to add to the account. */
+    strays: () => [...cache[store].values()].filter(r => !r.deleted && r.owner == null && !r.sample),
+    /** Adds those to the signed-in account: they are then synced. @returns {number} how many */
+    adoptStrays() {
+      const acc = account();
+      if (!acc) return 0;
+      const them = [...cache[store].values()].filter(r => !r.deleted && r.owner == null && !r.sample);
+      for (const r of them) put(store, r.id, { ...r, owner: acc, syncRev: 0, dirty: true, rev: r.rev + 1 });
+      return them.length;
+    },
+    /**
+     * Records from before records had owners that were already on the server (synced): the account they were
+     * synced with. Run once, when the app starts with sync set up. @param {string} acc
+     */
+    claimSynced(acc) {
+      for (const r of [...cache[store].values()])
+        if (r.owner == null && (r.syncRev || 0) > 0 && !r.sample) put(store, r.id, { ...r, owner: acc });
     },
   });
 
   // ---- designs (My designs)
   const designs = {
-    /** @returns {DesignRecord[]} the saved designs, not counting deleted ones */
-    list: () => [...cache.designs.values()].filter(r => !r.deleted),
-    /** @param {string} id @returns {DesignRecord | null} */
+    /** @returns {DesignRecord[]} the saved designs the signed-in account sees, not counting deleted ones */
+    list: () => [...cache.designs.values()].filter(visible),
+    /** @param {string} id @returns {DesignRecord | null} (null for another account's) */
     get: id => {
       const r = cache.designs.get(id);
-      return r && !r.deleted ? r : null;
+      return r && visible(r) ? r : null;
     },
     /**
      * Saves a new design or changes one: `rec` is merged into the record; the save counter goes up and the
@@ -211,6 +249,7 @@ function createRepo() {
         name: '',
         design: null,
         createdAt: t,
+        ...ownedNow(), // a new one belongs to whoever is signed in; a changed one keeps its owner
         ...(old && !old.deleted ? old : {}),
         syncRev: old?.syncRev || 0,
         ...rec,
@@ -222,6 +261,14 @@ function createRepo() {
       put('designs', next.id, next);
       changed('designs', next.id);
       return next;
+    },
+    /**
+     * Marks one of the app's own sample designs (they are never offered to an account as "made on this device").
+     * Not a change of the design: nothing to sync. @param {string} id
+     */
+    markSample(id) {
+      const r = cache.designs.get(id);
+      if (r && !r.sample) put('designs', id, { ...r, sample: true });
     },
     /** Deletes a design (kept as a marker until the server has the deletion). @param {string} id */
     remove(id) {
@@ -236,9 +283,9 @@ function createRepo() {
 
   // ---- fabrics: the user's own photos, named by the image's content
   const fabrics = {
-    /** @returns {FabricRecord[]} */
-    list: () => [...cache.fabrics.values()].filter(r => !r.deleted).sort((a, b) => a.createdAt - b.createdAt),
-    /** @param {string} id @returns {FabricRecord | null} */
+    /** @returns {FabricRecord[]} the photos the signed-in account sees */
+    list: () => [...cache.fabrics.values()].filter(visible).sort((a, b) => a.createdAt - b.createdAt),
+    /** @param {string} id @returns {FabricRecord | null} (any account's: a quilt that uses it still draws) */
     get: id => {
       const r = cache.fabrics.get(id);
       return r && !r.deleted ? r : null;
@@ -250,10 +297,17 @@ function createRepo() {
     async add(blob, meta) {
       const id = await blobHash(blob),
         old = cache.fabrics.get(id);
-      if (old && !old.deleted) return { id, isNew: false };
+      if (old && !old.deleted && visible(old)) return { id, isNew: false };
+      // the same photo kept by another account here: this account gets it too (one copy per id on a device)
+      if (old && !old.deleted) {
+        put('fabrics', id, { ...old, owner: account() || undefined, syncRev: 0, dirty: true, rev: old.rev + 1 });
+        changed('fabrics', id);
+        return { id, isNew: true };
+      }
       const t = now();
       put('fabrics', id, {
         id,
+        ...ownedNow(),
         name: meta.name,
         cm: meta.cm,
         blob,
@@ -296,6 +350,10 @@ function createRepo() {
     onChange: f => void listeners.add(f),
     getSession,
     setSession,
+    /** The account signed in on this device (its records are listed and synced), or null. */
+    account,
+    /** @param {string | null} acc */
+    setAccount: acc => setSession('account', acc || undefined),
     designs,
     fabrics,
     timelines,

@@ -19,23 +19,36 @@ import {
   setShowToolsPanel,
   setToolsPanel,
   toolsPanel,
+  mosaicBrush,
+  mosaicTool,
+  setMosaicBrush,
+  setMosaicTool,
 } from './ui-state.js';
 import { $ } from '../core/dom.js';
+import { fromInput, toInput } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
-import { partsOf } from '@quilt/shared/patterns.js';
 import { addFabric } from './fabric-library.js';
+import { refreshLibrary } from './fabric-picker.js';
 import {
   anchorOf,
   blockAt,
+  blockOutline,
+  blockPlace,
   blockPolys,
-  blockRect,
   borderTotal,
+  cellCount,
+  convexOverlap,
+  isOnPoint,
+  nearestBlock,
   pointInPoly,
   quiltMm,
-  sashOf,
+  sashRects,
+  tileAtPx,
+  turnedSelection,
+  uniteOf,
 } from '@quilt/shared/geometry.js';
-import { BLOCK_PX, drawDesignerCanvas, flipped, turnQuilt } from './canvas.js';
+import { BLOCK_PX, drawDesignerCanvas, flipped, panBy, turnQuilt, zoom, zoomAt } from './canvas.js';
 import { drawFabricPalette, drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { copyBlockFrom, selectSameFabric } from './block-library.js';
 import { PANEL_CARDS, openBlockEditor, placeBlockEditor, syncRail, updateMultiUI } from './side-panel.js';
@@ -46,13 +59,34 @@ import { tl, tlCommit, tlEnsure, tlKeyFor } from '../timeline/timeline.js';
 import { setSession, timelines } from '../storage/repo.js';
 import { setFold } from '../ui/folds.js';
 import { dispatch, replaceDesign, resizeTo } from './dispatch.js';
-import { copyBlock, rotateBlocks, setBackFabric, setBlockMm } from '../core/edits.js';
-import { defaultDesign } from '@quilt/shared/design.js';
+import {
+  copyBlock,
+  rotateBlocks,
+  setBackFabric,
+  setBlockMm,
+  setBlockSpan,
+  setSetting,
+  setSettingFabric,
+  paintEach,
+  paintTiles,
+  setMosaic,
+  setMosaicMm,
+  setMosaicShape,
+} from '../core/edits.js';
+import { notify } from '../ui/notice.js';
+import { newDesign } from '@quilt/shared/design.js';
+import { tilesForTool } from '@quilt/shared/mosaic.js';
+import { comma, t, tn } from '@quilt/shared/i18n.js';
 
 function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected
   const qcv = $('dz-quilt'),
     mq = $('dz-marquee');
+  // on point the box is turned, so its size shows on a tag of its own (upright), beside it
+  const mqTag = document.createElement('div');
+  mqTag.className = 'marquee-tag';
+  mqTag.hidden = true;
+  mq.after(mqTag);
   let marquee = null,
     suppressClick = false,
     mqFrame = 0;
@@ -63,16 +97,124 @@ function initDesignerUI() {
       R2 = Math.max(x0, x1),
       T = Math.min(y0, y1),
       B2 = Math.max(y0, y1);
-    for (let rr = 0; rr < design.rows; rr++)
-      for (let cc = 0; cc < design.cols; cc++) {
-        const b = blockRect(design, cc, rr, r.width, r.height); // every block the rectangle touches
-        if (b.x < R2 && b.x + b.w > L && b.y < B2 && b.y + b.h > T) out.add(anchorOf(design, rr * design.cols + cc));
-      }
+    const box = [
+      [L, T],
+      [R2, T],
+      [R2, B2],
+      [L, B2],
+    ];
+    const onPoint = isOnPoint(design);
+    if (onPoint) {
+      // on point the selection turns with the blocks: from the diamond where the drag began to the one under
+      // the mouse (or the nearest ones), every whole diamond between them in the turned grid
+      const a = nearestBlock(design, x0, y0, r.width, r.height),
+        b = nearestBlock(design, x1, y1, r.width, r.height);
+      return new Set(turnedSelection(design, a, b, r.width, r.height).blocks);
+    }
+    for (let i = 0, n = cellCount(design); i < n; i++) {
+      const P = blockPlace(design, i, r.width, r.height),
+        cx = P.x + P.w / 2,
+        cy = P.y + P.h / 2;
+      // straight: every block the rectangle touches. On point, every diamond whose middle it holds: any upright
+      // rectangle round a diamond of diamonds also touches the ones beside it, so touching would never fit
+      if (onPoint ? cx > L && cx < R2 && cy > T && cy < B2 : convexOverlap(box, blockOutline(P)))
+        out.add(anchorOf(design, i));
+    }
     return out;
   };
+  // ---- zoom with the mouse wheel over the quilt (at the mouse); drag with the wheel pressed to move it. All the way
+  // out, the wheel scrolls the page as usual
+  qcv.addEventListener(
+    'wheel',
+    e => {
+      if (flipped || !design || e.ctrlKey) return; // (ctrl + wheel: the browser's own zoom)
+      const r = qcv.parentElement.getBoundingClientRect(),
+        dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+      const zoomed = zoomAt(Math.exp(-dy * 0.0015), e.clientX - r.left, e.clientY - r.top);
+      // keep the page still while zooming, and at full zoom when zooming in further
+      if (zoomed || (dy < 0 && zoom.z > 1)) e.preventDefault();
+    },
+    { passive: false },
+  );
+  let pan = null;
+  qcv.addEventListener('pointerdown', e => {
+    if (e.button !== 1 || flipped) return;
+    e.preventDefault(); // no autoscroll
+    if (zoom.z <= 1) return;
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    try {
+      qcv.setPointerCapture(e.pointerId);
+    } catch (err) {}
+    qcv.parentElement.classList.add('panning');
+  });
+  qcv.addEventListener('mousedown', e => {
+    if (e.button === 1) e.preventDefault(); // (some browsers start autoscroll on the mouse event)
+  });
+  qcv.addEventListener('pointermove', e => {
+    if (!pan || e.pointerId !== pan.id) return;
+    panBy(e.clientX - pan.x, e.clientY - pan.y);
+    pan.x = e.clientX;
+    pan.y = e.clientY;
+  });
+  const endPan = e => {
+    if (!pan || e.pointerId !== pan.id) return;
+    pan = null;
+    qcv.parentElement.classList.remove('panning');
+  };
+  qcv.addEventListener('pointerup', endPan);
+  qcv.addEventListener('pointercancel', endPan);
+
+  // ---- a mosaic: click a shape to paint it, or drag over several (one undo step: painting merges)
+  let painting = null;
+  // Random: a fabric from the list in the Mosaic panel (the palette); otherwise the chosen fabric, over the shapes
+  // the tool reaches from each one (a rosette, a row)
+  const paletteIds = () =>
+    [...$('mos-fabs').querySelectorAll('button.fab[data-f]')].filter(b => !b.hidden).map(b => b.dataset.f);
+  const paintWithTool = ids => {
+    if (mosaicTool === 'random') {
+      const pal = paletteIds();
+      if (!pal.length) return;
+      dispatch(
+        paintEach,
+        ids.map(i => [i, pal[Math.floor(Math.random() * pal.length)]]),
+      );
+    } else
+      dispatch(
+        paintTiles,
+        ids.flatMap(i => tilesForTool(design.mosaic, i, mosaicTool)),
+        mosaicBrush,
+      );
+  };
+  const paintAt = e => {
+    const r = qcv.getBoundingClientRect(),
+      i = tileAtPx(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (i >= 0 && i !== painting.last) {
+      painting.last = i;
+      paintWithTool([i]);
+    }
+    return i;
+  };
+  qcv.addEventListener('pointerdown', e => {
+    if (!design || !design.mosaic || flipped || e.button !== 0) return;
+    painting = { id: e.pointerId, last: -1 };
+    if (paintAt(e) < 0)
+      painting = null; // a border: its click opens its settings
+    else if (e.pointerType !== 'touch')
+      try {
+        qcv.setPointerCapture(e.pointerId); // keep painting when the mouse runs past the edge
+      } catch (err) {}
+  });
+  qcv.addEventListener('pointermove', e => {
+    if (painting && e.pointerId === painting.id && e.pointerType !== 'touch') paintAt(e);
+  });
+  const stopPainting = e => {
+    if (painting && e.pointerId === painting.id) painting = null;
+  };
+  qcv.addEventListener('pointerup', stopPainting);
+  qcv.addEventListener('pointercancel', stopPainting);
   qcv.addEventListener('pointerdown', e => {
     suppressClick = false;
-    if (flipped || e.button !== 0 || !design) return;
+    if (flipped || e.button !== 0 || !design || design.mosaic) return;
     if (e.pointerType === 'touch') return; // on phones a drag scrolls the page
     const r = qcv.getBoundingClientRect(),
       x = e.clientX - r.left,
@@ -100,14 +242,41 @@ function initDesignerUI() {
     if (!marquee.active) return;
     e.preventDefault();
     const { x0, y0, x1, y1 } = marquee;
-    Object.assign(mq.style, {
-      left: Math.min(x0, x1) + 'px',
-      top: Math.min(y0, y1) + 'px',
-      width: Math.abs(x1 - x0) + 'px',
-      height: Math.abs(y1 - y0) + 'px',
-    });
-    const inside = blocksIn(x0, y0, x1, y1);
-    mq.dataset.count = `${inside.size} block${inside.size === 1 ? '' : 's'}`;
+    if (isOnPoint(design)) {
+      // the box turns with the blocks and wraps whole diamonds; its size sits upright at its right corner
+      const turned = turnedSelection(
+        design,
+        nearestBlock(design, x0, y0, r.width, r.height),
+        nearestBlock(design, x1, y1, r.width, r.height),
+        r.width,
+        r.height,
+      );
+      Object.assign(mq.style, {
+        left: turned.box.x + 'px',
+        top: turned.box.y + 'px',
+        width: turned.box.w + 'px',
+        height: turned.box.h + 'px',
+        transform: 'rotate(45deg)',
+      });
+      mq.dataset.count = '';
+      const right = blockOutline(turned.box).reduce((m, pt) => (pt[0] > m[0] ? pt : m));
+      mqTag.textContent = tn(turned.cols * turned.rows, '{cols} × {rows} block', '{cols} × {rows} blocks', {
+        cols: turned.cols,
+        rows: turned.rows,
+      });
+      Object.assign(mqTag.style, { left: right[0] + 8 + 'px', top: right[1] - 11 + 'px' });
+      mqTag.hidden = false;
+    } else {
+      Object.assign(mq.style, {
+        left: Math.min(x0, x1) + 'px',
+        top: Math.min(y0, y1) + 'px',
+        width: Math.abs(x1 - x0) + 'px',
+        height: Math.abs(y1 - y0) + 'px',
+        transform: '',
+      });
+      const inside = blocksIn(x0, y0, x1, y1);
+      mq.dataset.count = tn(inside.size, '{n} block', '{n} blocks');
+    }
     if (!mqFrame)
       mqFrame = requestAnimationFrame(() => {
         // live highlight, at most once per frame
@@ -122,6 +291,7 @@ function initDesignerUI() {
     const m0 = marquee;
     marquee = null;
     mq.hidden = true;
+    mqTag.hidden = true;
     if (!m0.active) return; // a plain click: the click handler opens the block
     suppressClick = true;
     if (cancel) {
@@ -156,6 +326,7 @@ function initDesignerUI() {
     if (flipped || e.defaultPrevented) return;
     const r = e.currentTarget.getBoundingClientRect();
     const bi = blockAt(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (design.mosaic && tileAtPx(design, e.clientX - r.left, e.clientY - r.top, r.width, r.height) >= 0) return; // painted
     if (bi < 0) {
       // a click on a border or the sashing opens its settings
       const q = quiltMm(design),
@@ -163,7 +334,13 @@ function initDesignerUI() {
         mx = ((e.clientX - r.left) / r.width) * q.W,
         my = ((e.clientY - r.top) / r.height) * q.H;
       if (bt && (mx < bt || my < bt || mx > q.W - bt || my > q.H - bt)) openBorders();
-      else if (sashOf(design).mm) openSashing();
+      else if (
+        sashRects(design, r.width, r.height).some(rc =>
+          pointInPoly(e.clientX - r.left, e.clientY - r.top, blockOutline(rc)),
+        )
+      )
+        openSashing();
+      else if (isOnPoint(design)) showPanel('set'); // a setting triangle
       return;
     }
     const multi = e.shiftKey || e.ctrlKey || e.metaKey;
@@ -209,24 +386,6 @@ function initDesignerUI() {
       hit = blockPolys(b, 0, 0, BLOCK_PX, BLOCK_PX).findIndex(p => pointInPoly(x, y, p));
     if (hit < 0) return;
     selectSameFabric(hit);
-  });
-  $('dz-allparts').addEventListener('click', () => {
-    setSelParts(new Set(partsOf(design.blocks[focusBlock].pattern).map((_, i) => i)));
-    drawPartsEditor();
-  });
-  $('dz-sameparts').addEventListener('click', () => {
-    const b = design.blocks[focusBlock],
-      ref = selParts.size ? b.fabrics[[...selParts][0]] : null;
-    if (ref === null) {
-      $('dz-parts-info').textContent = 'Select one part first; this then selects every part with the same fabric.';
-      return;
-    }
-    setSelParts(new Set(b.fabrics.map((f, i) => (f === ref ? i : -1)).filter(i => i >= 0)));
-    drawPartsEditor();
-  });
-  $('dz-noparts').addEventListener('click', () => {
-    selParts.clear();
-    drawPartsEditor();
   });
   $('dz-allblocks').addEventListener('click', () => {
     setSelBlocks(new Set(design.blocks.map((_, i) => i)));
@@ -308,7 +467,66 @@ function initDesignerUI() {
     $('dz-side').scrollTop = 0;
   };
   for (const [n] of Object.entries(PANEL_CARDS))
-    $('rail-' + n).addEventListener('click', () => (toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n)));
+    $('rail-' + n)?.addEventListener('click', () => (toolsOpen && toolsPanel === n ? setTools(false) : showPanel(n)));
+  // Unite: the selected square of blocks becomes one large block (the top-left one's pattern and fabrics); when
+  // the selection is not a square, the button says why instead
+  $('dz-unite').addEventListener('click', e => {
+    e.stopPropagation();
+    const u = uniteOf(design, selBlocks);
+    if ('why' in u) {
+      notify($('dz-unite').title);
+      return;
+    }
+    setSelBlocks(new Set([u.i]));
+    setFocusBlock(u.i);
+    selParts.clear();
+    dispatch(setBlockSpan, u.i, u.k);
+    openBlockEditor();
+  });
+  // layout: straight, or on point (blocks turned 45°); the setting triangles' fabric has its own card
+  $('dz-setting').addEventListener('change', e => {
+    const v = e.target.value;
+    // a mosaic: the blocks stay underneath; going back to blocks shows them again, straight or on point
+    if (v === 'mosaic') {
+      dispatch(setMosaic, true);
+      showPanel('mosaic');
+      return;
+    }
+    if (design.mosaic) {
+      dispatch(setMosaic, false);
+      if (toolsOpen && toolsPanel === 'mosaic') setTools(false);
+    }
+    dispatch(setSetting, v === 'onpoint');
+    if (toolsOpen && toolsPanel === 'set' && !isOnPoint(design)) setTools(false);
+  });
+  $('mos-fabs').addEventListener('click', e => {
+    const b = e.target.closest('button.fab');
+    if (!b) return;
+    setMosaicBrush(b.dataset.f);
+    drawPaletteInto($('mos-fabs'), mosaicBrush);
+  });
+  $('mos-tools').addEventListener('click', e => {
+    const b = e.target.closest('button[data-tool]');
+    if (!b) return;
+    setMosaicTool(b.dataset.tool);
+    for (const tool of $('mos-tools').querySelectorAll('button')) tool.setAttribute('aria-pressed', String(tool === b));
+  });
+  $('mos-fill').addEventListener('click', () => {
+    if (!design.mosaic) return;
+    const all = design.mosaic.fabrics.map((_, i) => i);
+    if (mosaicTool === 'random') paintWithTool(all);
+    else dispatch(paintTiles, all, mosaicBrush);
+  });
+  $('mos-shape').addEventListener('change', e => dispatch(setMosaicShape, e.target.value));
+  $('mos-mm').addEventListener('change', e => {
+    const v = fromInput(+e.target.value);
+    if (v >= 10 && v <= 200) dispatch(setMosaicMm, v);
+    else e.target.value = String(toInput(design.mosaic ? design.mosaic.mm : 50));
+  });
+  $('set-fabs').addEventListener('click', e => {
+    const b = e.target.closest('button.fab');
+    if (b) dispatch(setSettingFabric, b.dataset.f);
+  });
   setShowTools(() => {
     if (!toolsOpen || toolsPanel !== 'parts') showPanel('parts');
   });
@@ -334,9 +552,9 @@ function initDesignerUI() {
   });
   const sizeChange = () => resizeTo(+$('dz-cols').value, +$('dz-rows').value);
   const blockSize = e => {
-    const v = Math.round(+e.target.value);
+    const v = fromInput(+e.target.value);
     if (!(v >= 50 && v <= 1000)) {
-      e.target.value = design.blockMm;
+      e.target.value = String(toInput(design.blockMm));
       return;
     }
     dispatch(setBlockMm, v);
@@ -346,25 +564,26 @@ function initDesignerUI() {
   $('dz-rows').addEventListener('change', sizeChange);
   for (const b of document.querySelectorAll('[data-step]'))
     b.addEventListener('click', () => {
-      const [which, d] = b.dataset.step.split(':');
-      resizeTo(design.cols + (which === 'c' ? +d : 0), design.rows + (which === 'r' ? +d : 0));
+      const [which, d] = b.dataset.step.split(':'),
+        g = design.mosaic || design; // a mosaic: shapes across and down
+      resizeTo(g.cols + (which === 'c' ? +d : 0), g.rows + (which === 'r' ? +d : 0));
     });
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {
       $('dz-reset').dataset.armed = '1';
-      $('dz-reset').textContent = 'Click again to start over';
+      $('dz-reset').textContent = t('Click again to start over');
       setTimeout(() => {
         $('dz-reset').dataset.armed = '';
-        $('dz-reset').textContent = 'Start over';
+        $('dz-reset').textContent = t('Start over');
       }, 3000);
       return;
     }
     setMineCur(null);
     setSession('mineCur', undefined);
     timelines.remove(tlKeyFor(null));
-    replaceDesign(defaultDesign(), { timeline: null });
+    replaceDesign(newDesign(), { timeline: null });
     $('dz-reset').dataset.armed = '';
-    $('dz-reset').textContent = 'Start over';
+    $('dz-reset').textContent = t('Start over');
   });
   $('dz-upload').addEventListener('change', async e => {
     const files = [...e.target.files].filter(f => f.type.startsWith('image/'));
@@ -378,11 +597,15 @@ function initDesignerUI() {
     }
     e.target.value = '';
     drawFabricPalette();
-    $('dz-fabnote').textContent =
-      `${files.length} photo${files.length === 1 ? '' : 's'} added. They are kept in this browser with your designs.`;
+    refreshLibrary();
+    $('dz-fabnote').textContent = tn(
+      files.length,
+      '{n} photo added. They are kept in this browser with your designs.',
+      '{n} photos added. They are kept in this browser with your designs.',
+    );
   });
   const cmOut2 = () => {
-    $('dz-cm-o').textContent = $('dz-cm').value + ' cm';
+    $('dz-cm-o').textContent = comma($('dz-cm').value) + ' cm';
   };
   $('dz-cm').addEventListener('input', cmOut2);
   cmOut2();

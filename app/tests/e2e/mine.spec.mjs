@@ -3,11 +3,10 @@ import { test, expect } from './fixtures.mjs';
 
 const pins = page => page.locator('#mine-grid .pin');
 const pin = (page, name) => pins(page).filter({ has: page.locator('b', { hasText: new RegExp(`^${name}$`) }) });
-/** one of a card's round buttons (shown on hover) */
+/** one of the actions in a card's ⋯ menu */
 async function cardButton(page, name, action) {
-  const p = pin(page, name);
-  await p.locator('.img').hover();
-  await p.locator(`[data-a="${action}"]`).click();
+  await pin(page, name).locator('.pin-more').click();
+  await page.locator(`.pin-menu [data-a="${action}"]`).click();
 }
 const names = page => pins(page).locator('.meta b').allTextContents();
 
@@ -42,23 +41,74 @@ test('save, rename, duplicate and delete', async ({ app, page }) => {
   expect(recs[0].id).not.toBe(recs[1].id);
   expect(recs[0].design).toEqual(recs[1].design);
 
-  // delete: the first click arms the button, the second deletes
+  // delete: the card goes at once, with an Undo
   const before = await pins(page).count();
   await cardButton(page, 'Indigo star', 'del');
-  await expect(pins(page)).toHaveCount(before);
-  await pin(page, 'Indigo star').locator('[data-a="del"]').click();
   await expect(pins(page)).toHaveCount(before - 1);
-  // it was the design being edited: that becomes an unsaved design again
-  expect(await app.storage(s => s.getSession('mineCur') ?? null)).toBeNull();
+  await expect(page.locator('#notice')).toContainText('“Indigo star” was deleted.');
 });
 
-test('a deleted card disarms itself after a moment', async ({ app, page }) => {
+test('Delete can be undone; after the Undo time the deletion is made (and so goes to the server)', async ({
+  app,
+  page,
+}) => {
+  await page.clock.install();
+  await app.open();
+  await saveAs(page, 'Keep me');
+  await page.getByRole('tab', { name: 'My designs' }).click();
+  const id = await app.storage(s => s.designs.list().find(r => r.name === 'Keep me').id);
+  // Undo: back as it was, nothing deleted in storage
+  await cardButton(page, 'Keep me', 'del');
+  await expect(pin(page, 'Keep me')).toHaveCount(0);
+  await page.locator('#notice').getByRole('button', { name: 'Undo' }).click();
+  await expect(pin(page, 'Keep me')).toHaveCount(1);
+  expect(await app.storage((s, i) => s.designs.raw(i).deleted, id)).toBe(false);
+  // until the Undo time is up, the deletion is not made (nothing for the sync to send)
+  await cardButton(page, 'Keep me', 'del');
+  await page.clock.runFor(9_000);
+  expect(await app.storage((s, i) => s.designs.raw(i).deleted, id)).toBe(false);
+  await page.clock.runFor(2_000);
+  expect(await app.storage((s, i) => s.designs.raw(i)?.deleted ?? true, id)).toBe(true);
+  // it was the design being edited: that stays open, as an unsaved design
+  expect(await app.storage(s => s.getSession('mineCur') ?? null)).toBeNull();
+  await page.reload();
+  await page.getByRole('tab', { name: 'My designs' }).click();
+  await expect(pin(page, 'Keep me')).toHaveCount(0);
+});
+
+test('the ⋯ menu works with the keyboard', async ({ app, page }) => {
   await app.open('mine');
   const first = (await names(page))[0];
-  await cardButton(page, first, 'del');
-  const btn = pin(page, first).locator('[data-a="del"]');
-  await expect(btn).toHaveText('✓');
-  await expect(btn).toHaveText('🗑', { timeout: 4000 });
+  const more = pin(page, first).locator('.pin-more');
+  await more.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.pin-menu')).toBeVisible();
+  await expect(page.locator('.pin-menu [data-a="open"]')).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('.pin-menu [data-a="rename"]')).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowUp'); // round to the last
+  await expect(page.locator('.pin-menu [data-a="del"]')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.pin-menu')).toHaveCount(0);
+  await expect(more).toBeFocused();
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+  // a click elsewhere closes it too
+  await more.click();
+  await page.mouse.click(5, 5);
+  await expect(page.locator('.pin-menu')).toHaveCount(0);
+});
+
+test('on a phone the ⋯ is there without hovering, and its menu fits the screen', async ({ app, page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await app.open('mine');
+  const first = (await names(page))[0];
+  const more = pin(page, first).locator('.pin-more');
+  await expect(more).toBeVisible();
+  await more.click();
+  const box = await page.locator('.pin-menu').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
 });
 
 test('save changes, save as new, and the save dialog from My designs', async ({ app, page }) => {
@@ -109,9 +159,6 @@ test('search and sort', async ({ app, page }) => {
 
 test('with no saved designs, the page says how to save one', async ({ app, page }) => {
   await app.open('mine');
-  for (const n of await names(page)) {
-    await cardButton(page, n, 'del');
-    await pin(page, n).locator('[data-a="del"]').click();
-  }
+  for (const n of await names(page)) await cardButton(page, n, 'del');
   await expect(page.locator('#mine-empty')).toContainText('No saved designs yet');
 });

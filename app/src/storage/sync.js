@@ -10,6 +10,8 @@
 // version keeps the quilt's place, and this device's version is kept as a copy named "… (this device)".
 // A quilt deleted here but changed elsewhere comes back with the change.
 
+import { getLang, t } from '@quilt/shared/i18n.js';
+
 /** @typedef {ReturnType<import('./repo.js').createRepo>} Repo */
 /**
  * @typedef {object} SyncStatus
@@ -27,6 +29,42 @@
 const SESSION_KEY = 'sync';
 const FABRIC_ID = /^f[0-9a-f]{24}$/;
 
+/**
+ * What the server's answer means, in the language in use. The server writes its messages in English and names each
+ * error with a code: English shows the server's words, other languages the sentence for the code.
+ * @param {any} json the answer @param {number} status
+ * @param {string} [otherwise] when the answer doesn't say @returns {string}
+ */
+function serverSays(json, status, otherwise = t('The server answered {status}.', { status })) {
+  if (getLang() === 'en') return json?.message || otherwise;
+  /** @type {Record<string, string>} */
+  const byCode = {
+    bad_request: t('The server did not accept this request.'),
+    forbidden: t('This is not allowed (or the link has expired).'),
+    not_found: t('That was not found on the server.'),
+    server_error: t('Something went wrong on the server.'),
+    unauthorized: t('Please sign in again.'),
+    conflict: t('It was changed somewhere else.'),
+    not_a_quilt: t('The design could not be read as a quilt.'),
+    not_uploaded: t('The image has not arrived in storage yet.'),
+    wrong_image: t('The uploaded image is not the one this fabric id names.'),
+    author_email: t('The author name is shown to everyone: please don’t use an email.'),
+    photos_missing: t('Some of its fabric photos are not on the server yet: sync first.'),
+  };
+  return byCode[json?.error] ?? otherwise;
+}
+/**
+ * Why the server refused something, to follow "was refused:" (English shows the bare status when it says nothing).
+ * @param {any} json @param {number} status
+ */
+const refusal = (json, status) => (getLang() === 'en' ? json?.message || status : serverSays(json, status));
+
+/**
+ * The account's key on this device (what records' `owner` holds): Auth0's id, or `dev:<name>` for the development
+ * sign-in. @param {{ auth0?: string, user?: string }} c @returns {string}
+ */
+const accountOf = c => c.auth0 || `dev:${(c.user || '').trim().toLowerCase()}`;
+
 /** A request failed in a way that stops this sync (offline, signed out, server down). */
 class StopSync extends Error {
   /** @param {SyncStatus['state']} state @param {string} message */
@@ -37,21 +75,33 @@ class StopSync extends Error {
 }
 
 /**
- * @param {{ repo: Repo, fetch?: typeof fetch, onRemote?: (e: RemoteEvent) => void, onStatus?: (s: SyncStatus) => void }} deps
+ * @param {{ repo: Repo, fetch?: typeof fetch, onRemote?: (e: RemoteEvent) => void, onStatus?: (s: SyncStatus) => void, getToken?: () => Promise<string> }} deps
+ *   getToken: a fresh sign-in token for the server (storage/auth0.js), for accounts signed in with Auth0
  */
 function createSync({
   repo,
   fetch: fetchFn = (...a) => globalThis.fetch(...a),
   onRemote = () => {},
   onStatus = () => {},
+  getToken = () => Promise.reject(new Error('no sign-in')),
 }) {
   /** @type {SyncStatus} */
   let status = { state: 'off', pending: 0 };
   let running = null,
     again = false;
 
-  /** @returns {{ url: string, user: string, since: number, at?: number } | null} */
+  /**
+   * The server and who is signed in: an Auth0 account (auth0 = its id, who = the email to show) or, in development,
+   * a name (user). @returns {{ url: string, user?: string, auth0?: string, who?: string, since: number, at?: number } | null}
+   */
   const config = () => repo.getSession(SESSION_KEY) || null;
+  // set up before records had owners: what was synced belongs to that account (once)
+  if (config() && !repo.account()) {
+    const acc = accountOf(config());
+    repo.setAccount(acc);
+    repo.designs.claimSynced(acc);
+    repo.fabrics.claimSynced(acc);
+  }
   const pendingCount = () => repo.designs.dirty().length + repo.fabrics.dirty().length;
   const setStatus = s => {
     status = { ...status, ...s, pending: pendingCount() };
@@ -59,43 +109,57 @@ function createSync({
   };
 
   /**
-   * Turns sync on with a server address and (for now) the development login name, or off with null.
-   * A different server or account starts afresh: everything here is sent to it.
-   * @param {{ url: string, user: string } | null} c
+   * Turns sync on with a server address and an account (signed in with Auth0, or a development name), or off with
+   * null. A different server or account starts afresh: everything here is sent to it.
+   * @param {{ url: string, user?: string, auth0?: string, who?: string } | null} c
    */
   function configure(c) {
     const old = config();
     if (!c) {
       repo.setSession(SESSION_KEY, undefined);
+      repo.setAccount(null); // nobody's: only what was made here without an account is listed
       setStatus({ state: 'off', message: '' });
       return;
     }
     const url = c.url.trim().replace(/\/+$/, ''),
-      user = c.user.trim();
-    if (!old || old.url !== url || old.user !== user) {
-      repo.designs.resetSync();
-      repo.fabrics.resetSync();
-      repo.setSession(SESSION_KEY, { url, user, since: 0 });
-    }
+      who = c.auth0 ? { auth0: c.auth0, who: c.who || c.auth0 } : { user: (c.user || '').trim() },
+      same = old && old.url === url && old.user === who.user && old.auth0 === who.auth0;
+    // whose designs are listed and synced from now on (storage/repo.js)
+    repo.setAccount(accountOf(who));
+    if (!same) {
+      // another server: this account's designs here are all new to it. Another account on the same server: it
+      // only fetches its own (since 0); the other account's stay here, unsent
+      if (!old || old.url !== url) {
+        repo.designs.resetSync();
+        repo.fabrics.resetSync();
+      }
+      repo.setSession(SESSION_KEY, { url, ...who, since: 0 });
+    } else if (who.who && old.who !== who.who) repo.setSession(SESSION_KEY, { ...old, who: who.who });
     setStatus({ state: 'ok', message: '' });
   }
 
   /** One API call: { status, body }. Network failures and 401 stop the sync. */
   async function api(method, path, body) {
     const c = /** @type {NonNullable<ReturnType<typeof config>>} */ (config());
-    let r;
+    let r, login;
+    if (c.auth0) {
+      // a fresh token each time (the Auth0 library keeps it and renews it); none means signed out on this device
+      const token = await getToken().catch(() => null);
+      if (!token) throw new StopSync('login', t('Please sign in again.'));
+      login = { authorization: `Bearer ${token}` };
+    } else login = { 'x-dev-user': c.user };
     try {
       r = await fetchFn(c.url + path, {
         method,
-        headers: { 'x-dev-user': c.user, ...(body ? { 'content-type': 'application/json' } : {}) },
+        headers: { ...login, ...(body ? { 'content-type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (e) {
-      throw new StopSync('offline', 'The server could not be reached.');
+      throw new StopSync('offline', t('The server could not be reached.'));
     }
     const json = await r.json().catch(() => null);
-    if (r.status === 401) throw new StopSync('login', json?.message || 'Not signed in.');
-    if (r.status >= 500) throw new StopSync('error', json?.message || `The server answered ${r.status}.`);
+    if (r.status === 401) throw new StopSync('login', serverSays(json, r.status, t('Not signed in.')));
+    if (r.status >= 500) throw new StopSync('error', serverSays(json, r.status));
     return { status: r.status, body: json };
   }
 
@@ -109,7 +173,7 @@ function createSync({
     }
     const copy = repo.designs.save({
       id: repo.designs.newId(),
-      name: `${local.name} (this device)`,
+      name: t('{name} (this device)', { name: local.name }),
       design: local.design,
     });
     if (server) repo.designs.applyRemote(server);
@@ -130,7 +194,11 @@ function createSync({
         continue;
       }
       if (!FABRIC_ID.test(r.id) || !r.blob) {
-        errors.push(`“${r.name}” was added on a page that can't fingerprint photos, so it stays on this device.`);
+        errors.push(
+          t("“{name}” was added on a page that can't fingerprint photos, so it stays on this device.", {
+            name: r.name,
+          }),
+        );
         continue;
       }
       const type = ['image/jpeg', 'image/png', 'image/webp'].includes(r.blob.type) ? r.blob.type : 'image/jpeg';
@@ -141,7 +209,7 @@ function createSync({
         bytes: r.blob.size,
       });
       if (up.status !== 200) {
-        errors.push(`The photo “${r.name}” was refused: ${up.body?.message || up.status}`);
+        errors.push(t('The photo “{name}” was refused: {why}', { name: r.name, why: refusal(up.body, up.status) }));
         continue;
       }
       if (up.body.status === 'upload') {
@@ -149,15 +217,17 @@ function createSync({
         try {
           put = await fetchFn(up.body.url, { method: 'PUT', headers: up.body.headers, body: r.blob });
         } catch (e) {
-          throw new StopSync('offline', 'The photo storage could not be reached.');
+          throw new StopSync('offline', t('The photo storage could not be reached.'));
         }
         if (!put.ok) {
-          errors.push(`The photo “${r.name}” could not be uploaded (${put.status}).`);
+          errors.push(t('The photo “{name}” could not be uploaded ({status}).', { name: r.name, status: put.status }));
           continue;
         }
         const done = await api('POST', `/v1/fabrics/${r.id}/done`);
         if (done.status !== 200) {
-          errors.push(`The photo “${r.name}” was refused: ${done.body?.message || done.status}`);
+          errors.push(
+            t('The photo “{name}” was refused: {why}', { name: r.name, why: refusal(done.body, done.status) }),
+          );
           continue;
         }
         repo.fabrics.markSynced(r.id, r.rev, done.body.record.rev);
@@ -186,7 +256,7 @@ function createSync({
           continue;
         }
         const res = await api('PUT', `/v1/designs/${r.id}`, {
-          name: r.name.slice(0, 80) || 'Quilt',
+          name: r.name.slice(0, 80) || t('Quilt'),
           design: r.design,
           baseRev: base,
         });
@@ -196,7 +266,7 @@ function createSync({
           repo.designs.markSynced(r.id, r.rev, rec.rev, { design: rec.design });
         } else if (res.status === 409) conflict(r, res.body?.server ?? null);
         else {
-          errors.push(`“${r.name}” was not sent: ${res.body?.message || res.status}`);
+          errors.push(t('“{name}” was not sent: {why}', { name: r.name, why: refusal(res.body, res.status) }));
           errors.skip.add(r.id + ':' + r.rev); // not again until it changes
         }
       }
@@ -209,7 +279,8 @@ function createSync({
       const c = config();
       if (!c) return;
       const res = await api('GET', `/v1/changes?since=${c.since}&limit=200`);
-      if (res.status !== 200) throw new StopSync('error', res.body?.message || 'Changes could not be read.');
+      if (res.status !== 200)
+        throw new StopSync('error', serverSays(res.body, res.status, t('Changes could not be read.')));
       for (const ch of res.body.changes) await applyChange(ch);
       repo.setSession(SESSION_KEY, { ...config(), since: res.body.since });
       if (!res.body.more) return;
@@ -240,7 +311,7 @@ function createSync({
         if (!r.ok) return;
         blob = new Blob([await r.arrayBuffer()], { type: ch.type });
       } catch (e) {
-        throw new StopSync('offline', 'The photo storage could not be reached.');
+        throw new StopSync('offline', t('The photo storage could not be reached.'));
       }
     }
     side.applyRemote({ ...ch, blob });
@@ -280,7 +351,21 @@ function createSync({
     return running;
   }
 
-  return { configure, config, syncNow, status: () => status };
+  /**
+   * One call to the server as the signed-in account (mine/community.js): { status, body }; throws when offline,
+   * signed out or the server fails (the message says which). @param {string} method @param {string} path @param {any} [body]
+   */
+  async function request(method, path, body) {
+    if (!config()) throw new Error(t('Sign in first.'));
+    try {
+      return await api(method, path, body);
+    } catch (e) {
+      if (e instanceof StopSync) setStatus({ state: e.state, message: e.message });
+      throw e;
+    }
+  }
+
+  return { configure, config, request, syncNow, status: () => status };
 }
 
-export { createSync };
+export { createSync, serverSays };

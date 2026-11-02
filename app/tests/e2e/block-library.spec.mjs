@@ -1,0 +1,98 @@
+// The block library: the list under "Block pattern" (one row that scrolls sideways) keeps the app's first blocks, and
+// a round "+" button beside it opens a library with every block, searchable by name or family.
+import { test, expect } from './fixtures.mjs';
+
+test.beforeEach(async ({ app }) => app.open());
+
+async function openBlock(app, page, i) {
+  const c = await app.blockCentre(await app.current(), i);
+  await page.mouse.click(c.x, c.y);
+  await expect(page.locator('#dz-side')).toBeVisible();
+}
+
+test('a block from the library goes on the selected block and joins the list', async ({ app, page }) => {
+  await openBlock(app, page, 0);
+  await expect(page.locator('#dz-patterns [data-p="bearspaw"]')).toHaveCount(0); // not in the list yet
+  await page.locator('#dz-patterns').hover(); // the round button appears beside the card
+  await page.locator('#fab-more-float').click();
+  const lib = page.locator('#blklib');
+  await expect(lib).toBeVisible();
+  await lib.locator('#blklib-q').fill('bear');
+  await expect(lib.locator('#blklib-grid .pat')).toHaveText(["Bear's paw"]);
+  await lib.locator('#blklib-grid .pat').click();
+  await expect(lib).toBeHidden();
+  expect((await app.current()).blocks[0].pattern).toBe('bearspaw');
+  await expect(page.locator('#dz-patterns .pat[aria-pressed="true"]')).toHaveText("Bear's paw");
+});
+
+test('Block pattern is one row that scrolls sideways, with the round button for the rest', async ({ app, page }) => {
+  await openBlock(app, page, 0);
+  const row = page.locator('#dz-patterns');
+  const tops = await row.locator('.pat').evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1); // all on one line
+  expect(await row.evaluate(e => e.scrollWidth > e.clientWidth)).toBe(true);
+  await row.hover();
+  await expect(page.locator('#fab-more-float')).toHaveAttribute('aria-label', /^More blocks \(\d+\)$/);
+});
+
+test('the library groups blocks by family', async ({ app, page }) => {
+  await openBlock(app, page, 0);
+  await page.locator('#dz-patterns').hover(); // the round button appears beside the card
+  await page.locator('#fab-more-float').click();
+  await page.locator('#blklib-groups button', { hasText: 'Stars' }).click();
+  await expect(page.locator('#blklib-grid .pat', { hasText: 'Rising star' })).toHaveCount(1);
+  await expect(page.locator('#blklib-grid .pat', { hasText: 'Nine patch' })).toHaveCount(0);
+  await page.locator('#blklib-q').fill('velvet');
+  await expect(page.locator('#blklib-none')).toHaveText('No blocks match “velvet”.');
+});
+
+test('the round button shows while the mouse is anywhere over the Fabrics or Block pattern section', async ({
+  app,
+  page,
+}) => {
+  await openBlock(app, page, 0);
+  const float = page.locator('#fab-more-float');
+  for (const [section, label] of [
+    ['#dz-fabbox', /^(More fabrics|Add a fabric photo)/], // (with no photos stored, it offers to add one)
+    ['#dz-patbox', /^More blocks/],
+  ]) {
+    // over the section's title, not its row of tiles
+    await page.locator(`${section} > p.fine`).first().hover();
+    await expect(float).toBeVisible();
+    await expect(float).toHaveAttribute('aria-label', label);
+    // still there over the row
+    await page.locator(`${section} .fabs-row`).hover();
+    await expect(float).toBeVisible();
+    // and gone once the mouse leaves the section
+    await page.mouse.move(5, 5);
+    await expect(float).toBeHidden();
+  }
+});
+
+test('the round button stays while the mouse is over a section and the row or the page scrolls', async ({
+  app,
+  page,
+}) => {
+  await openBlock(app, page, 0);
+  const float = page.locator('#fab-more-float'),
+    row = page.locator('#dz-fabrics2');
+  await row.hover();
+  await expect(float).toBeVisible();
+  // the mouse wheel over the row scrolls it sideways
+  const before = await row.evaluate(e => e.scrollLeft);
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => row.evaluate(e => e.scrollLeft)).toBeGreaterThan(before);
+  await page.waitForTimeout(500); // longer than the button's goodbye delay
+  await expect(float).toBeVisible();
+  // the page (or the panel) scrolls under a still mouse: the button follows the row while the mouse is still over it
+  await page.evaluate(() => {
+    const side = document.getElementById('dz-side');
+    (side.scrollHeight > side.clientHeight ? side : document.scrollingElement).scrollBy(0, 20);
+  });
+  await page.waitForTimeout(500);
+  await expect(float).toBeVisible();
+  // beside the row where it now is: the two buttons (⋯ and colours) centred on it together
+  const middle = ((await float.boundingBox()).y + (await page.locator('#fab-colour-float').boundingBox()).y + 52) / 2,
+    r = await row.boundingBox();
+  expect(Math.abs(middle - (r.y + r.height / 2))).toBeLessThan(3);
+});

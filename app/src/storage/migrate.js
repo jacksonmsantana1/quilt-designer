@@ -1,6 +1,7 @@
 // Moving the data the app kept in localStorage (before IndexedDB) into the new stores (pure: reads the given
 // storage, changes nothing; the old keys are left in place for now, so an older copy of the app still works).
 import { readDesign } from '@quilt/shared/format.js';
+import { t } from '@quilt/shared/i18n.js';
 
 const OLD = {
   current: 'quilt-designer.v1',
@@ -13,8 +14,8 @@ const OLD = {
 /** @param {Storage} ls */
 function readJson(ls, key) {
   try {
-    const t = ls.getItem(key);
-    return t == null ? null : JSON.parse(t);
+    const text = ls.getItem(key);
+    return text == null ? null : JSON.parse(text);
   } catch (e) {
     return null;
   }
@@ -52,7 +53,7 @@ function migrateLocalStorage(ls) {
       if (!m || typeof m.id !== 'string') continue;
       out.designs.push({
         id: m.id,
-        name: String(m.name || 'Quilt'),
+        name: String(m.name || t('Quilt')),
         design: upgraded(m.d),
         createdAt: +m.created || Date.now(),
         updatedAt: +m.updated || +m.created || Date.now(),
@@ -80,10 +81,10 @@ function migrateLocalStorage(ls) {
   const seen = new Set();
   for (const k of keys) {
     if (!k || !k.startsWith(OLD.timeline + ':')) continue;
-    const t = readJson(ls, k),
+    const line = readJson(ls, k),
       key = k.slice(OLD.timeline.length + 1);
-    if (t && Array.isArray(t.steps)) {
-      out.timelines.push({ key, steps: t.steps, i: +t.i || 0, seq: +t.seq || t.steps.length });
+    if (line && Array.isArray(line.steps)) {
+      out.timelines.push({ key, steps: line.steps, i: +line.i || 0, seq: +line.seq || line.steps.length });
       seen.add(key);
     }
   }

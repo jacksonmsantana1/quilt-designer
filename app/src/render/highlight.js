@@ -4,7 +4,7 @@ import { fabHi } from './hi-state.js';
 
 // Cutting guide: the cutting-list line being hovered (A1.1, AS.1, CB2.1 ...) as a test on each drawn piece;
 // matching pieces stay bright, all others dim. null = nothing hovered.
-const FAB_DIM = 'rgba(236,239,244,.8)';
+const FAB_DIM = 'rgba(250,243,232,.8)';
 function dimUnlessHi(g, info) {
   if (fabHi && !fabHi(info)) {
     const f = g.fillStyle;

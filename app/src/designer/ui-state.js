@@ -18,11 +18,19 @@ export const setShowToolsPanel = f => (showToolsPanel = f);
 export let hideTools = () => {};
 /** @param {() => void} f */
 export const setHideTools = f => (hideTools = f);
+/** @type {() => void} opens the block editor (designer/block-drawer.js sets it; the block library calls it) */
+export let openBlockDrawer = () => {};
+/** @param {() => void} f */
+export const setOpenBlockDrawer = f => (openBlockDrawer = f);
 /** @type {{ t: number, hit: number } | null} the last tap on a part (for double taps) */
 export let partTap = null;
 /** @param {{ t: number, hit: number } | null} v */
 export const setPartTap = v => (partTap = v);
-/** @type {((id: string) => void) | null} what to do with a fabric made with the camera (null: add it to the palette) */
-export let camTarget = null;
-/** @param {((id: string) => void) | null} f */
-export const setCamTarget = f => (camTarget = f);
+/** @type {string} the fabric that clicking or dragging over a mosaic paints with */
+export let mosaicBrush = 'b1';
+/** @param {string} v */
+export const setMosaicBrush = v => (mosaicBrush = v);
+/** @type {'one' | 'rosette' | 'row' | 'way' | 'random'} what a click on a mosaic paints */
+export let mosaicTool = 'one';
+/** @param {'one' | 'rosette' | 'row' | 'way' | 'random'} v */
+export const setMosaicTool = v => (mosaicTool = v);

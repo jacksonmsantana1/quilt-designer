@@ -1,4 +1,4 @@
-# Quilt designer
+# Block & Bind
 
 Design a quilt block by block, get its cutting guide and an A4 PDF, and see it draped on a bed or table.
 The app works on its own in the browser (IndexedDB); the server, when used, syncs quilts and fabric photos
