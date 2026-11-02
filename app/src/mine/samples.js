@@ -4,6 +4,7 @@ import { normalizeSpans } from '@quilt/shared/geometry.js';
 import { designs, getSession, setSession } from '../storage/repo.js';
 import { newBlock } from '@quilt/shared/design.js';
 import { withSymmetry } from '../core/symmetry.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // A medallion sampler in the style of a quilt the user shared: a large eight-point star in the centre, rings of
 // nine-patches, half-square triangles, flying geese, sawtooth stars and economy blocks mirrored eight ways,
@@ -149,11 +150,11 @@ function photoMedallion() {
 // add it to My designs once
 // the sample designs are put in My designs once (deleting them is respected)
 if (!getSession('medallion-seeded')) {
-  designs.save({ id: 'qmedallion', name: 'Medallion sampler', design: medallionDesign() });
+  designs.save({ id: 'qmedallion', name: t('Medallion sampler'), design: medallionDesign() });
   setSession('medallion-seeded', true);
 }
 if (!getSession('photo-seeded')) {
-  designs.save({ id: 'qphoto', name: 'Medallion from the photo', design: photoMedallion() });
+  designs.save({ id: 'qphoto', name: t('Medallion from the photo'), design: photoMedallion() });
   setSession('photo-seeded', true);
 }
 // they are the app's, not made by someone on this device: Sign in doesn't offer them to the account

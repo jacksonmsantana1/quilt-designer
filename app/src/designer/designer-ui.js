@@ -76,6 +76,7 @@ import {
 import { notify } from '../ui/notice.js';
 import { newDesign } from '@quilt/shared/design.js';
 import { tilesForTool } from '@quilt/shared/mosaic.js';
+import { comma, t, tn } from '@quilt/shared/i18n.js';
 
 function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected
@@ -243,7 +244,7 @@ function initDesignerUI() {
     const { x0, y0, x1, y1 } = marquee;
     if (isOnPoint(design)) {
       // the box turns with the blocks and wraps whole diamonds; its size sits upright at its right corner
-      const t = turnedSelection(
+      const turned = turnedSelection(
         design,
         nearestBlock(design, x0, y0, r.width, r.height),
         nearestBlock(design, x1, y1, r.width, r.height),
@@ -251,15 +252,18 @@ function initDesignerUI() {
         r.height,
       );
       Object.assign(mq.style, {
-        left: t.box.x + 'px',
-        top: t.box.y + 'px',
-        width: t.box.w + 'px',
-        height: t.box.h + 'px',
+        left: turned.box.x + 'px',
+        top: turned.box.y + 'px',
+        width: turned.box.w + 'px',
+        height: turned.box.h + 'px',
         transform: 'rotate(45deg)',
       });
       mq.dataset.count = '';
-      const right = blockOutline(t.box).reduce((m, pt) => (pt[0] > m[0] ? pt : m));
-      mqTag.textContent = `${t.cols} × ${t.rows} block${t.cols * t.rows === 1 ? '' : 's'}`;
+      const right = blockOutline(turned.box).reduce((m, pt) => (pt[0] > m[0] ? pt : m));
+      mqTag.textContent = tn(turned.cols * turned.rows, '{cols} × {rows} block', '{cols} × {rows} blocks', {
+        cols: turned.cols,
+        rows: turned.rows,
+      });
       Object.assign(mqTag.style, { left: right[0] + 8 + 'px', top: right[1] - 11 + 'px' });
       mqTag.hidden = false;
     } else {
@@ -271,7 +275,7 @@ function initDesignerUI() {
         transform: '',
       });
       const inside = blocksIn(x0, y0, x1, y1);
-      mq.dataset.count = `${inside.size} block${inside.size === 1 ? '' : 's'}`;
+      mq.dataset.count = tn(inside.size, '{n} block', '{n} blocks');
     }
     if (!mqFrame)
       mqFrame = requestAnimationFrame(() => {
@@ -505,7 +509,7 @@ function initDesignerUI() {
     const b = e.target.closest('button[data-tool]');
     if (!b) return;
     setMosaicTool(b.dataset.tool);
-    for (const t of $('mos-tools').querySelectorAll('button')) t.setAttribute('aria-pressed', String(t === b));
+    for (const tool of $('mos-tools').querySelectorAll('button')) tool.setAttribute('aria-pressed', String(tool === b));
   });
   $('mos-fill').addEventListener('click', () => {
     if (!design.mosaic) return;
@@ -567,10 +571,10 @@ function initDesignerUI() {
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {
       $('dz-reset').dataset.armed = '1';
-      $('dz-reset').textContent = 'Click again to start over';
+      $('dz-reset').textContent = t('Click again to start over');
       setTimeout(() => {
         $('dz-reset').dataset.armed = '';
-        $('dz-reset').textContent = 'Start over';
+        $('dz-reset').textContent = t('Start over');
       }, 3000);
       return;
     }
@@ -579,7 +583,7 @@ function initDesignerUI() {
     timelines.remove(tlKeyFor(null));
     replaceDesign(newDesign(), { timeline: null });
     $('dz-reset').dataset.armed = '';
-    $('dz-reset').textContent = 'Start over';
+    $('dz-reset').textContent = t('Start over');
   });
   $('dz-upload').addEventListener('change', async e => {
     const files = [...e.target.files].filter(f => f.type.startsWith('image/'));
@@ -594,11 +598,14 @@ function initDesignerUI() {
     e.target.value = '';
     drawFabricPalette();
     refreshLibrary();
-    $('dz-fabnote').textContent =
-      `${files.length} photo${files.length === 1 ? '' : 's'} added. They are kept in this browser with your designs.`;
+    $('dz-fabnote').textContent = tn(
+      files.length,
+      '{n} photo added. They are kept in this browser with your designs.',
+      '{n} photos added. They are kept in this browser with your designs.',
+    );
   });
   const cmOut2 = () => {
-    $('dz-cm-o').textContent = $('dz-cm').value + ' cm';
+    $('dz-cm-o').textContent = comma($('dz-cm').value) + ' cm';
   };
   $('dz-cm').addEventListener('input', cmOut2);
   cmOut2();

@@ -13,8 +13,10 @@ import { showPage } from '../app/pages.js';
 import { addStoredFabric, isFabric, loadFabrics } from '../designer/fabric-library.js';
 import { fabricIdsIn } from '../core/fabric-picks.js';
 import { onAccount, publicCall, serverCall, signedIn, signInAndSync, syncNow } from './sync-ui.js';
-import { openMine, quiltPicture, renderMine, saveCurrent } from './my-designs.js';
+import { openMine, quiltPicture, renderMine, saveCurrent, shownName } from './my-designs.js';
 import { communityHooks, setSharedIds, sharedIds } from './shared-state.js';
+import { serverSays } from '../storage/sync.js';
+import { getLang, t, tn } from '@quilt/shared/i18n.js';
 
 const AUTHOR_KEY = 'quilt-author.v1';
 const PHOTO_ID = /^f[0-9a-f]{24}$/;
@@ -66,8 +68,14 @@ const say = msg => {
   $('share-err').textContent = msg;
   $('share-err').hidden = !msg;
 };
-/** Why a call to the server failed, for the person. @param {any} e */
-const why = e => (e && e.message) || 'Something went wrong.';
+/**
+ * Why a call to the server failed, for the person. A failed fetch carries the browser's own English message.
+ * @param {any} e
+ */
+const why = e =>
+  e instanceof TypeError && getLang() !== 'en'
+    ? t('The server could not be reached.')
+    : (e && e.message) || t('Something went wrong.');
 
 // ---- the share dialog
 /** what the dialog shares: a saved design (from My designs) or, with null, the quilt being edited */
@@ -82,7 +90,7 @@ function openShare(id) {
   pic.id = 'share-cv';
   pic.setAttribute('aria-hidden', 'true');
   $('share-cv').replaceWith(pic);
-  $('share-name').value = rec?.name || '';
+  $('share-name').value = rec ? shownName(rec) : '';
   $('share-author').value = remembered();
   const shared = !!rec && sharedIds.has(rec.id),
     signed = !!signedIn(),
@@ -90,17 +98,26 @@ function openShare(id) {
   $('share-form').hidden = !signed;
   $('share-signin-note').hidden = signed;
   $('share-stop').hidden = !(signed && shared);
-  $('share-title').textContent = shared ? 'Shared with the community' : 'Share with the community';
-  $('share-ok').textContent = !signed ? 'Sign in' : shared ? 'Update the shared quilt' : 'Share with the community';
+  $('share-title').textContent = shared ? t('Shared with the community') : t('Share with the community');
+  $('share-ok').textContent = !signed
+    ? t('Sign in')
+    : shared
+      ? t('Update the shared quilt')
+      : t('Share with the community');
   $('share-note').textContent =
-    'Anyone using the Quilt designer can see this quilt and copy it to their designs.' +
-    (n ? ` Your ${n === 1 ? 'fabric photo' : `${n} fabric photos`} in it ${n === 1 ? 'is' : 'are'} shared too.` : '');
+    t('Anyone using the Quilt designer can see this quilt and copy it to their designs.') +
+    (n ? tn(n, ' Your fabric photo in it is shared too.', ' Your {n} fabric photos in it are shared too.') : '');
   say('');
   // a copy from the community, not changed since: it is someone else's quilt
   const copyOf = signed ? unchangedCopy(rec, d) : null;
   if (copyOf)
-    $('share-note').textContent =
-      `This is a copy of “${copyOf.name}” by ${copyOf.author} from the community. Change it to make it yours, then share it.`;
+    $('share-note').textContent = t(
+      'This is a copy of “{name}” by {author} from the community. Change it to make it yours, then share it.',
+      {
+        name: copyOf.name,
+        author: copyOf.author,
+      },
+    );
   $('share-ok').disabled = !!copyOf;
   $('share-dlg').showModal();
   (signed && !$('share-author').value ? $('share-author') : $('share-ok')).focus();
@@ -117,22 +134,23 @@ async function doShare() {
   }
   const name = $('share-name').value.trim(),
     author = $('share-author').value.trim();
-  if (!name) return say('Please give the quilt a name.');
-  if (!author) return say('Please give the name to show with your quilt.');
-  if (author.includes('@')) return say('Your name is shown to everyone: please don’t use an email.');
+  if (!name) return say(t('Please give the quilt a name.'));
+  if (!author) return say(t('Please give the name to show with your quilt.'));
+  if (author.includes('@')) return say(t('Your name is shown to everyone: please don’t use an email.'));
   try {
     localStorage.setItem(AUTHOR_KEY, author);
   } catch (e) {}
   // the quilt being edited is saved first (its changes too), so what is shared is in My designs
   let id = target;
   if (!id) {
-    if (readOnly) return say('This quilt was made with a newer version of the app, so it can’t be shared from here.');
+    if (readOnly)
+      return say(t('This quilt was made with a newer version of the app, so it can’t be shared from here.'));
     id = saveCurrent(name).id;
   }
   const rec = designs.get(id);
-  if (!rec) return say('That quilt is no longer in My designs.');
+  if (!rec) return say(t('That quilt is no longer in My designs.'));
   $('share-ok').disabled = true;
-  $('share-ok').textContent = 'Sharing…';
+  $('share-ok').textContent = t('Sharing…');
   try {
     // its photos and the design go to the server first; the shared copy uses them
     await syncNow();
@@ -143,38 +161,46 @@ async function doShare() {
       r = await put();
     }
     if (r.status === 409 && r.body?.error === 'not_changed') {
-      say(r.body.message);
-      $('share-ok').textContent = 'Share with the community';
+      say(
+        getLang() === 'en'
+          ? r.body.message
+          : t(
+              'This quilt is the same as “{name}” by {author}, already shared. Change it to make it yours, then share it.',
+              r.body.sharedAs,
+            ),
+      );
+      $('share-ok').textContent = t('Share with the community');
       return;
     }
-    if (r.status !== 200 && r.status !== 201) throw new Error(r.body?.message || `The server answered ${r.status}.`);
+    if (r.status !== 200 && r.status !== 201) throw new Error(serverSays(r.body, r.status));
     setSharedIds([...sharedIds, id]);
     $('share-dlg').close();
     if (state.page === 'mine') renderMine();
     if (state.page === 'community') loadCommunity();
-    notify(`“${name}” is shared with the community.`, {
-      action: { label: 'See it', run: () => showPage('community') },
+    notify(t('“{name}” is shared with the community.', { name }), {
+      action: { label: t('See it'), run: () => showPage('community') },
     });
   } catch (e) {
-    say(`Couldn’t share it: ${why(e)}`);
+    say(t('Couldn’t share it: {why}', { why: why(e) }));
     $('share-ok').disabled = false;
-    $('share-ok').textContent = 'Try again';
+    $('share-ok').textContent = t('Try again');
   }
 }
 
 /** Stops sharing one of my designs. @param {string} id */
 async function unshare(id) {
-  const name = designs.get(id)?.name || 'The quilt';
+  const rec = designs.get(id),
+    name = rec ? shownName(rec) : t('The quilt');
   try {
     const r = await serverCall('DELETE', `/v1/shared/${encodeURIComponent(id)}`);
-    if (r.status !== 200 && r.status !== 404) throw new Error(r.body?.message || `The server answered ${r.status}.`);
+    if (r.status !== 200 && r.status !== 404) throw new Error(serverSays(r.body, r.status));
     setSharedIds([...sharedIds].filter(x => x !== id));
     if ($('share-dlg').open) $('share-dlg').close();
     if (state.page === 'mine') renderMine();
     if (state.page === 'community') loadCommunity();
-    notify(`“${name}” is no longer shared.`);
+    notify(t('“{name}” is no longer shared.', { name }));
   } catch (e) {
-    notify(`Couldn’t stop sharing: ${why(e)}`);
+    notify(t('Couldn’t stop sharing: {why}', { why: why(e) }));
   }
 }
 
@@ -209,7 +235,7 @@ async function loadCommunity(append = false) {
   try {
     const r = await publicCall('/v1/community' + (qs.size ? `?${qs}` : ''));
     if (ticket !== loading) return; // a newer search started
-    if (r.status !== 200) throw new Error(r.body?.message || `The server answered ${r.status}.`);
+    if (r.status !== 200) throw new Error(serverSays(r.body, r.status));
     items = append ? items.concat(r.body.items) : r.body.items;
     more = r.body.more;
     // the pictures of the fabrics they use, before drawing them (otherwise a fabric still loading shows as cream)
@@ -221,15 +247,15 @@ async function loadCommunity(append = false) {
     if (ticket !== loading) return;
     if (!append) items = [];
     more = false;
-    msg = `Can’t reach the community right now. ${why(e)}`;
+    msg = t('Can’t reach the community right now. {why}', { why: why(e) });
   }
-  drawCommunity(msg || (q ? 'No shared quilts match your search.' : 'No quilts shared yet: be the first!'));
+  drawCommunity(msg || (q ? t('No shared quilts match your search.') : t('No quilts shared yet: be the first!')));
 }
 /** @param {string} empty what to say when there is nothing to show */
 function drawCommunity(empty) {
   const grid = $('com-grid');
   grid.innerHTML = '';
-  const when = t => new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+  const when = at => new Date(at).toLocaleDateString([getLang()], { day: 'numeric', month: 'short', year: 'numeric' });
   for (const it of items) {
     const r = readDesign(it.design);
     if (!r) continue;
@@ -246,12 +272,17 @@ function drawCommunity(empty) {
     nm.textContent = it.name;
     const by = document.createElement('small');
     by.className = 'by';
-    by.textContent = `by ${it.author} · ${r.design.cols} × ${r.design.rows} blocks · ${when(it.updatedAt)}`;
+    by.textContent = t('by {author} · {cols} × {rows} blocks · {date}', {
+      author: it.author,
+      cols: r.design.cols,
+      rows: r.design.rows,
+      date: when(it.updatedAt),
+    });
     text.append(nm, by);
     if (it.mine) {
       const tag = document.createElement('span');
       tag.className = 'pin-tag';
-      tag.textContent = 'Yours';
+      tag.textContent = t('Yours');
       text.appendChild(tag);
     }
     const copy = document.createElement('button');
@@ -260,14 +291,14 @@ function drawCommunity(empty) {
     const had = alreadyHave(r.design);
     const have = rec => {
       copy.disabled = true;
-      copy.textContent = 'In my designs ✓';
-      copy.title = `You have it in My designs: “${rec.name}”`;
+      copy.textContent = t('In my designs ✓');
+      copy.title = t('You have it in My designs: “{name}”', { name: shownName(rec) });
     };
     if (had) have(had);
-    else copy.textContent = 'Copy to my designs';
+    else copy.textContent = t('Copy to my designs');
     copy.addEventListener('click', async () => {
       copy.disabled = true;
-      copy.textContent = 'Copying…';
+      copy.textContent = t('Copying…');
       have(await copyToMine(it, r.design));
     });
     text.appendChild(document.createElement('br'));
@@ -305,11 +336,13 @@ async function copyToMine(it, d) {
   }
   const rec = designs.save({
     id: designs.newId(),
-    name: `${it.name} (from ${it.author})`,
+    name: t('{name} (from {author})', { name: it.name, author: it.author }),
     design: d,
     from: { id: it.id, name: it.name, author: it.author, sig: quiltSig(d) }, // to tell a changed copy from the original
   });
-  notify(`“${rec.name}” is in My designs.`, { action: { label: 'Open', run: () => openMine(rec.id) } });
+  notify(t('“{name}” is in My designs.', { name: rec.name }), {
+    action: { label: t('Open'), run: () => openMine(rec.id) },
+  });
   return rec;
 }
 

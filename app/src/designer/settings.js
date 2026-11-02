@@ -11,6 +11,7 @@ import { tl, tlCommit, tlGo } from '../timeline/timeline.js';
 import { setSymmetry, symOf } from '../core/symmetry.js';
 import { dispatch, openDesign } from './dispatch.js';
 import { setQuilting } from '../core/edits.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // small round button on the Block parts card: undo everything done since the design tools were opened, and close them
 // symmetry (a round button on the tool rail): turning one on mirrors the design from its top-left part straight away
@@ -29,7 +30,7 @@ function syncSymUI() {
     /** @type {HTMLButtonElement} */ (o).disabled = off;
     o.setAttribute(
       'title',
-      off ? 'Kaleidoscope (8-way): only for square layouts (as many columns as rows)' : o.getAttribute('aria-label'),
+      off ? t('Kaleidoscope (8-way): only for square layouts (as many columns as rows)') : o.getAttribute('aria-label'),
     );
     if (v === cur) btn.querySelector('svg').innerHTML = o.querySelector('svg').innerHTML;
   }
@@ -38,8 +39,8 @@ function syncSymUI() {
   const paused = onPoint && design.cols !== design.rows;
   btn.disabled = paused;
   btn.title = paused
-    ? 'Symmetry on point needs as many columns as rows'
-    : 'Symmetry: every change to a block is copied to its mirror partners';
+    ? t('Symmetry on point needs as many columns as rows')
+    : t('Symmetry: every change to a block is copied to its mirror partners');
   if (paused) openSym(false);
 }
 /** Slides the five symmetry choices out beside the button (to the left, over the quilt, when there is no room on the right), or back. @param {boolean} open */

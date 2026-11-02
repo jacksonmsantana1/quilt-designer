@@ -13,6 +13,7 @@ import { addStoredFabric } from '../designer/fabric-library.js';
 import { drawFabricPalette } from '../designer/parts-editor.js';
 import { adoptDesignId, mineSave, renderMine } from './my-designs.js';
 import { state } from '../sim/config.js';
+import { getLang, t, tn } from '@quilt/shared/i18n.js';
 
 const AFTER_CHANGE_MS = 2500,
   EVERY_MS = 60_000;
@@ -26,24 +27,26 @@ let arrived = [];
 const watchers = [];
 const sync = createSync({ repo, onRemote: e => arrived.push(e), onStatus: showStatus, getToken: signInToken });
 
-const time = t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const time = at => new Date(at).toLocaleTimeString([getLang()], { hour: '2-digit', minute: '2-digit' });
 /** @param {import('../storage/sync.js').SyncStatus} s */
 function showStatus(s) {
   const c = sync?.config?.();
   $('sync-dot').dataset.state = s.state;
-  const waiting = s.pending ? ` · ${s.pending} change${s.pending === 1 ? '' : 's'} waiting` : '';
+  const waiting = s.pending ? tn(s.pending, ' · {n} change waiting', ' · {n} changes waiting') : '';
   const text = {
-    off: 'Sync is off: your designs are kept in this browser only.',
-    syncing: 'Syncing…',
-    ok: s.at ? `Synced at ${time(s.at)}${waiting}` : `Connected${waiting}`,
-    offline: `Can't reach the server: changes wait here and go when it's back${waiting}.`,
-    login: `Signed out: ${s.message || 'sign in again'}`,
-    error: s.message || 'Something went wrong.',
+    off: t('Sync is off: your designs are kept in this browser only.'),
+    syncing: t('Syncing…'),
+    ok: s.at ? t('Synced at {time}{waiting}', { time: time(s.at), waiting }) : t('Connected{waiting}', { waiting }),
+    offline: t("Can't reach the server: changes wait here and go when it's back{waiting}.", { waiting }),
+    login: t('Signed out: {why}', { why: s.message || t('sign in again') }),
+    error: s.message || t('Something went wrong.'),
   }[s.state];
   $('sync-state').textContent =
-    c && s.state !== 'off' ? `${text} (${c.who || c.user} at ${new URL(c.url).host})` : text;
+    c && s.state !== 'off'
+      ? t('{status} ({who} at {host})', { status: text, who: c.who || c.user, host: new URL(c.url).host })
+      : text;
   $('sync-now').hidden = !c || s.state === 'login';
-  $('sync-setup').textContent = !c ? 'Sign in to sync' : s.state === 'login' ? 'Sign in' : 'Account';
+  $('sync-setup').textContent = !c ? t('Sign in to sync') : s.state === 'login' ? t('Sign in') : t('Account');
   for (const fn of watchers) fn(c, s);
 }
 
@@ -65,7 +68,9 @@ async function signInAndSync({ url, signup = false } = {}) {
     who = await signIn({ signup });
   } catch (e) {
     const closed = /popup|cancel/i.test(`${e?.error || ''} ${e?.message || ''}`);
-    return closed ? 'Sign-in was closed before it finished.' : `Couldn't sign in: ${e?.message || e}`;
+    return closed
+      ? t('Sign-in was closed before it finished.')
+      : t("Couldn't sign in: {why}", { why: e?.message || e });
   }
   sync.configure({ url: url || sync.config()?.url || DEFAULT_SERVER, auth0: who.sub, who: who.who });
   accountChanged();
@@ -92,13 +97,18 @@ function accountChanged() {
   const d = repo.designs.strays().length,
     f = repo.fabrics.strays().length;
   if (!d && !f) return;
-  const what = [d && `${d} design${d === 1 ? '' : 's'}`, f && `${f} fabric photo${f === 1 ? '' : 's'}`]
-    .filter(Boolean)
-    .join(' and ');
-  notify(`${what} made on this device without an account. Add ${d + f === 1 ? 'it' : 'them'} to your account?`, {
+  const someDesigns = tn(d, '{n} design', '{n} designs'),
+    somePhotos = tn(f, '{n} fabric photo', '{n} fabric photos'),
+    what =
+      d && f ? t('{designs} and {photos}', { designs: someDesigns, photos: somePhotos }) : d ? someDesigns : somePhotos;
+  const offer =
+    d + f === 1
+      ? t('{what} made on this device without an account. Add it to your account?', { what })
+      : t('{what} made on this device without an account. Add them to your account?', { what });
+  notify(offer, {
     ms: 20000,
     action: {
-      label: 'Add to my account',
+      label: t('Add to my account'),
       run: () => {
         repo.designs.adoptStrays();
         repo.fabrics.adoptStrays();
@@ -133,10 +143,15 @@ async function fitIn(events) {
     }
     designsChanged = true;
     if (e.kind === 'conflict') {
-      notify(`“${e.name}” was also changed on another device. Both are kept: yours is now “${e.name} (this device)”.`);
+      notify(
+        t('“{name}” was also changed on another device. Both are kept: yours is now “{name} (this device)”.', {
+          name: e.name,
+        }),
+      );
       // the quilt open here is this device's version: it carries on as the copy
       if (before?.id === e.id) adoptDesignId(e.copyId);
-    } else if (e.kind === 'restored') notify(`“${e.name}” was changed on another device, so it is back in My designs.`);
+    } else if (e.kind === 'restored')
+      notify(t('“{name}” was changed on another device, so it is back in My designs.', { name: e.name }));
     else if (e.kind === 'design' && before?.id === e.id) openOrKeep(e);
   }
   if (fabricsChanged) drawFabricPalette();
@@ -149,13 +164,17 @@ function openOrKeep(e) {
   if (e.deleted) {
     setMineCur(null);
     mineSave();
-    notify(`“${e.name}” was deleted on another device. It stays open here as an unsaved quilt.`);
+    notify(t('“{name}” was deleted on another device. It stays open here as an unsaved quilt.', { name: e.name }));
   } else if (unsaved)
-    notify(`“${e.name}” was changed on another device. Your unsaved changes here are kept; save to keep yours.`);
+    notify(
+      t('“{name}” was changed on another device. Your unsaved changes here are kept; save to keep yours.', {
+        name: e.name,
+      }),
+    );
   else {
     const r = repo.designs.get(e.id);
     if (r) openDesign(r.design, { keepFocus: true, quiet: true });
-    notify(`“${e.name}” was updated from another device.`);
+    notify(t('“{name}” was updated from another device.', { name: e.name }));
   }
 }
 
@@ -177,8 +196,8 @@ function initSyncUI() {
     $('sync-url').value = c?.url || DEFAULT_SERVER;
     $('sync-user').value = c?.user || '';
     $('sync-off').hidden = !c;
-    $('sync-off').textContent = c?.auth0 ? 'Sign out' : 'Turn sync off';
-    $('sync-signin').textContent = c?.auth0 ? 'Sign in again' : 'Sign in';
+    $('sync-off').textContent = c?.auth0 ? t('Sign out') : t('Turn sync off');
+    $('sync-signin').textContent = c?.auth0 ? t('Sign in again') : t('Sign in');
     say('');
     form.hidden = false;
     $('sync-signin').focus();

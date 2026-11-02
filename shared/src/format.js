@@ -9,6 +9,7 @@ import { BORDER_TYPES, normalizeSpans } from './geometry.js';
 import { FORMAT_VERSION, ROLE_DEFAULT, defaultDesign } from './design.js';
 import { MOSAIC_SHAPES, tileCount } from './mosaic.js';
 import { readDrawn } from './drawn-blocks.js';
+import { t, tn } from './i18n.js';
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Block} Block */
 
 /**
@@ -60,7 +61,6 @@ const isFabric = x => typeof x === 'string' && x.length > 0 && x.length < 64;
 const num = x => typeof x === 'number' && Number.isFinite(x);
 /** @param {number} x @param {[number, number]} r */
 const clamp = (x, [lo, hi]) => Math.max(lo, Math.min(hi, x));
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 /**
  * Checks a current-version design and repairs what can be repaired safely. Never changes its input.
@@ -75,16 +75,21 @@ function check(d) {
   const drawn = readDrawn(d.drawn);
   if (drawn.lost)
     problems.push(
-      `${plural(drawn.lost, 'drawn block')} could not be read and ${drawn.lost === 1 ? 'was' : 'were'} left out.`,
+      tn(
+        drawn.lost,
+        '{n} drawn block could not be read and was left out.',
+        '{n} drawn blocks could not be read and were left out.',
+      ),
     );
   const note = (key, n = 1) => (count[key] = (count[key] || 0) + n);
   const cols = clamp(Math.round(d.cols), LIMITS.grid),
     rows = clamp(Math.round(d.rows), LIMITS.grid);
-  if (cols !== d.cols || rows !== d.rows) problems.push(`The layout was changed to ${cols} × ${rows}.`);
+  if (cols !== d.cols || rows !== d.rows)
+    problems.push(t('The layout was changed to {cols} × {rows}.', { cols, rows }));
 
   // layout: straight, or on point (an unknown setting goes back to straight)
   const onPoint = d.setting === 'onpoint';
-  if (d.setting !== undefined && !onPoint) problems.push('The layout went back to straight.');
+  if (d.setting !== undefined && !onPoint) problems.push(t('The layout went back to straight.'));
   // blocks: one per cell (on point, also one between each 2 × 2); a missing cell becomes a plain block,
   // extra blocks are dropped
   const n = cols * rows + (onPoint ? (cols - 1) * (rows - 1) : 0);
@@ -96,21 +101,36 @@ function check(d) {
   for (let i = 0; i < n; i++) blocks.push(checkBlock(d.blocks[i], note));
   if (count.missing)
     problems.push(
-      `${plural(count.missing, 'missing block')} ${count.missing === 1 ? 'was' : 'were'} filled with a plain square.`,
+      tn(
+        count.missing,
+        '{n} missing block was filled with a plain square.',
+        '{n} missing blocks were filled with a plain square.',
+      ),
     );
-  if (count.extra)
-    problems.push(`${plural(count.extra, 'extra block')} ${count.extra === 1 ? 'was' : 'were'} left out.`);
+  if (count.extra) problems.push(tn(count.extra, '{n} extra block was left out.', '{n} extra blocks were left out.'));
   if (count.pattern)
     problems.push(
-      `${plural(count.pattern, 'block')} with an unknown pattern became ${count.pattern === 1 ? 'a plain square' : 'plain squares'}.`,
+      tn(
+        count.pattern,
+        '{n} block with an unknown pattern became a plain square.',
+        '{n} blocks with an unknown pattern became plain squares.',
+      ),
     );
   if (count.fabric)
     problems.push(
-      `${plural(count.fabric, 'missing fabric')} ${count.fabric === 1 ? 'was' : 'were'} filled in with the default colours.`,
+      tn(
+        count.fabric,
+        '{n} missing fabric was filled in with the default colours.',
+        '{n} missing fabrics were filled in with the default colours.',
+      ),
     );
   if (count.block)
     problems.push(
-      `${plural(count.block, 'block setting')} that could not be read ${count.block === 1 ? 'was' : 'were'} reset.`,
+      tn(
+        count.block,
+        '{n} block setting that could not be read was reset.',
+        '{n} block settings that could not be read were reset.',
+      ),
     );
 
   /** @type {Design} */
@@ -120,15 +140,15 @@ function check(d) {
   else delete out.drawn;
   if (d.settingFabric !== undefined && !isFabric(d.settingFabric)) {
     delete out.settingFabric;
-    problems.push('The fabric of the setting triangles was reset.');
+    problems.push(t('The fabric of the setting triangles was reset.'));
   }
   if (!num(d.blockMm) || d.blockMm !== clamp(Math.round(d.blockMm), LIMITS.blockMm)) {
     out.blockMm = num(d.blockMm) ? clamp(Math.round(d.blockMm), LIMITS.blockMm) : Math.round(2290 / cols);
-    problems.push(`The block size was changed to ${out.blockMm} mm.`);
+    problems.push(t('The block size was changed to {mm} mm.', { mm: out.blockMm }));
   }
   if (!isFabric(d.backFabric)) {
     out.backFabric = 'b0';
-    if (d.backFabric !== undefined) problems.push('The backing fabric was reset.');
+    if (d.backFabric !== undefined) problems.push(t('The backing fabric was reset.'));
   }
 
   if (d.sashing !== undefined) {
@@ -147,12 +167,12 @@ function check(d) {
         const cb =
           isObj(s.cornerBlock) && PATTERNS[s.cornerBlock.pattern] ? checkBlock(s.cornerBlock, () => bad++) : null;
         if (cb) out.sashing.cornerBlock = { pattern: cb.pattern, rot: cb.rot, fabrics: cb.fabrics };
-        if (!cb) problems.push('The cornerstone block could not be read and was taken off.');
-        else if (bad) problems.push('The cornerstone block was repaired.');
+        if (!cb) problems.push(t('The cornerstone block could not be read and was taken off.'));
+        else if (bad) problems.push(t('The cornerstone block was repaired.'));
       }
     } else {
       delete out.sashing;
-      problems.push('The sashing could not be read and was taken off.');
+      problems.push(t('The sashing could not be read and was taken off.'));
     }
   }
 
@@ -172,26 +192,39 @@ function check(d) {
       });
     if (!out.borders.length) delete out.borders;
     const lost = (Array.isArray(d.borders) ? d.borders.length : 1) - (out.borders || []).length;
-    if (adjusted) problems.push(`${plural(adjusted, 'border')} had a width or fabric that was put right.`);
+    if (adjusted)
+      problems.push(
+        tn(
+          adjusted,
+          '{n} border had a width or fabric that was put right.',
+          '{n} borders had a width or fabric that was put right.',
+        ),
+      );
     if (lost)
-      problems.push(`${plural(lost, 'border')} that could not be read ${lost === 1 ? 'was' : 'were'} taken off.`);
+      problems.push(
+        tn(
+          lost,
+          '{n} border that could not be read was taken off.',
+          '{n} borders that could not be read were taken off.',
+        ),
+      );
   }
 
   if (d.mosaic !== undefined) {
     const m = checkMosaic(d.mosaic);
     if (m) out.mosaic = m.mosaic;
     else delete out.mosaic;
-    if (!m) problems.push('The mosaic could not be read; the quilt shows its blocks.');
-    else if (m.repaired) problems.push('The mosaic was repaired.');
+    if (!m) problems.push(t('The mosaic could not be read; the quilt shows its blocks.'));
+    else if (m.repaired) problems.push(t('The mosaic was repaired.'));
   }
 
   if (d.sym !== undefined && !SYMS.includes(d.sym)) {
     delete out.sym;
-    problems.push('The symmetry setting was turned off.');
+    problems.push(t('The symmetry setting was turned off.'));
   }
   if (d.quilting !== undefined && !QUILTING.includes(d.quilting)) {
     delete out.quilting;
-    problems.push('The quilting went back to stitch in the ditch.');
+    problems.push(t('The quilting went back to stitch in the ditch.'));
   }
   return { design: normalizeSpans(out), problems };
 }

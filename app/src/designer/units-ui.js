@@ -3,7 +3,8 @@
 import './settings.js'; // load order: runs after designer/settings
 import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
-import { FRACTIONS, eighthsOf, getUnit, len, onUnitChange, setUnit } from '../core/units.js';
+import { FRACTIONS, eighthsOf, getUnit, len, onUnitChange, setUnit, unitName } from '../core/units.js';
+import { comma, t } from '@quilt/shared/i18n.js';
 import { state } from '../sim/config.js';
 import { renderDesigner } from './parts-editor.js';
 import { renderCut } from '../cutting/page.js';
@@ -15,18 +16,27 @@ try {
 } catch (e) {}
 
 // the cutting guide's choices are in mm; in inches they are written in inches (the value stays millimetres)
-const SEAM_IN = { 6: '0.24 in', 6.4: '¼ in (6.4 mm)', 7: '0.28 in', 7.5: '0.30 in', 10: '0.39 in' };
+const SEAM_IN = {
+  6: t('0.24 in'),
+  6.4: t('¼ in (6.4 mm)'),
+  7: t('0.28 in'),
+  7.5: t('0.30 in'),
+  10: t('0.39 in'),
+};
 function relabelCuttingOptions() {
   const inches = getUnit() === 'in';
-  for (const o of $('cg-seam').options) o.textContent = inches ? SEAM_IN[o.value] || len(+o.value) : `${o.value} mm`;
+  for (const o of $('cg-seam').options)
+    o.textContent = inches ? SEAM_IN[o.value] || len(+o.value) : `${comma(o.value)} mm`;
   for (const o of $('cg-binding').options) o.textContent = len(+o.value);
 }
 
 /** The fixed sentences about lengths in the bed card. */
 function relabelHints() {
   $('tuck-len').textContent = len(250);
-  $('fit-hint').textContent =
-    `Drop: about ${len(250)}–${len(300)} covers the mattress, ${len(450)}–${len(550)} the box spring too; floor length is the mattress-top height.`;
+  $('fit-hint').textContent = t(
+    'Drop: about {a}–{b} covers the mattress, {c}–{d} the box spring too; floor length is the mattress-top height.',
+    { a: len(250), b: len(300), c: len(450), d: len(550) },
+  );
 }
 
 // ---- length boxes in inches: a whole number and a fraction menu (⅛ … ⅞), the way quilters measure, instead of
@@ -40,17 +50,17 @@ const inchFields = [];
 function inchPair(box) {
   if (box.dataset.inchPair) return;
   box.dataset.inchPair = '1';
-  const name = box.getAttribute('aria-label') || box.title || 'Length';
+  const name = box.getAttribute('aria-label') || box.title || t('Length');
   const whole = document.createElement('input');
   whole.type = 'number';
   whole.className = `${box.className} inch-whole`.trim();
   whole.inputMode = 'numeric';
   whole.step = '1';
   whole.min = '0';
-  whole.setAttribute('aria-label', `${name}: whole inches`);
+  whole.setAttribute('aria-label', t('{name}: whole inches', { name }));
   const frac = document.createElement('select');
   frac.className = 'inch-frac';
-  frac.setAttribute('aria-label', `${name}: fraction of an inch`);
+  frac.setAttribute('aria-label', t('{name}: fraction of an inch', { name }));
   FRACTIONS.forEach((f, i) => frac.add(new Option(f || '0', String(i))));
   const pair = document.createElement('span');
   pair.className = 'inch-pair';
@@ -101,7 +111,7 @@ function show() {
   const inches = getUnit() === 'in';
   /** @type {HTMLInputElement} */ ($('unit-sw')).checked = inches;
   $('unit-lbl').dataset.unit = getUnit();
-  for (const el of document.querySelectorAll('[data-unit-name]')) el.textContent = getUnit();
+  for (const el of document.querySelectorAll('[data-unit-name]')) el.textContent = unitName();
   relabelCuttingOptions();
   relabelHints();
 }

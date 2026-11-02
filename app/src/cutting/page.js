@@ -4,6 +4,7 @@ import { cgHi, fabHi, lastPlan, setCgHi, setFabHi, setLastPlan } from '../render
 import { design } from '../core/store.js';
 import { $, esc } from '../core/dom.js';
 import { dims, getUnit, len } from '../core/units.js';
+import { comma, t, tn } from '@quilt/shared/i18n.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
 import {
@@ -47,9 +48,13 @@ import {
 function openQuiltPop(P, i) {
   const d = $('cg-pop'),
     b = P.blocks[i];
-  $('cg-pop-title').textContent = b.corner ? b.label : `Block ${i + 1} · ${b.label}`;
-  $('cg-pop-sub').textContent =
-    `${b.count} in the quilt, marked in orange · ${design.cols} × ${design.rows} blocks, ${dims([P.quiltW, P.quiltH])}`;
+  $('cg-pop-title').textContent = b.corner ? b.label : t('Block {n} · {label}', { n: i + 1, label: b.label });
+  $('cg-pop-sub').textContent = t('{count} in the quilt, marked in orange · {cols} × {rows} blocks, {size}', {
+    count: b.count,
+    cols: design.cols,
+    rows: design.rows,
+    size: dims([P.quiltW, P.quiltH]),
+  });
   if (!d.open) {
     try {
       d.showModal();
@@ -64,7 +69,7 @@ function openQuiltPop(P, i) {
 function cgRowHover(div, makeTest) {
   for (const tr of div.querySelectorAll('.cg-list tbody tr')) {
     tr.classList.add('cutrow');
-    tr.title = 'Hover to light up these pieces in the pictures';
+    tr.title = t('Hover to light up these pieces in the pictures');
     tr.addEventListener('mouseenter', () => lightFabric(makeTest(tr), tr));
     tr.addEventListener('mouseleave', () => lightFabric(null));
   }
@@ -131,22 +136,46 @@ function openPartPop(kind) {
     b = bi >= 0 ? bordersOf(design)[bi] : null;
   $('cg-pop-title').textContent =
     kind === 'sash'
-      ? 'Sashing'
+      ? t('Sashing')
       : kind === 'setting'
-        ? 'Setting triangles'
+        ? t('Setting triangles')
         : b
-          ? `Border ${bi + 1}`
+          ? t('Border {n}', { n: bi + 1 })
           : nb > 1
-            ? `Borders (${nb})`
-            : 'Border';
+            ? t('Borders ({n})', { n: nb })
+            : t('Border');
+  const finished = dims([q.W, q.H]);
   $('cg-pop-sub').textContent =
     kind === 'setting'
-      ? `The triangles that fill the edges of the quilt on point, marked in orange · finished quilt ${dims([q.W, q.H])}`
+      ? t('The triangles that fill the edges of the quilt on point, marked in orange · finished quilt {finished}', {
+          finished,
+        })
       : kind === 'sash'
-        ? `${len(s.mm)} strips between the blocks${s.border ? ' and around the outside' : ''}, marked in orange · finished quilt ${dims([q.W, q.H])}`
+        ? s.border
+          ? t('{size} strips between the blocks and around the outside, marked in orange · finished quilt {finished}', {
+              size: len(s.mm),
+              finished,
+            })
+          : t('{size} strips between the blocks, marked in orange · finished quilt {finished}', {
+              size: len(s.mm),
+              finished,
+            })
         : b
-          ? `${BORDER_TYPES[b.type].label}, ${len(b.mm)} all round${nb > 1 ? (bi === 0 ? ' · the innermost border' : bi === nb - 1 ? ' · the outermost border' : '') : ''}, marked in orange · finished quilt ${dims([q.W, q.H])}`
-          : `${len(borderTotal(design))} all round, marked in orange · finished quilt ${dims([q.W, q.H])}`;
+          ? t('{type}, {size} all round{where}, marked in orange · finished quilt {finished}', {
+              type: BORDER_TYPES[b.type].label,
+              size: len(b.mm),
+              where:
+                nb > 1 && bi === 0
+                  ? ` · ${t('the innermost border')}`
+                  : nb > 1 && bi === nb - 1
+                    ? ` · ${t('the outermost border')}`
+                    : '',
+              finished,
+            })
+          : t('{size} all round, marked in orange · finished quilt {finished}', {
+              size: len(borderTotal(design)),
+              finished,
+            });
   if (!d.open) {
     try {
       d.showModal();
@@ -205,7 +234,7 @@ function renderCut() {
         block: sz.cornerBlock,
         count: corners,
         size: sz.mm,
-        label: `Cornerstone · ${PATTERNS[sz.cornerBlock.pattern].label}`,
+        label: t('Cornerstone · {label}', { label: PATTERNS[sz.cornerBlock.pattern].label }),
       });
     else if (corners)
       extra.push({ group: 'sash', what: SASH_WHAT.corner, fabric: sz.corner, w: sz.mm, h: sz.mm, n: corners });
@@ -217,19 +246,25 @@ function renderCut() {
     innerH = cm.H;
   bs.forEach((b, bi) => {
     const T = b.mm,
-      label = `Border ${bi + 1} · ${BORDER_TYPES[b.type].label}`,
+      type = BORDER_TYPES[b.type].label,
+      label = t('Border {n} · {type}', { n: bi + 1, type }),
       group = 'b' + bi,
       agg = new Map();
+    // what: the name with its border, for the first PDF page; part: without it, for the border's own card and page
+    const strips = { what: t('{label} · strips', { label }), part: t('{label} · strips', { label: type }) },
+      cornerSquares = {
+        what: t('{label} · corner squares', { label }),
+        part: t('{label} · corner squares', { label: type }),
+        cornerSquares: true,
+      };
     const usable = cutOpts.fabricWidth - cutOpts.selvage;
     if (b.type === 'plain') {
       const butted = plainButted(b),
         lens = butted ? [innerW + 2 * T, innerW + 2 * T, innerH, innerH] : [innerW, innerW, innerH, innerH];
       if (Math.max(...lens) + 2 * cutOpts.seam > usable)
-        extra.push({ group, what: label + ' · strips', fabric: borderFab(b, 0), wof: true, w: T, lens });
-      else
-        for (const L of lens)
-          extra.push({ group, what: label + ' · strips', fabric: borderFab(b, 0), w: L, h: T, n: 1 });
-      if (!butted) extra.push({ group, what: label + ' · corner squares', fabric: borderFab(b, 1), w: T, h: T, n: 4 });
+        extra.push({ group, ...strips, fabric: borderFab(b, 0), wof: true, w: T, lens });
+      else for (const L of lens) extra.push({ group, ...strips, fabric: borderFab(b, 0), w: L, h: T, n: 1 });
+      if (!butted) extra.push({ group, ...cornerSquares, fabric: borderFab(b, 1), w: T, h: T, n: 4 });
     } else {
       // units are eased slightly to fit each side; when that is under 8 %, cut them at their standard size
       const u0 = BORDER_TYPES[b.type].unit(T),
@@ -243,11 +278,21 @@ function renderCut() {
             fab = borderFab(b, pc.slot),
             k = fab + '|' + c.kind + '|' + c.cut.join('x');
           if (!agg.has(k))
-            agg.set(k, { group, what: label, fabric: fab, kind: c.kind, cut: c.cut, yield: c.yield, how: c.how, n: 0 });
+            agg.set(k, {
+              group,
+              what: label,
+              part: type,
+              fabric: fab,
+              kind: c.kind,
+              cut: c.cut,
+              yield: c.yield,
+              how: c.how,
+              n: 0,
+            });
           agg.get(k).n++;
         }
       extra.push(...agg.values());
-      extra.push({ group, what: label + ' · corner squares', fabric: borderFab(b, 2), w: T, h: T, n: 4 });
+      extra.push({ group, ...cornerSquares, fabric: borderFab(b, 2), w: T, h: T, n: 4 });
     }
     innerW += 2 * T;
     innerH += 2 * T;
@@ -275,25 +320,36 @@ function renderCut() {
   $('cg-facts').innerHTML = (
     mos
       ? [
-          ['Finished quilt', dims([P.quiltW, P.quiltH])],
+          [t('Finished quilt'), dims([P.quiltW, P.quiltH])],
           [
-            'Mosaic',
-            `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${len(design.mosaic.mm)} sides`,
+            t('Mosaic'),
+            t('{count} {shapes}, {size} sides', {
+              count: design.mosaic.fabrics.length,
+              shapes: SHAPE_NAMES[design.mosaic.shape][1],
+              size: len(design.mosaic.mm),
+            }),
           ],
         ]
       : [
-          ['Finished quilt', dims([P.quiltW, P.quiltH])],
+          [t('Finished quilt'), dims([P.quiltW, P.quiltH])],
           [
-            'Blocks',
+            t('Blocks'),
             isOnPoint(design)
-              ? `${design.cols} × ${design.rows} on point (${cellCount(design)} in all)`
+              ? t('{cols} × {rows} on point ({all} in all)', {
+                  cols: design.cols,
+                  rows: design.rows,
+                  all: cellCount(design),
+                })
               : `${design.cols} × ${design.rows}`,
           ],
           [
-            'Block',
-            `${dims([P.blockW, P.blockH])} finished · ${dims([P.blockW + 2 * P.seam, P.blockH + 2 * P.seam])} with seam allowance`,
+            t('Block'),
+            t('{finished} finished · {cut} with seam allowance', {
+              finished: dims([P.blockW, P.blockH]),
+              cut: dims([P.blockW + 2 * P.seam, P.blockH + 2 * P.seam]),
+            }),
           ],
-          ['Distinct blocks', P.blocks.filter(b => !b.corner).length],
+          [t('Distinct blocks'), P.blocks.filter(b => !b.corner).length],
         ]
   )
     .map(([k, v]) => `<span>${k}: <b>${v}</b></span>`)
@@ -305,17 +361,20 @@ function renderCut() {
     const fab = fabricById(r.id),
       tr = document.createElement('tr');
     const notes = [];
-    if (r.binding) notes.push(`includes binding: ${r.binding.strips} strips ${len(r.binding.width)} × WOF`);
+    if (r.binding)
+      notes.push(
+        t('includes binding: {strips} strips {width} × WOF', { strips: r.binding.strips, width: len(r.binding.width) }),
+      );
     tr.innerHTML = `<td class="sw"></td><td class="letter">${r.letter}<span class="fname">${esc(fab.name)}</span></td>
-      <td class="req">${r.requirement}${r.buy ? `<small>buy ≈ ${r.buy}</small>` : ''}${notes.length ? `<small>${notes.join(' · ')}</small>` : ''}</td>`;
+      <td class="req">${r.requirement}${r.buy ? `<small>${t('buy ≈ {buy}', { buy: r.buy })}</small>` : ''}${notes.length ? `<small>${notes.join(' · ')}</small>` : ''}</td>`;
     tr.querySelector('.sw').appendChild(swatchCanvas(fab));
     tb.appendChild(tr);
   }
   const backFab = fabricById(design.backFabric);
   tb.insertAdjacentHTML(
     'beforeend',
-    `<tr class="extra backrow"><td class="sw"></td><td class="letter small">Backing<span class="fname">${esc(backFab.name)}</span></td><td class="req">${dims([P.backing.w, P.backing.h])}<small>${P.backing.widths} width${P.backing.widths > 1 ? 's' : ''} of fabric sewn together · buy ≈ ${P.backing.buy}</small></td></tr>
-    <tr class="extra"><td></td><td class="letter small">Batting</td><td class="req">${dims([P.backing.w, P.backing.h])}</td></tr>`,
+    `<tr class="extra backrow"><td class="sw"></td><td class="letter small">${t('Backing')}<span class="fname">${esc(backFab.name)}</span></td><td class="req">${dims([P.backing.w, P.backing.h])}<small>${tn(P.backing.widths, '{n} width of fabric sewn together · buy ≈ {buy}', '{n} widths of fabric sewn together · buy ≈ {buy}', { buy: P.backing.buy })}</small></td></tr>
+    <tr class="extra"><td></td><td class="letter small">${t('Batting')}</td><td class="req">${dims([P.backing.w, P.backing.h])}</td></tr>`,
   );
   tb.querySelector('.backrow .sw').appendChild(swatchCanvas(backFab));
   // blocks
@@ -330,9 +389,15 @@ function renderCut() {
           `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil((r.pieces * b.count) / r.yield)}</td></tr>`,
       )
       .join('');
+    const meta = [esc(b.label)];
+    if (b.span > 1) meta.push(t('large block, {n} × {n} cells ({size})', { n: b.span, size: len(b.size) }));
+    if (b.corner) meta.push(len(b.size));
+    meta.push(t('make {n}', { n: b.count }));
+    if (mirroredCount(b))
+      meta.push(t('{n} mirrored (cut their odd-shaped pieces with the template turned over)', { n: mirroredCount(b) }));
     // pieced cornerstones are a block card too (their IDs carry its number), named for what they are
-    div.innerHTML = `<h3>${b.mosaic ? 'Mosaic' : b.corner ? 'Cornerstone block' : `Block ${i + 1}`}</h3><p class="meta">${esc(b.label)}${b.span > 1 ? ` · large block, ${b.span} × ${b.span} cells (${len(b.size)})` : ''}${b.corner ? ` · ${len(b.size)}` : ''} · make ${b.count}${mirroredCount(b) ? ` · ${mirroredCount(b)} mirrored (cut their odd-shaped pieces with the template turned over)` : ''}</p><div class="cg-art"><canvas aria-label="Block ${i + 1}: ${esc(b.label)}, pieces labelled with fabric letters"></canvas><span class="cg-hint" aria-hidden="true">Click: cutting list · double-click: see it in the quilt</span></div>
-      <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>Fabric</th><th>Cut</th><th>Per block</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    div.innerHTML = `<h3>${b.mosaic ? t('Mosaic') : b.corner ? t('Cornerstone block') : t('Block {n}', { n: i + 1 })}</h3><p class="meta">${meta.join(' · ')}</p><div class="cg-art"><canvas aria-label="${t('Block {n}: {label}, pieces labelled with fabric letters', { n: i + 1, label: esc(b.label) })}"></canvas><span class="cg-hint" aria-hidden="true">${t('Click: cutting list · double-click: see it in the quilt')}</span></div>
+      <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>${t('Fabric')}</th><th>${t('Cut')}</th><th>${t('Per block')}</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     box.appendChild(div);
     {
       const bc = div.querySelector('canvas');
@@ -351,7 +416,7 @@ function renderCut() {
       div,
       i,
       pick,
-      'Click to show or hide the cutting list · double-click to find this block in the whole quilt',
+      t('Click to show or hide the cutting list · double-click to find this block in the whole quilt'),
     );
     cgRowHover(div, tr => {
       const L = tr.dataset.l,
@@ -361,8 +426,7 @@ function renderCut() {
     });
   });
   const sashCuts = (P.sashing || []).filter(x => x.group === 'sash');
-  const hint =
-    '<span class="cg-hint" aria-hidden="true">Click: cutting list · double-click: see it in the quilt</span>';
+  const hint = `<span class="cg-hint" aria-hidden="true">${t('Click: cutting list · double-click: see it in the quilt')}</span>`;
   const listOf = (head, rows) =>
     `<div class="cg-list"><div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
   if (sashCuts.length) {
@@ -380,9 +444,14 @@ function renderCut() {
           `<tr data-k="${Object.keys(SASH_WHAT).find(k => SASH_WHAT[k] === x.what)}"><td class="l">${x.id}</td><td>${x.what}: ${x.how}</td><td class="n">${x.n}</td></tr>`,
       )
       .join('');
+    const wide = isOnPoint(design)
+      ? t('{size} wide, framing every block', { size: len(sz.mm) })
+      : sz.border
+        ? t('{size} wide, also around the outside', { size: len(sz.mm) })
+        : t('{size} wide', { size: len(sz.mm) });
     div.innerHTML =
-      `<h3>Sashing</h3><p class="meta">${len(sz.mm)} wide${isOnPoint(design) ? ', framing every block' : sz.border ? ', also around the outside' : ''}</p><div class="cg-art"><canvas aria-label="Part of the quilt showing the sashing, pieces labelled with their IDs"></canvas>${hint}</div>` +
-      listOf('<th>ID</th><th>Cut</th><th>Total</th>', rows);
+      `<h3>${t('Sashing')}</h3><p class="meta">${wide}</p><div class="cg-art"><canvas aria-label="${t('Part of the quilt showing the sashing, pieces labelled with their IDs')}"></canvas>${hint}</div>` +
+      listOf(`<th>ID</th><th>${t('Cut')}</th><th>Total</th>`, rows);
     box.appendChild(div);
     // a 2 × 2 corner of the quilt, to show how strips and cornerstones go together
     const cv = div.querySelector('canvas'),
@@ -413,7 +482,7 @@ function renderCut() {
         drawCutQuilt(P);
         openPartPop('sash');
       },
-      'Click to show or hide the cutting list · double-click to see the sashing in the whole quilt',
+      t('Click to show or hide the cutting list · double-click to see the sashing in the whole quilt'),
     );
   }
   // on point: the setting triangles, IDs like the sashing's: fabric letter + T (triangles) . form
@@ -432,8 +501,8 @@ function renderCut() {
       )
       .join('');
     div.innerHTML =
-      `<h3>Setting triangles</h3><p class="meta">Fill the edges of the quilt on point · straight grain along the quilt's edge</p><div class="cg-art"><canvas aria-label="A corner of the quilt on point, the setting triangles labelled with their IDs"></canvas>${hint}</div>` +
-      listOf('<th>ID</th><th>Cut</th><th>Squares</th><th>Triangles</th>', rows);
+      `<h3>${t('Setting triangles')}</h3><p class="meta">${t("Fill the edges of the quilt on point · straight grain along the quilt's edge")}</p><div class="cg-art"><canvas aria-label="${t('A corner of the quilt on point, the setting triangles labelled with their IDs')}"></canvas>${hint}</div>` +
+      listOf(`<th>ID</th><th>${t('Cut')}</th><th>${t('Squares')}</th><th>${t('Triangles')}</th>`, rows);
     box.appendChild(div);
     const cv = div.querySelector('canvas'),
       dpr = Math.min(window.devicePixelRatio || 1, 2),
@@ -463,7 +532,7 @@ function renderCut() {
         drawCutQuilt(P);
         openPartPop('setting');
       },
-      'Click to show or hide the cutting list · double-click to see the setting triangles in the whole quilt',
+      t('Click to show or hide the cutting list · double-click to see the setting triangles in the whole quilt'),
     );
   }
   const brdCuts = (P.sashing || []).filter(x => x.group && x.group[0] === 'b');
@@ -487,14 +556,15 @@ function renderCut() {
     const rows = cuts
       .map(x => {
         const n = x.wof ? x.n : Math.ceil(x.n / (x.yield || 1));
-        return `<tr data-g="${bi}" data-fab="${x.fabric}" data-c="${/corner squares$/.test(x.what) ? 1 : 0}"><td class="l">${x.id}</td><td><b>${esc(x.what.replace(/^Border \d+ · /, ''))}</b><br>${x.how}</td><td class="n">${x.wof ? '—' : n}</td></tr>`;
+        return `<tr data-g="${bi}" data-fab="${x.fabric}" data-c="${x.cornerSquares ? 1 : 0}"><td class="l">${x.id}</td><td><b>${esc(x.part)}</b><br>${x.how}</td><td class="n">${x.wof ? '—' : n}</td></tr>`;
       })
       .join('');
-    const where = bs2.length > 1 ? (bi === 0 ? ' · innermost' : bi === bs2.length - 1 ? ' · outermost' : '') : '';
+    const where =
+      bs2.length > 1 ? (bi === 0 ? ` · ${t('innermost')}` : bi === bs2.length - 1 ? ` · ${t('outermost')}` : '') : '';
     div.innerHTML =
-      `<h3>Border ${bi + 1}</h3><p class="meta">${BORDER_TYPES[bd.type].label} · ${len(bd.mm)}${where}</p><div class="cg-art"><canvas aria-label="The quilt with border ${bi + 1} lit up and its pieces labelled"></canvas>${hint}</div>` +
-      `<p class="meta cg-brdleg">Pieces: <b>${cuts.map(x => x.id).join(' · ')}</b></p>` +
-      listOf('<th>ID</th><th>Cut</th><th>Total</th>', rows);
+      `<h3>${t('Border {n}', { n: bi + 1 })}</h3><p class="meta">${BORDER_TYPES[bd.type].label} · ${len(bd.mm)}${where}</p><div class="cg-art"><canvas aria-label="${t('The quilt with border {n} lit up and its pieces labelled', { n: bi + 1 })}"></canvas>${hint}</div>` +
+      `<p class="meta cg-brdleg">${t('Pieces: <b>{ids}</b>', { ids: cuts.map(x => x.id).join(' · ') })}</p>` +
+      listOf(`<th>ID</th><th>${t('Cut')}</th><th>Total</th>`, rows);
     box.appendChild(div);
     const cv = div.querySelector('canvas'),
       dpr = Math.min(window.devicePixelRatio || 1, 2),
@@ -528,7 +598,7 @@ function renderCut() {
         drawCutQuilt(P);
         openPartPop(key);
       },
-      `Click to show or hide the cutting list · double-click to see border ${bi + 1} in the whole quilt`,
+      t('Click to show or hide the cutting list · double-click to see border {n} in the whole quilt', { n: bi + 1 }),
     );
   });
   if (typeof cgHi === 'number' && cgHi >= P.blocks.length) setCgHi(-1);
@@ -539,8 +609,18 @@ function renderCut() {
   )
     setCgHi(-1);
   if (!mos) drawCutQuilt(P);
-  $('cg-note').textContent =
-    `WOF = width of fabric: ${getUnit() === 'in' ? len(cutOpts.fabricWidth) : `${cutOpts.fabricWidth / 10} cm`}, of which ${getUnit() === 'in' ? len(P.usable) : `${P.usable / 10} cm`} is usable after trimming the selvages. Cut sizes include a ${len(P.seam)} seam allowance and are rounded ${getUnit() === 'in' ? 'to the nearest ⅛ inch' : 'up to the whole millimetre'}. Requirements add ${len(50)} to straighten the edge; "buy" rounds up to ${getUnit() === 'in' ? '⅛ yard' : '5 cm'}.`;
+  const inInches = getUnit() === 'in';
+  $('cg-note').textContent = t(
+    'WOF = width of fabric: {width}, of which {usable} is usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}. Requirements add {extra} to straighten the edge; "buy" rounds up to {step}.',
+    {
+      width: inInches ? len(cutOpts.fabricWidth) : `${comma(cutOpts.fabricWidth / 10)} cm`,
+      usable: inInches ? len(P.usable) : `${comma(P.usable / 10)} cm`,
+      seam: len(P.seam),
+      rounding: inInches ? t('to the nearest ⅛ inch') : t('up to the whole millimetre'),
+      extra: len(50),
+      step: inInches ? t('⅛ yard') : '5 cm',
+    },
+  );
 }
 /**
  * A mosaic for the cutting plan: its shapes as the parts of one square "block" of the quilt's longer side, the
@@ -552,15 +632,16 @@ function mosaicForPlan(d) {
     { w, h } = mosaicMm(m),
     S = Math.max(w, h),
     ox = (S - w) / 2,
-    oy = (S - h) / 2;
+    oy = (S - h) / 2,
+    shapes = SHAPE_NAMES[m.shape][1];
   return {
     size: S,
     fabrics: m.fabrics,
-    label: `${SHAPE_NAMES[m.shape][1][0].toUpperCase()}${SHAPE_NAMES[m.shape][1].slice(1)}, ${len(m.mm)} sides`,
-    parts: mosaicTiles(m).map((t, i) => ({
-      name: `Shape ${i + 1}`,
+    label: t('{shapes}, {size} sides', { shapes: `${shapes[0].toUpperCase()}${shapes.slice(1)}`, size: len(m.mm) }),
+    parts: mosaicTiles(m).map((tile, i) => ({
+      name: t('Shape {n}', { n: i + 1 }),
       role: 0,
-      poly: t.poly.map(([x, y]) => [(x + ox) / S, (y + oy) / S]),
+      poly: tile.poly.map(([x, y]) => [(x + ox) / S, (y + oy) / S]),
     })),
   };
 }

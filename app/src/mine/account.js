@@ -5,6 +5,7 @@
 import './sync-ui.js'; // load order: runs after mine/sync-ui
 import { $ } from '../core/dom.js';
 import { onAccount, signInAndSync, signOutAndStop } from './sync-ui.js';
+import { t } from '@quilt/shared/i18n.js';
 
 const SKIP_KEY = 'quilt-welcome.v1';
 const skipped = () => {
@@ -67,7 +68,7 @@ function patchworkArt(cols = 8, rows = 6, s = 100) {
   for (let r = 1; r < rows; r++)
     out += `<path d="M0 ${r * s}H${cols * s}" stroke="oklch(0.25 0.03 40 / .25)" stroke-width="1.5"/>`;
   out += `<rect x="8" y="8" width="${cols * s - 16}" height="${rows * s - 16}" fill="none" stroke="oklch(0.98 0.01 80 / .7)" stroke-width="2" stroke-dasharray="7 6"/>`;
-  return `<svg viewBox="0 0 ${cols * s} ${rows * s}" role="img" aria-label="A patchwork quilt">${out}</svg>`;
+  return `<svg viewBox="0 0 ${cols * s} ${rows * s}" role="img" aria-label="${t('A patchwork quilt')}">${out}</svg>`;
 }
 
 /** @param {boolean} on */
@@ -111,18 +112,18 @@ function initAccount() {
     const expired = !!c && s.state === 'login';
     $('acct-btn').hidden = !c || expired;
     $('acct-signin').hidden = !!c && !expired;
-    $('acct-signin').textContent = expired ? 'Sign in again' : 'Sign in';
+    $('acct-signin').textContent = expired ? t('Sign in again') : t('Sign in');
     if (!c || expired) openMenu(false);
     if (!c) return;
     const who = c.who || c.user || '';
     $('acct-initial').textContent = (who.trim()[0] || '?').toUpperCase();
-    $('acct-btn').setAttribute('aria-label', `Account: ${who}`);
+    $('acct-btn').setAttribute('aria-label', t('Account: {who}', { who }));
     $('acct-btn').title = who;
     $('acct-email').textContent = who;
     $('acct-sync').textContent =
       s.state === 'offline'
-        ? "Can't reach the server: changes wait here."
-        : 'Your designs and fabric photos sync to your other devices.';
+        ? t("Can't reach the server: changes wait here.")
+        : t('Your designs and fabric photos sync to your other devices.');
   });
   // signed out: the welcome page offers both; an expired sign-in signs in again straight away
   $('acct-signin').addEventListener('click', () => (account ? signInAndSync() : showWelcome(true)));

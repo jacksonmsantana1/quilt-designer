@@ -8,6 +8,7 @@
 // edges are trimmed straight (half shapes at the sides, points cut off at the top and bottom), so the borders fit
 // like on any quilt. Shapes are numbered row by row, left to right; a mosaic keeps one fabric per shape in that order.
 // `mm` is always the length of one side of the shape.
+import { t } from './i18n.js';
 
 /** @typedef {import('./types.js').Mosaic} Mosaic @typedef {import('./types.js').Poly} Poly */
 /**
@@ -19,11 +20,11 @@
 
 /** The shapes a mosaic can be made of. */
 const MOSAIC_SHAPES = ['hex', 'diamond', 'triangle'];
-/** What the shapes are called, one and many. */
+/** What the shapes are called, one and many, in the language in use (only ever shown, never compared). */
 const SHAPE_NAMES = {
-  hex: ['hexagon', 'hexagons'],
-  diamond: ['diamond', 'diamonds'],
-  triangle: ['triangle', 'triangles'],
+  hex: [t('hexagon'), t('hexagons')],
+  diamond: [t('diamond'), t('diamonds')],
+  triangle: [t('triangle'), t('triangles')],
 };
 
 const R3 = Math.sqrt(3);

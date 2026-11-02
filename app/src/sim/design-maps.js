@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { designNormalTex, patchTex, setDesignNormalTex } from './sim-state.js';
 import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { t } from '@quilt/shared/i18n.js';
 import { quilt, state } from './config.js';
 import { maxAniso } from './textures.js';
 import { QM, patchCanvas } from './patchwork.js';
@@ -123,7 +124,7 @@ function restoreBacking() {
 let syncTimer = 0;
 function scheduleSync() {
   clearTimeout(syncTimer);
-  if ($('dz-sync')) $('dz-sync').textContent = 'Updating the simulation…';
+  if ($('dz-sync')) $('dz-sync').textContent = t('Updating the simulation…');
   syncTimer = setTimeout(syncSimulation, 350);
 }
 function syncSimulation() {
@@ -137,8 +138,8 @@ function syncSimulation() {
   if (resized) restart();
   if ($('dz-sync'))
     $('dz-sync').textContent = resized
-      ? 'Simulation updated · quilt dropped again at the new size'
-      : 'Simulation up to date';
+      ? t('Simulation updated · quilt dropped again at the new size')
+      : t('Simulation up to date');
 }
 
 export { designNormalCanvas, restoreBacking, scheduleSync, syncSimulation };

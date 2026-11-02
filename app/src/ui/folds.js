@@ -1,6 +1,7 @@
 // Side-panel cards that open and close from their title.
 import '../sim/panels.js'; // load order: runs after sim/panels
 import { $ } from '../core/dom.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // ---- side-panel cards open and close from their title (remembered in this browser)
 const FOLD_KEY = 'quilt-folds.v1';
@@ -21,7 +22,7 @@ function makeFoldable(card, head, key) {
   head.classList.add('fold-head');
   head.tabIndex = 0;
   head.setAttribute('role', 'button');
-  head.title = 'Click to open or close';
+  head.title = t('Click to open or close');
   const toggle = () => setFold(card, key, !card.classList.contains('folded'));
   head.addEventListener('click', toggle);
   head.addEventListener('keydown', e => {

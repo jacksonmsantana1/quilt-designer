@@ -13,7 +13,8 @@ import { dispatch } from './dispatch.js';
 import { keepDrawn, useDrawn } from '../core/edits.js';
 import { noteRecentBlock } from './block-picker.js';
 import { notify } from '../ui/notice.js';
-import { getUnit, len, num } from '../core/units.js';
+import { len, num, unitName } from '../core/units.js';
+import { t, tn } from '@quilt/shared/i18n.js';
 import { CG } from '../cutting/plan.js';
 import { cutOpts } from '../cutting/draw.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
@@ -28,7 +29,7 @@ import { addLine, blankPaper, eraseLine, fill, paperDef, paperFromParts, paperPi
 /** @typedef {import('../core/paper-drawing.js').Paper} Paper */
 /** @typedef {{ mode: 'cells' | 'paper', dr: Drawing, pp: Paper }} Sheet what one undo step brings back */
 
-const ROLE_NAMES = ['Background', 'Main', 'Accent', 'Fabric 4', 'Fabric 5', 'Fabric 6'];
+const ROLE_NAMES = [t('Background'), t('Main'), t('Accent'), t('Fabric 4'), t('Fabric 5'), t('Fabric 6')];
 const UNDO_MAX = 100;
 const RULER = 24; // css pixels of ruler along the top and left of the graph paper
 
@@ -207,9 +208,9 @@ function drawPaper(g, o, S, dpr) {
   for (let k = 0; k <= n * ed.snap; k++) {
     const v = at(k / ed.snap),
       major = k % ed.snap === 0,
-      t = (major ? 8 : k % (ed.snap / 2) === 0 ? 5 : 3) * dpr;
-    line(g, v, o - 2 * dpr, v, o - 2 * dpr - t);
-    line(g, o - 2 * dpr, v, o - 2 * dpr - t, v);
+      tick = (major ? 8 : k % (ed.snap / 2) === 0 ? 5 : 3) * dpr;
+    line(g, v, o - 2 * dpr, v, o - 2 * dpr - tick);
+    line(g, o - 2 * dpr, v, o - 2 * dpr - tick, v);
     if (major && k) {
       const label = num((k / ed.snap) * cellMm),
         p = Math.min(v, o + S - 14 * dpr);
@@ -225,7 +226,7 @@ function drawPaper(g, o, S, dpr) {
   }
   g.textAlign = 'left';
   g.textBaseline = 'top';
-  g.fillText(getUnit(), 2 * dpr, 2 * dpr);
+  g.fillText(unitName(), 2 * dpr, 2 * dpr);
   // the line being drawn, with its length; the point under the pointer
   if (ed.drag) {
     const { x0, y0, x1, y1 } = ed.drag;
@@ -300,7 +301,11 @@ function drawCutting() {
   box.innerHTML = '';
   const head = document.createElement('p');
   head.className = 'fine';
-  head.textContent = `For one ${len(W)} block (${n} × ${n} squares of ${len(W / n)}), seam allowance included:`;
+  head.textContent = t('For one {size} block ({n} × {n} squares of {cell}), seam allowance included:', {
+    size: len(W),
+    n,
+    cell: len(W / n),
+  });
   box.appendChild(head);
   const ul = document.createElement('ul');
   for (const r of [...new Set(parts.map(p => p.role))].sort((a, b) => a - b))
@@ -309,10 +314,13 @@ function drawCutting() {
         sw = document.createElement('i');
       sw.className = 'drawblk-sw';
       sw.style.background = ROLE_COLOURS[r];
-      const cutsNeeded = Math.ceil(c.n / c.yield);
+      const cutsNeeded = Math.ceil(c.n / c.yield),
+        words = { role: ROLE_NAMES[r], cuts: cutsNeeded, how: c.how };
       li.append(
         sw,
-        `${ROLE_NAMES[r]}: ${cutsNeeded} × ${c.how}${c.yield > 1 ? ` (${c.n} piece${c.n === 1 ? '' : 's'})` : ''}`,
+        c.yield > 1
+          ? tn(c.n, '{role}: {cuts} × {how} ({n} piece)', '{role}: {cuts} × {how} ({n} pieces)', words)
+          : `${ROLE_NAMES[r]}: ${cutsNeeded} × ${c.how}`,
       );
       ul.appendChild(li);
     }
@@ -402,19 +410,19 @@ function currentDef() {
   if (ed.mode === 'paper') {
     const raw = paperDef(ed.pp, label);
     if (!raw) {
-      notify('A shape floats free inside the block: draw a seam from it to another seam or to the edge.');
+      notify(t('A shape floats free inside the block: draw a seam from it to another seam or to the edge.'));
       return null;
     }
     const def = checkDrawn(raw);
-    if (!def) notify('This drawing has too many pieces to be a block.');
+    if (!def) notify(t('This drawing has too many pieces to be a block.'));
     return def;
   }
   const def = checkDrawn({ label, n: ed.dr.n, rows: toRows(ed.dr) });
-  if (!def) notify('This drawing could not be made into a block.');
+  if (!def) notify(t('This drawing could not be made into a block.'));
   return def;
 }
 function useInQuilt() {
-  if (readOnly) return notify('This quilt is read-only here, so it can’t be changed.');
+  if (readOnly) return notify(t('This quilt is read-only here, so it can’t be changed.'));
   const def = currentDef();
   if (!def) return;
   const key = drawnKey(def);
@@ -425,13 +433,13 @@ function useInQuilt() {
   /** @type {HTMLDialogElement} */ ($('drawblk')).close();
 }
 function keepInMyBlocks() {
-  if (readOnly) return notify('This quilt is read-only here, so it can’t be changed.');
+  if (readOnly) return notify(t('This quilt is read-only here, so it can’t be changed.'));
   const def = currentDef();
   if (!def) return;
   const key = drawnKey(def);
   registerDrawn(key, def);
   dispatch(keepDrawn, key, def);
-  notify(`“${def.label}” is in My blocks, in the block library.`);
+  notify(t('“{name}” is in My blocks, in the block library.', { name: def.label }));
 }
 
 // ---- tools and opening
@@ -440,15 +448,15 @@ function press(sel, attr, value) {
   for (const b of document.querySelectorAll(sel))
     b.setAttribute('aria-pressed', String(/** @type {HTMLElement} */ (b).dataset[attr] === String(value)));
 }
-function setTool(t) {
-  ed.tool = t;
-  press('#drawblk-tools button', 'tool', t);
-  canvas().style.cursor = t === 'join' ? 'cell' : 'crosshair';
+function setTool(tool) {
+  ed.tool = tool;
+  press('#drawblk-tools button', 'tool', tool);
+  canvas().style.cursor = tool === 'join' ? 'cell' : 'crosshair';
 }
-function setPaperTool(t) {
-  ed.ptool = t;
-  press('#drawblk-ptools button', 'ptool', t);
-  canvas().style.cursor = t === 'fill' ? 'cell' : 'crosshair';
+function setPaperTool(tool) {
+  ed.ptool = tool;
+  press('#drawblk-ptools button', 'ptool', tool);
+  canvas().style.cursor = tool === 'fill' ? 'cell' : 'crosshair';
 }
 const showTool = () => (ed.mode === 'paper' ? setPaperTool(ed.ptool) : setTool(ed.tool));
 function setRole(r) {
@@ -495,8 +503,8 @@ function openDrawer() {
     ed.pp = blankPaper(ed.dr.n);
   }
   const count = Object.values(PATTERNS).filter(p => p.drawn).length;
-  $('drawblk-name').value = def ? PATTERNS[key].label : `My block ${count + 1}`;
-  $('drawblk-from').title = `Start again from “${PATTERNS[key].label}”, the selected block`;
+  $('drawblk-name').value = def ? PATTERNS[key].label : t('My block {n}', { n: count + 1 });
+  $('drawblk-from').title = t('Start again from “{name}”, the selected block', { name: PATTERNS[key].label });
   showTool();
   const dlg = /** @type {HTMLDialogElement} */ ($('drawblk'));
   if (!dlg.open) {

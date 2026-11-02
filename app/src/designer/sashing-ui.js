@@ -21,6 +21,7 @@ import { pieceFill } from '../render/fabric-fill.js';
 import { drawPaletteInto } from './parts-editor.js';
 import { dispatch } from './dispatch.js';
 import { setSashing } from '../core/edits.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // the parts of the cornerstone block picked for the next fabric (none: the fabric goes on every part)
 let cbSel = new Set();
@@ -34,7 +35,7 @@ function drawCornerPatterns(current, allowed) {
       b.type = 'button';
       b.className = 'pat';
       b.dataset.p = key;
-      b.title = key ? PATTERNS[key].label : 'Plain fabric';
+      b.title = key ? PATTERNS[key].label : t('Plain fabric');
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const g = c.getContext('2d');
@@ -85,10 +86,10 @@ function drawCornerBlockEditor(cb, mm) {
   const names = partsOf(cb.pattern).map(p => p.name),
     pick = [...cbSel];
   $('sash-cb-info').textContent = !pick.length
-    ? `${PATTERNS[cb.pattern].label} · click a part to choose its fabric`
+    ? t('{name} · click a part to choose its fabric', { name: PATTERNS[cb.pattern].label })
     : pick.length === 1
-      ? `Selected: ${names[pick[0]]} · ${fabricById(cb.fabrics[pick[0]]).name}`
-      : `${pick.length} parts selected`;
+      ? t('Selected: {part} · {fabric}', { part: names[pick[0]], fabric: fabricById(cb.fabrics[pick[0]]).name })
+      : t('{n} parts selected', { n: pick.length });
 }
 // ---- sashing settings
 function renderSashUI() {
@@ -101,7 +102,7 @@ function renderSashUI() {
   const onPoint = isOnPoint(design);
   $('sash-border').checked = onPoint || !!raw.border;
   $('sash-border').disabled = onPoint;
-  $('sash-border').parentElement.title = onPoint ? 'On point, the sashing always frames every block' : '';
+  $('sash-border').parentElement.title = onPoint ? t('On point, the sashing always frames every block') : '';
   $('sash-cs').checked = s.cornerstones;
   $('sash-cs-box').hidden = !s.cornerstones; // no cornerstones: no fabric to choose for them
   const box = $('sash-presets');
@@ -110,7 +111,7 @@ function renderSashUI() {
   for (const v of getUnit() === 'in' ? [0, 25, 38, 51, 64, 76] : [0, 25, 38, 50, 64, 76]) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = v ? len(v) : 'None';
+    b.textContent = v ? len(v) : t('None');
     b.dataset.v = v;
     b.setAttribute('aria-pressed', String(s.mm === v));
     box.appendChild(b);
@@ -121,22 +122,27 @@ function renderSashUI() {
     cb = s.cornerBlock;
   cbSel = cb ? new Set([...cbSel].filter(i => i < cb.fabrics.length)) : new Set(); // (undo can change the pattern)
   drawCornerPatterns(cb ? cb.pattern : '', wide);
+  const minWidth = { size: len(CORNER_BLOCK_MIN_MM - 1) };
   $('sash-cb-note').textContent = wide
     ? ''
-    : `Pieced cornerstones need sashing wider than ${len(CORNER_BLOCK_MIN_MM - 1)}${raw.cornerBlock ? ': plain ones until then' : ''}.`;
+    : raw.cornerBlock
+      ? t('Pieced cornerstones need sashing wider than {size}: plain ones until then.', minWidth)
+      : t('Pieced cornerstones need sashing wider than {size}.', minWidth);
   $('sash-cb-edit').hidden = !cb;
   if (cb) drawCornerBlockEditor(cb, s.mm);
   $('sash-corner-lbl').textContent = !cb
-    ? 'Cornerstone fabric'
+    ? t('Cornerstone fabric')
     : cbSel.size
-      ? 'Fabric for the selected parts'
-      : 'Fabric for every part (or click parts above first)';
+      ? t('Fabric for the selected parts')
+      : t('Fabric for every part (or click parts above first)');
   const picked = cb ? new Set((cbSel.size ? [...cbSel] : cb.fabrics.map((_, i) => i)).map(i => cb.fabrics[i])) : null;
   drawPaletteInto($('sash-corner'), !cb ? raw.corner || raw.fabric || 'b0' : picked.size === 1 ? [...picked][0] : null);
   const q = quiltMm(design);
   $('sash-note').textContent = s.mm
-    ? `Finished quilt with sashing: ${dims([q.W, q.H])}. Click the sashing on the quilt to come back here.`
-    : 'Choose a width to add strips of fabric between the blocks.';
+    ? t('Finished quilt with sashing: {size}. Click the sashing on the quilt to come back here.', {
+        size: dims([q.W, q.H]),
+      })
+    : t('Choose a width to add strips of fabric between the blocks.');
 }
 function setSash(patch) {
   dispatch(setSashing, patch);

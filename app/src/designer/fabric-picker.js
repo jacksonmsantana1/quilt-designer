@@ -16,6 +16,7 @@ import {
 } from './fabric-library.js';
 import { fabricIdsIn, findFabrics, paletteList, shortList, withFabric, withoutFabric } from '../core/fabric-picks.js';
 import { notify } from '../ui/notice.js';
+import { t } from '@quilt/shared/i18n.js';
 
 const PAGE = 60; // tiles the library shows at a time ("Show more" adds as many again)
 
@@ -52,7 +53,7 @@ function fabricTile(f, pressed, mark) {
     // inside the tile (one row of buttons), so its own click must not reach the list's handler: that would choose it
     const x = document.createElement('span');
     x.className = 'fab-x';
-    x.title = `Take ${f.name} off this list (it stays in the fabric library)`;
+    x.title = t('Take {name} off this list (it stays in the fabric library)', { name: f.name });
     x.setAttribute('aria-hidden', 'true');
     x.addEventListener('click', e => {
       e.stopPropagation();
@@ -69,7 +70,7 @@ function fabricTile(f, pressed, mark) {
   } else if (mark === 'fixed') {
     const ok = document.createElement('span');
     ok.className = 'fab-in';
-    ok.title = 'In this quilt, or chosen now: it stays on this list';
+    ok.title = t('In this quilt, or chosen now: it stays on this list');
     ok.setAttribute('aria-hidden', 'true');
     b.append(ok);
   }
@@ -102,8 +103,8 @@ function shortListFabrics(selected) {
     inQuilt: design ? fabricIdsIn(design, isFabric) : [],
     selected,
   })
-    .filter(t => byId.has(t.id))
-    .map(t => ({ f: byId.get(t.id), fixed: t.fixed }));
+    .filter(item => byId.has(item.id))
+    .map(item => ({ f: byId.get(item.id), fixed: item.fixed }));
 }
 
 // every short list drawn, with the fabric chosen in it, to draw them all again when the palette changes
@@ -120,10 +121,10 @@ function removeFromPalette(f) {
   const before = fabricPalette();
   setFabricPalette(withoutFabric(before || defaultPalette(), f.id));
   redrawLists();
-  notify(`Took ${f.name} off the fabric lists. It stays in the fabric library.`, {
+  notify(t('Took {name} off the fabric lists. It stays in the fabric library.', { name: f.name }), {
     ms: 6000,
     action: {
-      label: 'Undo',
+      label: t('Undo'),
       run: () => {
         setFabricPalette(before);
         redrawLists();
@@ -142,8 +143,8 @@ function moreButton(box, shown) {
   b.className = 'fab-more-btn';
   if (box.id) b.id = box.id + '-more';
   const rest = listedFabrics().length - shown,
-    label = rest > 0 ? `More fabrics (${rest})` : 'Add a fabric photo';
-  b.title = `${label}: search all fabrics, and add photos of your own`;
+    label = rest > 0 ? t('More fabrics ({n})', { n: rest }) : t('Add a fabric photo');
+  b.title = t('{label}: search all fabrics, and add photos of your own', { label });
   b.setAttribute('aria-label', label);
   const sign = document.createElement('b');
   sign.textContent = rest > 0 ? '⋯' : '+';
@@ -313,12 +314,12 @@ function drawShortList(box, selected) {
 // ---- the fabric library window
 const lib = { source: /** @type {HTMLElement | null} */ (null), selected: null, group: 'all', shown: PAGE };
 const GROUPS = {
-  all: 'All',
-  quilt: 'In this quilt',
-  recent: 'Recent',
-  basic: 'Basics',
-  collection: 'Collection',
-  mine: 'My photos',
+  all: t('All'),
+  quilt: t('In this quilt'),
+  recent: t('Recent'),
+  basic: t('Basics'),
+  collection: t('Collection'),
+  mine: t('My photos'),
 };
 
 /** Opens the library for one short list: a fabric picked there goes to that list. @param {HTMLElement} box */
@@ -367,26 +368,28 @@ function drawLibrary() {
     const add = document.createElement('label');
     add.className = 'fab fab-more';
     add.htmlFor = 'dz-upload';
-    add.title = 'Add photos of your own fabrics';
-    add.innerHTML = '<b aria-hidden="true">+</b><span>Add fabric photo</span>';
+    add.title = t('Add photos of your own fabrics');
+    add.innerHTML = `<b aria-hidden="true">+</b><span>${t('Add fabric photo')}</span>`;
     grid.appendChild(add);
   }
   // a dot marks the fabrics on the palette (in the short lists)
   const onPalette = new Set(fabricPalette() || defaultPalette());
   for (const f of found.slice(0, lib.shown)) {
-    const t = fabricTile(f, f.id === lib.selected);
+    const tile = fabricTile(f, f.id === lib.selected);
     if (onPalette.has(f.id)) {
-      t.classList.add('on-palette');
-      t.title = `${f.name} · in your fabric lists`;
+      tile.classList.add('on-palette');
+      tile.title = t('{name} · in your fabric lists', { name: f.name });
     }
-    grid.appendChild(t);
+    grid.appendChild(tile);
   }
   $('fablib-reset').hidden = !fabricPalette();
   const left = found.length - lib.shown;
   $('fablib-more').hidden = left <= 0;
-  $('fablib-more').textContent = `Show more (${left} more)`;
+  $('fablib-more').textContent = t('Show more ({n} more)', { n: left });
   $('fablib-none').hidden = found.length > 0;
-  $('fablib-none').textContent = query.trim() ? `No fabrics match “${query.trim()}”.` : 'No fabrics here yet.';
+  $('fablib-none').textContent = query.trim()
+    ? t('No fabrics match “{q}”.', { q: query.trim() })
+    : t('No fabrics here yet.');
 }
 
 /**

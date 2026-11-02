@@ -1,6 +1,7 @@
 // Cutting plan (pure): cut sizes, piece IDs, fabric requirements.
 // @ts-check
 import { quiltMm, settingPieces } from '@quilt/shared/geometry.js';
+import { t, tn } from '@quilt/shared/i18n.js';
 
 // ------------------------------------------------------------- cutting guide core (millimetres)
 // Turns the designed quilt into cutting instructions, using standard quilting
@@ -33,12 +34,12 @@ const CG = (() => {
         ys = p.map(q => q[1]);
       const w = upmm(Math.max(...xs) - Math.min(...xs) + 2 * s),
         h = upmm(Math.max(...ys) - Math.min(...ys) + 2 * s);
-      if (w === h) return { kind: 'square', cut: [w, w], yield: 1, how: `square ${mm(w)}` };
+      if (w === h) return { kind: 'square', cut: [w, w], yield: 1, how: t('square {size}', { size: mm(w) }) };
       return {
         kind: 'rect',
         cut: [Math.max(w, h), Math.min(w, h)],
         yield: 1,
-        how: `rectangle ${dims([Math.min(w, h), Math.max(w, h)])}`,
+        how: t('rectangle {size}', { size: dims([Math.min(w, h), Math.max(w, h)]) }),
       };
     }
     if (p.length === 3) {
@@ -55,10 +56,20 @@ const CG = (() => {
         const legsAxis = (close(ra[0], 0) || close(ra[1], 0)) && (close(rb[0], 0) || close(rb[1], 0));
         if (legsAxis) {
           const c = upmm(leg + s * (2 + Math.SQRT2));
-          return { kind: 'hst', cut: [c, c], yield: 2, how: `square ${mm(c)}, cut once on the diagonal ◩` };
+          return {
+            kind: 'hst',
+            cut: [c, c],
+            yield: 2,
+            how: t('square {size}, cut once on the diagonal ◩', { size: mm(c) }),
+          };
         }
         const c = upmm(hyp + s * (2 + 2 * Math.SQRT2));
-        return { kind: 'qst', cut: [c, c], yield: 4, how: `square ${mm(c)}, cut twice on the diagonals ⊠` };
+        return {
+          kind: 'qst',
+          cut: [c, c],
+          yield: 4,
+          how: t('square {size}, cut twice on the diagonals ⊠', { size: mm(c) }),
+        };
       }
     }
     // a diamond (tumbling blocks): four equal sides, not square; cut from strips as wide as it is across the flats
@@ -76,7 +87,11 @@ const CG = (() => {
           kind: 'diamond',
           cut: [long, flats],
           yield: 1,
-          how: `diamond template (${angle}°), finished side ${mm(side)}; cut from a strip ${len(flats)} wide`,
+          how: t('diamond template ({angle}°), finished side {side}; cut from a strip {width} wide', {
+            angle,
+            side: mm(side),
+            width: len(flats),
+          }),
         };
       }
     }
@@ -91,7 +106,11 @@ const CG = (() => {
           kind: 'hex',
           cut: [points, flats],
           yield: 1,
-          how: `hexagon template, finished side ${mm(side)}; cut ${len(flats)} across the flats (${len(points)} point to point)`,
+          how: t('hexagon template, finished side {side}; cut {flats} across the flats ({points} point to point)', {
+            side: mm(side),
+            flats: len(flats),
+            points: len(points),
+          }),
         };
       }
     }
@@ -109,14 +128,21 @@ const CG = (() => {
         kind: 'template',
         cut: [Math.max(w, h), Math.min(w, h), ...sides],
         yield: 1,
-        how: `triangle template, finished sides ${dims(sides)}; add ${len(s)} seam allowance all round (fits in ${dims([Math.min(w, h), Math.max(w, h)])})`,
+        how: t('triangle template, finished sides {sides}; add {seam} seam allowance all round (fits in {box})', {
+          sides: dims(sides),
+          seam: len(s),
+          box: dims([Math.min(w, h), Math.max(w, h)]),
+        }),
       };
     }
     return {
       kind: 'template',
       cut: [Math.max(w, h), Math.min(w, h)],
       yield: 1,
-      how: `template piece in a ${dims([Math.min(w, h), Math.max(w, h)])} rectangle, ${len(s)} seam allowance added`,
+      how: t('template piece in a {box} rectangle, {seam} seam allowance added', {
+        box: dims([Math.min(w, h), Math.max(w, h)]),
+        seam: len(s),
+      }),
     };
   }
 
@@ -207,7 +233,10 @@ const CG = (() => {
                   cut: pc.cut,
                   yield: 1,
                   fussy: true,
-                  how: `${pc.how.replace(/, cut (once|twice) on the diagonals?.*$/, '')} · fussy cut: one at a time, centred on the chosen motif`,
+                  // (a triangle cut from a square is cut whole here: the square, without "cut on the diagonal")
+                  how: t('{how} · fussy cut: one at a time, centred on the chosen motif', {
+                    how: pc.kind === 'hst' || pc.kind === 'qst' ? t('square {size}', { size: mm(pc.cut[0]) }) : pc.how,
+                  }),
                   pieces: 0,
                 }
               : {
@@ -262,10 +291,18 @@ const CG = (() => {
         sashList.push({
           ...x,
           letter,
-          how: `${strips} strip${strips > 1 ? 's' : ''} ${len(width)} × WOF, joined and cut to ${dims(
-            x.lens.map(l => upmm(l + 2 * s)),
-            ' + ',
-          )}`,
+          how: tn(
+            strips,
+            '{n} strip {width} × WOF, joined and cut to {lens}',
+            '{n} strips {width} × WOF, joined and cut to {lens}',
+            {
+              width: len(width),
+              lens: dims(
+                x.lens.map(l => upmm(l + 2 * s)),
+                ' + ',
+              ),
+            },
+          ),
           n: x.lens.length,
         });
         continue;
@@ -280,7 +317,10 @@ const CG = (() => {
           ch = upmm(x.h + 2 * s);
         kind = cw === ch ? 'square' : 'rect';
         cut = [Math.max(cw, ch), Math.min(cw, ch)];
-        how = kind === 'square' ? `square ${mm(cw)}` : `rectangle ${dims([Math.min(cw, ch), Math.max(cw, ch)])}`;
+        how =
+          kind === 'square'
+            ? t('square {size}', { size: mm(cw) })
+            : t('rectangle {size}', { size: dims([Math.min(cw, ch), Math.max(cw, ch)]) });
       }
       const k = kind + '|' + cut.join('x');
       const c = f.cuts.get(k) || { kind, cut, yield: yld, how, pieces: 0 };
@@ -344,7 +384,7 @@ const CG = (() => {
     bf.small = false;
     for (const r of result) {
       const L = Math.ceil(r.length + 50); // 50 mm to straighten the edge
-      r.requirement = r.small ? dims([Math.ceil(r.maxW), Math.ceil(r.length)]) : `${len(L)} × WOF`;
+      r.requirement = r.small ? dims([Math.ceil(r.maxW), Math.ceil(r.length)]) : t('{size} × WOF', { size: len(L) });
       r.buy = r.small ? '' : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));
@@ -387,7 +427,7 @@ const CG = (() => {
         out.set(sp.kind, {
           group: 'setting',
           setting: sp.kind,
-          what: sp.kind === 'side' ? 'Side triangles' : 'Corner triangles',
+          what: sp.kind === 'side' ? t('Side triangles') : t('Corner triangles'),
           fabric: d.settingFabric || 'b0',
           kind: c.kind,
           cut: c.cut,

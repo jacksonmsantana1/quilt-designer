@@ -32,6 +32,7 @@ import { drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { openBlockEditor } from './side-panel.js';
 import { dispatch } from './dispatch.js';
 import { flipBlocks, rotateBlocks, setBlockSpan } from '../core/edits.js';
+import { t } from '@quilt/shared/i18n.js';
 
 // ---- hover: highlight the block under the mouse; rest on one part and only that part lights up.
 // A click while a part is lit opens a small pop-up with just the fabrics, for that part.
@@ -150,19 +151,30 @@ function drawHover() {
     g.restore();
     const s = sashOf(design),
       b = hover.zone === 'brd' ? bordersOf(design)[hover.zi] : null;
-    hoverLabel(
-      g,
-      hover.zone === 'setting'
-        ? `${z.kind === 'corner' ? 'Corner triangle' : 'Setting triangle'} · ${fabricById(design.settingFabric || 'b0').name} · click to edit`
-        : hover.zone === 'brd'
-          ? `Border ${hover.zi + 1} · ${BORDER_TYPES[b.type].label} · ${len(b.mm)} · click to edit`
-          : `${z.kind === 'corner' ? 'Cornerstone' : 'Sashing'} · ${
-              z.kind === 'corner' && s.cornerBlock
-                ? PATTERNS[s.cornerBlock.pattern].label
-                : fabricById(z.kind === 'corner' ? s.corner : s.fabric).name
-            } · ${len(s.mm)} · click to edit`,
-      W,
-    );
+    /** The label of a setting triangle or of the sashing: which one it is decides the whole sentence. */
+    const zoneLabel = () => {
+      if (hover.zone === 'setting') {
+        const fabric = fabricById(design.settingFabric || 'b0').name;
+        return z.kind === 'corner'
+          ? t('Corner triangle · {fabric} · click to edit', { fabric })
+          : t('Setting triangle · {fabric} · click to edit', { fabric });
+      }
+      if (hover.zone === 'brd')
+        return t('Border {n} · {type} · {size} · click to edit', {
+          n: hover.zi + 1,
+          type: BORDER_TYPES[b.type].label,
+          size: len(b.mm),
+        });
+      const what =
+          z.kind === 'corner' && s.cornerBlock
+            ? PATTERNS[s.cornerBlock.pattern].label
+            : fabricById(z.kind === 'corner' ? s.corner : s.fabric).name,
+        size = len(s.mm);
+      return z.kind === 'corner'
+        ? t('Cornerstone · {what} · {size} · click to edit', { what, size })
+        : t('Sashing · {what} · {size} · click to edit', { what, size });
+    };
+    hoverLabel(g, zoneLabel(), W);
     return;
   }
   if (hover.bi < 0 || hover.bi >= design.blocks.length) {

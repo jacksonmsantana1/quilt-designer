@@ -1,6 +1,7 @@
 // Show / hide panels of the Simulation page.
 import '../mine/community.js'; // load order: runs after mine/community
 import { $ } from '../core/dom.js';
+import { t } from '@quilt/shared/i18n.js';
 import { resize } from './camera.js';
 import { fitSimSide } from '../app/layout.js';
 
@@ -16,7 +17,7 @@ import { fitSimSide } from '../app/layout.js';
   const set = v => {
     shown = v;
     stage.dataset.ctl = v ? 'shown' : 'hidden';
-    btn.textContent = v ? 'Hide controls' : 'Show controls';
+    btn.textContent = v ? t('Hide controls') : t('Show controls');
     btn.setAttribute('aria-expanded', String(v));
     try {
       localStorage.setItem(KEY, v ? '1' : '0');
@@ -43,7 +44,7 @@ function updateSimSide() {
   const btn = $('run-more');
   const set = v => {
     simPanels.run = v;
-    btn.textContent = v ? 'Fewer options' : 'More options';
+    btn.textContent = v ? t('Fewer options') : t('More options');
     btn.setAttribute('aria-expanded', String(v));
     updateSimSide();
   };
@@ -60,8 +61,8 @@ function updateSimSide() {
     shown = v;
     side.dataset.adv = v ? 'shown' : 'hidden';
     simPanels.adv = v;
-    btn.textContent = v ? 'Hide advanced settings' : 'Show advanced settings';
-    btn.title = 'Photo render, measurements, final-state analysis and fabric physics';
+    btn.textContent = v ? t('Hide advanced settings') : t('Show advanced settings');
+    btn.title = t('Photo render, measurements, final-state analysis and fabric physics');
     btn.setAttribute('aria-expanded', String(v));
     if (typeof updateSimSide === 'function') updateSimSide();
   };

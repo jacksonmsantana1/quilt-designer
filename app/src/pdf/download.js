@@ -19,6 +19,7 @@ import {
 import { templateJobs } from './templates.js';
 import { isFabric, loadFabrics } from '../designer/fabric-library.js';
 import { fabricIdsIn } from '../core/fabric-picks.js';
+import { t } from '@quilt/shared/i18n.js';
 
 async function makeCutPdf() {
   if (!design) return null;
@@ -41,33 +42,36 @@ async function makeCutPdf() {
   const total = jobs.length,
     pages = [];
   for (let k = 0; k < total; k++) {
-    cgPdfStatus(`Drawing page ${k + 1} of ${total}…`);
+    cgPdfStatus(t('Drawing page {k} of {total}…', { k: k + 1, total }));
     await new Promise(r => setTimeout(r, 0));
     const c = jobs[k](total, k + 1);
     pages.push({ w: c.width, h: c.height, jpg: await canvasJpeg(c) });
   }
   return buildPdf(pages);
 }
-function cgPdfStatus(t) {
+// (a message still under way ends in "…" in every language and stays until the next one)
+function cgPdfStatus(msg) {
   const el = $('cg-pdfstat');
-  el.textContent = t;
-  el.hidden = !t;
+  el.textContent = msg;
+  el.hidden = !msg;
   clearTimeout(cgPdfStatus.t);
-  if (t && !t.endsWith('…')) cgPdfStatus.t = setTimeout(() => cgPdfStatus(''), 5000);
+  if (msg && !msg.endsWith('…')) cgPdfStatus.t = setTimeout(() => cgPdfStatus(''), 5000);
 }
 async function downloadCutPdf() {
   const btn = $('cg-pdf');
   btn.disabled = true;
   const d = new Date(),
     pad = n => String(n).padStart(2, '0');
-  const filename = `quilt-cutting-guide-A4-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.pdf`;
+  const filename = t('quilt-cutting-guide-A4-{date}.pdf', {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+  });
   try {
     const blob = await makeCutPdf();
     window.__lastCutPdf = blob;
     if (downloads) {
-      cgPdfStatus('Saving…');
+      cgPdfStatus(t('Saving…'));
       const res = await downloads.save({ filename, data: blob });
-      cgPdfStatus(res && res.status === 'delivered' ? 'Sent' : 'Saved');
+      cgPdfStatus(res && res.status === 'delivered' ? t('Sent') : t('Saved'));
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -76,16 +80,16 @@ async function downloadCutPdf() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-      cgPdfStatus('Saved');
+      cgPdfStatus(t('Saved'));
     }
   } catch (e) {
     const code = e && e.code;
     cgPdfStatus(
       code === 'declined'
-        ? 'Not saved'
+        ? t('Not saved')
         : code === 'rate_limited'
-          ? 'A save dialog is already open'
-          : (e && e.message) || 'The PDF could not be made',
+          ? t('A save dialog is already open')
+          : (e && e.message) || t('The PDF could not be made'),
     );
   } finally {
     btn.disabled = false;

@@ -2,6 +2,7 @@
 // small window; the app only gets tokens, which the sync sends to the quilt server (server/src/auth.js checks them).
 // Auth0's library comes from the CDN, and only once someone signs in or is signed in: the app works without it.
 // The tenant, the app's id there and the server's identifier are not secrets (a page can't keep secrets).
+import { getLang } from '@quilt/shared/i18n.js';
 
 const AUTH0 = {
   domain: 'dev-5op4uervqyekvlsx.us.auth0.com',
@@ -22,7 +23,12 @@ function auth0Client() {
         clientId: AUTH0.clientId,
         cacheLocation: 'localstorage',
         useRefreshTokens: true,
-        authorizationParams: { audience: AUTH0.audience, redirect_uri: location.origin },
+        authorizationParams: {
+          audience: AUTH0.audience,
+          redirect_uri: location.origin,
+          // Auth0's page in the language in use (English is its default: nothing to ask for)
+          ...(getLang() === 'pt-BR' ? { ui_locales: getLang() } : {}),
+        },
       }),
     )
     .catch(e => {

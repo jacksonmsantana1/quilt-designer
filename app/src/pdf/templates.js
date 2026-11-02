@@ -2,6 +2,7 @@
 import './pages.js'; // load order: runs after pdf/pages
 import { fabricById } from '../designer/fabric-library.js';
 import { getUnit, len } from '../core/units.js';
+import { t } from '@quilt/shared/i18n.js';
 import { pathPoly } from '@quilt/shared/geometry.js';
 import { A4, pdfPageCanvas, pdfText } from './pages.js';
 import { fabricFill } from '../render/fabric-fill.js';
@@ -340,10 +341,10 @@ function roomiestPoint(p, x, y, w, h, mx = 15, my = 12) {
   return best || [p.reduce((a, v) => a + v[0], 0) / p.length, p.reduce((a, v) => a + v[1], 0) / p.length];
 }
 function drawTemplateShape(g, P, it, ox, oy, clip) {
-  const t = it.t,
+  const tpl = it.t,
     fin = it.fin.map(([x, y]) => [x + ox, y + oy]),
     cut = it.cut.map(([x, y]) => [x + ox, y + oy]);
-  const fabId = [...t.ids.keys()][0],
+  const fabId = [...tpl.ids.keys()][0],
     letter = fabId.match(/^[A-Z]+/)[0];
   const fab = fabricById((P.fabrics.find(f => f.letter === letter) || {}).id);
   g.save();
@@ -365,10 +366,10 @@ function drawTemplateShape(g, P, it, ox, oy, clip) {
   g.setLineDash([]);
   // label, count and straight-grain arrow (the block's horizontal direction, turned with the shape)
   const [cx, cy] = roomiestPoint(fin, clip[0], clip[1], clip[2], clip[3], clip[4] ?? 15, clip[5] ?? 12);
-  const ids = [...t.ids.keys()].join(' / ');
+  const ids = [...tpl.ids.keys()].join(' / ');
   const size = Math.max(3.4, Math.min(7, (bx1 - bx0) / (ids.length * 0.9)));
   pdfText(g, ids, cx, cy, size, { align: 'center', serif: true, weight: 700 });
-  pdfText(g, 'cut ' + [...t.ids.values()].reduce((a, n) => a + n, 0), cx, cy + 3.6, 2.6, {
+  pdfText(g, t('cut {n}', { n: [...tpl.ids.values()].reduce((a, n) => a + n, 0) }), cx, cy + 3.6, 2.6, {
     align: 'center',
     color: '#3a3732',
   });
@@ -395,7 +396,7 @@ function drawTemplateShape(g, P, it, ox, oy, clip) {
     g.lineTo(px + s * (dx * 2.5 + dy * 1.4), py + s * (dy * 2.5 - dx * 1.4));
   }
   g.stroke();
-  pdfText(g, 'grain', mx + Math.abs(dy) * 4, my + Math.abs(dx) * 3.4, 2.4, {
+  pdfText(g, t('grain'), mx + Math.abs(dy) * 4, my + Math.abs(dx) * 3.4, 2.4, {
     align: Math.abs(dy) > 0.5 ? 'left' : 'center',
     color: '#5a5650',
   });
@@ -421,17 +422,27 @@ function pdfTemplateHeader(g, P, title, lines, page, pages) {
     g.lineTo(bx + k * 10, by + (k % 5 ? 1.2 : 2));
   }
   g.stroke();
-  pdfText(g, getUnit() === 'in' ? 'check: 50 mm (about 2 in)' : 'check: 50 mm', bx + 25, by + 5.5, 3, {
+  pdfText(g, getUnit() === 'in' ? t('check: 50 mm (about 2 in)') : t('check: 50 mm'), bx + 25, by + 5.5, 3, {
     align: 'center',
     color: '#5a5650',
   });
-  pdfText(g, `Page ${page} of ${pages}`, A4.w - M, A4.h - 6, 3.2, { align: 'right', color: '#8a857c' });
+  pdfText(g, t('Page {page} of {pages}', { page, pages }), A4.w - M, A4.h - 6, 3.2, {
+    align: 'right',
+    color: '#8a857c',
+  });
 }
 const realSizeNote = P =>
-  `Real size: print at 100 % / "actual size". Solid line = cutting line (${len(P.seam)} seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).`;
-const mirrorNote = t =>
-  t.mirrored && t.plain
-    ? `${[...t.ids.keys()].join('/')}: ${t.mirrored} of ${t.mirrored + t.plain} are mirror images, turn the template over to cut them.`
+  t(
+    'Real size: print at 100 % / "actual size". Solid line = cutting line ({seam} seam allowance included); dashed = sewing line (for English paper piecing, cut the papers on it).',
+    { seam: len(P.seam) },
+  );
+const mirrorNote = tpl =>
+  tpl.mirrored && tpl.plain
+    ? t('{ids}: {m} of {all} are mirror images, turn the template over to cut them.', {
+        ids: [...tpl.ids.keys()].join('/'),
+        m: tpl.mirrored,
+        all: tpl.mirrored + tpl.plain,
+      })
     : '';
 // a sheet holding several whole templates
 function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
@@ -440,10 +451,10 @@ function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
   pdfTemplateHeader(
     g,
     P,
-    b.mosaic ? 'Templates · Mosaic' : `Templates · Block ${i + 1}`,
+    b.mosaic ? t('Templates · Mosaic') : t('Templates · Block {n}', { n: i + 1 }),
     [
       {
-        text: `${b.label} · ${sheet.items.map(it => [...it.t.ids.entries()].map(([id, n]) => `${id} × ${n}`).join(', ')).join(' · ')}${nsk > 1 ? ` · sheet ${sk + 1} of ${nsk}` : ''}`,
+        text: `${b.label} · ${sheet.items.map(it => [...it.t.ids.entries()].map(([id, n]) => `${id} × ${n}`).join(', ')).join(' · ')}${nsk > 1 ? ` · ${t('sheet {k} of {n}', { k: sk + 1, n: nsk })}` : ''}`,
       },
       { text: realSizeNote(P) },
       ...notes.slice(0, 2).map(n => ({ text: n, color: '#8a3b1f', weight: 600 })),
@@ -462,18 +473,25 @@ function pdfPackedPage(P, b, i, sheet, sk, nsk, page, pages) {
 function pdfTiledPage(P, b, i, sp, tile, page, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 10;
-  const t = sp.t,
+  const tpl = sp.t,
     n = sp.tiles.length;
   pdfTemplateHeader(
     g,
     P,
-    b.mosaic ? 'Template · Mosaic' : `Template · Block ${i + 1}`,
+    b.mosaic ? t('Template · Mosaic') : t('Template · Block {n}', { n: i + 1 }),
     [
       {
-        text: `${b.label} · cut ${[...t.ids.entries()].map(([id, k]) => `${id} × ${k}`).join(' · ')} · sheet ${tile.k + 1} of ${n} (row ${tile.r + 1}, column ${tile.c + 1})`,
+        text: t('{label} · cut {ids} · sheet {k} of {n} (row {r}, column {c})', {
+          label: b.label,
+          ids: [...tpl.ids.entries()].map(([id, k]) => `${id} × ${k}`).join(' · '),
+          k: tile.k + 1,
+          n,
+          r: tile.r + 1,
+          c: tile.c + 1,
+        }),
       },
       { text: realSizeNote(P) },
-      ...(mirrorNote(t) ? [{ text: mirrorNote(t), color: '#8a3b1f', weight: 600 }] : []),
+      ...(mirrorNote(tpl) ? [{ text: mirrorNote(tpl), color: '#8a3b1f', weight: 600 }] : []),
     ],
     page,
     pages,
@@ -509,7 +527,7 @@ function pdfTiledPage(P, b, i, sp, tile, page, pages) {
   }
   pdfText(
     g,
-    'Trim along the dotted border where sheets join, match the + marks, and tape the sheets edge to edge.',
+    t('Trim along the dotted border where sheets join, match the + marks, and tape the sheets edge to edge.'),
     M,
     A4.h - 6,
     3,

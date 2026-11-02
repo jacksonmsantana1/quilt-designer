@@ -85,6 +85,14 @@ test('findFabrics: words in any order and case, accents ignored, within a group'
   assert.deepEqual(ids({ query: 'velvet' }), []);
 });
 
+test('the search ignores accents and case on both sides', () => {
+  const names = ['Poá azul', 'Xadrez', 'Cream polka dot'].map((name, i) => ({ id: 'f' + i, name }));
+  const ids = query => findFabrics(names, { query }).map(f => f.name);
+  assert.deepEqual(ids('poa'), ['Poá azul'], 'typed plain finds the accented name');
+  assert.deepEqual(ids('POÁ'), ['Poá azul']);
+  assert.deepEqual(ids('crêam'), ['Cream polka dot'], 'typed accented finds the plain name');
+});
+
 test('the palette: its own list (or the default), and the quilt’s fabrics and the chosen one always shown', () => {
   const ids = o => paletteList(o).map(t => t.id + (t.fixed ? '!' : ''));
   // nobody changed it: the default

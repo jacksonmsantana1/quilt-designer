@@ -1,16 +1,18 @@
 // Opens the storage before anything else runs: the top-level await holds back every module after this one in the
 // load order (they read saved designs and settings as they load), so the app starts with its data in memory.
+import '../ui/translate-page.js'; // the page's text first, so it never waits for the storage to open
 import * as repo from './repo.js';
 import { flush, isPersistent, onStorageError, openStorage } from './repo.js';
 import { notify } from '../ui/notice.js';
+import { t } from '@quilt/shared/i18n.js';
 
 onStorageError(() =>
-  notify('Your quilt could not be saved: this browser’s storage for the page may be full. Delete some old designs.'),
+  notify(t('Your quilt could not be saved: this browser’s storage for the page may be full. Delete some old designs.')),
 );
 await openStorage();
 if (!isPersistent())
   setTimeout(
-    () => notify('This browser is not letting the page keep data, so your quilts will be lost when you close it.'),
+    () => notify(t('This browser is not letting the page keep data, so your quilts will be lost when you close it.')),
     800,
   );
 // write anything pending before the page goes away

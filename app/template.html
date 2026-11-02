@@ -72,7 +72,8 @@
   body.sim-over .app-strip { visibility: hidden; }
   @media (max-width: 1000px) { .app-logo b { display: none; } }
   /* the account corner: Sign in, or a round button with the person's initial that opens Sign out */
-  .acct { position: absolute; right: 0; top: 4px; z-index: 60; }
+  .acct { position: absolute; right: 0; top: 4px; z-index: 60; display: flex; align-items: center; gap: 8px; }
+  .lang-menu { font: 600 .85rem var(--font-body); color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 6px; cursor: pointer; }
   .acct-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); font: 600 1.1rem var(--font-body); cursor: pointer; box-shadow: 0 2px 8px rgba(var(--shade),.18); }
   .acct-btn:focus-visible { outline: 3px solid var(--madder); outline-offset: 2px; }
   .acct-menu { position: absolute; right: 0; top: 52px; width: 260px; padding: 14px; border: 2px dashed var(--stitch); border-radius: 12px; background: var(--panel); box-shadow: 0 10px 30px rgba(var(--shade),.18); display: grid; gap: 10px; text-align: left; }
@@ -540,7 +541,7 @@
   .pats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
   .pats .pat, .fabs .fab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
   .pats .pat canvas, .fabs .fab canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
-  .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; }
+  .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; hyphens: auto; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .pats .pat:disabled { opacity: .4; cursor: not-allowed; } /* e.g. cornerstone blocks on narrow sashing */
   /* a fabric list is one row that scrolls sideways (the mouse wheel scrolls it too), with a round "More fabrics"
@@ -764,8 +765,9 @@
   #dz-quilt, #dz-block { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .dz-toolbar .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   /* Phones: controls move below the 3D view, everything becomes thumb-sized. */
+  @media (max-width: 440px) { .tabs { gap: 2px; } }
   @media (max-width: 640px) {
-    .tabs button { padding: 10px 14px; font-size: .95rem; }
+    .tabs button { padding: 10px clamp(5px, 2.2vw, 14px); font-size: clamp(.82rem, 3.6vw, .95rem); }
     body { font-size: 15px; }
     h1 { font-size: 1.35rem; }
     header { gap: 8px 12px; }
@@ -821,6 +823,7 @@
   </nav>
   <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: a short exercise to make and change a three-block quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   <div class="acct" id="acct">
+    <select class="lang-menu" data-lang aria-label="Language" title="Language"><option value="en">English</option><option value="pt-BR">Português</option></select>
     <button class="btn sm" type="button" id="acct-signin">Sign in</button>
     <button class="acct-btn" type="button" id="acct-btn" aria-haspopup="true" aria-expanded="false" aria-controls="acct-menu" hidden><span id="acct-initial" aria-hidden="true"></span></button>
     <div class="acct-menu" id="acct-menu" hidden>
@@ -837,6 +840,7 @@
   <div class="w-wrap w-top">
     <div class="w-logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="16" height="16" fill="oklch(0.58 0.13 40)"/><rect x="16" width="16" height="16" fill="oklch(0.8 0.13 85)"/><rect y="16" width="16" height="16" fill="oklch(0.72 0.06 140)"/><rect x="16" y="16" width="16" height="16" fill="oklch(0.58 0.13 40)"/><path d="M16 0h16L16 16zM0 32V16l16 16z" fill="oklch(0.97 0.015 80)" opacity=".55"/></svg><b>Quilt designer</b></div>
     <nav aria-label="Account">
+      <select class="lang-menu" data-lang aria-label="Language" title="Language"><option value="en">English</option><option value="pt-BR">Português</option></select>
       <button class="w-btn stitched sm" type="button" id="welcome-signin" data-auth="signin">Sign in</button>
       <button class="w-btn rust sm" type="button" data-auth="signup">Get started</button>
     </nav>

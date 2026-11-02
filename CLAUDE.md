@@ -74,6 +74,16 @@ Everything must stay green: `npm run check` with zero lint warnings, and all bro
 - **Sync** (`storage/sync.js` engine, `mine/sync-ui.js` card on My designs): push photos, push designs, pull
   `/v1/changes`. Conflict = server version keeps the id, this device's becomes "Name (this device)". Triggers:
   2.5 s after a local change, on `online`, every minute, "Sync now".
+- **Language** (`shared/src/i18n.js`, dictionary `shared/src/lang/pt-BR/`): English stays in the code and is the key.
+  New text: `t('Sign in')`, `t('Block {n} of {all}', { n, all })`, `tn(n, '{n} block', '{n} blocks')`; always a plain
+  literal and a whole sentence (word order differs), `fix(v, 2)` for decimals a person reads, `unitName()` for the unit.
+  `template.html` stays in English (`ui/translate-page.js` looks its text up). Then add the Portuguese to the part of
+  the dictionary for that area; `node app/tools/i18n-strings.mjs missing` lists what is missing, and the unit tests
+  fail until it is there. A new block needs its name in `pt-BR/blocks.js` (the English again if quilters keep it), a new
+  piece name the parts in `pt-BR/pieces.js`. The language is fixed at page load (the menu saves it in localStorage and
+  reloads), so `t()` works in module-level constants. Saved quilts don't depend on it: piece names stay English in
+  `design.drawn` and are translated when read (`partsOf`); `PATTERNS[k].family` stays English for the code (`t(family)`
+  to show it). Node always starts in English, and the browser tests run in English except `i18n.spec.mjs`.
 - **Style**: Prettier (120 cols, single quotes). Comments say why in plain words. UI text is short and friendly.
 
 ## Server (server/)

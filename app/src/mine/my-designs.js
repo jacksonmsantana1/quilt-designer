@@ -16,6 +16,7 @@ import { isFabric, loadFabrics } from '../designer/fabric-library.js';
 import { fabricIdsIn } from '../core/fabric-picks.js';
 import { communityHooks, sharedIds } from './shared-state.js';
 import { designs, flush, getSession, setSession, timelines } from '../storage/repo.js';
+import { getLang, t } from '@quilt/shared/i18n.js';
 
 // ---- My designs: saved quilts, shown as a Pinterest-style masonry
 // The designs themselves are records in storage/repo.js (designs.list, save, remove); mineCur, the one being
@@ -24,6 +25,19 @@ setMineCur(getSession('mineCur') || null);
 /** Keeps which saved design is being edited (after setMineCur). */
 function mineSave() {
   setSession('mineCur', mineCur || undefined);
+}
+/**
+ * The app's sample designs, by id, with the names they were first saved under on older devices.
+ * @type {Record<string, string>}
+ */
+const SAMPLE_NAMES = { qmedallion: 'Medallion sampler', qphoto: 'Medallion from the photo' };
+/**
+ * A saved design's name as shown. A person's names stay as they typed them; a sample still under its English name
+ * reads in the language in use. @param {{ id: string, name: string }} m @returns {string}
+ */
+function shownName(m) {
+  const sample = SAMPLE_NAMES[m.id];
+  return m.name === sample ? t(sample) : m.name;
 }
 function quiltPicture(d, width) {
   const qq = quiltMm(d),
@@ -46,8 +60,8 @@ function openSaveDialog(forceNew) {
   if (!design) return;
   saveForceNew = !!forceNew;
   const cur = !saveForceNew && mineCur && designs.get(mineCur);
-  $('save-name').value = cur ? cur.name : `Quilt ${designs.list().length + 1}`;
-  $('save-title').textContent = cur ? 'Save changes' : 'Save design';
+  $('save-name').value = cur ? shownName(cur) : t('Quilt {n}', { n: designs.list().length + 1 });
+  $('save-title').textContent = cur ? t('Save changes') : t('Save design');
   $('save-asnew').hidden = !cur;
   const pic = quiltPicture(design, 300),
     cv = $('save-cv');
@@ -67,7 +81,7 @@ function openSaveDialog(forceNew) {
 }
 function doSave(asNew) {
   if (readOnly) {
-    notify('This quilt was made with a newer version of the app, so it cannot be saved here.');
+    notify(t('This quilt was made with a newer version of the app, so it cannot be saved here.'));
     $('save-dlg').close();
     return;
   }
@@ -76,10 +90,10 @@ function doSave(asNew) {
   $('save-dlg').close();
   const b = $('dz-save');
   b.classList.add('saved');
-  b.title = 'Saved ✓';
+  b.title = t('Saved ✓');
   setTimeout(() => {
     b.classList.remove('saved');
-    b.title = 'Save this quilt to My designs';
+    b.title = t('Save this quilt to My designs');
   }, 1600);
 }
 /**
@@ -87,7 +101,7 @@ function doSave(asNew) {
  * takes the timeline so far. @param {string} [typed] the name @param {boolean} [asNew] @returns {import('../storage/repo.js').DesignRecord}
  */
 function saveCurrent(typed, asNew = false) {
-  const name = (typed || '').trim() || `Quilt ${designs.list().length + 1}`;
+  const name = (typed || '').trim() || t('Quilt {n}', { n: designs.list().length + 1 });
   const old = !asNew && mineCur && designs.get(mineCur);
   const prev = mineCur;
   const cur = designs.save({ id: old ? old.id : designs.newId(), name, design });
@@ -105,12 +119,12 @@ function openMine(id) {
   const m = designs.get(id);
   if (!m) return;
   if (!readDesign(m.design)) {
-    notify(`“${m.name}” could not be read.`);
+    notify(t('“{name}” could not be read.', { name: shownName(m) }));
     return;
   }
   setMineCur(id);
   mineSave();
-  openDesign(m.design, { timeline: id, what: `“${m.name}”` });
+  openDesign(m.design, { timeline: id, what: `“${shownName(m)}”` });
   showPage('design');
 }
 /** fabrics whose pictures My designs has asked for */
@@ -121,14 +135,16 @@ function renderMine() {
     sort = $('mine-sort').value;
   const all = designs.list().filter(m => !pendingDelete.has(m.id)), // a deletion waiting for Undo: gone already
     key = sort === 'created' ? 'createdAt' : 'updatedAt';
-  const list = all.filter(m => !q || m.name.toLowerCase().includes(q));
-  list.sort(sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => b[key] - a[key]);
+  const list = all.filter(m => !q || shownName(m).toLowerCase().includes(q));
+  list.sort(sort === 'name' ? (a, b) => shownName(a).localeCompare(shownName(b)) : (a, b) => b[key] - a[key]);
   grid.innerHTML = '';
   $('mine-empty').hidden = all.length > 0 && list.length > 0;
-  if (all.length && !list.length) $('mine-empty').textContent = 'No designs match your search.';
+  if (all.length && !list.length) $('mine-empty').textContent = t('No designs match your search.');
   else
-    $('mine-empty').innerHTML = 'No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.';
-  const when = t => new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+    $('mine-empty').innerHTML = t(
+      'No saved designs yet. In the Quilt designer, press <b>Save</b> to keep a quilt here.',
+    );
+  const when = at => new Date(at).toLocaleDateString([getLang()], { day: 'numeric', month: 'short', year: 'numeric' });
   // the pictures of the fabrics the quilts use: asked for once, and the cards drawn again when they come (a quilt
   // from another device can use fabrics not drawn yet here)
   const want = new Set();
@@ -145,22 +161,27 @@ function renderMine() {
     pin.className = 'pin' + (m.id === mineCur ? ' current' : '');
     const img = document.createElement('div');
     img.className = 'img';
-    img.title = 'Open in the Quilt designer';
+    img.title = t('Open in the Quilt designer');
     img.appendChild(quiltPicture(d, 260));
     const meta = document.createElement('div');
     meta.className = 'meta';
     const text = document.createElement('div');
     text.className = 'meta-text';
     const nm = document.createElement('b');
-    nm.textContent = m.name;
+    nm.textContent = shownName(m);
     const sm = document.createElement('small');
-    sm.textContent = `${d.cols} × ${d.rows} blocks · ${dims([quiltMm(d).W, quiltMm(d).H])} · ${when(m.updatedAt)}`;
+    sm.textContent = t('{cols} × {rows} blocks · {size} · {date}', {
+      cols: d.cols,
+      rows: d.rows,
+      size: dims([quiltMm(d).W, quiltMm(d).H]),
+      date: when(m.updatedAt),
+    });
     text.append(nm, sm);
     if (sharedIds.has(m.id)) {
       const tag = document.createElement('span');
       tag.className = 'pin-tag';
-      tag.textContent = 'Shared';
-      tag.title = 'Shared with the community';
+      tag.textContent = t('Shared');
+      tag.title = t('Shared with the community');
       text.appendChild(tag);
     }
     // ⋯ : Open, Rename, Duplicate, Delete (always shown, phones too: no hover needed)
@@ -168,7 +189,7 @@ function renderMine() {
     more.type = 'button';
     more.className = 'pin-more';
     more.textContent = '⋯';
-    more.setAttribute('aria-label', `More for “${m.name}”`);
+    more.setAttribute('aria-label', t('More for “{name}”', { name: shownName(m) }));
     more.setAttribute('aria-haspopup', 'menu');
     more.setAttribute('aria-expanded', 'false');
     more.addEventListener('click', e => {
@@ -203,13 +224,13 @@ function cardMenu(btn, m, nm) {
   menu = document.createElement('div');
   menu.className = 'pin-menu';
   menu.setAttribute('role', 'menu');
-  menu.setAttribute('aria-label', `“${m.name}”`);
+  menu.setAttribute('aria-label', `“${shownName(m)}”`);
   const items = [
-    ['open', 'Open'],
-    ['rename', 'Rename'],
-    ['dup', 'Duplicate'],
-    sharedIds.has(m.id) ? ['unshare', 'Stop sharing'] : ['share', 'Share with the community'],
-    ['del', 'Delete'],
+    ['open', t('Open')],
+    ['rename', t('Rename')],
+    ['dup', t('Duplicate')],
+    sharedIds.has(m.id) ? ['unshare', t('Stop sharing')] : ['share', t('Share with the community')],
+    ['del', t('Delete')],
   ];
   for (const [a, label] of items) {
     const it = document.createElement('button');
@@ -257,10 +278,11 @@ function cardMenu(btn, m, nm) {
 function renameCard(m, nm) {
   const inp = document.createElement('input');
   inp.type = 'text';
-  inp.value = m.name;
+  const shown = shownName(m);
+  inp.value = shown;
   inp.maxLength = 60;
   inp.style.width = '100%';
-  inp.setAttribute('aria-label', 'New name');
+  inp.setAttribute('aria-label', t('New name'));
   nm.replaceWith(inp);
   inp.focus();
   inp.select();
@@ -271,7 +293,7 @@ function renameCard(m, nm) {
     if (ended) return;
     ended = true;
     const name = inp.value.trim();
-    if (keep && name && name !== m.name) designs.save({ id: m.id, name });
+    if (keep && name && name !== shown) designs.save({ id: m.id, name });
     renderMine();
   };
   inp.addEventListener('keydown', ev => {
@@ -281,7 +303,11 @@ function renameCard(m, nm) {
   inp.addEventListener('blur', () => end(true));
 }
 function duplicateCard(m) {
-  const copy = designs.save({ id: designs.newId(), name: m.name + ' (copy)', design: m.design });
+  const copy = designs.save({
+    id: designs.newId(),
+    name: t('{name} (copy)', { name: shownName(m) }),
+    design: m.design,
+  });
   tlCopy(m.id, copy.id);
   renderMine();
 }
@@ -315,10 +341,10 @@ function deleteWithUndo(m) {
     }, UNDO_MS),
   );
   renderMine();
-  notify(`“${m.name}” was deleted.`, {
+  notify(t('“{name}” was deleted.', { name: shownName(m) }), {
     ms: UNDO_MS,
     action: {
-      label: 'Undo',
+      label: t('Undo'),
       run: () => {
         clearTimeout(pendingDelete.get(m.id));
         pendingDelete.delete(m.id);
@@ -377,4 +403,4 @@ function adoptDesignId(id) {
   mineSave();
 }
 
-export { adoptDesignId, mineSave, openMine, quiltPicture, renderMine, saveCurrent };
+export { adoptDesignId, mineSave, openMine, quiltPicture, renderMine, saveCurrent, shownName };

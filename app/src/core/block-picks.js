@@ -13,13 +13,13 @@ export function patternsIn(design) {
 /**
  * The block library's search: every word typed must be in the block's name or family, within the chosen group
  * ('all', 'quilt', 'recent', or a family's name). Library order, except "recent", which keeps its own.
- * @template {{ key: string, label: string, family: string }} B
+ * @template {{ key: string, label: string, family: string, also?: string }} B
  * @param {B[]} blocks @param {{ query?: string, group?: string, inQuilt?: Set<string>, recent?: string[] }} o
  * @returns {B[]}
  */
 export function findBlocks(blocks, { query = '', group = 'all', inQuilt = new Set(), recent = [] }) {
   const matches = wordsMatcher(query),
-    found = b => matches(`${b.label} ${b.family}`);
+    found = b => matches(`${b.label} ${b.family} ${b.also || ''}`); // also: the English name and the family as shown
   if (group === 'recent') {
     const byKey = new Map(blocks.map(b => [b.key, b]));
     return recent.map(k => byKey.get(k)).filter(b => b && found(b));

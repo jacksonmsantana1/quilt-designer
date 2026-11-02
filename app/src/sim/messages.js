@@ -2,6 +2,7 @@
 import './view.js'; // load order: runs after sim/view
 import { setHavePos, setNewFrame } from './sim-state.js';
 import { $ } from '../core/dom.js';
+import { comma, fix, t } from '@quilt/shared/i18n.js';
 import { state } from './config.js';
 import { simPos } from './quilt-mesh.js';
 import { analysisOnStats } from './analysis.js';
@@ -20,47 +21,47 @@ function onSim(e) {
   if (m.stats) updateStats(m.stats);
 }
 
-const fmtJ = v => (Math.abs(v) < 0.1 ? (v * 1000).toFixed(1) + ' mJ' : v.toFixed(2) + ' J');
+const fmtJ = v => (Math.abs(v) < 0.1 ? fix(v * 1000, 1) + ' mJ' : fix(v, 2) + ' J');
 function updateStats(s) {
   state.lastStats = s;
-  $('clock').textContent = `t = ${s.t.toFixed(2)} s`;
+  $('clock').textContent = `t = ${fix(s.t, 2)} s`;
   const pill = $('state');
   let cls = 'fall',
-    txt = 'Falling';
+    txt = t('Falling');
   if (!s.running) {
     cls = '';
-    txt = 'Paused';
+    txt = t('Paused');
   } else if (s.held) {
     cls = 'held';
-    txt = 'Held by hands';
+    txt = t('Held by hands');
   } else if (s.restAt !== null) {
     cls = 'rest';
-    txt = `At rest · ${s.restAt.toFixed(1)} s`;
+    txt = t('At rest · {s} s', { s: fix(s.restAt, 1) });
   } else if (s.contact > 0.04) {
     cls = 'settle';
-    txt = 'Settling';
+    txt = t('Settling');
   }
   pill.className = 'pill ' + cls;
   pill.textContent = txt;
   const slow = $('slow');
   if (s.running && s.speed < 0.93 && state.view !== 'render') {
     slow.hidden = false;
-    slow.textContent = `running at ${s.speed.toFixed(2)}× speed`;
+    slow.textContent = t('running at {v}× speed', { v: fix(s.speed, 2) });
   } else slow.hidden = true;
   $('hint').hidden = (s.running && s.speed < 0.93) || state.view !== 'photo';
   $('m-ke').textContent = fmtJ(s.ke);
   $('m-pe').textContent = fmtJ(s.pe);
   $('m-el').textContent = fmtJ(s.stretch + s.bend);
-  $('m-dis').textContent = s.dissipated === null ? 'held' : fmtJ(s.dissipated);
-  $('m-vy').textContent = s.vy.toFixed(3) + ' m/s';
-  $('m-st').textContent = (s.maxStrain * 100).toFixed(2) + ' %';
-  $('m-ct').textContent = (s.contact * 100).toFixed(0) + ' %';
-  $('m-mass').textContent = s.mass.toFixed(2) + ' kg';
-  $('m-bl').textContent = (s.bendLen * 100).toFixed(1) + ' cm';
+  $('m-dis').textContent = s.dissipated === null ? t('held') : fmtJ(s.dissipated);
+  $('m-vy').textContent = fix(s.vy, 3) + ' m/s';
+  $('m-st').textContent = fix(s.maxStrain * 100, 2) + ' %';
+  $('m-ct').textContent = fix(s.contact * 100, 0) + ' %';
+  $('m-mass').textContent = fix(s.mass, 2) + ' kg';
+  $('m-bl').textContent = fix(s.bendLen * 100, 1) + ' cm';
   const P = state.params;
   $('m-vt').textContent =
-    P.Cd > 0 ? Math.sqrt((2 * P.rhoA * 9.81) / (1.204 * P.Cd)).toFixed(2) + ' m/s' : 'none (no air)';
-  $('m-ms').textContent = s.stepMs.toFixed(1) + ' ms';
+    P.Cd > 0 ? fix(Math.sqrt((2 * P.rhoA * 9.81) / (1.204 * P.Cd)), 2) + ' m/s' : t('none (no air)');
+  $('m-ms').textContent = fix(s.stepMs, 1) + ' ms';
   analysisOnStats(s);
   if (
     s.restAt !== null &&
@@ -123,7 +124,7 @@ function drawChart() {
     g.moveTo(padL, y);
     g.lineTo(padL + pw, y);
     g.stroke();
-    g.fillText(v + ' J', padL - 4, y);
+    g.fillText(comma(v) + ' J', padL - 4, y);
   }
   g.textAlign = 'center';
   g.textBaseline = 'top';

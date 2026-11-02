@@ -5,6 +5,7 @@ import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { ptBroken, ptCheck, renderT0, setActiveCam, setPtBroken, setPtCheck, setRenderT0 } from './sim-state.js';
 import { $ } from '../core/dom.js';
+import { fix, t } from '@quilt/shared/i18n.js';
 import { N, state } from './config.js';
 import { camera, canvas, renderer, scene, sun } from './renderer.js';
 import { applyLook, look } from './lighting.js';
@@ -21,6 +22,11 @@ import { setRunning } from './controls.js';
 // a jittered lens position (depth of field) and a sub-pixel camera offset
 // (anti-aliasing).
 const PT_KEY = 'quilt-render.pathTracingBroken';
+const BLACK_RENDER = t('the quilt came out black, so the graphics driver is mis-running the path tracer');
+const rasterStatus = (done, n, goal, secs) =>
+  done
+    ? t('Render done · {goal} frames · {secs} s · fast raster', { goal, secs: fix(secs, 0) })
+    : t('Rendering · {n} / {goal} frames · {secs} s · fast raster', { n, goal, secs: fix(secs, 0) });
 const GPU_NAME = (() => {
   try {
     const gl = renderer.getContext(),
@@ -42,7 +48,7 @@ function ensurePathTracer() {
   if (pathTracer || ptError) return pathTracer;
   const gl = renderer.getContext();
   if (!(gl instanceof WebGL2RenderingContext) || !gl.getExtension('EXT_color_buffer_float')) {
-    ptError = 'this browser’s graphics don’t support floating-point render targets';
+    ptError = t('this browser’s graphics don’t support floating-point render targets');
     return null;
   }
   try {
@@ -56,7 +62,7 @@ function ensurePathTracer() {
     pathTracer.rasterizeScene = true;
     pathTracer.filterGlossyFactor = 0.5;
   } catch (e) {
-    ptError = 'the path tracer could not start (' + (e.message || e) + ')';
+    ptError = t('the path tracer could not start ({error})', { error: e.message || e });
     pathTracer = null;
   }
   return pathTracer;
@@ -229,9 +235,7 @@ function stepRaster() {
   showQuad.render(renderer);
   const secs = (performance.now() - raster.t0) / 1000,
     done = raster.n >= goal;
-  $('rstat').textContent = done
-    ? `Render done · ${goal} frames · ${secs.toFixed(0)} s · fast raster`
-    : `Rendering · ${raster.n} / ${goal} frames · ${secs.toFixed(0)} s · fast raster`;
+  $('rstat').textContent = rasterStatus(done, raster.n, goal, secs);
   $('rbar-fill').style.width = Math.min(100, (100 * raster.n) / goal) + '%';
   return true;
 }
@@ -248,7 +252,10 @@ function renderFailed(reason, permanent = true) {
     } catch (e) {}
   }
   const n = $('rnote');
-  n.textContent = `Path tracing didn’t work on this GPU (${GPU_NAME}): ${reason}. Switched to the fast raster renderer, which works on any GPU.`;
+  n.textContent = t(
+    'Path tracing didn’t work on this GPU ({gpu}): {reason}. Switched to the fast raster renderer, which works on any GPU.',
+    { gpu: GPU_NAME === 'unknown GPU' ? t('unknown GPU') : GPU_NAME, reason },
+  );
   n.hidden = false;
   setTimeout(() => {
     n.hidden = true;
@@ -284,7 +291,7 @@ async function startRender() {
   try {
     pathTracer.setScene(scene, camera);
   } catch (e) {
-    renderFailed('the scene could not be prepared (' + (e.message || e) + ')');
+    renderFailed(t('the scene could not be prepared ({error})', { error: e.message || e }));
     return;
   }
   setRenderT0(performance.now());
@@ -346,8 +353,7 @@ function verifyRender() {
     )
       bad++;
   }
-  if (tested >= 3 && bad >= Math.ceil(tested / 2))
-    renderFailed('the quilt came out black, so the graphics driver is mis-running the path tracer');
+  if (tested >= 3 && bad >= Math.ceil(tested / 2)) renderFailed(BLACK_RENDER);
 }
 function stepRender() {
   if (state.view !== 'render') return false;
@@ -361,17 +367,17 @@ function stepRender() {
     secs = (performance.now() - renderT0) / 1000;
   const done = pathTracer.samples >= look.target;
   $('rstat').textContent = pathTracer.isCompiling
-    ? `Compiling the path tracer for your GPU… ${secs.toFixed(0)} s (first time only)`
+    ? t('Compiling the path tracer for your GPU… {secs} s (first time only)', { secs: fix(secs, 0) })
     : done
-      ? `Render done · ${look.target} samples · ${secs.toFixed(0)} s · path traced`
-      : `Rendering · ${s} / ${look.target} samples · ${secs.toFixed(0)} s · path traced`;
+      ? t('Render done · {goal} samples · {secs} s · path traced', { goal: look.target, secs: fix(secs, 0) })
+      : t('Rendering · {n} / {goal} samples · {secs} s · path traced', { n: s, goal: look.target, secs: fix(secs, 0) });
   $('rbar-fill').style.width = Math.min(100, (100 * pathTracer.samples) / look.target) + '%';
-  if (pathTracer.isCompiling && secs > 150) renderFailed('the path tracer took over 2½ minutes to compile', false);
+  if (pathTracer.isCompiling && secs > 150) renderFailed(t('the path tracer took over 2½ minutes to compile'), false);
   return true;
 }
 renderer.debug.onShaderError = (gl, program, vs, fs) => {
   console.error('Shader error:', gl.getProgramInfoLog(program), gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs));
-  if (state.view === 'render' && !raster.active) renderFailed('the path-tracing shader failed to compile');
+  if (state.view === 'render' && !raster.active) renderFailed(t('the path-tracing shader failed to compile'));
 };
 canvas.addEventListener('webglcontextlost', e => {
   e.preventDefault();
@@ -382,8 +388,9 @@ canvas.addEventListener('webglcontextlost', e => {
     );
   } catch (_) {}
   const n = $('rnote');
-  n.textContent =
-    'The graphics card reset the 3D view. Reload the page; photo renders will use the fast raster renderer on this GPU.';
+  n.textContent = t(
+    'The graphics card reset the 3D view. Reload the page; photo renders will use the fast raster renderer on this GPU.',
+  );
   n.hidden = false;
 });
 

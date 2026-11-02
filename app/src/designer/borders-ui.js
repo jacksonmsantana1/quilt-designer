@@ -3,7 +3,8 @@ import './sashing-ui.js'; // load order: runs after designer/sashing-ui
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
-import { fromInput, getUnit, inputRange, toInput } from '../core/units.js';
+import { fromInput, getUnit, inputRange, toInput, unitName } from '../core/units.js';
+import { t } from '@quilt/shared/i18n.js';
 import { fabricById, onFabricsLoaded } from './fabric-library.js';
 import { BORDER_TYPES, borderFab, borderSidePieces, pathPoly } from '@quilt/shared/geometry.js';
 import { drawPaletteInto } from './parts-editor.js';
@@ -46,14 +47,14 @@ function renderBorderUI() {
   if (!design || !$('brd-card')) return;
   const types = $('brd-types');
   if (!types.childElementCount)
-    for (const [k, t] of Object.entries(BORDER_TYPES)) {
+    for (const [k, kind] of Object.entries(BORDER_TYPES)) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'brd-type';
       b.dataset.t = k;
-      b.title = `Add a ${t.label.toLowerCase()} border`;
+      b.title = t('Add a {name} border', { name: kind.label.toLowerCase() });
       const sp = document.createElement('span');
-      sp.textContent = t.label;
+      sp.textContent = kind.label;
       b.append(borderSketch(k, null), sp);
       types.appendChild(b);
     }
@@ -61,15 +62,15 @@ function renderBorderUI() {
   list.innerHTML = '';
   const bs = design.borders || [];
   bs.forEach((b, i) => {
-    const t = BORDER_TYPES[b.type];
-    if (!t) return;
+    const kind = BORDER_TYPES[b.type];
+    if (!kind) return;
     const row = document.createElement('div');
     row.className = 'brd-row';
     row.dataset.i = i;
     const top = document.createElement('div');
     top.className = 'top';
     const name = document.createElement('b');
-    name.textContent = `${i + 1}. ${i === 0 ? 'inner' : i === bs.length - 1 ? 'outer' : 'middle'}`;
+    name.textContent = `${i + 1}. ${i === 0 ? t('inner') : i === bs.length - 1 ? t('outer') : t('middle')}`;
     const sel = document.createElement('select');
     sel.dataset.a = 'type';
     for (const [k, tt] of Object.entries(BORDER_TYPES)) sel.add(new Option(tt.label, k, false, k === b.type));
@@ -79,11 +80,11 @@ function renderBorderUI() {
     mm.value = String(toInput(b.mm));
     mm.dataset.a = 'mm';
     mm.dataset.len = ''; // a length: whole inches and a fraction menu in inches (designer/units-ui.js)
-    mm.title = `Width (${getUnit() === 'in' ? 'inches' : 'mm'})`;
+    mm.title = getUnit() === 'in' ? t('Width (inches)') : t('Width (mm)');
     const unit = document.createElement('span');
     unit.className = 'fine';
     unit.style.margin = 0;
-    unit.textContent = getUnit();
+    unit.textContent = unitName();
     const mk = (a, txt, title, dis) => {
       const x = document.createElement('button');
       x.type = 'button';
@@ -100,13 +101,13 @@ function renderBorderUI() {
       sel,
       mm,
       unit,
-      mk('in', '↑', 'Move inwards', i === 0),
-      mk('out', '↓', 'Move outwards', i === bs.length - 1),
-      mk('del', '×', 'Remove this border'),
+      mk('in', '↑', t('Move inwards'), i === 0),
+      mk('out', '↓', t('Move outwards'), i === bs.length - 1),
+      mk('del', '×', t('Remove this border')),
     );
     const slots = document.createElement('div');
     slots.className = 'brd-slots';
-    t.slots.forEach((label, si) => {
+    kind.slots.forEach((label, si) => {
       const sb = document.createElement('button');
       sb.type = 'button';
       sb.className = 'brd-slot';
@@ -128,8 +129,10 @@ function renderBorderUI() {
   if (brdActive && bs[brdActive.i]) {
     pb.hidden = false;
     const b = bs[brdActive.i];
-    $('brd-paltitle').textContent =
-      `Fabric for border ${brdActive.i + 1} · ${BORDER_TYPES[b.type].slots[brdActive.slot]}`;
+    $('brd-paltitle').textContent = t('Fabric for border {n} · {slot}', {
+      n: brdActive.i + 1,
+      slot: BORDER_TYPES[b.type].slots[brdActive.slot],
+    });
     drawPaletteInto($('brd-pal'), borderFab(b, brdActive.slot));
   } else {
     pb.hidden = true;
@@ -148,7 +151,7 @@ function initBorderUI() {
   $('brd-types').addEventListener('click', e => {
     const b = e.target.closest('.brd-type');
     if (!b) return;
-    const t = BORDER_TYPES[b.dataset.t],
+    const kind = BORDER_TYPES[b.dataset.t],
       n = (design.borders || []).length;
     const def = {
       plain: ['b1', 'b1'],
@@ -158,7 +161,7 @@ function initBorderUI() {
       sawtooth: ['b4', 'b0', 'b4'],
       geese: ['b1', 'b0', 'b1'],
     }[b.dataset.t];
-    borderEdit(addBorder, { type: b.dataset.t, mm: t.mm, fabrics: def });
+    borderEdit(addBorder, { type: b.dataset.t, mm: kind.mm, fabrics: def });
     brdActive = null;
     renderBorderUI();
     if (n === 0) $('brd-list').scrollIntoView({ block: 'nearest' });

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { cavityImg, patchTex, setPatchTex } from './sim-state.js';
 import { design } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { t } from '@quilt/shared/i18n.js';
 import { SIZE, quilt, state } from './config.js';
 import { loadImage, maxAniso, tex, weaveMap, weaveNormal } from './textures.js';
 import { pathTracer } from './photo-render.js';
@@ -15,22 +16,22 @@ import { setQuiltDims } from './quilt-size.js';
 // 12 × 12 patches (7.5 in each), arranged "Trip Around the World": every ring
 // around the centre is cut from the same fabric.
 const BUNDLED = [
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#efe5cf', name: 'Cream cotton' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#2f466f', name: 'Indigo cotton' },
-  { src: 'assets/fabric/paisley.jpg', cm: 45, name: 'Woven paisley' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#c79a45', name: 'Mustard cotton' },
-  { src: 'assets/fabric/linen.jpg', cm: 22, name: 'Red linen' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#7d8f70', name: 'Sage cotton' },
-  { src: 'assets/fabric/stripe.jpg', cm: 22, name: 'Chenille stripe' },
-  { src: 'assets/fabric/damask.jpg', cm: 30, name: 'Damask' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#b26a5f', name: 'Rose cotton' },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#efe5cf', name: t('Cream cotton') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#2f466f', name: t('Indigo cotton'), binding: true },
+  { src: 'assets/fabric/paisley.jpg', cm: 45, name: t('Woven paisley') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#c79a45', name: t('Mustard cotton') },
+  { src: 'assets/fabric/linen.jpg', cm: 22, name: t('Red linen') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#7d8f70', name: t('Sage cotton') },
+  { src: 'assets/fabric/stripe.jpg', cm: 22, name: t('Chenille stripe') },
+  { src: 'assets/fabric/damask.jpg', cm: 30, name: t('Damask') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#b26a5f', name: t('Rose cotton') },
   // for medallion and sampler quilts
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#a8c8b5', name: 'Mint cotton' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#4a2c22', name: 'Chocolate cotton' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#f8f6f0', name: 'White cotton' },
-  { floral: true, cm: 40, name: 'Floral print' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#9b7f78', name: 'Mocha cotton' },
-  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#3f6b6b', name: 'Teal cotton' },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#a8c8b5', name: t('Mint cotton') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#4a2c22', name: t('Chocolate cotton') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#f8f6f0', name: t('White cotton') },
+  { floral: true, cm: 40, name: t('Floral print') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#9b7f78', name: t('Mocha cotton') },
+  { src: 'assets/fabric/weave.jpg', cm: 22, tint: '#3f6b6b', name: t('Teal cotton') },
 ];
 // A printed floral (white magnolias and dusky roses with leaves on a warm taupe ground), drawn once as a seamless tile.
 function floralTile() {
@@ -189,7 +190,7 @@ function buildPatchwork() {
       g.restore();
     }
   // Binding: ½-inch indigo cotton around the edge.
-  const ind = swatches.find(s => s.name === 'Indigo cotton') || null;
+  const ind = swatches.find(s => s.binding) || null;
   const bw = PATCH * 0.067;
   g.save();
   g.beginPath();

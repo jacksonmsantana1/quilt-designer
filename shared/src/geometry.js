@@ -3,6 +3,7 @@
 /** @typedef {import('./types.js').Design} Design @typedef {import('./types.js').Rect} Rect @typedef {import('./types.js').Poly} Poly */
 import { orientPoly, partsOf } from './patterns.js';
 import { isMosaic, mosaicMm, mosaicTiles } from './mosaic.js';
+import { t } from './i18n.js';
 
 const polyCentre = p => {
   let x = 0,
@@ -638,12 +639,12 @@ function sashPieces(d, W, H, across) {
 // ---- borders: rings of fabric around the centre, innermost first; several can be stacked.
 // Each side is drawn in its own frame: x along the side, y from the outer edge (0) to the inner edge (T).
 const BORDER_TYPES = {
-  plain: { label: 'Plain strip', slots: ['Fabric', 'Corner squares'], mm: 100, unit: null },
-  piano: { label: 'Piano keys', slots: ['Key A', 'Key B', 'Corners'], mm: 100, unit: T => T / 2 },
-  squares: { label: 'Row of squares', slots: ['Square A', 'Square B', 'Corners'], mm: 64, unit: T => T },
-  checker: { label: 'Checkerboard', slots: ['Square A', 'Square B', 'Corners'], mm: 76, unit: T => T / 2 },
-  sawtooth: { label: 'Sawtooth', slots: ['Teeth', 'Background', 'Corners'], mm: 64, unit: T => T },
-  geese: { label: 'Flying geese', slots: ['Geese', 'Sky', 'Corners'], mm: 76, unit: T => T / 2 },
+  plain: { label: t('Plain strip'), slots: [t('Fabric'), t('Corner squares')], mm: 100, unit: null },
+  piano: { label: t('Piano keys'), slots: [t('Key A'), t('Key B'), t('Corners')], mm: 100, unit: T => T / 2 },
+  squares: { label: t('Row of squares'), slots: [t('Square A'), t('Square B'), t('Corners')], mm: 64, unit: T => T },
+  checker: { label: t('Checkerboard'), slots: [t('Square A'), t('Square B'), t('Corners')], mm: 76, unit: T => T / 2 },
+  sawtooth: { label: t('Sawtooth'), slots: [t('Teeth'), t('Background'), t('Corners')], mm: 64, unit: T => T },
+  geese: { label: t('Flying geese'), slots: [t('Geese'), t('Sky'), t('Corners')], mm: 76, unit: T => T / 2 },
 };
 const borderUnits = (b, L) => {
   const u = BORDER_TYPES[b.type].unit;

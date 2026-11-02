@@ -4,6 +4,7 @@ import { cgHi, fabHi } from '../render/hi-state.js';
 import { design } from '../core/store.js';
 import { $, themeColour } from '../core/dom.js';
 import { dims, len } from '../core/units.js';
+import { t, tn } from '@quilt/shared/i18n.js';
 import { dimUnlessHi } from '../render/highlight.js';
 import { orientPoly, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -151,7 +152,7 @@ function swatchCanvas(fab, w = 72, h = 48) {
 }
 const cgRedraws = []; // redraw functions for the Cutting guide pictures (used when a fabric row is hovered)
 // the cutting list's name for each kind of sashing piece (geometry sashRects)
-const SASH_WHAT = { sash: 'Sashing strips', long: 'Long sashing strips', corner: 'Cornerstones' };
+const SASH_WHAT = { sash: t('Sashing strips'), long: t('Long sashing strips'), corner: t('Cornerstones') };
 // the sashing picture: a 2 × 2 corner of the quilt with every strip and cornerstone labelled with its ID.
 // S is the width in px; u scales the labels (1 on screen, more for the PDF at print resolution)
 function sashMini() {
@@ -619,12 +620,39 @@ function drawCutQuilt(P, into) {
   }
   if (into) return;
   const nHi = typeof cgHi === 'number' && cgHi >= 0 ? P.blocks[cgHi].count : 0;
+  const grid = { cols: design.cols, rows: design.rows };
   $('cg-quilt-meta').textContent =
     typeof cgHi === 'string'
-      ? `Showing the ${cgHi === 'sash' ? 'sashing' : cgHi === 'setting' ? 'setting triangles' : cgHi === 'brd' ? 'borders' : 'border ' + (+cgHi.slice(1) + 1)}, marked in orange. Double-click it again, or click here, to show all.`
+      ? cgHi === 'sash'
+        ? t('Showing the sashing, marked in orange. Double-click it again, or click here, to show all.')
+        : cgHi === 'setting'
+          ? t('Showing the setting triangles, marked in orange. Double-click it again, or click here, to show all.')
+          : cgHi === 'brd'
+            ? t('Showing the borders, marked in orange. Double-click it again, or click here, to show all.')
+            : t('Showing the border {n}, marked in orange. Double-click it again, or click here, to show all.', {
+                n: +cgHi.slice(1) + 1,
+              })
       : cgHi >= 0
-        ? `Showing ${P.blocks[cgHi].corner ? 'the cornerstone blocks' : `block ${cgHi + 1}`} (${P.blocks[cgHi].label}): ${nHi} in the quilt. Double-click it again, or click here, to show all.`
-        : `${design.cols} × ${design.rows} blocks${isOnPoint(design) ? ' on point' : ''}${s.mm ? ` · ${len(s.mm)} sashing` : ''}${bs.length ? ` · ${bs.length} border${bs.length > 1 ? 's' : ''}` : ''} · finished ${dims([P.quiltW, P.quiltH])} · each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1${isOnPoint(design) ? ', T = setting triangles' : ''}). Double-click a block, the sashing or the borders above to see where they go in the quilt.`;
+        ? P.blocks[cgHi].corner
+          ? t(
+              'Showing the cornerstone blocks ({label}): {count} in the quilt. Double-click it again, or click here, to show all.',
+              { label: P.blocks[cgHi].label, count: nHi },
+            )
+          : t('Showing block {n} ({label}): {count} in the quilt. Double-click it again, or click here, to show all.', {
+              n: cgHi + 1,
+              label: P.blocks[cgHi].label,
+              count: nHi,
+            })
+        : [
+            isOnPoint(design) ? t('{cols} × {rows} blocks on point', grid) : t('{cols} × {rows} blocks', grid),
+            ...(s.mm ? [t('{size} sashing', { size: len(s.mm) })] : []),
+            ...(bs.length ? [tn(bs.length, '{n} border', '{n} borders')] : []),
+            t('finished {size}', { size: dims([P.quiltW, P.quiltH]) }),
+            t(
+              'each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1{more}). Double-click a block, the sashing or the borders above to see where they go in the quilt.',
+              { more: isOnPoint(design) ? t(', T = setting triangles') : '' },
+            ),
+          ].join(' · ');
   $('cg-quilt-meta').classList.toggle('cg-hi-on', cgHi !== -1);
   document.querySelectorAll('.cgblock').forEach(el => el.classList.toggle('picked', el.dataset.key === String(cgHi)));
 }

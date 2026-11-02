@@ -14,6 +14,7 @@ import { findBlocks, patternsIn } from '../core/block-picks.js';
 import { DRAWN_FAMILY, readDrawn } from '@quilt/shared/drawn-blocks.js';
 import { designs } from '../storage/repo.js';
 import { openBlockDrawer } from './ui-state.js';
+import { t } from '@quilt/shared/i18n.js';
 
 const PAGE = 60; // tiles the library shows at a time
 // the blocks the list always shows: every block from before the library (people know where they are)
@@ -85,8 +86,8 @@ function drawPatternList() {
     more.type = 'button';
     more.className = 'fab-more-btn';
     more.id = 'dz-patterns-more';
-    more.title = `More blocks (${rest}): search all blocks by name or family`;
-    more.setAttribute('aria-label', `More blocks (${rest})`);
+    more.title = t('More blocks ({n}): search all blocks by name or family', { n: rest });
+    more.setAttribute('aria-label', t('More blocks ({n})', { n: rest }));
     more.innerHTML = `<b aria-hidden="true">+</b><span aria-hidden="true">${rest}</span>`;
     more.addEventListener('click', openBlockLibrary);
     placeMoreButton(box, more);
@@ -109,7 +110,15 @@ const FAMILIES = [
   'Larger grids',
   'Your drawings',
 ];
-const ALL = () => Object.entries(PATTERNS).map(([key, p]) => ({ key, label: p.label, family: p.family }));
+// a search also finds a block by its English name and by its family as shown (`family` itself stays English: it is the
+// group's value)
+const ALL = () =>
+  Object.entries(PATTERNS).map(([key, p]) => ({
+    key,
+    label: p.label,
+    family: p.family,
+    also: `${p.en || ''} ${t(p.family)}`,
+  }));
 
 /** Makes the blocks drawn in every saved quilt known, so "My blocks" shows them all (sync brings other devices'). */
 function gatherDrawn() {
@@ -141,8 +150,8 @@ function drawBlockLibrary() {
     cur = design ? design.blocks[focusBlock].pattern : null;
   const groups = $('blklib-groups');
   groups.innerHTML = '';
-  const names = { all: 'All', quilt: 'In this quilt', recent: 'Recent' };
-  for (const f of [...FAMILIES, ...all.map(b => b.family)]) names[f] ??= f;
+  const names = { all: t('All'), quilt: t('In this quilt'), recent: t('Recent') };
+  for (const f of [...FAMILIES, ...all.map(b => b.family)]) names[f] ??= t(f);
   for (const [g, label] of Object.entries(names)) {
     const n = findBlocks(all, { group: g, inQuilt, recent }).length;
     if (!n && g !== 'all' && g !== lib.group) continue;
@@ -159,15 +168,17 @@ function drawBlockLibrary() {
   // the editor's tile comes first where a drawn block could be listed
   if (!query.trim() && (lib.group === 'all' || lib.group === DRAWN_FAMILY)) grid.appendChild(drawTile());
   for (const b of found.slice(0, lib.shown)) {
-    const t = patternTile(b.key);
-    t.setAttribute('aria-pressed', String(b.key === cur));
-    grid.appendChild(t);
+    const tile = patternTile(b.key);
+    tile.setAttribute('aria-pressed', String(b.key === cur));
+    grid.appendChild(tile);
   }
   const left = found.length - lib.shown;
   $('blklib-more').hidden = left <= 0;
-  $('blklib-more').textContent = `Show more (${left} more)`;
+  $('blklib-more').textContent = t('Show more ({n} more)', { n: left });
   $('blklib-none').hidden = found.length > 0 || lib.group === DRAWN_FAMILY;
-  $('blklib-none').textContent = query.trim() ? `No blocks match “${query.trim()}”.` : 'No blocks here yet.';
+  $('blklib-none').textContent = query.trim()
+    ? t('No blocks match “{q}”.', { q: query.trim() })
+    : t('No blocks here yet.');
 }
 
 /** The tile that opens the block editor. */
@@ -177,8 +188,8 @@ function drawTile() {
   b.className = 'pat pat-draw';
   b.id = 'blklib-draw';
   b.dataset.draw = '';
-  b.title = 'Draw your own block on a grid';
-  b.innerHTML = '<b aria-hidden="true">✎</b><span>Draw a block</span>';
+  b.title = t('Draw your own block on a grid');
+  b.innerHTML = `<b aria-hidden="true">✎</b><span>${t('Draw a block')}</span>`;
   return b;
 }
 

@@ -3,6 +3,7 @@ import './loop.js'; // load order: runs after app/loop
 import { setCavityImg } from '../sim/sim-state.js';
 import { activeFabric, design, setActiveFabric } from '../core/store.js';
 import { $ } from '../core/dom.js';
+import { t } from '@quilt/shared/i18n.js';
 import { startSim } from '../sim/worker-link.js';
 import { IS_PHONE } from '../sim/renderer.js';
 import { loadImage } from '../sim/textures.js';
@@ -46,7 +47,7 @@ else showPage('design');
     }
     syncSimulation();
   } catch (e) {
-    $('loading').textContent = 'Some photos or lighting could not load. Showing a plain preview.';
+    $('loading').textContent = t('Some photos or lighting could not load. Showing a plain preview.');
     setTimeout(() => {
       $('loading').hidden = true;
     }, 4000);

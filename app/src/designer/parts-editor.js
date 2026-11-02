@@ -18,6 +18,7 @@ import { syncSymUI } from './settings.js';
 import { tlEnsure } from '../timeline/timeline.js';
 import { pieceFill } from '../render/fabric-fill.js';
 import { mosaicBrush } from './ui-state.js';
+import { t } from '@quilt/shared/i18n.js';
 
 function drawPartsEditor() {
   if (!design) return;
@@ -57,17 +58,21 @@ function drawPartsEditor() {
       g.stroke();
     }
   });
-  const names = [...selParts].map(i => partsOf(b.pattern)[i].name);
+  const names = [...selParts].map(i => partsOf(b.pattern)[i].name),
+    one = [...selParts][0],
+    picked = selParts.size === 1 ? { part: names[0], fabric: fabricById(b.fabrics[one]).name } : null;
   $('dz-parts-info').textContent =
     selParts.size === 0
-      ? 'Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric.'
+      ? t('Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric.')
       : selParts.size === 1
-        ? `Selected: ${names[0]} · ${fabricById(b.fabrics[[...selParts][0]]).name}${b.fussy && b.fussy[[...selParts][0]] ? ' · fussy cut' : ''}`
-        : `${selParts.size} parts selected`;
+        ? b.fussy && b.fussy[one]
+          ? t('Selected: {part} · {fabric} · fussy cut', picked)
+          : t('Selected: {part} · {fabric}', picked)
+        : t('{n} parts selected', { n: selParts.size });
   drawFussy();
   $('dz-blockname').textContent =
-    `${PATTERNS[b.pattern].label} · block ${cellName(design, focusBlock)}` +
-    (selBlocks.size > 1 ? ` · editing ${selBlocks.size} blocks` : '');
+    t('{name} · block {cell}', { name: PATTERNS[b.pattern].label, cell: cellName(design, focusBlock) }) +
+    (selBlocks.size > 1 ? ` · ${t('editing {n} blocks', { n: selBlocks.size })}` : '');
 }
 /** The list under "Block pattern" (designer/block-picker.js). */
 function drawPatternButtons() {
@@ -109,7 +114,7 @@ function renderDesigner() {
   syncSymUI();
   Object.assign($('dz-bmm3'), inputRange(50, 1000));
   for (const id of ['dz-bmm3']) if (document.activeElement !== $(id)) $(id).value = String(toInput(design.blockMm));
-  $('dz-rot').textContent = `Rotate 90° (${design.blocks[focusBlock].rot * 90}°)`;
+  $('dz-rot').textContent = t('Rotate 90° ({deg}°)', { deg: design.blocks[focusBlock].rot * 90 });
   drawDesignerCanvas();
   drawPartsEditor();
   drawPatternButtons();

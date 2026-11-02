@@ -3,6 +3,8 @@
 // in millimetres; this only changes how a length is written on screen and how a typed number is read. In inches,
 // lengths are written the way quilters say them: to the nearest ⅛, with fractions (6½ in, 11¾ in).
 
+import { fix, t } from '@quilt/shared/i18n.js';
+
 /** @typedef {'mm' | 'in'} Unit */
 const MM_PER_IN = 25.4;
 const FRACTIONS = ['', '⅛', '¼', '⅜', '½', '⅝', '¾', '⅞'];
@@ -14,6 +16,8 @@ const listeners = [];
 
 /** The unit now in use. @returns {Unit} */
 const getUnit = () => unit;
+/** The unit as written on screen: "mm", and inches as "in" ("pol" in Portuguese). @returns {string} */
+const unitName = () => (unit === 'in' ? t('in') : 'mm');
 /** Changes the unit and tells everyone who asked (once, and only when it changed). @param {Unit} u */
 function setUnit(u) {
   if (u !== 'mm' && u !== 'in') return;
@@ -37,21 +41,21 @@ function inches(mm) {
 /** A length as a number in the unit in use, without the unit's name ("6½" or "165"). @param {number} mm */
 const num = mm => (unit === 'in' ? inches(mm) : String(Math.round(mm)));
 /** A length with its unit's name: "165 mm" or "6½ in". @param {number} mm */
-const len = mm => `${num(mm)} ${unit}`;
+const len = mm => `${num(mm)} ${unitName()}`;
 /**
  * How much fabric to buy for a length (mm): rounded up to 5 cm and written in metres, or rounded up to an eighth of a
  * yard and written in yards ("1⅝ yd").
  * @param {number} mm
  */
 function buyLen(mm) {
-  if (unit === 'mm') return `${(Math.ceil(mm / 50 - 1e-6) * 0.05).toFixed(2)} m`;
+  if (unit === 'mm') return `${fix(Math.ceil(mm / 50 - 1e-6) * 0.05, 2)} m`;
   const eighths = Math.ceil(mm / (MM_PER_IN * 4.5) - 1e-6),
     whole = Math.floor(eighths / 8),
     part = FRACTIONS[eighths % 8];
-  return `${part && whole === 0 ? part : whole + part} yd`;
+  return `${part && whole === 0 ? part : whole + part} ${t('yd')}`;
 }
 /** Several lengths with the unit written once: "900 × 300 mm" or "35½ × 11¾ in". @param {number[]} mms @param {string} [sep] */
-const dims = (mms, sep = ' × ') => `${mms.map(num).join(sep)} ${unit}`;
+const dims = (mms, sep = ' × ') => `${mms.map(num).join(sep)} ${unitName()}`;
 
 /**
  * The number to put in a number box for a length: whole millimetres, or inches to two decimals (a length that is
@@ -102,4 +106,5 @@ export {
   onUnitChange,
   setUnit,
   toInput,
+  unitName,
 };

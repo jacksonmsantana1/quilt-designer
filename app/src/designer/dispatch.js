@@ -22,6 +22,7 @@ import { tlRecord, tlSwitch } from '../timeline/timeline.js';
 import { drawFabricPalette, renderDesigner } from './parts-editor.js';
 import { isFabric, loadFabrics } from './fabric-library.js';
 import { fabricIdsIn } from '../core/fabric-picks.js';
+import { t } from '@quilt/shared/i18n.js';
 /** @typedef {import('@quilt/shared/types.js').Design} Design */
 
 // In tests (localStorage 'quilt-freeze.v1' = '1') the design is frozen after every change, so any code that
@@ -118,12 +119,16 @@ function replaceDesign(d, opts = {}) {
  * Tells the user what opening a saved design repaired (core/format.js), and warns when it comes from a newer
  * version of the app. @param {NonNullable<ReturnType<typeof readDesign>>} r @param {string} [what]
  */
-function announce(r, what = 'This quilt') {
+function announce(r, what = t('This quilt')) {
   if (r.newer)
     notify(
-      `${what} was made with a newer version of the app. You can look at it here, but changes will not be saved: open it in the newer version to edit it.`,
+      t(
+        '{what} was made with a newer version of the app. You can look at it here, but changes will not be saved: open it in the newer version to edit it.',
+        { what },
+      ),
     );
-  else if (r.problems.length) notify(`${what} needed some repairs:\n• ${r.problems.join('\n• ')}`);
+  else if (r.problems.length)
+    notify(t('{what} needed some repairs:\n• {list}', { what, list: r.problems.join('\n• ') }));
 }
 
 /**
@@ -135,7 +140,7 @@ function announce(r, what = 'This quilt') {
 function openDesign(raw, opts = {}) {
   const r = readDesign(raw);
   if (!r) {
-    notify(`${opts.what || 'This quilt'} could not be read.`);
+    notify(t('{what} could not be read.', { what: opts.what || t('This quilt') }));
     return false;
   }
   if (!opts.quiet) announce(r, opts.what);
@@ -148,7 +153,7 @@ function openDesign(raw, opts = {}) {
 function ensureDesign() {
   if (design) return;
   const r = loadDesign();
-  announce(r, 'The quilt saved in this browser');
+  announce(r, t('The quilt saved in this browser'));
   setReadOnly(r.newer);
   setCurrent(r.design);
   setSelBlocks(new Set([0]));

@@ -23,6 +23,7 @@ import { drawHover } from './hover.js';
 import { fabricFill } from '../render/fabric-fill.js';
 import { symOf } from '../core/symmetry.js';
 import { SHAPE_NAMES } from '@quilt/shared/mosaic.js';
+import { t, tn } from '@quilt/shared/i18n.js';
 
 // ---- zoom: the mouse wheel over the quilt zooms in and out at the mouse; dragging with the wheel pressed moves
 // the quilt. Zoomed, the quilt is drawn bigger (so it stays sharp) in a window of its usual size, and moved in it:
@@ -208,10 +209,24 @@ function drawDesignerCanvas() {
   // a mosaic has no blocks: its shapes instead of the block size
   $('dz-bsize').hidden = !!design.mosaic;
   const mos = design.mosaic
-    ? `${design.mosaic.fabrics.length} ${SHAPE_NAMES[design.mosaic.shape][1]}, ${len(design.mosaic.mm)} sides`
+    ? t('{n} {shapes}, {size} sides', {
+        n: design.mosaic.fabrics.length,
+        shapes: SHAPE_NAMES[design.mosaic.shape][1],
+        size: len(design.mosaic.mm),
+      })
     : '';
+  const sashText =
+      sz.mm && !design.mosaic
+        ? ' · ' +
+          (sz.border
+            ? t('{size} sashing with border', { size: len(sz.mm) })
+            : t('{size} sashing', { size: len(sz.mm) }))
+        : '',
+    borderText = nb
+      ? ' · ' + tn(nb, '{n} border ({size})', '{n} borders ({size})', { size: len(borderTotal(design)) })
+      : '';
   $('dz-size-b').textContent =
-    `${mos}${sz.mm && !design.mosaic ? ` · ${len(sz.mm)} sashing${sz.border ? ' with border' : ''}` : ''}${nb ? ` · ${nb} border${nb > 1 ? 's' : ''} (${len(borderTotal(design))})` : ''} · finished quilt ${dims([qmm.W, qmm.H])}`;
+    `${mos}${sashText}${borderText} · ${t('finished quilt {size}', { size: dims([qmm.W, qmm.H]) })}`;
   drawBackCanvas(view.w, view.h, dpr0);
   const hv = $('dz-hover');
   hv.style.width = cw + 'px';
@@ -224,8 +239,8 @@ function drawDesignerCanvas() {
 // Unite: a button at the top-right corner of a selection of several blocks; greyed, with the reason, when they
 // are not a square of 2 × 2 to 4 × 4 (shared/geometry.js uniteOf). Redrawn with the selection frames.
 const UNITE_WHY = {
-  square: ['Select a square', 'Select a square of blocks to unite them: 2 × 2, 3 × 3 or 4 × 4'],
-  size: ['Up to 4 × 4', 'Up to 4 × 4 blocks can be united into one'],
+  square: [t('Select a square'), t('Select a square of blocks to unite them: 2 × 2, 3 × 3 or 4 × 4')],
+  size: [t('Up to 4 × 4'), t('Up to 4 × 4 blocks can be united into one')],
   one: ['', ''],
 };
 function placeUnite(cw, ch) {
@@ -245,7 +260,9 @@ function placeUnite(cw, ch) {
   }
   const u = uniteOf(design, selBlocks),
     [label, why] =
-      'why' in u ? UNITE_WHY[u.why] : [`Unite ${u.k} × ${u.k}`, `Unite these ${u.k * u.k} cells into one large block`];
+      'why' in u
+        ? UNITE_WHY[u.why]
+        : [t('Unite {k} × {k}', { k: u.k }), t('Unite these {n} cells into one large block', { n: u.k * u.k })];
   b.querySelector('.unite-label').textContent = label;
   b.title = why;
   b.setAttribute('aria-label', why);
@@ -298,8 +315,8 @@ function turnQuilt() {
   void f.offsetWidth;
   f.classList.add('lift'); // restart the lift animation
   f.classList.toggle('flipped', flipped);
-  $('dz-flip').title = flipped ? 'Show the front of the quilt' : 'Turn over: show the back of the quilt';
-  $('dz-flip').setAttribute('aria-label', flipped ? 'Show the front' : 'Turn over');
+  $('dz-flip').title = flipped ? t('Show the front of the quilt') : t('Turn over: show the back of the quilt');
+  $('dz-flip').setAttribute('aria-label', flipped ? t('Show the front') : t('Turn over'));
   $('dz-flip').setAttribute('aria-pressed', String(flipped));
   $('dz-backbar').hidden = !flipped;
   $('dz-quilt').setAttribute('aria-hidden', String(flipped));

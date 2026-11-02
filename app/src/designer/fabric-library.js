@@ -34,7 +34,7 @@ function initFabricLib() {
         canvas: s.canvas,
         cm: s.cm,
         basic: true,
-        print: !s.tint && !/linen/i.test(s.name),
+        print: !s.tint && !/linen/i.test(BUNDLED[i].src || ''), // (the file: the name is in the language in use)
       }),
     );
     for (const p of collection())

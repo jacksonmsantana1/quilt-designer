@@ -3,6 +3,8 @@
 // solids, stripes, gingham, dots, plaids, small florals... Used by the app's fabric collection (1500 fabrics
 // that cost nothing to download: each picture is drawn when it's needed) and by the server's seed script.
 // The same number always gives the same fabric, so a quilt that uses one looks the same everywhere, always.
+import { getLang } from './i18n.js';
+import { fabricName } from './lang/pt-BR/fabric-names.js';
 
 const SIZE = 512; // every repeat below divides 512, so the picture tiles without a seam
 
@@ -356,7 +358,13 @@ function collection() {
       const Fg = fgName[0].toUpperCase() + fgName.slice(1),
         k = kind.toLowerCase();
       const name =
-        kind === 'Solid' ? `${Fg} solid` : kind === 'Mottled' ? `${Fg} mottled blender` : `${Fg} ${k} on ${bgName}`;
+        getLang() === 'pt-BR'
+          ? fabricName(kind, fgName, one ? undefined : bgName)
+          : kind === 'Solid'
+            ? `${Fg} solid`
+            : kind === 'Mottled'
+              ? `${Fg} mottled blender`
+              : `${Fg} ${k} on ${bgName}`;
       // the real width of the picture: small prints are small (10 to 35 cm across)
       const cm = one ? 22 : Math.round((10 + rnd() * 25) * 2) / 2;
       list.push({

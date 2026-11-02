@@ -7,13 +7,14 @@ import { openBlockEditor } from './side-panel.js';
 import { dispatch } from './dispatch.js';
 import { setPartFabric, setPattern } from '../core/edits.js';
 import { rolesOf } from '@quilt/shared/design.js';
+import { t } from '@quilt/shared/i18n.js';
 
 function applyFabric(fid) {
   setActiveFabric(fid);
   if (!selParts.size) {
     drawFabricPalette();
     openBlockEditor();
-    $('dz-parts-info').textContent = 'Select one or more parts first, then pick a fabric.';
+    $('dz-parts-info').textContent = t('Select one or more parts first, then pick a fabric.');
     return;
   }
   const focus = design.blocks[focusBlock];

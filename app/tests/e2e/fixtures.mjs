@@ -77,6 +77,7 @@ export const test = base.extend({
       },
       /** the design on screen: saved on every change (before the first change, the default 5 × 5 quilt) */
       async current() {
+        await page.waitForFunction(() => globalThis.__quiltStorage); // after a reload, the storage opens a moment later
         const d = await page.evaluate(async () => {
           const s = globalThis.__quiltStorage;
           await s.flush();
@@ -87,6 +88,7 @@ export const test = base.extend({
       },
       /** the app's storage (storage/repo.js) after pending writes: run fn(storage) in the page */
       async storage(fn, arg) {
+        await page.waitForFunction(() => globalThis.__quiltStorage);
         await page.evaluate(() => globalThis.__quiltStorage.flush());
         return page.evaluate(
           ([f, a]) => new Function('s', 'a', `return (${f})(s, a)`)(globalThis.__quiltStorage, a),

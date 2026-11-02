@@ -9,6 +9,7 @@ import { isFabric, listedFabrics, tileSource } from './fabric-library.js';
 import { fabricTile, setColourButton, useFabricIn } from './fabric-picker.js';
 import { fabricIdsIn } from '../core/fabric-picks.js';
 import { colourMatch, fabricColours, hslToRgb, lab, rgbToHsl, shareAmounts } from '../core/colour-match.js';
+import { t } from '@quilt/shared/i18n.js';
 
 const MAX = 3, // colours picked at most
   SHOWN = 60, // fabrics shown, best first
@@ -159,7 +160,7 @@ function drawPicks() {
     sw.dataset.i = String(i);
     sw.style.background = css(pickRgb(p));
     sw.setAttribute('aria-pressed', String(i === finder.sel));
-    sw.setAttribute('aria-label', `Colour ${i + 1}: change its lightness`);
+    sw.setAttribute('aria-label', t('Colour {n}: change its lightness', { n: i + 1 }));
     const amount = document.createElement('input');
     amount.type = 'range';
     amount.min = '5';
@@ -167,25 +168,25 @@ function drawPicks() {
     amount.value = String(p.amount);
     amount.dataset.i = String(i);
     amount.disabled = finder.picks.length === 1; // one colour is all of it
-    amount.setAttribute('aria-label', `How much of colour ${i + 1}`);
+    amount.setAttribute('aria-label', t('How much of colour {n}', { n: i + 1 }));
     const less = document.createElement('small'),
       more = document.createElement('small');
-    less.textContent = 'less';
-    more.textContent = 'more';
+    less.textContent = t('less');
+    more.textContent = t('more');
     const x = document.createElement('button');
     x.type = 'button';
     x.className = 'btn sm colfind-x';
     x.dataset.i = String(i);
     x.textContent = '×';
-    x.setAttribute('aria-label', `Take colour ${i + 1} away`);
+    x.setAttribute('aria-label', t('Take colour {n} away', { n: i + 1 }));
     row.append(sw, less, amount, more, x);
     box.append(row);
   });
   $('colfind-hint').textContent = finder.picks.length
     ? finder.picks.length < MAX
-      ? 'Click the wheel to add another colour; drag a dot to change it.'
-      : 'Drag a dot to change its colour.'
-    : `Click the wheel to pick a colour (up to ${MAX}).`;
+      ? t('Click the wheel to add another colour; drag a dot to change it.')
+      : t('Drag a dot to change its colour.')
+    : t('Click the wheel to pick a colour (up to {max}).', { max: MAX });
   const slider = /** @type {HTMLInputElement} */ ($('colfind-light'));
   slider.value = String(Math.round(lightness() * 100));
   const p = finder.picks[finder.sel],
@@ -210,7 +211,7 @@ function drawQuilt() {
     b.className = 'colfind-sw';
     b.dataset.rgb = main.rgb.join(',');
     b.style.background = css(main.rgb);
-    b.setAttribute('aria-label', 'Use this colour from your quilt');
+    b.setAttribute('aria-label', t('Use this colour from your quilt'));
     box.append(b);
     if (seen.length >= 8) break;
   }
@@ -225,7 +226,10 @@ function drawResults(keepScroll = false) {
   box.innerHTML = '';
   const all = listedFabrics(),
     known = all.filter(f => colours.has(f.id));
-  const reading = known.length < all.length ? `Reading the fabrics' colours… ${known.length} of ${all.length}` : '';
+  const reading =
+    known.length < all.length
+      ? t("Reading the fabrics' colours… {n} of {all}", { n: known.length, all: all.length })
+      : '';
   if (!finder.picks.length) {
     status.textContent = reading;
     return;
@@ -235,9 +239,9 @@ function drawResults(keepScroll = false) {
     .map(f => ({ f, score: colourMatch(wanted, colours.get(f.id)) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, SHOWN);
-  status.textContent = reading || 'Best match first: click one to use it.';
+  status.textContent = reading || t('Best match first: click one to use it.');
   for (const { f, score } of ranked) {
-    const t = fabricTile(f, false),
+    const tile = fabricTile(f, false),
       bar = document.createElement('i');
     bar.className = 'colfind-bar';
     for (const c of colours.get(f.id)) {
@@ -246,9 +250,9 @@ function drawResults(keepScroll = false) {
       s.style.flexGrow = String(c.share);
       bar.append(s);
     }
-    t.insertBefore(bar, t.querySelector('span'));
-    if (score < WEAK) t.classList.add('weak');
-    box.append(t);
+    tile.insertBefore(bar, tile.querySelector('span'));
+    if (score < WEAK) tile.classList.add('weak');
+    box.append(tile);
   }
   box.scrollLeft = keepScroll ? left : 0;
   sideRoller(box, '.fab[aria-pressed="true"]');
@@ -363,9 +367,9 @@ function initFinder() {
     drawAll();
   });
   picks.addEventListener('input', e => {
-    const t = /** @type {HTMLInputElement} */ (e.target),
-      i = Number(t.dataset.i);
-    const amounts = finder.picks.map((p, j) => (j === i ? Number(t.value) : p.amount));
+    const input = /** @type {HTMLInputElement} */ (e.target),
+      i = Number(input.dataset.i);
+    const amounts = finder.picks.map((p, j) => (j === i ? Number(input.value) : p.amount));
     shareAmounts(amounts, i).forEach((a, j) => (finder.picks[j].amount = a));
     // the other sliders follow (this one stays under the finger)
     for (const [j, s] of picks.querySelectorAll('input').entries())
@@ -392,8 +396,8 @@ function initFinder() {
     b.type = 'button';
     b.className = 'fab-more-btn';
     if (box.id) b.id = box.id + '-colour';
-    b.title = 'Find fabrics by colour';
-    b.setAttribute('aria-label', 'Find fabrics by colour');
+    b.title = t('Find fabrics by colour');
+    b.setAttribute('aria-label', t('Find fabrics by colour'));
     const ico = document.createElement('i');
     ico.className = 'colwheel-ico';
     ico.setAttribute('aria-hidden', 'true');

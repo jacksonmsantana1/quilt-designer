@@ -10,10 +10,11 @@
 // lines by seam-faces.js), and keeps the lines and the fills in `paper` so it can be opened again to change it.
 import { PATTERNS, PCACHE } from './patterns.js';
 import { gridParts } from './grid-blocks.js';
+import { t } from './i18n.js';
 
 /** @typedef {import('./types.js').DrawnBlock} DrawnBlock */
 
-/** The family drawn blocks are listed under in the block library. */
+/** The family drawn blocks are listed under in the block library. A code, in English like the others: t(family) to show it. */
 const DRAWN_FAMILY = 'My blocks';
 const MAX_N = 12; // cells per side
 const MAX_DRAWN = 200; // drawings one quilt can carry
@@ -92,7 +93,8 @@ function checkDrawn(def) {
     return sum + Math.abs(a) / 2;
   }, 0);
   if (Math.abs(area - 1) > 1e-6) return null;
-  const label = typeof def.label === 'string' && def.label.trim() ? def.label.trim().slice(0, MAX_LABEL) : 'My block';
+  const label =
+    typeof def.label === 'string' && def.label.trim() ? def.label.trim().slice(0, MAX_LABEL) : t('My block');
   /** @type {DrawnBlock} */
   const out = { label, n, rows };
   if (extra) out.extra = extra;
