@@ -26,3 +26,6 @@ server/.data/
 # review pages made by shared/tools/drawing-review.mjs (they hold the pictures)
 /drawing-review*.html
 /diagram-review*.html
+
+# GIF copies of the clips (the page uses the jpg, mp4 and webm)
+app/assets/clips/*.gif
