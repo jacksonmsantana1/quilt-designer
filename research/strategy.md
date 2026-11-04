@@ -160,7 +160,73 @@ after their course; orders per partner shop; designs opened from someone else's 
 - Don't sign exclusive deals you can't honour. "Fundadora" terms win loyalty without exclusivity clauses.
 - Don't depend on one creator, one shop platform or one mill.
 
-## 8. If a big rival copies you
+## 8. Shops that only sell fabric
+
+They don't teach, so the teacher deal doesn't fit them. But they are the other half of the model: teachers
+bring people, shops supply the fabric. Of the 111 places on the list, 20 sell fabric without teaching (13 of
+them with a website), and the list left out general fabric shops on purpose, so the real number is much
+larger.
+
+### What a fabric shop wants, and what the app gives it
+
+| The shop's problem | What the app gives it |
+|---|---|
+| Customers ask "how much do I buy?" and staff work it out by hand | **Counter mode**: a tablet or phone at the counter; the customer picks a design, the app gives exact metres per fabric, plus batting, thread and binding. Fewer mistakes, bigger and more complete sales |
+| Customers can't picture the fabrics together | **QR code on each bolt**: scan it and the fabric goes straight into your quilt, shown in 3D on a bed, before anything is cut |
+| Slow stock sits on the shelf | **Shop kits**: the shop designs a quilt with fabrics it has in stock and publishes it; nearby users see "Kit da semana" and buy it in one tap |
+| Competing with Mercado Livre, Magalu and big online shops | Orders arrive from quilters who already know exactly what they need, close by, ready to pay |
+| Not knowing what to stock | Anonymous data on what local quilters design with: colours, brands, styles |
+| Teachers send students elsewhere | **"Loja parceira da turma"**: the app matches the shop with teachers who don't own a shop; the shop offers a discount to that class |
+
+### Joining in ten minutes, whatever the shop's technology
+
+Most of these shops are small, so the app has to meet each one where it is:
+
+1. **WhatsApp only**: the shop gives its WhatsApp number and photographs its fabrics with the phone (the
+   same photo feature as "+ Add fabric", with a printed card in the picture for true size and colour).
+   Price and stock can be "consultar". Orders arrive as a WhatsApp message with the list.
+2. **A spreadsheet**: one file with name, brand, price per metre, unit (50 cm, metre, fat quarter), photo.
+3. **An online store**: connect Shopify, VTEX, Nuvemshop, Tray or Loja Integrada; catalogue, price and stock
+   update themselves and the app fills the cart.
+4. **Later**: stock kept in sync, kits, and a cutting service (pre-cut kits).
+
+A shop can start at step 1 and move up when it wants. No shop should need a developer.
+
+### Who gets the order
+
+This is the question shops will ask first. Write the rule down and show it in the app:
+
+- **The quilter always chooses the shop**; the app never hides other shops.
+- Default, in order: the shop that brought her to the app, then her teacher's shop or her class's partner
+  shop, then the nearest shop with the fabric in stock.
+- A shop that brings a customer to the app (QR at the counter, on the bag, on the receipt) becomes her
+  **home shop**: her orders go there by default for as long as she keeps that shop.
+- Show prices, but **don't build a "cheapest first" ranking**. Sort by: your shop, nearby, in stock. Shops
+  won't join an app that turns them into a price war.
+- When no partner shop has a fabric, fall back to an affiliate link (Mercado Livre, Magalu, Amazon).
+
+### How shops pay
+
+You can't see whether a WhatsApp conversation became a sale, so a commission only works for online carts:
+
+| Shop type | How it pays (*estimates, test in the pilot*) |
+|---|---|
+| Online store (cart links) | A fee on orders that come from the app, tracked by link or code: about 5–8% |
+| WhatsApp only | A small monthly plan (about R$49–99) for the listing, kits and orders, or a fee per order the shop confirms in the app |
+| Everyone, at first | **Free during the pilot.** A city needs enough shops that every design finds its fabric before anyone is charged |
+
+When the teacher recommended the shop, pass part of the shop's fee to the teacher. That way teachers without
+a shop also earn from fabric, not only from Plus.
+
+### Where it fits in the plan
+
+- **Phase 0 (São Paulo)**: next to the 5 ateliers, add 2–3 fabric-only shops near them, so students of
+  teachers without a shop have somewhere to buy. Candidates from the list: Ponto X Tecidos (São Paulo),
+  Casa Criativa and Cris Mazzer (Campinas), Patchwork Sorocaba, Costura Tudo (Ribeirão Preto).
+- **Phase 1**: in each new region, sign up shops and teachers together, never one without the other.
+- **Phase 2**: shop kits, QR codes on bolts and counter mode become the reasons shops ask to join.
+
+## 9. If a big rival copies you
 
 Assume someone copies the app within a year. They get the software. They don't get: the teachers who
 already teach with it, the shops already connected, the stash and projects people already keep there, the
