@@ -1,5 +1,31 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'Make the border narrower': 'Deixe a barra mais estreita',
+  'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.':
+    'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.',
+  'Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.':
+    'Digite <b>3</b>, por favor, para o quilt ficar igual ao do tutorial.',
+  'Choose the border fabric': 'Escolha o tecido da barra',
+  'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; you can try as many as you want.':
+    'Embaixo da barra, clique em <b>Tecido</b>: abre uma lista de tecidos. Clique no que você gostar para a moldura. O quilt muda na hora; você pode experimentar quantos quiser.',
+  'Look around': 'Olhe em volta',
+  'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.':
+    'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> para chegar mais perto.',
+  'Try it on a table': 'Experimente em uma mesa',
+  'A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.':
+    'Um quilt pequeno também fica lindo como toalha de mesa. No menu lá em cima, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.',
+  'Click the <b>×</b> at the top left to go back to your quilt.':
+    'Clique no <b>×</b> no canto de cima, à esquerda, para voltar ao seu quilt.',
+  'Your shopping list': 'Sua lista de compras',
+  'This table is your shopping list. Each fabric has a letter, and beside it how much to buy, in yards and in metres, with a little extra for straightening the cut. Click <b>Next</b> when you have read it.':
+    'Esta tabela é a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, em jardas e em metros, com uma sobrinha para acertar o corte. Clique em <b>Próximo</b> quando terminar de ler.',
+  Next: 'Próximo',
+  'The border pieces': 'As peças da barra',
+  'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b>, for border.':
+    'As faixas e a barra têm cartões próprios mais abaixo. Clique em <b>Barra 1</b>, o título destacado: ele lista as tiras para cortar para a barra. Os códigos delas têm um <b>B</b>, de barra (border, em inglês).',
+  'Take it to your sewing table': 'Leve para a mesa de costura',
+  'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>.':
+    'O botão <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras, cada bloco com as suas peças e os moldes em tamanho real. Você pode clicar agora ou depois. Depois clique em <b>Próximo</b>.',
   // the guided tour
   'Guided tour': 'Tour guiado',
   'Step {n} of {all}': 'Passo {n} de {all}',
@@ -89,8 +115,6 @@ export default {
   'See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed.':
     'Veja o seu quilt em uma cama. Clique no botão redondo destacado ao lado do quilt, o que tem uma caminha.',
   'Back to your quilt': 'De volta ao seu quilt',
-  'At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>×</b> at the top left to go back.':
-    'Neste tamanho ele é uma coberta pequena, então cobre só parte de uma cama de solteiro: um quilt maior cobriria tudo. Clique no <b>×</b> no alto, à esquerda, para voltar.',
   'Well done!': 'Muito bem!',
   'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.':
     'Você fez o seu primeiro quilt, e ele está salvo: você vai encontrá-lo sempre em <b>Meus projetos</b>. Para começar outro, clique em <b>Novo</b>, o primeiro botão redondo à esquerda. Se um quilt tiver mudanças que não foram salvas, o app pergunta antes de fechá-lo.',

@@ -24,7 +24,7 @@ import { tlKeyFor } from '../timeline/timeline.js';
 import { timelines } from '../storage/repo.js';
 import { newDesign } from '@quilt/shared/design.js';
 import { dispatch, ensureDesign, openDesign, replaceDesign } from '../designer/dispatch.js';
-import { setBlockMm } from '../core/edits.js';
+import { setBlockMm, updateBorder } from '../core/edits.js';
 import { drawPartsEditor, renderDesigner } from '../designer/parts-editor.js';
 import { openBlockEditor } from '../designer/side-panel.js';
 import { getLang, t } from '@quilt/shared/i18n.js';
@@ -32,7 +32,18 @@ import { getLang, t } from '@quilt/shared/i18n.js';
 // ---- guided tour: a short exercise for first-time users. Every control is greyed out and switched
 // off except the ones the current step needs; the step moves on by itself once it has been done.
 const TOUR_KEY = 'quilt-tour.v1';
-const tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null, watching: false, steps: [] };
+const tour = {
+  on: false,
+  i: 0,
+  poll: 0,
+  saved: null,
+  savedCur: null,
+  mark: null,
+  watching: false,
+  steps: [],
+  looked: false,
+  brdFab: null,
+};
 const blk = i => design && design.blocks[i];
 /** Going back a step: the blocks and panel that step expects. @param {number[]} ids the selected blocks, the first in focus */
 function openBlocks(ids, parts = []) {
@@ -277,6 +288,34 @@ const TOUR = [
     done: () => bordersOf(design).length > 0,
   },
   {
+    title: t('Make the border narrower'),
+    back: () => showToolsPanel('brd'),
+    text: t(
+      'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.',
+    ),
+    allow: ['#brd-list'],
+    glow: '#brd-list .brd-row:first-child .inch-whole, #brd-list .brd-row:first-child input[data-a="mm"]',
+    done: () => Math.abs((bordersOf(design)[0]?.mm || 0) - 76) <= 1,
+    // the cutting guide that follows is about this width
+    check: () => {
+      const mm = bordersOf(design)[0]?.mm;
+      return mm != null && Math.abs(mm - 102) > 1 && Math.abs(mm - 76) > 1;
+    },
+    fix: () => dispatch(updateBorder, 0, { mm: 102 }),
+    says: t('Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.'),
+  },
+  {
+    title: t('Choose the border fabric'),
+    back: () => showToolsPanel('brd'),
+    enter: () => (tour.brdFab = bordersOf(design)[0]?.fabrics?.[0]),
+    text: t(
+      'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; you can try as many as you want.',
+    ),
+    allow: ['#brd-list', '#brd-palbox'],
+    glow: '#brd-list .brd-row:first-child .brd-slot[data-slot="0"]',
+    done: () => !!tour.brdFab && bordersOf(design)[0]?.fabrics?.[0] !== tour.brdFab,
+  },
+  {
     title: t('Save your quilt'),
     text: t('A quilt is only kept once you save it. Click the highlighted round button, to the left of the quilt.'),
     allow: ['#dz-save'],
@@ -312,11 +351,30 @@ const TOUR = [
     done: () => state.page === 'sim',
   },
   {
-    title: t('Back to your quilt'),
+    title: t('Look around'),
+    back: () => showPage('sim'),
+    enter: () => (tour.looked = false),
+    text: t(
+      'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.',
+    ),
+    allow: ['#view', '#stage'],
+    glow: '#view',
+    done: () => !!tour.looked,
+  },
+  {
+    title: t('Try it on a table'),
     back: () => showPage('sim'),
     text: t(
-      'At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>×</b> at the top left to go back.',
+      'A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.',
     ),
+    allow: ['#bedsel'],
+    glow: '#bedsel',
+    done: () => /** @type {HTMLSelectElement} */ ($('bedsel')).value === 'tb-square4',
+  },
+  {
+    title: t('Back to your quilt'),
+    back: () => showPage('sim'),
+    text: t('Click the <b>×</b> at the top left to go back to your quilt.'),
     allow: ['#sim-close'],
     glow: '#sim-close',
     done: () => state.page === 'design',
@@ -341,6 +399,16 @@ const TOUR = [
     done: () => state.page === 'cut',
   },
   {
+    title: t('Your shopping list'),
+    back: () => showPage('cut'),
+    text: t(
+      'This table is your shopping list. Each fabric has a letter, and beside it how much to buy, in yards and in metres, with a little extra for straightening the cut. Click <b>Next</b> when you have read it.',
+    ),
+    allow: [],
+    glow: '#cg-fabrics',
+    buttons: [[t('Next'), 'on', true]],
+  },
+  {
     title: t('See the sizes'),
     back: () => showPage('cut'),
     text: t(
@@ -349,6 +417,26 @@ const TOUR = [
     allow: ['#cg-blocks .cgblock:first-child h3'],
     glow: '#cg-blocks .cgblock:first-child h3',
     done: () => !!document.querySelector('#cg-blocks .cgblock:first-child.open'),
+  },
+  {
+    title: t('The border pieces'),
+    back: () => showPage('cut'),
+    text: t(
+      'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b>, for border.',
+    ),
+    allow: ['#cg-blocks .cgblock:last-child h3'],
+    glow: '#cg-blocks .cgblock:last-child h3',
+    done: () => !!document.querySelector('#cg-blocks .cgblock:last-child.open'),
+  },
+  {
+    title: t('Take it to your sewing table'),
+    back: () => showPage('cut'),
+    text: t(
+      'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>.',
+    ),
+    allow: ['#cg-pdf'],
+    glow: '#cg-pdf',
+    buttons: [[t('Next'), 'on', true]],
   },
   {
     title: t('Well done!'),
@@ -715,6 +803,12 @@ function tourBegin() {
   tour.poll = setInterval(tourTick, 200);
 }
 function tourAct(act) {
+  if (act === 'on') {
+    // a step that is only read: on to the next one
+    tour.i++;
+    tourShow();
+    return;
+  }
   if (act === 'next') {
     tour.i = 1;
     tourShow();
@@ -765,6 +859,11 @@ function tourEnd(how) {
   if (how !== 'keep') showPage('design');
 }
 $('tour-start').addEventListener('click', () => confirmLeave(tourBegin));
+// the "look around" step: a drag or a turn of the wheel on the 3D view
+for (const ev of ['pointermove', 'wheel'])
+  $('view').addEventListener(ev, e => {
+    if (ev === 'wheel' || /** @type {PointerEvent} */ (e).buttons) tour.looked = true;
+  });
 initTourDrag();
 $('tour-skip').addEventListener('click', () => tourAct('skip'));
 $('tour-back').addEventListener('click', tourBack);

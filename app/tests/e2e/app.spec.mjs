@@ -186,6 +186,19 @@ test.describe('first visit', () => {
     await expect(title).toHaveText('Add a border');
     await page.locator('.brd-type[data-t="plain"]').click();
 
+    await expect(title).toHaveText('Make the border narrower');
+    expect((await app.current()).borders[0].mm).toBe(102); // 4 in: a round number in inches
+    const brdBox = page.locator('#brd-list .brd-row:first-child .inch-whole');
+    await brdBox.fill('5');
+    await brdBox.press('Enter');
+    await expect(page.locator('#tour-note')).toContainText('Type 3');
+    await expect.poll(async () => (await app.current()).borders[0].mm).toBe(102);
+    await brdBox.fill('3');
+    await brdBox.press('Enter');
+    await expect(title).toHaveText('Choose the border fabric');
+    await page.locator('#brd-list .brd-row:first-child .brd-slot[data-slot="0"]').click();
+    await page.locator('#brd-pal .fab[data-f="b4"]').click();
+
     await expect(title).toHaveText('Save your quilt');
     await page.locator('#dz-save').click();
     await expect(title).toHaveText('Give it a name');
@@ -195,8 +208,16 @@ test.describe('first visit', () => {
     await expect(title).toHaveText('See it on a bed');
     await expect(page.locator('#tour-back')).toBeHidden();
     await page.locator('#dz-sim').click();
-    await expect(title).toHaveText('Back to your quilt');
+    await expect(title).toHaveText('Look around');
     await expect(page.locator('#bedsel')).toHaveValue('br-solteiro');
+    const v = await page.locator('#view').boundingBox();
+    await page.mouse.move(v.x + v.width / 2, v.y + v.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(v.x + v.width / 2 + 80, v.y + v.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await expect(title).toHaveText('Try it on a table');
+    await page.locator('#bedsel').selectOption('tb-square4');
+    await expect(title).toHaveText('Back to your quilt');
     await page.locator('#sim-close').click();
 
     await expect(title).toHaveText('See what to cut');
@@ -208,9 +229,18 @@ test.describe('first visit', () => {
     await expect(title).toHaveText('See what to cut');
     await page.locator('#tabs [data-page="cut"]').click();
 
+    await expect(title).toHaveText('Your shopping list');
+    await expect(page.locator('#cg-fabrics tbody')).toContainText('m)');
+    await page.locator('#tour-actions button').click();
     await expect(title).toHaveText('See the sizes');
     await expect(page.locator('#cg-seam')).toHaveValue('6.4');
     await page.locator('#cg-blocks .cgblock:first-child h3').click();
+
+    await expect(title).toHaveText('The border pieces');
+    await page.locator('#cg-blocks .cgblock:last-child h3').click();
+    await expect(page.locator('#cg-blocks .cgblock:last-child')).toContainText('Border 1');
+    await expect(title).toHaveText('Take it to your sewing table');
+    await page.locator('#tour-actions button').click();
 
     await expect(title).toHaveText('Well done!');
     await expect(page.locator('#cg-blocks .cgblock:first-child')).toContainText('4½');

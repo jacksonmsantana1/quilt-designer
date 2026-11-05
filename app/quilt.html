@@ -4217,6 +4217,23 @@ var template_default = {
 
 // ../shared/src/lang/pt-BR/tour.js
 var tour_default = {
+  "Make the border narrower": "Deixe a barra mais estreita",
+  "The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.": "A barra veio com 4 polegadas de largura. No cart\xE3o <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.",
+  "Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.": "Digite <b>3</b>, por favor, para o quilt ficar igual ao do tutorial.",
+  "Choose the border fabric": "Escolha o tecido da barra",
+  "Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; you can try as many as you want.": "Embaixo da barra, clique em <b>Tecido</b>: abre uma lista de tecidos. Clique no que voc\xEA gostar para a moldura. O quilt muda na hora; voc\xEA pode experimentar quantos quiser.",
+  "Look around": "Olhe em volta",
+  "The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.": "O quilt cai na cama como um tecido de verdade. Neste tamanho ele \xE9 uma coberta pequena: cobre s\xF3 parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> para chegar mais perto.",
+  "Try it on a table": "Experimente em uma mesa",
+  "A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.": "Um quilt pequeno tamb\xE9m fica lindo como toalha de mesa. No menu l\xE1 em cima, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.",
+  "Click the <b>\xD7</b> at the top left to go back to your quilt.": "Clique no <b>\xD7</b> no canto de cima, \xE0 esquerda, para voltar ao seu quilt.",
+  "Your shopping list": "Sua lista de compras",
+  "This table is your shopping list. Each fabric has a letter, and beside it how much to buy, in yards and in metres, with a little extra for straightening the cut. Click <b>Next</b> when you have read it.": "Esta tabela \xE9 a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, em jardas e em metros, com uma sobrinha para acertar o corte. Clique em <b>Pr\xF3ximo</b> quando terminar de ler.",
+  Next: "Pr\xF3ximo",
+  "The border pieces": "As pe\xE7as da barra",
+  "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b>, for border.": "As faixas e a barra t\xEAm cart\xF5es pr\xF3prios mais abaixo. Clique em <b>Barra 1</b>, o t\xEDtulo destacado: ele lista as tiras para cortar para a barra. Os c\xF3digos delas t\xEAm um <b>B</b>, de barra (border, em ingl\xEAs).",
+  "Take it to your sewing table": "Leve para a mesa de costura",
+  "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>.": "O bot\xE3o <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras, cada bloco com as suas pe\xE7as e os moldes em tamanho real. Voc\xEA pode clicar agora ou depois. Depois clique em <b>Pr\xF3ximo</b>.",
   // the guided tour
   "Guided tour": "Tour guiado",
   "Step {n} of {all}": "Passo {n} de {all}",
@@ -4278,7 +4295,6 @@ var tour_default = {
   "See it on a bed": "Veja na cama",
   "See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed.": "Veja o seu quilt em uma cama. Clique no bot\xE3o redondo destacado ao lado do quilt, o que tem uma caminha.",
   "Back to your quilt": "De volta ao seu quilt",
-  "At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>\xD7</b> at the top left to go back.": "Neste tamanho ele \xE9 uma coberta pequena, ent\xE3o cobre s\xF3 parte de uma cama de solteiro: um quilt maior cobriria tudo. Clique no <b>\xD7</b> no alto, \xE0 esquerda, para voltar.",
   "Well done!": "Muito bem!",
   "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.": "Voc\xEA fez o seu primeiro quilt, e ele est\xE1 salvo: voc\xEA vai encontr\xE1-lo sempre em <b>Meus projetos</b>. Para come\xE7ar outro, clique em <b>Novo</b>, o primeiro bot\xE3o redondo \xE0 esquerda. Se um quilt tiver mudan\xE7as que n\xE3o foram salvas, o app pergunta antes de fech\xE1-lo.",
   "Save it in My designs": "Salvar em Meus projetos",
@@ -21320,7 +21336,18 @@ onUnitChange(() => {
 
 // src/tour/tour.js
 var TOUR_KEY = "quilt-tour.v1";
-var tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null, watching: false, steps: [] };
+var tour = {
+  on: false,
+  i: 0,
+  poll: 0,
+  saved: null,
+  savedCur: null,
+  mark: null,
+  watching: false,
+  steps: [],
+  looked: false,
+  brdFab: null
+};
 var blk = (i) => design && design.blocks[i];
 function openBlocks(ids, parts = []) {
   setSelBlocks(new Set(ids));
@@ -21572,6 +21599,34 @@ var TOUR = [
     done: () => bordersOf(design).length > 0
   },
   {
+    title: t("Make the border narrower"),
+    back: () => showToolsPanel("brd"),
+    text: t(
+      "The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller."
+    ),
+    allow: ["#brd-list"],
+    glow: '#brd-list .brd-row:first-child .inch-whole, #brd-list .brd-row:first-child input[data-a="mm"]',
+    done: () => Math.abs((bordersOf(design)[0]?.mm || 0) - 76) <= 1,
+    // the cutting guide that follows is about this width
+    check: () => {
+      const mm = bordersOf(design)[0]?.mm;
+      return mm != null && Math.abs(mm - 102) > 1 && Math.abs(mm - 76) > 1;
+    },
+    fix: () => dispatch(updateBorder, 0, { mm: 102 }),
+    says: t("Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.")
+  },
+  {
+    title: t("Choose the border fabric"),
+    back: () => showToolsPanel("brd"),
+    enter: () => tour.brdFab = bordersOf(design)[0]?.fabrics?.[0],
+    text: t(
+      "Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; you can try as many as you want."
+    ),
+    allow: ["#brd-list", "#brd-palbox"],
+    glow: '#brd-list .brd-row:first-child .brd-slot[data-slot="0"]',
+    done: () => !!tour.brdFab && bordersOf(design)[0]?.fabrics?.[0] !== tour.brdFab
+  },
+  {
     title: t("Save your quilt"),
     text: t("A quilt is only kept once you save it. Click the highlighted round button, to the left of the quilt."),
     allow: ["#dz-save"],
@@ -21609,11 +21664,33 @@ var TOUR = [
     done: () => state.page === "sim"
   },
   {
-    title: t("Back to your quilt"),
+    title: t("Look around"),
+    back: () => showPage("sim"),
+    enter: () => tour.looked = false,
+    text: t(
+      "The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer."
+    ),
+    allow: ["#view", "#stage"],
+    glow: "#view",
+    done: () => !!tour.looked
+  },
+  {
+    title: t("Try it on a table"),
     back: () => showPage("sim"),
     text: t(
-      "At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>\xD7</b> at the top left to go back."
+      "A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table."
     ),
+    allow: ["#bedsel"],
+    glow: "#bedsel",
+    done: () => (
+      /** @type {HTMLSelectElement} */
+      $("bedsel").value === "tb-square4"
+    )
+  },
+  {
+    title: t("Back to your quilt"),
+    back: () => showPage("sim"),
+    text: t("Click the <b>\xD7</b> at the top left to go back to your quilt."),
     allow: ["#sim-close"],
     glow: "#sim-close",
     done: () => state.page === "design"
@@ -21641,6 +21718,16 @@ var TOUR = [
     done: () => state.page === "cut"
   },
   {
+    title: t("Your shopping list"),
+    back: () => showPage("cut"),
+    text: t(
+      "This table is your shopping list. Each fabric has a letter, and beside it how much to buy, in yards and in metres, with a little extra for straightening the cut. Click <b>Next</b> when you have read it."
+    ),
+    allow: [],
+    glow: "#cg-fabrics",
+    buttons: [[t("Next"), "on", true]]
+  },
+  {
     title: t("See the sizes"),
     back: () => showPage("cut"),
     text: t(
@@ -21649,6 +21736,26 @@ var TOUR = [
     allow: ["#cg-blocks .cgblock:first-child h3"],
     glow: "#cg-blocks .cgblock:first-child h3",
     done: () => !!document.querySelector("#cg-blocks .cgblock:first-child.open")
+  },
+  {
+    title: t("The border pieces"),
+    back: () => showPage("cut"),
+    text: t(
+      "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b>, for border."
+    ),
+    allow: ["#cg-blocks .cgblock:last-child h3"],
+    glow: "#cg-blocks .cgblock:last-child h3",
+    done: () => !!document.querySelector("#cg-blocks .cgblock:last-child.open")
+  },
+  {
+    title: t("Take it to your sewing table"),
+    back: () => showPage("cut"),
+    text: t(
+      "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>."
+    ),
+    allow: ["#cg-pdf"],
+    glow: "#cg-pdf",
+    buttons: [[t("Next"), "on", true]]
   },
   {
     title: t("Well done!"),
@@ -21979,6 +22086,11 @@ function tourBegin() {
   tour.poll = setInterval(tourTick, 200);
 }
 function tourAct(act) {
+  if (act === "on") {
+    tour.i++;
+    tourShow();
+    return;
+  }
   if (act === "next") {
     tour.i = 1;
     tourShow();
@@ -22031,6 +22143,11 @@ function tourEnd(how) {
   if (how !== "keep") showPage("design");
 }
 $("tour-start").addEventListener("click", () => confirmLeave(tourBegin));
+for (const ev of ["pointermove", "wheel"])
+  $("view").addEventListener(ev, (e) => {
+    if (ev === "wheel" || /** @type {PointerEvent} */
+    e.buttons) tour.looked = true;
+  });
 initTourDrag();
 $("tour-skip").addEventListener("click", () => tourAct("skip"));
 $("tour-back").addEventListener("click", tourBack);
