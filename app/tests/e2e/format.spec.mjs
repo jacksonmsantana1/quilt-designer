@@ -46,6 +46,7 @@ test('a design from a newer version is shown but never saved over', async ({ app
 
 test('the sample designs open without repairs', async ({ app, page }) => {
   await app.open('mine');
+  await expect(page.locator('#mine-grid .pin').first()).toBeVisible(); // the list is drawn a moment after the page
   const n = await page.locator('#mine-grid .pin').count();
   expect(n).toBeGreaterThan(0);
   for (let i = 0; i < n; i++) {
