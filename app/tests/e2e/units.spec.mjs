@@ -75,7 +75,10 @@ test('the switch changes how lengths are shown and typed, not the quilt, and is 
   await expect(page.locator('#dz-bsize .inch-pair')).toBeHidden();
 });
 
-test('a block size typed in centimetres is read as such; one out of range is refused out loud', async ({ app, page }) => {
+test('a block size typed in centimetres is read as such; one out of range is refused out loud', async ({
+  app,
+  page,
+}) => {
   await app.open();
   const box = page.locator('#dz-bmm3');
   await box.fill('25');
