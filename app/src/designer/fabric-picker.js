@@ -180,8 +180,8 @@ function floatButtons() {
     b.type = 'button';
     b.className = 'fab-more-btn fab-more-float';
     b.id = id;
-    // a name under it, like the round buttons beside the quilt: a number or a colour wheel alone says little
-    b.dataset.name = n === 0 ? t('All fabrics') : t('By colour');
+    // a name under it (set when shown), like the round buttons beside the quilt: a number or a colour wheel alone
+    // says little
     b.hidden = true;
     b.addEventListener('mouseenter', () => clearTimeout(float.timer)); // moving onto it keeps it
     b.addEventListener('mouseleave', hideFloatSoon);
@@ -252,6 +252,8 @@ function showFloat(box, region) {
     if (!src) continue;
     b.replaceChildren(...[...src.childNodes].map(c => c.cloneNode(true)));
     b.title = src.title;
+    // its name: the first opens the library of that row (blocks or fabrics), the second finds by colour
+    b.dataset.name = n === 1 ? t('By colour') : box.closest('.pats, #dz-patterns') ? t('All blocks') : t('All fabrics');
     b.setAttribute('aria-label', src.getAttribute('aria-label') || '');
     b.style.left = left + 'px';
     // the buttons together are centred on the row, the second under the first with room for the first one's name

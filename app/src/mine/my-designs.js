@@ -2,7 +2,7 @@
 import '../tour/tour.js'; // load order: runs after tour/tour
 import { design, mineCur, readOnly, setMineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
-import { dims, roundLen } from '../core/units.js';
+import { dims, exact, roundLen } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { quiltMm } from '@quilt/shared/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
@@ -262,7 +262,7 @@ function renderMine() {
     sm.textContent = t('{cols} × {rows} blocks · {size} · {date}', {
       cols: d.cols,
       rows: d.rows,
-      size: dims([quiltMm(d).W, quiltMm(d).H]),
+      size: dims([quiltMm(exact(d)).W, quiltMm(exact(d)).H]), // in inches, from the inches typed
       date: when(m.updatedAt),
     });
     text.append(nm, sm);

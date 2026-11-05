@@ -388,9 +388,15 @@ const CG = (() => {
       r.buy = r.small ? '' : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));
+    // the backing: widths of fabric sewn side by side, running along the quilt or across it, whichever needs less
+    // fabric (a 66 × 78 in back: two widths across, 2 × 66 in, not two along, 2 × 78 in)
     const backW = QW + 200,
       backH = QH + 200,
-      widths = Math.ceil(Math.min(backW, backH) / usable);
+      long = Math.max(backW, backH),
+      short = Math.min(backW, backH),
+      along = Math.ceil(short / usable),
+      across = Math.ceil(long / usable),
+      [widths, pieceLen] = along * long <= across * short ? [along, long] : [across, short];
     return {
       blockW,
       blockH,
@@ -401,7 +407,7 @@ const CG = (() => {
       blocks,
       fabrics: result,
       sashing: sashList,
-      backing: { w: backW, h: backH, widths, buy: metres(widths * Math.max(backW, backH)) },
+      backing: { w: backW, h: backH, widths, buy: metres(widths * pieceLen) },
     };
   }
   /**

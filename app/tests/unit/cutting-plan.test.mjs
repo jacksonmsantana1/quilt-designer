@@ -173,3 +173,15 @@ test('a regular hexagon is cut from a template: across the flats √3 × side pl
   assert.deepEqual(c.cut, [Math.ceil(2 * s + (4 * 7.5) / Math.sqrt(3)), Math.ceil(Math.sqrt(3) * s + 15)]);
   assert.match(c.how, /finished side 50 mm/);
 });
+
+test('the backing runs whichever way needs less fabric', () => {
+  // a 1473 × 1778 mm quilt (58 × 70 in): its back of 1673 × 1978 mm takes two widths either way; across, each piece
+  // is the short side, so 2 × 1673 mm instead of 2 × 1978 mm
+  const P = plan(grid(1, 1, { blockMm: 300 }), { quiltW: 1473, quiltH: 1778 });
+  assert.equal(P.backing.widths, 2);
+  assert.equal(P.backing.buy, CG.metres(2 * 1673));
+  // narrow enough for one width along: one piece the long way
+  const Q = plan(grid(1, 1, { blockMm: 300 }), { quiltW: 1100, quiltH: 2000 });
+  assert.equal(Q.backing.widths, 1);
+  assert.equal(Q.backing.buy, CG.metres(2200));
+});

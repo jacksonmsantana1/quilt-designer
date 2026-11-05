@@ -3049,6 +3049,7 @@ var cutting_default = {
 var designer_default = {
   "All fabrics": "Todos os tecidos",
   "By colour": "Por cor",
+  "All blocks": "Todos os blocos",
   "Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them. Click the button again for the other half.": "Ficou escolhido um bloco sim, um n\xE3o. Agora clique em um desenho de bloco, ou em um bloco do seu quilt, para coloc\xE1-lo neles. Clique no bot\xE3o de novo para a outra metade.",
   "Now the other half is chosen. Click a block pattern, or a block of your quilt, to put it in them.": "Agora est\xE1 escolhida a outra metade. Clique em um desenho de bloco, ou em um bloco do seu quilt, para coloc\xE1-lo neles.",
   "A border can be from {min} to {max} wide.": "Uma barra pode ter de {min} a {max} de largura.",
@@ -13876,7 +13877,6 @@ function floatButtons() {
     b.type = "button";
     b.className = "fab-more-btn fab-more-float";
     b.id = id;
-    b.dataset.name = n === 0 ? t("All fabrics") : t("By colour");
     b.hidden = true;
     b.addEventListener("mouseenter", () => clearTimeout(float.timer));
     b.addEventListener("mouseleave", hideFloatSoon);
@@ -13936,6 +13936,7 @@ function showFloat(box3, region) {
     if (!src) continue;
     b.replaceChildren(...[...src.childNodes].map((c) => c.cloneNode(true)));
     b.title = src.title;
+    b.dataset.name = n === 1 ? t("By colour") : box3.closest(".pats, #dz-patterns") ? t("All blocks") : t("All fabrics");
     b.setAttribute("aria-label", src.getAttribute("aria-label") || "");
     b.style.left = left + "px";
     b.style.top = row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 20) / 2 + n * (size + 20) + "px";
@@ -19376,7 +19377,7 @@ var CG = /* @__PURE__ */ (() => {
       r.buy = r.small ? "" : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));
-    const backW = QW + 200, backH = QH + 200, widths = Math.ceil(Math.min(backW, backH) / usable);
+    const backW = QW + 200, backH = QH + 200, long = Math.max(backW, backH), short = Math.min(backW, backH), along = Math.ceil(short / usable), across = Math.ceil(long / usable), [widths, pieceLen] = along * long <= across * short ? [along, long] : [across, short];
     return {
       blockW,
       blockH,
@@ -19387,7 +19388,7 @@ var CG = /* @__PURE__ */ (() => {
       blocks,
       fabrics: result,
       sashing: sashList,
-      backing: { w: backW, h: backH, widths, buy: metres(widths * Math.max(backW, backH)) }
+      backing: { w: backW, h: backH, widths, buy: metres(widths * pieceLen) }
     };
   }
   function settingExtra(d, s) {
@@ -22618,7 +22619,8 @@ function renderMine() {
     sm.textContent = t("{cols} \xD7 {rows} blocks \xB7 {size} \xB7 {date}", {
       cols: d.cols,
       rows: d.rows,
-      size: dims([quiltMm(d).W, quiltMm(d).H]),
+      size: dims([quiltMm(exact(d)).W, quiltMm(exact(d)).H]),
+      // in inches, from the inches typed
       date: when(m.updatedAt)
     });
     text.append(nm, sm);
