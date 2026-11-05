@@ -246,10 +246,10 @@ function showFloat(box, region) {
   // no room on the left (a small window): over the row's right end, inside the card. Just outside its right edge they
   // fell under the next panel or off the page; the row scrolls, so the tile under them can still be reached
   if (left < 4) left = Math.min(row.right, innerWidth) - size - 6;
-  // nor on the round buttons beside the quilt (On a bed, Picture): over the row's right end then too
+  // nor on the round buttons beside the quilt (On a bed, Picture): just to their left then, over the quilt's edge,
+  // which is only looked at (inside the row they would cover fabrics)
   const rail = document.querySelector('.rail:not(.rail-left)')?.getBoundingClientRect();
-  if (rail && rail.width && left < rail.right + 6 && left + size > rail.left - 6)
-    left = Math.min(row.right, innerWidth) - size - 6;
+  if (rail && rail.width && left < rail.right + 6 && left + size > rail.left - 6) left = rail.left - size - 8;
   for (const [n, b] of buttons.entries()) {
     const src = inline[n];
     b.hidden = !src;

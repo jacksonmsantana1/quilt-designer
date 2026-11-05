@@ -13937,8 +13937,7 @@ function showFloat(box3, region) {
   let left = edge.left - size - 10;
   if (left < 4) left = Math.min(row.right, innerWidth) - size - 6;
   const rail = document.querySelector(".rail:not(.rail-left)")?.getBoundingClientRect();
-  if (rail && rail.width && left < rail.right + 6 && left + size > rail.left - 6)
-    left = Math.min(row.right, innerWidth) - size - 6;
+  if (rail && rail.width && left < rail.right + 6 && left + size > rail.left - 6) left = rail.left - size - 8;
   for (const [n, b] of buttons.entries()) {
     const src = inline[n];
     b.hidden = !src;
