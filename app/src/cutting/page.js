@@ -1,9 +1,9 @@
 // Cutting guide page.
 import './draw.js'; // load order: runs after cutting/draw
 import { cgHi, fabHi, lastPlan, setCgHi, setFabHi, setLastPlan } from '../render/hi-state.js';
-import { design } from '../core/store.js';
+import { design as current } from '../core/store.js';
 import { $, esc } from '../core/dom.js';
-import { dims, getUnit, len, sharesOf } from '../core/units.js';
+import { dims, exact, getUnit, len, sharesOf } from '../core/units.js';
 import { comma, t, tn } from '@quilt/shared/i18n.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -45,7 +45,10 @@ import {
 // The whole quilt as on the PDF's quilt page: blocks a little apart, each turned as designed,
 // every piece labelled with its ID, rows and columns numbered.
 // double-clicking a block opens the whole quilt in a pop-up with that block's squares highlighted
+// the quilt as the cutting guide works it out: in inches, from the inches typed (core/units.js exact)
+let design = current;
 function openQuiltPop(P, i) {
+  design = exact(current);
   const d = $('cg-pop'),
     b = P.blocks[i];
   $('cg-pop-title').textContent = b.corner ? b.label : t('Block {n} · {label}', { n: i + 1, label: b.label });
@@ -128,6 +131,7 @@ function cgCardBehaviour(div, key, pick, hint) {
   cv.title = hint;
 }
 function openPartPop(kind) {
+  design = exact(current);
   const d = $('cg-pop'),
     q = quiltMm(design),
     nb = bordersOf(design).length,
@@ -187,6 +191,7 @@ function openPartPop(kind) {
 }
 const cgOpen = new Set(); // blocks whose cutting list is open          // distinct block picked on the cutting guide (double-click), -1 = none
 function renderCut() {
+  design = exact(current);
   if (!design) return;
   // a mosaic: its shapes are one card of their own, and the whole quilt with every piece labelled is that card
   document.querySelector('#page-cut .cg-quilt').hidden = !!design.mosaic;
@@ -664,7 +669,8 @@ function lightFabric(test, tr) {
 }
 function initCutUI() {
   $('cg-seam').addEventListener('change', e => {
-    cutOpts.seam = +e.target.value;
+    // ¼ in is 6.35 mm: the menu says 6.4, the sums use the quarter inch itself
+    cutOpts.seam = e.target.value === '6.4' ? 6.35 : +e.target.value;
     renderCut();
   });
   $('cg-width').addEventListener('change', e => {

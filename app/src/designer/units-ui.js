@@ -141,6 +141,13 @@ onUnitChange(() => {
   } catch (e) {}
   show();
   inchFields.forEach(f => f()); // the pairs show or hide (their boxes are filled again just below)
+  // the seam allowance follows, from one unit's usual one to the other's: ¼ in for inches, 7.5 mm for millimetres
+  const seam = /** @type {HTMLSelectElement} */ ($('cg-seam')),
+    to = { in: ['7.5', '6.4'], mm: ['6.4', '7.5'] }[getUnit()];
+  if (seam.value === to[0]) {
+    seam.value = to[1];
+    seam.dispatchEvent(new Event('change'));
+  }
   if (!design) return;
   renderDesigner();
   if (state.page === 'cut') renderCut();

@@ -91,3 +91,34 @@ test('a block size typed in centimetres is read as such; one out of range is ref
   await expect(box).toHaveValue('250');
   expect((await app.current()).blockMm).toBe(250);
 });
+
+test('in inches the sizes add up exactly: 10 in blocks, 2 in sashing, 2 in and 4 in borders make 58 × 70 in', async ({
+  app,
+  page,
+}) => {
+  await app.open();
+  await page.locator('#unit-sw').check({ force: true });
+  await page.locator('#dz-new').click();
+  if (await page.locator('#leave-dlg').isVisible()) await page.locator('#leave-drop').click();
+  for (let i = 0; i < 1; i++) await page.locator('[data-step="c:1"]').click();
+  for (let i = 0; i < 4; i++) await page.locator('[data-step="r:1"]').click();
+  const size = page.locator('#dz-bsize .inch-whole');
+  await size.fill('10');
+  await size.press('Enter');
+  await page.locator('#rail-sash').click();
+  await page.locator('#sash-presets button', { hasText: '2 in' }).click();
+  await page.locator('#rail-brd').click();
+  await page.locator('.brd-type[data-t="plain"]').click();
+  await page.locator('.brd-type[data-t="plain"]').click();
+  const first = page.locator('#brd-list .brd-row').first().locator('.inch-whole');
+  await first.fill('2');
+  await first.press('Enter');
+  const d = await app.current();
+  expect([d.cols, d.rows, d.blockMm, d.sashing.mm, d.borders.map(b => b.mm)]).toEqual([4, 5, 254, 51, [51, 102]]);
+  await expect(page.locator('#dz-size-b')).toContainText('finished quilt 58 × 70 in');
+  await page.locator('[data-page="cut"]').click();
+  await expect(page.locator('#cg-seam')).toHaveValue('6.4'); // inches: a quarter-inch seam
+  // the outer border's top and bottom strips: 50 in + 2 × 4 in, plus ½ in of seams
+  await expect(page.locator('#cg-blocks .cgblock').last()).toContainText('58½');
+  await expect(page.locator('#cg-blocks .cgblock').last()).not.toContainText('58⅝');
+});

@@ -95,6 +95,32 @@ function eighthsOf(v) {
 }
 
 /**
+ * The design with its lengths as typed in the unit in use. A quilt keeps whole millimetres, so 2 in is kept as 51 mm;
+ * added up (blocks, sashing, borders) those odd tenths make 58 in come out as 58⅛. In inches, the sizes and the
+ * cutting lists are worked out from the inches themselves (2 in = 50.8 mm). Not for saving: the same design is
+ * given back in millimetres, and the copy is kept while the design is the same object.
+ * @template {{ blockMm: number, sashing?: any, borders?: any[], mosaic?: any }} D @param {D} d @returns {D}
+ */
+function exact(d) {
+  if (unit !== 'in' || !d) return d;
+  if (exactMemo.d === d) return /** @type {D} */ (exactMemo.out);
+  // a length within half a millimetre of an eighth of an inch is that eighth; others (300 mm) stay as they are
+  const x = (/** @type {number} */ mm) => {
+    const e = (Math.round((mm / MM_PER_IN) * 8) * MM_PER_IN) / 8;
+    return Math.abs(e - mm) < 0.5 ? e : mm;
+  };
+  const out = { ...d, blockMm: x(d.blockMm) };
+  if (d.sashing && d.sashing.mm) out.sashing = { ...d.sashing, mm: x(d.sashing.mm) };
+  if (d.borders) out.borders = d.borders.map(b => ({ ...b, mm: x(b.mm) }));
+  if (d.mosaic && d.mosaic.mm) out.mosaic = { ...d.mosaic, mm: x(d.mosaic.mm) };
+  exactMemo.d = d;
+  exactMemo.out = out;
+  return out;
+}
+/** @type {{ d: any, out: any }} */
+const exactMemo = { d: null, out: null };
+
+/**
  * A starting length that reads round in the unit in use: in inches the nearest whole inch, so a new quilt's 300 mm
  * blocks are 12 in (305 mm) and not 11¾. @param {number} mm @returns {number}
  */
@@ -111,6 +137,7 @@ function sharesOf(n) {
 }
 
 export {
+  exact,
   roundLen,
   sharesOf,
   FRACTIONS,

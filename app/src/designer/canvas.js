@@ -2,7 +2,7 @@
 import '../render/quilt-draw.js'; // load order: runs after render/quilt-draw
 import { design, focusBlock, selBlocks } from '../core/store.js';
 import { $, themeColour } from '../core/dom.js';
-import { dims, len } from '../core/units.js';
+import { dims, exact, len } from '../core/units.js';
 import { fabricById } from './fabric-library.js';
 import {
   blockOutline,
@@ -225,8 +225,10 @@ function drawDesignerCanvas() {
     borderText = nb
       ? ' · ' + tn(nb, '{n} border ({size})', '{n} borders ({size})', { size: len(borderTotal(design)) })
       : '';
+  // the finished size from the lengths as typed: in inches, 2 in sashing counts as 2 in, not as its 51 mm
+  const fin = quiltMm(exact(design));
   $('dz-size-b').textContent =
-    `${mos}${sashText}${borderText} · ${t('finished quilt {size}', { size: dims([qmm.W, qmm.H]) })}`;
+    `${mos}${sashText}${borderText} · ${t('finished quilt {size}', { size: dims([fin.W, fin.H]) })}`;
   drawBackCanvas(view.w, view.h, dpr0);
   const hv = $('dz-hover');
   hv.style.width = cw + 'px';

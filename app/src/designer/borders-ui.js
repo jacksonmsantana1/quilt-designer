@@ -3,7 +3,8 @@ import './sashing-ui.js'; // load order: runs after designer/sashing-ui
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
-import { fromInput, getUnit, inputRange, roundLen, toInput, unitName } from '../core/units.js';
+import { fromInput, getUnit, inputRange, len, roundLen, toInput, unitName } from '../core/units.js';
+import { notify } from '../ui/notice.js';
 import { t } from '@quilt/shared/i18n.js';
 import { fabricById, onFabricsLoaded } from './fabric-library.js';
 import { BORDER_TYPES, borderFab, borderSidePieces, pathPoly } from '@quilt/shared/geometry.js';
@@ -172,8 +173,14 @@ function initBorderUI() {
     const i = +row.dataset.i;
     if (e.target.dataset.a === 'type') borderEdit(updateBorder, i, { type: e.target.value });
     if (e.target.dataset.a === 'mm') {
-      const v = Math.max(10, Math.min(400, fromInput(+e.target.value || 0)));
-      borderEdit(updateBorder, i, { mm: v });
+      const typed = fromInput(+e.target.value || 0);
+      // out of range: refused out loud, the border left as it was (a slip like 42 for 4 must not make it huge)
+      if (!(typed >= 10 && typed <= 400)) {
+        notify(t('A border can be from {min} to {max} wide.', { min: len(10), max: len(400) }));
+        renderBorderUI();
+        return;
+      }
+      borderEdit(updateBorder, i, { mm: typed });
     }
   });
   $('brd-list').addEventListener('click', e => {

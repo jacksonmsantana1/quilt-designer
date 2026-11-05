@@ -1,5 +1,6 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'A border can be from {min} to {max} wide.': 'Uma barra pode ter de {min} a {max} de largura.',
   '{cm} cm is {mm} mm: the sizes here are in millimetres.': '{cm} cm são {mm} mm: aqui as medidas são em milímetros.',
   'A block can be from {min} to {max}.': 'Um bloco pode ter de {min} a {max}.',
   // units (core/units.js, designer/units-ui.js)
