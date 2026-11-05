@@ -391,6 +391,7 @@
   /* each round button has its name written under it: people new to the app don't know the pictures */
   .rail-name { position: absolute; top: calc(100% + 2px); left: 50%; transform: translateX(-50%); width: 72px; text-align: center; font: 600 .7rem/1.1 var(--font-body); color: var(--ink); pointer-events: none; }
   .rail-btn:hover { transform: scale(1.07); border-color: var(--accent); }
+  .rail-btn:disabled { opacity: .45; cursor: default; transform: none; border-color: var(--stitch); }
   .rail-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent); }
   /* Symmetry: a round button on the tool rail; its five choices slide out beside it (to the left when there is
      no room on the right) */
@@ -1290,6 +1291,7 @@
             <button type="button" class="rail-btn" id="dz-new" aria-label="New design" title="New design: start a new quilt from the default pattern, with its own timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 3v18h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3v4h4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M9 9h3v3H9z M12 12h3v3h-3z" fill="currentColor" opacity=".55"/><path d="M18 15v6M15 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="rail-name" aria-hidden="true">New</span></button>
             <button type="button" class="rail-btn rail-primary" id="dz-save" aria-label="Save" title="Save this quilt to My designs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h13l3 3v13H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8 4v5h7V4" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.5" y="13" width="9" height="7" rx=".8" fill="currentColor" opacity=".6"/></svg><span class="rail-name" aria-hidden="true">Save</span></button>
             <button type="button" class="rail-btn" id="dz-share" aria-label="Share with the community" title="Share this quilt with the community"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="18.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="rail-name" aria-hidden="true">Share</span></button>
+            <button type="button" class="rail-btn" id="dz-undo" aria-label="Undo" title="Undo the last change (Ctrl+Z)" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H4V2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.6 6.6A8 8 0 1 1 4 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="rail-name" aria-hidden="true">Undo</span></button>
           </div>
           <div class="rail" role="toolbar" aria-label="Design tools">
             <button type="button" class="rail-btn" id="rail-parts" aria-pressed="false" aria-label="Block parts" title="Block parts: pattern, pieces and fabrics"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18" stroke="currentColor" stroke-width="1"/><path d="M9 9l3 3 3-3v6l-3-3-3 3z" fill="currentColor"/><path d="M9 3l3 6 3-6M9 21l3-6 3 6M3 9l6 3-6 3M21 9l-6 3 6 3" fill="currentColor" opacity=".55"/></svg><span class="rail-name" aria-hidden="true">Parts</span></button>
@@ -2980,6 +2982,7 @@ var cutting_default = {
   // saving the PDF (pdf/download.js)
   "Drawing page {k} of {total}\u2026": "Desenhando a p\xE1gina {k} de {total}\u2026",
   "quilt-cutting-guide-A4-{date}.pdf": "guia-de-corte-A4-{date}.pdf",
+  "{name}-cutting-guide-A4-{date}.pdf": "{name}-guia-de-corte-A4-{date}.pdf",
   "Saving\u2026": "Salvando\u2026",
   Sent: "Enviado",
   Saved: "Salvo",
@@ -3754,6 +3757,7 @@ var sim_default = {
 // ../shared/src/lang/pt-BR/template.js
 var template_default = {
   English: "English",
+  "Undo the last change (Ctrl+Z)": "Desfazer a \xFAltima mudan\xE7a (Ctrl+Z)",
   Tutorial: "Tutorial",
   "Save your changes?": "Salvar as mudan\xE7as?",
   "If you don\u2019t save, the changes are lost.": "Se voc\xEA n\xE3o salvar, as mudan\xE7as se perdem.",
@@ -4226,7 +4230,7 @@ var template_default = {
 // ../shared/src/lang/pt-BR/tour.js
 var tour_default = {
   "The other round buttons": "Os outros bot\xF5es redondos",
-  "Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.": "Ao lado do quilt h\xE1 mais alguns, para experimentar quando quiser: <b>Simetria</b> copia cada mudan\xE7a para os blocos espelhados, <b>Virar</b> mostra o verso do quilt e o tecido do forro, <b>Foto</b> faz uma foto realista do quilt e <b>Compartilhar</b> mostra o quilt para a comunidade. O bot\xE3o <b>Tutorial</b>, embaixo \xE0 esquerda, come\xE7a este exerc\xEDcio de novo.",
+  "Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. <b>Undo</b>, on the left, takes back the last change. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.": "Ao lado do quilt h\xE1 mais alguns, para experimentar quando quiser: <b>Simetria</b> copia cada mudan\xE7a para os blocos espelhados, <b>Virar</b> mostra o verso do quilt e o tecido do forro, <b>Foto</b> faz uma foto realista do quilt e <b>Compartilhar</b> mostra o quilt para a comunidade. <b>Desfazer</b>, \xE0 esquerda, desfaz a \xFAltima mudan\xE7a. O bot\xE3o <b>Tutorial</b>, embaixo \xE0 esquerda, come\xE7a este exerc\xEDcio de novo.",
   "Make the border narrower": "Deixe a barra mais estreita",
   "The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.": "A barra veio com 4 polegadas de largura. No cart\xE3o <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.",
   "Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.": "Digite <b>3</b>, por favor, para o quilt ficar igual ao do tutorial.",
@@ -21371,7 +21375,8 @@ var tour = {
   steps: [],
   dragged: false,
   zoomed: false,
-  brdFab: null
+  brdFab: null,
+  bed: ""
 };
 var blk = (i) => design && design.blocks[i];
 function openBlocks(ids, parts = []) {
@@ -21789,7 +21794,7 @@ var TOUR = [
     back: () => showPage("cut"),
     enter: () => showPage("design"),
     text: t(
-      "Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. The <b>Tutorial</b> button, at the bottom left, starts this exercise again."
+      "Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. <b>Undo</b>, on the left, takes back the last change. The <b>Tutorial</b> button, at the bottom left, starts this exercise again."
     ),
     allow: [],
     glow: "#rail-sym",
@@ -22110,6 +22115,8 @@ function tourBegin() {
   tour.saved = design ? JSON.stringify(design) : null;
   tour.unit = getUnit();
   tour.savedCur = typeof mineCur !== "undefined" ? mineCur : null;
+  tour.bed = /** @type {HTMLSelectElement} */
+  $("bedsel").value;
   tour.on = true;
   tour.i = 0;
   tour.userPos = null;
@@ -22188,6 +22195,14 @@ function tourEnd(how) {
     setMineCur(tour.savedCur);
     mineSave();
     openDesign(tour.saved, { timeline: mineCur, quiet: true });
+  }
+  const bed = (
+    /** @type {HTMLSelectElement} */
+    $("bedsel")
+  );
+  if (tour.bed && bed.value !== tour.bed) {
+    bed.value = tour.bed;
+    bed.dispatchEvent(new Event("change", { bubbles: true }));
   }
   timelines.remove(tlKeyFor("tour"));
   if (how !== "keep") showPage("design");
@@ -22929,6 +22944,7 @@ function tlThumb(step2) {
 function tlUI() {
   const n = tl.steps.length;
   $("tl-undo").disabled = tl.i <= 0;
+  $("dz-undo").disabled = tl.i <= 0;
   $("tl-redo").disabled = tl.i >= n - 1;
   $("tl-open").textContent = t("Timeline \xB7 {i}/{n}", { i: tl.i + 1, n });
   if ($("tl-panel").hidden) return;
@@ -22964,6 +22980,7 @@ function tlUI() {
 }
 function initTimeline() {
   $("tl-undo").addEventListener("click", () => tlGo(tl.i - 1));
+  $("dz-undo").addEventListener("click", () => tlGo(tl.i - 1));
   $("tl-redo").addEventListener("click", () => tlGo(tl.i + 1));
   const showBar = (v) => {
     const p = $("tl-panel");
@@ -25972,9 +25989,9 @@ async function downloadCutPdf() {
   const btn2 = $("cg-pdf");
   btn2.disabled = true;
   const d = /* @__PURE__ */ new Date(), pad = (n) => String(n).padStart(2, "0");
-  const filename = t("quilt-cutting-guide-A4-{date}.pdf", {
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-  });
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const rec = mineCur ? designs.get(mineCur) : null, name = rec ? rec.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) : "";
+  const filename = name ? t("{name}-cutting-guide-A4-{date}.pdf", { name, date }) : t("quilt-cutting-guide-A4-{date}.pdf", { date });
   try {
     const blob = await makeCutPdf();
     window.__lastCutPdf = blob;

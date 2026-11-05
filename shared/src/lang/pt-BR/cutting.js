@@ -136,6 +136,7 @@ export default {
   // saving the PDF (pdf/download.js)
   'Drawing page {k} of {total}…': 'Desenhando a página {k} de {total}…',
   'quilt-cutting-guide-A4-{date}.pdf': 'guia-de-corte-A4-{date}.pdf',
+  '{name}-cutting-guide-A4-{date}.pdf': '{name}-guia-de-corte-A4-{date}.pdf',
   'Saving…': 'Salvando…',
   Sent: 'Enviado',
   Saved: 'Salvo',

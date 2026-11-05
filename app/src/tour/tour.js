@@ -44,6 +44,7 @@ const tour = {
   dragged: false,
   zoomed: false,
   brdFab: null,
+  bed: '',
 };
 const blk = i => design && design.blocks[i];
 /** Going back a step: the blocks and panel that step expects. @param {number[]} ids the selected blocks, the first in focus */
@@ -446,7 +447,7 @@ const TOUR = [
     back: () => showPage('cut'),
     enter: () => showPage('design'),
     text: t(
-      'Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.',
+      'Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. <b>Undo</b>, on the left, takes back the last change. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.',
     ),
     allow: [],
     glow: '#rail-sym',
@@ -801,6 +802,7 @@ function tourBegin() {
   tour.saved = design ? JSON.stringify(design) : null;
   tour.unit = getUnit();
   tour.savedCur = typeof mineCur !== 'undefined' ? mineCur : null;
+  tour.bed = /** @type {HTMLSelectElement} */ ($('bedsel')).value;
   tour.on = true;
   tour.i = 0;
   tour.userPos = null;
@@ -880,6 +882,12 @@ function tourEnd(how) {
     setMineCur(tour.savedCur);
     mineSave();
     openDesign(tour.saved, { timeline: mineCur, quiet: true });
+  }
+  // the bed or table chosen before: "On a bed" must not open on the tutorial's table afterwards
+  const bed = /** @type {HTMLSelectElement} */ ($('bedsel'));
+  if (tour.bed && bed.value !== tour.bed) {
+    bed.value = tour.bed;
+    bed.dispatchEvent(new Event('change', { bubbles: true }));
   }
   timelines.remove(tlKeyFor('tour'));
   if (how !== 'keep') showPage('design');

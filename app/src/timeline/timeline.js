@@ -178,6 +178,7 @@ function tlThumb(step) {
 function tlUI() {
   const n = tl.steps.length;
   $('tl-undo').disabled = tl.i <= 0;
+  $('dz-undo').disabled = tl.i <= 0; // the round Undo button beside the quilt, always in sight
   $('tl-redo').disabled = tl.i >= n - 1;
   $('tl-open').textContent = t('Timeline · {i}/{n}', { i: tl.i + 1, n });
   if ($('tl-panel').hidden) return;
@@ -218,6 +219,7 @@ function tlUI() {
 }
 function initTimeline() {
   $('tl-undo').addEventListener('click', () => tlGo(tl.i - 1));
+  $('dz-undo').addEventListener('click', () => tlGo(tl.i - 1));
   $('tl-redo').addEventListener('click', () => tlGo(tl.i + 1));
   const showBar = v => {
     const p = $('tl-panel');

@@ -1,6 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
   English: 'English',
+  'Undo the last change (Ctrl+Z)': 'Desfazer a última mudança (Ctrl+Z)',
   Tutorial: 'Tutorial',
   'Save your changes?': 'Salvar as mudanças?',
   'If you don’t save, the changes are lost.': 'Se você não salvar, as mudanças se perdem.',

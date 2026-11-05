@@ -1,6 +1,7 @@
 // Making and saving the PDF.
 import './templates.js'; // load order: runs after pdf/templates
-import { design } from '../core/store.js';
+import { design, mineCur } from '../core/store.js';
+import { designs } from '../storage/repo.js';
 import { lastPlan } from '../render/hi-state.js';
 import { $ } from '../core/dom.js';
 import { bordersOf } from '@quilt/shared/geometry.js';
@@ -62,9 +63,20 @@ async function downloadCutPdf() {
   btn.disabled = true;
   const d = new Date(),
     pad = n => String(n).padStart(2, '0');
-  const filename = t('quilt-cutting-guide-A4-{date}.pdf', {
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-  });
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  // the quilt's name in the file's name, so two guides of one day don't get mixed up
+  const rec = mineCur ? designs.get(mineCur) : null,
+    name = rec
+      ? rec.name
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^\w-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40)
+      : '';
+  const filename = name
+    ? t('{name}-cutting-guide-A4-{date}.pdf', { name, date })
+    : t('quilt-cutting-guide-A4-{date}.pdf', { date });
   try {
     const blob = await makeCutPdf();
     window.__lastCutPdf = blob;

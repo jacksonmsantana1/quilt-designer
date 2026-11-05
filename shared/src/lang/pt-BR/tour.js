@@ -1,8 +1,8 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
   'The other round buttons': 'Os outros botões redondos',
-  'Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.':
-    'Ao lado do quilt há mais alguns, para experimentar quando quiser: <b>Simetria</b> copia cada mudança para os blocos espelhados, <b>Virar</b> mostra o verso do quilt e o tecido do forro, <b>Foto</b> faz uma foto realista do quilt e <b>Compartilhar</b> mostra o quilt para a comunidade. O botão <b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
+  'Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. <b>Undo</b>, on the left, takes back the last change. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.':
+    'Ao lado do quilt há mais alguns, para experimentar quando quiser: <b>Simetria</b> copia cada mudança para os blocos espelhados, <b>Virar</b> mostra o verso do quilt e o tecido do forro, <b>Foto</b> faz uma foto realista do quilt e <b>Compartilhar</b> mostra o quilt para a comunidade. <b>Desfazer</b>, à esquerda, desfaz a última mudança. O botão <b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
   'Make the border narrower': 'Deixe a barra mais estreita',
   'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.':
     'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.',
