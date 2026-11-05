@@ -1,8 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
-  'All fabrics': 'Todos os tecidos',
+  'More fabrics': 'Mais tecidos',
   'By colour': 'Por cor',
-  'All blocks': 'Todos os blocos',
   'Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them. Click the button again for the other half.':
     'Ficou escolhido um bloco sim, um não. Agora clique em um desenho de bloco, ou em um bloco do seu quilt, para colocá-lo neles. Clique no botão de novo para a outra metade.',
   'Now the other half is chosen. Click a block pattern, or a block of your quilt, to put it in them.':

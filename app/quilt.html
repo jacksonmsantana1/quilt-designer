@@ -3051,9 +3051,8 @@ var cutting_default = {
 
 // ../shared/src/lang/pt-BR/designer.js
 var designer_default = {
-  "All fabrics": "Todos os tecidos",
+  "More fabrics": "Mais tecidos",
   "By colour": "Por cor",
-  "All blocks": "Todos os blocos",
   "Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them. Click the button again for the other half.": "Ficou escolhido um bloco sim, um n\xE3o. Agora clique em um desenho de bloco, ou em um bloco do seu quilt, para coloc\xE1-lo neles. Clique no bot\xE3o de novo para a outra metade.",
   "Now the other half is chosen. Click a block pattern, or a block of your quilt, to put it in them.": "Agora est\xE1 escolhida a outra metade. Clique em um desenho de bloco, ou em um bloco do seu quilt, para coloc\xE1-lo neles.",
   "A border can be from {min} to {max} wide.": "Uma barra pode ter de {min} a {max} de largura.",
@@ -13943,7 +13942,7 @@ function showFloat(box3, region) {
     if (!src) continue;
     b.replaceChildren(...[...src.childNodes].map((c) => c.cloneNode(true)));
     b.title = src.title;
-    b.dataset.name = n === 1 ? t("By colour") : box3.closest(".pats, #dz-patterns") ? t("All blocks") : t("All fabrics");
+    b.dataset.name = n === 1 ? t("By colour") : box3.closest(".pats, #dz-patterns") ? t("More blocks") : t("More fabrics");
     b.setAttribute("aria-label", src.getAttribute("aria-label") || "");
     b.style.left = left + "px";
     b.style.top = row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 20) / 2 + n * (size + 20) + "px";

@@ -253,7 +253,8 @@ function showFloat(box, region) {
     b.replaceChildren(...[...src.childNodes].map(c => c.cloneNode(true)));
     b.title = src.title;
     // its name: the first opens the library of that row (blocks or fabrics), the second finds by colour
-    b.dataset.name = n === 1 ? t('By colour') : box.closest('.pats, #dz-patterns') ? t('All blocks') : t('All fabrics');
+    b.dataset.name =
+      n === 1 ? t('By colour') : box.closest('.pats, #dz-patterns') ? t('More blocks') : t('More fabrics');
     b.setAttribute('aria-label', src.getAttribute('aria-label') || '');
     b.style.left = left + 'px';
     // the buttons together are centred on the row, the second under the first with room for the first one's name
