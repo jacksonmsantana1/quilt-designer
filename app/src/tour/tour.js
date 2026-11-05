@@ -166,7 +166,7 @@ const TOUR = [
     clip: 'pattern',
     back: () => openBlocks([4]),
     text: t(
-      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button at the end of this row shows all the blocks.)',
+      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button beside this row shows all the blocks.)',
     ),
     allow: ['#dz-patterns'],
     glow: '#dz-patterns [data-p="nine"]',

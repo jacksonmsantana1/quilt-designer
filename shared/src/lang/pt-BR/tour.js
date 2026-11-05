@@ -82,8 +82,8 @@ export default {
   '<b>Click the middle block</b> of your quilt. Your block then opens in the <b>Block parts</b> card.':
     '<b>Clique no bloco do meio</b> do seu quilt. Aí o seu bloco abre no cartão <b>Peças do bloco</b>.',
   'Choose the nine patch': 'Escolha o nine patch',
-  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button at the end of this row shows all the blocks.)':
-    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. (Agora não: nos seus quilts, o botão redondo <b>+</b> no fim desta fileira mostra todos os blocos.)',
+  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button beside this row shows all the blocks.)':
+    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. (Agora não: nos seus quilts, o botão redondo <b>+</b> ao lado desta fileira mostra todos os blocos.)',
   'Pick a square': 'Escolha um quadrado',
   'In the big picture of the block, <b>click the square in the middle</b> to select it.':
     'Na imagem grande do bloco, <b>clique no quadrado do meio</b> para selecioná-lo.',
