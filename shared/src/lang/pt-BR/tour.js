@@ -43,8 +43,8 @@ export default {
   'A new quilt starts as one row of three blocks. Above the quilt, click the <b>+</b> next to <b>Rows</b> until there are <b>3</b> rows.':
     'Um quilt novo começa com uma linha de três blocos. Acima do quilt, clique no <b>+</b> ao lado de <b>Linhas</b> até ter <b>3</b> linhas.',
   'Measure in inches': 'Meça em polegadas',
-  'Quilt patterns are usually written in inches. Above the quilt, click the <b>mm / in</b> switch. You can change it back at any time.':
-    'Os moldes de quilt costumam vir em polegadas. Acima do quilt, clique no botão <b>mm / pol</b>. Você pode voltar quando quiser.',
+  'This exercise is in inches, like most quilt patterns. Above the quilt, click the <b>mm / in</b> switch. If you measure in centimetres, you can switch back to mm at the end, or at any time.':
+    'Este exercício é em polegadas, como a maioria dos moldes de quilt. Acima do quilt, clique no botão <b>mm / pol</b>. Se você mede em centímetros, pode voltar para mm no fim, ou quando quiser.',
   'Choose the block size': 'Escolha o tamanho do bloco',
   'Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn.':
     'Abaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e aperte <b>Enter</b>. O número antigo sai sozinho. Cada bloco terá 12 polegadas depois de costurado.',
@@ -119,8 +119,8 @@ export default {
     'O seu quilt está salvo: ele está em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no botão redondo destacado ao lado do quilt, <b>Na cama</b>.',
   'Back to your quilt': 'De volta ao seu quilt',
   'Well done!': 'Muito bem!',
-  'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.':
-    'Você fez o seu primeiro quilt, e ele está salvo: você vai encontrá-lo sempre em <b>Meus projetos</b>. Para começar outro, clique em <b>Novo</b>, o primeiro botão redondo à esquerda. Se um quilt tiver mudanças que não foram salvas, o app pergunta antes de fechá-lo.',
+  'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt.':
+    'Você fez o seu primeiro quilt, e ele está salvo: você vai encontrá-lo sempre em <b>Meus projetos</b>. Para começar outro, clique em <b>Novo</b>, o primeiro botão redondo à esquerda. Se um quilt tiver mudanças que não foram salvas, o app pergunta antes de fechá-lo. Para medir em milímetros de novo, clique no botão <b>mm / pol</b> acima do quilt.',
   'Save it in My designs': 'Salvar em Meus projetos',
   'Discard this quilt': 'Não guardar este quilt',
 

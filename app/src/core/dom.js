@@ -24,7 +24,8 @@ function sideRoller(box, chosen) {
     );
     box.addEventListener('scroll', () => (box.dataset.left = String(box.scrollLeft)));
   }
-  const on = /** @type {HTMLElement | null} */ (box.querySelector(chosen));
+  // the guided tour's highlighted tile comes first: it is the one to click now
+  const on = /** @type {HTMLElement | null} */ (box.querySelector('.tour-glow') || box.querySelector(chosen));
   if (!on || !box.clientWidth) return;
   // where the row was before it was drawn again: it stays there while the chosen item is in sight, so a pick
   // doesn't slide the tiles from under the mouse

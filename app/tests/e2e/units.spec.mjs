@@ -74,3 +74,17 @@ test('the switch changes how lengths are shown and typed, not the quilt, and is 
   await expect(page.locator('#dz-bmm3')).toHaveValue('152');
   await expect(page.locator('#dz-bsize .inch-pair')).toBeHidden();
 });
+
+test('a block size typed in centimetres is read as such; one out of range is refused out loud', async ({ app, page }) => {
+  await app.open();
+  const box = page.locator('#dz-bmm3');
+  await box.fill('25');
+  await box.press('Enter');
+  await expect.poll(async () => (await app.current()).blockMm).toBe(250);
+  await expect(page.locator('#notice')).toContainText('25 cm is 250 mm');
+  await box.fill('5000');
+  await box.press('Enter');
+  await expect(page.locator('#notice')).toContainText('A block can be from 50 mm to 1000 mm');
+  await expect(box).toHaveValue('250');
+  expect((await app.current()).blockMm).toBe(250);
+});

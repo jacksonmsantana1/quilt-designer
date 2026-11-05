@@ -104,7 +104,7 @@ const TOUR = [
       sw.dispatchEvent(new Event('change', { bubbles: true }));
     },
     text: t(
-      'Quilt patterns are usually written in inches. Above the quilt, click the <b>mm / in</b> switch. You can change it back at any time.',
+      'This exercise is in inches, like most quilt patterns. Above the quilt, click the <b>mm / in</b> switch. If you measure in centimetres, you can switch back to mm at the end, or at any time.',
     ),
     allow: ['.unit-sw'],
     glow: '.unit-sw',
@@ -455,7 +455,7 @@ const TOUR = [
   {
     title: t('Well done!'),
     text: t(
-      'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.',
+      'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt.',
     ),
     center: true,
     buttons: [[t('Finish'), 'keep', true]],
@@ -667,7 +667,17 @@ function tourMark() {
   for (const sel of st.allow || []) document.querySelectorAll(sel).forEach(el => el.classList.add('tour-allow'));
   // the video shows the step first; the sign lights up as it ends (the button works all along, for the impatient)
   const g = !tour.watching && st.glow && document.querySelector(st.glow);
-  if (g) g.classList.add('tour-glow');
+  if (g) {
+    g.classList.add('tour-glow');
+    // in a row that scrolls sideways (drawn again after each change), the lit tile is kept whole in sight
+    const row = /** @type {HTMLElement | null} */ (g.parentElement);
+    if (row && row.scrollWidth > row.clientWidth + 1) {
+      const r = g.getBoundingClientRect(),
+        box = row.getBoundingClientRect();
+      if (r.left < box.left - 1 || r.right > box.right + 1)
+        row.scrollLeft += r.left - box.left - (box.width - r.width) / 2;
+    }
+  }
 }
 /** The step's short video, in the language in use: it plays once. With none (or none that loads), straight to the sign. */
 function tourClip(st) {

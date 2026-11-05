@@ -524,6 +524,7 @@
   .pin canvas { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 3px 10px rgba(0,0,0,.18); }
   .pin .meta { padding: 10px 8px 12px 14px; display: flex; align-items: flex-start; gap: 6px; }
   .pin .meta-text { flex: 1; min-width: 0; }
+  .pin .meta-text .pin-sample { display: block; margin-top: 2px; font-style: italic; }
   /* shared with the community (mine/community.js) */
   .pin-tag { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; background: var(--sage); color: oklch(0.25 0.03 40); font: 700 .7rem var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
   .com-intro { text-align: center; margin: 4px 0 14px; }
@@ -3037,6 +3038,8 @@ var cutting_default = {
 
 // ../shared/src/lang/pt-BR/designer.js
 var designer_default = {
+  "{cm} cm is {mm} mm: the sizes here are in millimetres.": "{cm} cm s\xE3o {mm} mm: aqui as medidas s\xE3o em mil\xEDmetros.",
+  "A block can be from {min} to {max}.": "Um bloco pode ter de {min} a {max}.",
   // units (core/units.js, designer/units-ui.js)
   in: "pol",
   yd: "jd",
@@ -4252,7 +4255,7 @@ var tour_default = {
   "Make it three rows": "Deixe com tr\xEAs linhas",
   "A new quilt starts as one row of three blocks. Above the quilt, click the <b>+</b> next to <b>Rows</b> until there are <b>3</b> rows.": "Um quilt novo come\xE7a com uma linha de tr\xEAs blocos. Acima do quilt, clique no <b>+</b> ao lado de <b>Linhas</b> at\xE9 ter <b>3</b> linhas.",
   "Measure in inches": "Me\xE7a em polegadas",
-  "Quilt patterns are usually written in inches. Above the quilt, click the <b>mm / in</b> switch. You can change it back at any time.": "Os moldes de quilt costumam vir em polegadas. Acima do quilt, clique no bot\xE3o <b>mm / pol</b>. Voc\xEA pode voltar quando quiser.",
+  "This exercise is in inches, like most quilt patterns. Above the quilt, click the <b>mm / in</b> switch. If you measure in centimetres, you can switch back to mm at the end, or at any time.": "Este exerc\xEDcio \xE9 em polegadas, como a maioria dos moldes de quilt. Acima do quilt, clique no bot\xE3o <b>mm / pol</b>. Se voc\xEA mede em cent\xEDmetros, pode voltar para mm no fim, ou quando quiser.",
   "Choose the block size": "Escolha o tamanho do bloco",
   "Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn.": "Abaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e aperte <b>Enter</b>. O n\xFAmero antigo sai sozinho. Cada bloco ter\xE1 12 polegadas depois de costurado.",
   "That is a different block. Watch the video again, and when it ends click <b>Nine patch</b>, which will light up.": "Esse \xE9 outro bloco. Veja o v\xEDdeo de novo e, quando ele terminar, clique em <b>Nine patch</b>, que vai ficar destacado.",
@@ -4302,7 +4305,7 @@ var tour_default = {
   "Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button beside the quilt, <b>On a bed</b>.": "O seu quilt est\xE1 salvo: ele est\xE1 em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no bot\xE3o redondo destacado ao lado do quilt, <b>Na cama</b>.",
   "Back to your quilt": "De volta ao seu quilt",
   "Well done!": "Muito bem!",
-  "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.": "Voc\xEA fez o seu primeiro quilt, e ele est\xE1 salvo: voc\xEA vai encontr\xE1-lo sempre em <b>Meus projetos</b>. Para come\xE7ar outro, clique em <b>Novo</b>, o primeiro bot\xE3o redondo \xE0 esquerda. Se um quilt tiver mudan\xE7as que n\xE3o foram salvas, o app pergunta antes de fech\xE1-lo.",
+  "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt.": "Voc\xEA fez o seu primeiro quilt, e ele est\xE1 salvo: voc\xEA vai encontr\xE1-lo sempre em <b>Meus projetos</b>. Para come\xE7ar outro, clique em <b>Novo</b>, o primeiro bot\xE3o redondo \xE0 esquerda. Se um quilt tiver mudan\xE7as que n\xE3o foram salvas, o app pergunta antes de fech\xE1-lo. Para medir em mil\xEDmetros de novo, clique no bot\xE3o <b>mm / pol</b> acima do quilt.",
   "Save it in My designs": "Salvar em Meus projetos",
   "Discard this quilt": "N\xE3o guardar este quilt",
   // the timeline
@@ -10900,7 +10903,7 @@ function sideRoller(box3, chosen) {
   }
   const on = (
     /** @type {HTMLElement | null} */
-    box3.querySelector(chosen)
+    box3.querySelector(".tour-glow") || box3.querySelector(chosen)
   );
   if (!on || !box3.clientWidth) return;
   const left = Number(box3.dataset.left || 0), x = on.offsetLeft;
@@ -16340,9 +16343,16 @@ function initDesignerUI() {
   });
   const sizeChange = () => resizeTo(+$("dz-cols").value, +$("dz-rows").value);
   const blockSize = (e) => {
-    const v = fromInput(+e.target.value);
+    const box3 = e.target;
+    let v = fromInput(+box3.value);
+    if (getUnit() === "mm" && v > 0 && v < 50 && v * 10 >= 50 && v * 10 <= 1e3) {
+      v *= 10;
+      notify(t("{cm} cm is {mm} mm: the sizes here are in millimetres.", { cm: comma(v / 10), mm: v }));
+    }
     if (!(v >= 50 && v <= 1e3)) {
-      e.target.value = String(toInput(design.blockMm));
+      notify(t("A block can be from {min} to {max}.", { min: len(50), max: len(1e3) }));
+      box3.value = String(toInput(design.blockMm));
+      box3.select();
       return;
     }
     dispatch(setBlockMm, v);
@@ -21422,7 +21432,7 @@ var TOUR = [
       sw.dispatchEvent(new Event("change", { bubbles: true }));
     },
     text: t(
-      "Quilt patterns are usually written in inches. Above the quilt, click the <b>mm / in</b> switch. You can change it back at any time."
+      "This exercise is in inches, like most quilt patterns. Above the quilt, click the <b>mm / in</b> switch. If you measure in centimetres, you can switch back to mm at the end, or at any time."
     ),
     allow: [".unit-sw"],
     glow: ".unit-sw",
@@ -21787,7 +21797,7 @@ var TOUR = [
   {
     title: t("Well done!"),
     text: t(
-      "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it."
+      "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt."
     ),
     center: true,
     buttons: [[t("Finish"), "keep", true]]
@@ -21970,7 +21980,18 @@ function tourMark() {
   const st = TOUR[tour.i];
   for (const sel of st.allow || []) document.querySelectorAll(sel).forEach((el) => el.classList.add("tour-allow"));
   const g = !tour.watching && st.glow && document.querySelector(st.glow);
-  if (g) g.classList.add("tour-glow");
+  if (g) {
+    g.classList.add("tour-glow");
+    const row = (
+      /** @type {HTMLElement | null} */
+      g.parentElement
+    );
+    if (row && row.scrollWidth > row.clientWidth + 1) {
+      const r = g.getBoundingClientRect(), box3 = row.getBoundingClientRect();
+      if (r.left < box3.left - 1 || r.right > box3.right + 1)
+        row.scrollLeft += r.left - box3.left - (box3.width - r.width) / 2;
+    }
+  }
 }
 function tourClip(st) {
   const v = (

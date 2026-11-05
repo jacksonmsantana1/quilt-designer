@@ -25,7 +25,7 @@ import {
   setMosaicTool,
 } from './ui-state.js';
 import { $ } from '../core/dom.js';
-import { fromInput, roundLen, toInput } from '../core/units.js';
+import { fromInput, getUnit, len, roundLen, toInput } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
 import { addFabric } from './fabric-library.js';
@@ -552,9 +552,18 @@ function initDesignerUI() {
   });
   const sizeChange = () => resizeTo(+$('dz-cols').value, +$('dz-rows').value);
   const blockSize = e => {
-    const v = fromInput(+e.target.value);
+    const box = e.target;
+    let v = fromInput(+box.value);
+    // a size typed in centimetres (25 for a 25 cm block) is read as such, and said so
+    if (getUnit() === 'mm' && v > 0 && v < 50 && v * 10 >= 50 && v * 10 <= 1000) {
+      v *= 10;
+      notify(t('{cm} cm is {mm} mm: the sizes here are in millimetres.', { cm: comma(v / 10), mm: v }));
+    }
     if (!(v >= 50 && v <= 1000)) {
-      e.target.value = String(toInput(design.blockMm));
+      // refused out loud, and ready for the next try: the old number back, selected
+      notify(t('A block can be from {min} to {max}.', { min: len(50), max: len(1000) }));
+      box.value = String(toInput(design.blockMm));
+      box.select();
       return;
     }
     dispatch(setBlockMm, v);
