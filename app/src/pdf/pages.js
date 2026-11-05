@@ -1,7 +1,8 @@
 // Cutting guide PDF: the A4 pages and the PDF writer.
 import '../sim/save-image.js'; // load order: runs after sim/save-image
 import { cgHi, fabHi, setCgHi, setFabHi } from '../render/hi-state.js';
-import { design } from '../core/store.js';
+import { design, mineCur } from '../core/store.js';
+import { designs } from '../storage/repo.js';
 import { dims, getUnit, len, sharesOf } from '../core/units.js';
 import { comma, t, tn } from '@quilt/shared/i18n.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -151,10 +152,12 @@ const gridText = () => {
 function pdfFabricPage(P, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12;
+  // the quilt's name on the first page, when it has one: a printed guide gets mixed up with others
+  const rec = mineCur ? designs.get(mineCur) : null;
   pdfHeader(
     g,
     P,
-    t('Cutting guide'),
+    rec ? t('Cutting guide · {name}', { name: rec.name }) : t('Cutting guide'),
     `${gridText()} · ${tn(P.blocks.length, '{n} distinct block', '{n} distinct blocks')}`,
     1,
     pages,

@@ -2875,6 +2875,7 @@ var blocks_default = {
 
 // ../shared/src/lang/pt-BR/cutting.js
 var cutting_default = {
+  "Cutting guide \xB7 {name}": "Guia de corte \xB7 {name}",
   "\xBD or \xBC per block: one square, cut in two or in four, gives pieces for more than one block.": "\xBD ou \xBC por bloco: um quadrado, cortado em dois ou em quatro, d\xE1 pe\xE7as para mais de um bloco.",
   // how to cut (cutting/plan.js)
   "square {size}": "quadrado de {size}",
@@ -25092,10 +25093,11 @@ var gridText = () => {
 };
 function pdfFabricPage(P, pages) {
   const [c, g] = pdfPageCanvas(), M2 = 12;
+  const rec = mineCur ? designs.get(mineCur) : null;
   pdfHeader(
     g,
     P,
-    t("Cutting guide"),
+    rec ? t("Cutting guide \xB7 {name}", { name: rec.name }) : t("Cutting guide"),
     `${gridText()} \xB7 ${tn(P.blocks.length, "{n} distinct block", "{n} distinct blocks")}`,
     1,
     pages
