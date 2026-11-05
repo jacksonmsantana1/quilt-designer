@@ -214,6 +214,7 @@ function openSaved(id) {
   openDesign(m.design, { timeline: id, what: `“${shownName(m)}”` });
   markOpened();
   showPage('design');
+  window.scrollTo(0, 0); // the quilt in sight, not the page where My designs was scrolled to
 }
 /** fabrics whose pictures My designs has asked for */
 const askedFabrics = new Set();

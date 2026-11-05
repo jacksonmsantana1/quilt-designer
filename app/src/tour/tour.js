@@ -47,6 +47,8 @@ const tour = {
   zoomed: false,
   brdFab: null,
   bed: '',
+  shownAt: 0,
+  downAt: 0,
 };
 const blk = i => design && design.blocks[i];
 /** Going back a step: the blocks and panel that step expects. @param {number[]} ids the selected blocks, the first in focus */
@@ -151,7 +153,7 @@ const TOUR = [
     title: t('Open the middle block'),
     clip: 'block',
     back: () => hideTools(),
-    text: t('<b>Click the middle block</b> of your quilt. Your block then appears on the right.'),
+    text: t('<b>Click the middle block</b> of your quilt. Your block then opens in the <b>Block parts</b> card.'),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
     done: () => !$('dz-side').hidden && focusBlock === 4 && selBlocks.size === 1,
@@ -261,7 +263,7 @@ const TOUR = [
     },
     clip: 'sash',
     back: () => openBlocks(ALL),
-    text: t('Sashing is the strips between the blocks. Click the highlighted round button beside the quilt.'),
+    text: t('Sashing is the strips between the blocks. Click the highlighted round button, <b>Sashing</b>.'),
     allow: ['#rail-sash'],
     glow: '#rail-sash',
     done: () => !$('dz-side').hidden && toolsPanel === 'sash',
@@ -292,7 +294,7 @@ const TOUR = [
     title: t('Open the borders'),
     clip: 'border',
     back: () => showToolsPanel('sash'),
-    text: t('A border finishes the edge. Click the highlighted round button beside the quilt.'),
+    text: t('A border finishes the edge. Click the highlighted round button, <b>Borders</b>.'),
     allow: ['#rail-brd'],
     glow: '#rail-brd',
     done: () => !$('dz-side').hidden && toolsPanel === 'brd',
@@ -308,9 +310,13 @@ const TOUR = [
   {
     title: t('Make the border narrower'),
     back: () => showToolsPanel('brd'),
-    text: t(
-      'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.',
-    ),
+    text: TOUCH
+      ? t(
+          'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and tap <b>OK</b> on the keyboard: the frame gets thinner, and the quilt a little smaller.',
+        )
+      : t(
+          'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.',
+        ),
     allow: ['#brd-list'],
     glow: '#brd-list .brd-row:first-child .inch-whole, #brd-list .brd-row:first-child input[data-a="mm"]',
     done: () => Math.abs((bordersOf(design)[0]?.mm || 0) - 76) <= 1,
@@ -335,7 +341,7 @@ const TOUR = [
   },
   {
     title: t('Save your quilt'),
-    text: t('A quilt is only kept once you save it. Click the highlighted round button, to the left of the quilt.'),
+    text: t('A quilt is only kept once you save it. Click the highlighted round button, <b>Save</b>.'),
     allow: ['#dz-save'],
     glow: '#dz-save',
     done: () => $('save-dlg').open,
@@ -357,7 +363,7 @@ const TOUR = [
     clip: 'bed',
     back: () => showToolsPanel('brd'),
     text: t(
-      'Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button beside the quilt, <b>On a bed</b>.',
+      'Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button, <b>On a bed</b>.',
     ),
     allow: ['#dz-sim', '#bedsel'],
     glow: '#dz-sim',
@@ -540,7 +546,14 @@ function tourBlock(e) {
   }
   if (tourAllowed(e.target)) return;
   // a control that is off for now: no silence, which would look as if the app had stopped working
-  if (e.type === 'click' && st.glow && el && el.closest('button, input, select, label, canvas'))
+  // (not for the click that ends the gesture which finished the step before: a finger lifted after a drag)
+  if (
+    e.type === 'click' &&
+    st.glow &&
+    el &&
+    el.closest('button, input, select, label, canvas') &&
+    tour.downAt >= tour.shownAt
+  )
     tourSay(t('Only the highlighted item works on this step. Click it to go on.'));
   if (
     e.type === 'keydown' &&
@@ -790,6 +803,7 @@ function tourArrow() {
 }
 function tourShow() {
   const st = TOUR[tour.i];
+  tour.shownAt = performance.now();
   $('tour-note').hidden = true;
   $('tour-count').textContent = st.center
     ? t('Guided tour')
@@ -959,7 +973,15 @@ $('tour-back').addEventListener('click', tourBack);
 // the small video, after it has played: a click plays it again, large
 $('tour-clip').addEventListener('click', tourReplay);
 // is the mouse held down? (a selection dragged half way is not a mistake yet)
-document.addEventListener('pointerdown', () => (tour.down = true), true);
+// (on the window, so it runs before the tour's own blocking of pointerdown on the page)
+window.addEventListener(
+  'pointerdown',
+  () => {
+    tour.down = true;
+    tour.downAt = performance.now();
+  },
+  true,
+);
 document.addEventListener('pointerup', () => (tour.down = false), true);
 $('tour-arrow').addEventListener('click', () => {
   const row = /** @type {any} */ ($('tour-arrow')).row;

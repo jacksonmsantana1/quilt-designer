@@ -1,5 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and tap <b>OK</b> on the keyboard: the frame gets thinner, and the quilt a little smaller.':
+    'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e toque em <b>OK</b> no teclado: a moldura fica mais fina, e o quilt um pouco menor.',
   'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything.':
     'Em cerca de quinze minutos você vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt clássico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Cada cartão diz o que fazer, e o que é para tocar fica destacado. Nada do que você fizer aqui estraga alguma coisa.',
   'The other round buttons': 'Os outros botões redondos',
@@ -71,8 +73,8 @@ export default {
   'That is a different block, and it would replace your work. Watch the video again, and when it ends click your <b>Nine patch</b>, which will light up.':
     'Esse é outro bloco, e ele substituiria o seu trabalho. Veja o vídeo de novo e, quando ele terminar, clique no seu <b>Nine patch</b>, que vai ficar destacado.',
   'Open the middle block': 'Abra o bloco do meio',
-  '<b>Click the middle block</b> of your quilt. Your block then appears on the right.':
-    '<b>Clique no bloco do meio</b> do seu quilt. Aí o seu bloco aparece à direita.',
+  '<b>Click the middle block</b> of your quilt. Your block then opens in the <b>Block parts</b> card.':
+    '<b>Clique no bloco do meio</b> do seu quilt. Aí o seu bloco abre no cartão <b>Peças do bloco</b>.',
   'Choose the nine patch': 'Escolha o nine patch',
   'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button at the end of this row shows all the blocks.)':
     'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. (Agora não: nos seus quilts, o botão redondo <b>+</b> no fim desta fileira mostra todos os blocos.)',
@@ -89,8 +91,8 @@ export default {
   'Under <b>Blocks in your quilt</b>, click your <b>Nine patch</b>, the highlighted one. All nine blocks become a copy of it.':
     'Em <b>Blocos do seu quilt</b>, clique no seu <b>Nine patch</b>, o que está destacado. Os nove blocos viram uma cópia dele.',
   'Add sashing': 'Adicione faixas',
-  'Sashing is the strips between the blocks. Click the highlighted round button beside the quilt.':
-    'Faixas são as tiras entre os blocos. Clique no botão redondo destacado ao lado do quilt.',
+  'Sashing is the strips between the blocks. Click the highlighted round button, <b>Sashing</b>.':
+    'Faixas são as tiras entre os blocos. Clique no botão redondo destacado, <b>Faixas</b>.',
   'Try a narrow width': 'Experimente uma largura estreita',
   'Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone.':
     'Clique na largura destacada e olhe o quilt: aparecem tiras finas, com um quadradinho onde elas se encontram, o quadrado de canto.',
@@ -110,8 +112,8 @@ export default {
   'Type <b>12</b>, please, so that the quilt comes out like the one in the videos.':
     'Digite <b>12</b>, por favor, para o quilt sair igual ao dos vídeos.',
   'Save your quilt': 'Salve o seu quilt',
-  'A quilt is only kept once you save it. Click the highlighted round button, to the left of the quilt.':
-    'Um quilt só fica guardado depois de salvo. Clique no botão redondo destacado, à esquerda do quilt.',
+  'A quilt is only kept once you save it. Click the highlighted round button, <b>Save</b>.':
+    'Um quilt só fica guardado depois de salvo. Clique no botão redondo destacado, <b>Salvar</b>.',
   'Give it a name': 'Dê um nome a ele',
   'You can keep this name or type another. Then click <b>Save</b>.':
     'Você pode deixar este nome ou digitar outro. Depois clique em <b>Salvar</b>.',
@@ -122,8 +124,8 @@ export default {
   'That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.':
     'Isso pegou só uma parte do quilt. Pressione em um canto e arraste até o canto oposto.',
   'Open the borders': 'Abra as barras',
-  'A border finishes the edge. Click the highlighted round button beside the quilt.':
-    'A barra dá o acabamento da borda. Clique no botão redondo destacado ao lado do quilt.',
+  'A border finishes the edge. Click the highlighted round button, <b>Borders</b>.':
+    'A barra dá o acabamento da borda. Clique no botão redondo destacado, <b>Barras</b>.',
   'Add a border': 'Adicionar uma barra',
   'In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt.':
     'No cartão <b>Barras</b>, clique em <b>Barra lisa</b> para emoldurar o seu quilt.',
@@ -131,8 +133,8 @@ export default {
   'Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out. The fabric list also has the fabrics the sashing, the cornerstones and the border came with; you can change them in their own cards, under <b>Sashing</b> and <b>Borders</b>.':
     'Agora abra o <b>Guia de corte</b>: quanto tecido comprar e cada peça para cortar, já calculados. A lista de tecidos também traz os tecidos que vieram com as faixas, os quadrados de canto e a barra; você pode trocá-los nos cartões deles, em <b>Faixas</b> e <b>Barras</b>.',
   'See it on a bed': 'Veja na cama',
-  'Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button beside the quilt, <b>On a bed</b>.':
-    'O seu quilt está salvo: ele está em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no botão redondo destacado ao lado do quilt, <b>Na cama</b>.',
+  'Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button, <b>On a bed</b>.':
+    'O seu quilt está salvo: ele está em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no botão redondo destacado, <b>Na cama</b>.',
   'Back to your quilt': 'De volta ao seu quilt',
   'Well done!': 'Muito bem!',
   'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt.':
