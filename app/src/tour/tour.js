@@ -32,6 +32,8 @@ import { getLang, t } from '@quilt/shared/i18n.js';
 // ---- guided tour: a short exercise for first-time users. Every control is greyed out and switched
 // off except the ones the current step needs; the step moves on by itself once it has been done.
 const TOUR_KEY = 'quilt-tour.v1';
+// a touch screen (a phone or tablet) and no mouse: the cards say "your finger" and "OK" instead of the mouse and Enter
+const TOUCH = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
 const tour = {
   on: false,
   i: 0,
@@ -115,9 +117,13 @@ const TOUR = [
     title: t('Choose the block size'),
     clip: 'size',
     back: () => hideTools(),
-    text: t(
-      'Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn.',
-    ),
+    text: TOUCH
+      ? t(
+          'Below the quilt, in <b>Block size</b>, type <b>12</b> and tap <b>OK</b> on the keyboard. The old number goes away by itself. Each block will be 12 inches when sewn.',
+        )
+      : t(
+          'Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn.',
+        ),
     allow: ['#dz-bsize'],
     glow: '#dz-bsize .inch-whole',
     enter: () =>
@@ -206,9 +212,13 @@ const TOUR = [
     title: t('Select the whole quilt'),
     clip: 'select',
     back: () => openBlocks([4]),
-    text: t(
-      'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.',
-    ),
+    text: TOUCH
+      ? t(
+          'Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen. A small <b>Unite</b> button will appear: leave it for now.',
+        )
+      : t(
+          'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.',
+        ),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
     done: () => selBlocks.size === 9,
@@ -358,12 +368,17 @@ const TOUR = [
     title: t('Look around'),
     back: () => showPage('sim'),
     enter: () => (tour.dragged = tour.zoomed = false),
-    text: t(
-      'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.',
-    ),
+    text: TOUCH
+      ? t(
+          'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Slide your finger on the picture</b> to walk around the bed. To come closer, spread two fingers on it.',
+        )
+      : t(
+          'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.',
+        ),
     allow: ['#view', '#stage'],
     glow: '#view',
-    done: () => !!tour.dragged && !!tour.zoomed,
+    // on a touch screen, walking round is enough: spreading two fingers is shown, not asked for
+    done: () => !!tour.dragged && (!!tour.zoomed || TOUCH),
   },
   {
     title: t('Try it on a table'),
@@ -446,9 +461,24 @@ const TOUR = [
     title: t('The other round buttons'),
     back: () => showPage('cut'),
     enter: () => showPage('design'),
-    text: t(
-      'Beside the quilt there are a few more, to try when you like:<br>• <b>Undo</b> takes back the last change.<br>• <b>Turn over</b> shows the back of the quilt.<br>• <b>Picture</b> makes a realistic photo of it.<br>• <b>Share</b> shows it to other quilters.<br>• <b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.<br>• <b>Tutorial</b>, at the bottom left, starts this exercise again.',
-    ),
+    // only the buttons this screen has (a phone has no Picture)
+    text: () =>
+      [
+        t('Beside the quilt there are a few more, to try when you like:'),
+        ...[
+          ['#dz-undo', t('<b>Undo</b> takes back the last change.')],
+          ['#dz-flip', t('<b>Turn over</b> shows the back of the quilt.')],
+          ['#dz-picture', t('<b>Picture</b> makes a realistic photo of it.')],
+          ['#dz-share', t('<b>Share</b> shows it to other quilters.')],
+          ['#rail-sym', t('<b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.')],
+          ['#tour-start', t('<b>Tutorial</b>, at the bottom left, starts this exercise again.')],
+        ]
+          .filter(([sel]) => {
+            const el = /** @type {HTMLElement | null} */ (document.querySelector(sel));
+            return !!el && !el.hidden && getComputedStyle(el).display !== 'none';
+          })
+          .map(([, line]) => `• ${line}`),
+      ].join('<br>'),
     allow: [],
     glow: '#rail-sym',
     buttons: [[t('Next'), 'on', true]],
@@ -711,7 +741,8 @@ function tourClip(st) {
     tourPlace();
   };
   v.pause();
-  if (!st.clip) {
+  // the videos show a computer's screen: on a phone they are too small to help, and the card covers less without
+  if (!st.clip || innerWidth < 640) {
     v.removeAttribute('src');
     v.hidden = $('tour-replay').hidden = true;
     box.classList.remove('with-clip');
@@ -758,7 +789,7 @@ function tourShow() {
     ? t('Guided tour')
     : t('Step {n} of {all}', { n: tour.i, all: TOUR.length - 2 });
   $('tour-title').textContent = st.title;
-  $('tour-text').innerHTML = st.text;
+  $('tour-text').innerHTML = typeof st.text === 'function' ? st.text() : st.text;
   $('tour-prog').style.width = `${Math.round((tour.i / (TOUR.length - 1)) * 100)}%`;
   const acts = $('tour-actions');
   acts.innerHTML = '';

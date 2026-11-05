@@ -1,8 +1,22 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
   'The other round buttons': 'Os outros botões redondos',
-  'Beside the quilt there are a few more, to try when you like:<br>• <b>Undo</b> takes back the last change.<br>• <b>Turn over</b> shows the back of the quilt.<br>• <b>Picture</b> makes a realistic photo of it.<br>• <b>Share</b> shows it to other quilters.<br>• <b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.<br>• <b>Tutorial</b>, at the bottom left, starts this exercise again.':
-    'Ao lado do quilt há mais alguns, para experimentar quando quiser:<br>• <b>Desfazer</b> desfaz a última mudança.<br>• <b>Virar</b> mostra o verso do quilt.<br>• <b>Foto</b> faz uma foto realista dele.<br>• <b>Compartilhar</b> mostra o quilt para outras quilteiras.<br>• <b>Simetria</b> repete cada mudança do outro lado do quilt, como num espelho.<br>• <b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
+  'Beside the quilt there are a few more, to try when you like:':
+    'Ao lado do quilt há mais alguns, para experimentar quando quiser:',
+  '<b>Undo</b> takes back the last change.': '<b>Desfazer</b> desfaz a última mudança.',
+  '<b>Turn over</b> shows the back of the quilt.': '<b>Virar</b> mostra o verso do quilt.',
+  '<b>Picture</b> makes a realistic photo of it.': '<b>Foto</b> faz uma foto realista dele.',
+  '<b>Share</b> shows it to other quilters.': '<b>Compartilhar</b> mostra o quilt para outras quilteiras.',
+  '<b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.':
+    '<b>Simetria</b> repete cada mudança do outro lado do quilt, como num espelho.',
+  '<b>Tutorial</b>, at the bottom left, starts this exercise again.':
+    '<b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
+  'Below the quilt, in <b>Block size</b>, type <b>12</b> and tap <b>OK</b> on the keyboard. The old number goes away by itself. Each block will be 12 inches when sewn.':
+    'Embaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e toque em <b>OK</b> no teclado. O número antigo sai sozinho. Cada bloco terá 12 polegadas depois de costurado.',
+  'Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen. A small <b>Unite</b> button will appear: leave it for now.':
+    'Ponha o dedo em um canto do quilt e, sem tirar, <b>deslize até o canto oposto</b>. Cada bloco por onde ele passar fica escolhido. Vai aparecer um botãozinho <b>Unir</b>: deixe-o por enquanto.',
+  'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Slide your finger on the picture</b> to walk around the bed. To come closer, spread two fingers on it.':
+    'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Deslize o dedo na imagem</b> para dar a volta na cama. Para chegar mais perto, abra dois dedos sobre ela.',
   'Make the border narrower': 'Deixe a barra mais estreita',
   'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.':
     'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.',

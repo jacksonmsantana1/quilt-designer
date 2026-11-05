@@ -4237,7 +4237,16 @@ var template_default = {
 // ../shared/src/lang/pt-BR/tour.js
 var tour_default = {
   "The other round buttons": "Os outros bot\xF5es redondos",
-  "Beside the quilt there are a few more, to try when you like:<br>\u2022 <b>Undo</b> takes back the last change.<br>\u2022 <b>Turn over</b> shows the back of the quilt.<br>\u2022 <b>Picture</b> makes a realistic photo of it.<br>\u2022 <b>Share</b> shows it to other quilters.<br>\u2022 <b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.<br>\u2022 <b>Tutorial</b>, at the bottom left, starts this exercise again.": "Ao lado do quilt h\xE1 mais alguns, para experimentar quando quiser:<br>\u2022 <b>Desfazer</b> desfaz a \xFAltima mudan\xE7a.<br>\u2022 <b>Virar</b> mostra o verso do quilt.<br>\u2022 <b>Foto</b> faz uma foto realista dele.<br>\u2022 <b>Compartilhar</b> mostra o quilt para outras quilteiras.<br>\u2022 <b>Simetria</b> repete cada mudan\xE7a do outro lado do quilt, como num espelho.<br>\u2022 <b>Tutorial</b>, embaixo \xE0 esquerda, come\xE7a este exerc\xEDcio de novo.",
+  "Beside the quilt there are a few more, to try when you like:": "Ao lado do quilt h\xE1 mais alguns, para experimentar quando quiser:",
+  "<b>Undo</b> takes back the last change.": "<b>Desfazer</b> desfaz a \xFAltima mudan\xE7a.",
+  "<b>Turn over</b> shows the back of the quilt.": "<b>Virar</b> mostra o verso do quilt.",
+  "<b>Picture</b> makes a realistic photo of it.": "<b>Foto</b> faz uma foto realista dele.",
+  "<b>Share</b> shows it to other quilters.": "<b>Compartilhar</b> mostra o quilt para outras quilteiras.",
+  "<b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.": "<b>Simetria</b> repete cada mudan\xE7a do outro lado do quilt, como num espelho.",
+  "<b>Tutorial</b>, at the bottom left, starts this exercise again.": "<b>Tutorial</b>, embaixo \xE0 esquerda, come\xE7a este exerc\xEDcio de novo.",
+  "Below the quilt, in <b>Block size</b>, type <b>12</b> and tap <b>OK</b> on the keyboard. The old number goes away by itself. Each block will be 12 inches when sewn.": "Embaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e toque em <b>OK</b> no teclado. O n\xFAmero antigo sai sozinho. Cada bloco ter\xE1 12 polegadas depois de costurado.",
+  "Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen. A small <b>Unite</b> button will appear: leave it for now.": "Ponha o dedo em um canto do quilt e, sem tirar, <b>deslize at\xE9 o canto oposto</b>. Cada bloco por onde ele passar fica escolhido. Vai aparecer um bot\xE3ozinho <b>Unir</b>: deixe-o por enquanto.",
+  "The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Slide your finger on the picture</b> to walk around the bed. To come closer, spread two fingers on it.": "O quilt cai na cama como um tecido de verdade. Neste tamanho ele \xE9 uma coberta pequena: cobre s\xF3 parte de uma cama de solteiro. <b>Deslize o dedo na imagem</b> para dar a volta na cama. Para chegar mais perto, abra dois dedos sobre ela.",
   "Make the border narrower": "Deixe a barra mais estreita",
   "The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.": "A barra veio com 4 polegadas de largura. No cart\xE3o <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.",
   "Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.": "Digite <b>3</b>, por favor, para o quilt ficar igual ao do tutorial.",
@@ -21425,6 +21434,7 @@ onUnitChange(() => {
 
 // src/tour/tour.js
 var TOUR_KEY = "quilt-tour.v1";
+var TOUCH = typeof matchMedia === "function" && matchMedia("(hover: none) and (pointer: coarse)").matches;
 var tour = {
   on: false,
   i: 0,
@@ -21509,7 +21519,9 @@ var TOUR = [
     title: t("Choose the block size"),
     clip: "size",
     back: () => hideTools(),
-    text: t(
+    text: TOUCH ? t(
+      "Below the quilt, in <b>Block size</b>, type <b>12</b> and tap <b>OK</b> on the keyboard. The old number goes away by itself. Each block will be 12 inches when sewn."
+    ) : t(
       "Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn."
     ),
     allow: ["#dz-bsize"],
@@ -21606,7 +21618,9 @@ var TOUR = [
     title: t("Select the whole quilt"),
     clip: "select",
     back: () => openBlocks([4]),
-    text: t(
+    text: TOUCH ? t(
+      "Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen. A small <b>Unite</b> button will appear: leave it for now."
+    ) : t(
       "Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now."
     ),
     allow: ["#dz-quilt"],
@@ -21760,12 +21774,15 @@ var TOUR = [
     title: t("Look around"),
     back: () => showPage("sim"),
     enter: () => tour.dragged = tour.zoomed = false,
-    text: t(
+    text: TOUCH ? t(
+      "The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Slide your finger on the picture</b> to walk around the bed. To come closer, spread two fingers on it."
+    ) : t(
       "The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer."
     ),
     allow: ["#view", "#stage"],
     glow: "#view",
-    done: () => !!tour.dragged && !!tour.zoomed
+    // on a touch screen, walking round is enough: spreading two fingers is shown, not asked for
+    done: () => !!tour.dragged && (!!tour.zoomed || TOUCH)
   },
   {
     title: t("Try it on a table"),
@@ -21854,9 +21871,24 @@ var TOUR = [
     title: t("The other round buttons"),
     back: () => showPage("cut"),
     enter: () => showPage("design"),
-    text: t(
-      "Beside the quilt there are a few more, to try when you like:<br>\u2022 <b>Undo</b> takes back the last change.<br>\u2022 <b>Turn over</b> shows the back of the quilt.<br>\u2022 <b>Picture</b> makes a realistic photo of it.<br>\u2022 <b>Share</b> shows it to other quilters.<br>\u2022 <b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.<br>\u2022 <b>Tutorial</b>, at the bottom left, starts this exercise again."
-    ),
+    // only the buttons this screen has (a phone has no Picture)
+    text: () => [
+      t("Beside the quilt there are a few more, to try when you like:"),
+      ...[
+        ["#dz-undo", t("<b>Undo</b> takes back the last change.")],
+        ["#dz-flip", t("<b>Turn over</b> shows the back of the quilt.")],
+        ["#dz-picture", t("<b>Picture</b> makes a realistic photo of it.")],
+        ["#dz-share", t("<b>Share</b> shows it to other quilters.")],
+        ["#rail-sym", t("<b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.")],
+        ["#tour-start", t("<b>Tutorial</b>, at the bottom left, starts this exercise again.")]
+      ].filter(([sel]) => {
+        const el = (
+          /** @type {HTMLElement | null} */
+          document.querySelector(sel)
+        );
+        return !!el && !el.hidden && getComputedStyle(el).display !== "none";
+      }).map(([, line2]) => `\u2022 ${line2}`)
+    ].join("<br>"),
     allow: [],
     glow: "#rail-sym",
     buttons: [[t("Next"), "on", true]]
@@ -22089,7 +22121,7 @@ function tourClip(st) {
     tourPlace();
   };
   v.pause();
-  if (!st.clip) {
+  if (!st.clip || innerWidth < 640) {
     v.removeAttribute("src");
     v.hidden = $("tour-replay").hidden = true;
     box3.classList.remove("with-clip");
@@ -22132,7 +22164,7 @@ function tourShow() {
   $("tour-note").hidden = true;
   $("tour-count").textContent = st.center ? t("Guided tour") : t("Step {n} of {all}", { n: tour.i, all: TOUR.length - 2 });
   $("tour-title").textContent = st.title;
-  $("tour-text").innerHTML = st.text;
+  $("tour-text").innerHTML = typeof st.text === "function" ? st.text() : st.text;
   $("tour-prog").style.width = `${Math.round(tour.i / (TOUR.length - 1) * 100)}%`;
   const acts = $("tour-actions");
   acts.innerHTML = "";
