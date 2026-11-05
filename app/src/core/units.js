@@ -49,7 +49,8 @@ const len = mm => `${num(mm)} ${unitName()}`;
  */
 function buyLen(mm) {
   if (unit === 'mm') return `${fix(Math.ceil(mm / 50 - 1e-6) * 0.05, 2)} m`;
-  const eighths = Math.ceil(mm / (MM_PER_IN * 4.5) - 1e-6),
+  // (less than a millimetre over an eighth is that eighth: 9 in kept as 229 mm is ¼ yd, not ⅜)
+  const eighths = Math.ceil((mm - 1) / (MM_PER_IN * 4.5)),
     whole = Math.floor(eighths / 8),
     part = FRACTIONS[eighths % 8];
   // Shops in Brazil sell by the metre even when the pattern is in inches, so the metres come along, and first there

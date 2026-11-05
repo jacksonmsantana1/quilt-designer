@@ -1,5 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'Click the video to see it large.': 'Clique no vídeo para vê-lo grande.',
+  'Click anywhere to close the video': 'Clique em qualquer lugar para fechar o vídeo',
   'That is another kind of border. Click <b>Plain strip</b>, please: the next steps are about it.':
     'Essa é outra barra. Clique em <b>Barra lisa</b>, por favor: os próximos passos são sobre ela.',
   'Keep your finger on the screen while you slide it: from one corner of the quilt to the opposite one.':

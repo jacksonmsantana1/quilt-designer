@@ -456,6 +456,9 @@
   body.tour-docked #tour-min { display: none; }
   /* the video, clicked: large over the page, to read what it shows; clicked again, back in the column */
   body.tour-docked .tour-clip { cursor: zoom-in; }
+  .tour-clip-hint, .tour-clip-tip { display: none; }
+  body.tour-docked .tour-clip:not([hidden]) + .tour-clip-tip { display: block; margin: 4px 0 0; font-size: .85rem; color: var(--muted, var(--ink)); }
+  body:has(.tour-clip.big) .tour-clip-hint { display: block; position: fixed; z-index: 1101; left: 50%; bottom: 4vh; transform: translateX(-50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: var(--ink); color: var(--bg); font: 600 .95rem var(--font-body); }
   .tour .tour-clip.big { position: fixed; z-index: 1100; left: 50%; top: 50%; width: min(1000px, 92vw) !important; transform: translate(-50%, -50%); box-shadow: 0 20px 60px rgba(0,0,0,.45); cursor: zoom-out; }
   body.tour-docked.sim-over #page-sim { left: calc(var(--tour-w) + 18px); }
   body.tour-docked #tour-start { display: none; }
@@ -1491,6 +1494,8 @@
 <div class="tour" id="tour" hidden role="dialog" aria-live="polite" aria-label="Guided tour">
   <div class="tour-head" title="Drag to move"><span id="tour-count"></span><span><button type="button" class="tour-x" id="tour-min" title="Fold the instructions">–</button><button type="button" class="tour-x" id="tour-skip" title="End the tour">Skip tour ×</button></span></div>
   <video id="tour-clip" class="tour-clip" muted playsinline preload="auto" hidden aria-label="A short video of this step"></video>
+  <p class="tour-clip-tip" id="tour-clip-tip">Click the video to see it large.</p>
+  <p class="tour-clip-hint" id="tour-clip-hint">Click anywhere to close the video</p>
   <h3 id="tour-title"></h3>
   <p id="tour-text"></p>
   <p id="tour-note" class="tour-note" role="alert" hidden></p>
@@ -2940,7 +2945,7 @@ var cutting_default = {
   "{n} border": "{n} barra",
   "{n} borders": "{n} barras",
   "finished {size}": "pronto: {size}",
-  "each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1{more}). Double-click a block, the sashing or the borders above to see where they go in the quilt.": "cada pe\xE7a mostra a letra do tecido + n\xFAmero do bloco . forma (D2.3 = tecido D, bloco 2, forma 3; S = faixas, B1 = barra 1{more}). Clique duas vezes em um bloco, nas faixas ou nas barras acima para ver onde ficam no quilt.",
+  "each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1{more}). Double-click a block, the sashing or the borders above to see where they go in the quilt.": "cada pe\xE7a mostra a letra do tecido + n\xFAmero do bloco . forma (D2.3 = tecido D, bloco 2, forma 3; AS.1 = tecido A, faixas; DB1.1 = tecido D, barra 1{more}). Clique duas vezes em um bloco, nas faixas ou nas barras acima para ver onde ficam no quilt.",
   ", T = setting triangles": ", T = tri\xE2ngulos laterais",
   "Block {n} \xB7 {label}": "Bloco {n} \xB7 {label}",
   "{count} in the quilt, marked in orange \xB7 {cols} \xD7 {rows} blocks, {size}": "{count} no quilt, em laranja \xB7 {cols} \xD7 {rows} blocos, {size}",
@@ -2972,7 +2977,7 @@ var cutting_default = {
   "includes binding: {strips} strips {width} \xD7 WOF": "inclui vi\xE9s: {strips} tiras de {width} \xD7 largura do tecido",
   "buy \u2248 {buy}": "comprar \u2248 {buy}",
   Backing: "Forro",
-  "{n} width of fabric sewn together \xB7 buy \u2248 {buy}": "{n} largura de tecido costurada \xB7 comprar \u2248 {buy}",
+  "{n} width of fabric sewn together \xB7 buy \u2248 {buy}": "{n} largura de tecido, sem emenda \xB7 comprar \u2248 {buy}",
   "{n} widths of fabric sewn together \xB7 buy \u2248 {buy}": "{n} larguras de tecido costuradas \xB7 comprar \u2248 {buy}",
   Batting: "Manta",
   "large block, {n} \xD7 {n} cells ({size})": "bloco grande, {n} \xD7 {n} c\xE9lulas ({size})",
@@ -4267,6 +4272,8 @@ var template_default = {
 
 // ../shared/src/lang/pt-BR/tour.js
 var tour_default = {
+  "Click the video to see it large.": "Clique no v\xEDdeo para v\xEA-lo grande.",
+  "Click anywhere to close the video": "Clique em qualquer lugar para fechar o v\xEDdeo",
   "That is another kind of border. Click <b>Plain strip</b>, please: the next steps are about it.": "Essa \xE9 outra barra. Clique em <b>Barra lisa</b>, por favor: os pr\xF3ximos passos s\xE3o sobre ela.",
   "Keep your finger on the screen while you slide it: from one corner of the quilt to the opposite one.": "Mantenha o dedo na tela enquanto desliza: de um canto do quilt at\xE9 o canto oposto.",
   "Keep the mouse button pressed while you move the mouse: press on one corner of the quilt and, without letting go, move to the opposite corner. Then let go.": "Mantenha o bot\xE3o do mouse apertado enquanto move o mouse: aperte em um canto do quilt e, sem soltar, v\xE1 at\xE9 o canto oposto. Depois solte.",
@@ -12752,7 +12759,7 @@ var num2 = (mm) => unit === "in" ? inches(mm) : String(Math.round(mm));
 var len = (mm) => `${num2(mm)} ${unitName()}`;
 function buyLen(mm) {
   if (unit === "mm") return `${fix(Math.ceil(mm / 50 - 1e-6) * 0.05, 2)} m`;
-  const eighths = Math.ceil(mm / (MM_PER_IN * 4.5) - 1e-6), whole = Math.floor(eighths / 8), part = FRACTIONS[eighths % 8];
+  const eighths = Math.ceil((mm - 1) / (MM_PER_IN * 4.5)), whole = Math.floor(eighths / 8), part = FRACTIONS[eighths % 8];
   const metres = `${fix(Math.ceil(eighths * MM_PER_IN * 4.5 / 50 - 1e-6) * 0.05, 2)} m`, yards = `${part && whole === 0 ? part : whole + part} ${t("yd")}`;
   return getLang() === "pt-BR" ? `${metres} (${yards})` : `${yards} (${metres})`;
 }
@@ -19419,7 +19426,7 @@ var CG = /* @__PURE__ */ (() => {
       r.buy = r.small ? "" : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));
-    const backW = QW + 200, backH = QH + 200, long = Math.max(backW, backH), short = Math.min(backW, backH), along = Math.ceil(short / usable), across = Math.ceil(long / usable), [widths, pieceLen] = along * long <= across * short ? [along, long] : [across, short];
+    const backMore = getUnit() === "in" ? 203.2 : 200, backW = QW + backMore, backH = QH + backMore, long = Math.max(backW, backH), short = Math.min(backW, backH), along = Math.ceil(short / usable), across = Math.ceil(long / usable), [widths, pieceLen] = along * long <= across * short ? [along, long] : [across, short];
     return {
       blockW,
       blockH,
@@ -21794,7 +21801,8 @@ var TOUR = [
       "The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller."
     ),
     allow: ["#brd-list"],
-    glow: '#brd-list .brd-row:first-child .inch-whole, #brd-list .brd-row:first-child input[data-a="mm"]',
+    glow: "#brd-list .brd-row:first-child .inch-whole",
+    // (the tutorial is in inches: the whole-inch box)
     done: () => Math.abs((bordersOf(design)[0]?.mm || 0) - 76) <= 1,
     // the cutting guide that follows is about this width
     check: () => {
@@ -21927,7 +21935,8 @@ var TOUR = [
     text: t(
       "Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all, then click <b>Next</b>."
     ),
-    allow: ["#cg-blocks .cgblock:first-child h3"],
+    allow: ["#cg-blocks .cgblock h3"],
+    // the other cards may be opened too, to read further down
     glow: "#cg-blocks .cgblock:first-child h3",
     // opened, it waits to be read, like the border's
     buttons: [[t("Next"), "on", true]]
@@ -21943,7 +21952,7 @@ var TOUR = [
         { code, letter: code[0] }
       );
     },
-    allow: ["#cg-blocks .cgblock:last-child h3"],
+    allow: ["#cg-blocks .cgblock h3"],
     glow: "#cg-blocks .cgblock:last-child h3",
     // opened, it waits to be read: Next, rather than the page moving on to the PDF button at once
     buttons: [[t("Next"), "on", true]]
@@ -22439,6 +22448,22 @@ for (const ev of ["pointermove", "wheel"])
 initTourDrag();
 $("tour-skip").addEventListener("click", () => tourAct("skip"));
 $("tour-back").addEventListener("click", tourBack);
+document.addEventListener(
+  "pointerdown",
+  (e) => {
+    const v = $("tour-clip");
+    if (v.classList.contains("big") && e.target !== v) {
+      v.classList.remove("big");
+      e.preventDefault();
+      e.stopPropagation();
+      addEventListener("click", (ev) => (ev.preventDefault(), ev.stopPropagation()), { capture: true, once: true });
+    }
+  },
+  true
+);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") $("tour-clip").classList.remove("big");
+});
 $("tour-clip").addEventListener("click", () => {
   const v = $("tour-clip");
   if (document.body.classList.contains("tour-docked")) {

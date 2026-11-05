@@ -320,7 +320,7 @@ const TOUR = [
           'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.',
         ),
     allow: ['#brd-list'],
-    glow: '#brd-list .brd-row:first-child .inch-whole, #brd-list .brd-row:first-child input[data-a="mm"]',
+    glow: '#brd-list .brd-row:first-child .inch-whole', // (the tutorial is in inches: the whole-inch box)
     done: () => Math.abs((bordersOf(design)[0]?.mm || 0) - 76) <= 1,
     // the cutting guide that follows is about this width
     check: () => {
@@ -447,7 +447,7 @@ const TOUR = [
     text: t(
       'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all, then click <b>Next</b>.',
     ),
-    allow: ['#cg-blocks .cgblock:first-child h3'],
+    allow: ['#cg-blocks .cgblock h3'], // the other cards may be opened too, to read further down
     glow: '#cg-blocks .cgblock:first-child h3',
     // opened, it waits to be read, like the border's
     buttons: [[t('Next'), 'on', true]],
@@ -463,7 +463,7 @@ const TOUR = [
         { code, letter: code[0] },
       );
     },
-    allow: ['#cg-blocks .cgblock:last-child h3'],
+    allow: ['#cg-blocks .cgblock h3'],
     glow: '#cg-blocks .cgblock:last-child h3',
     // opened, it waits to be read: Next, rather than the page moving on to the PDF button at once
     buttons: [[t('Next'), 'on', true]],
@@ -1005,6 +1005,24 @@ $('tour-skip').addEventListener('click', () => tourAct('skip'));
 $('tour-back').addEventListener('click', tourBack);
 // a click on the video: in the column, it opens large over the page (and plays again), and a second click puts it
 // back; in a floating card, it plays again
+// the large video closes with a click anywhere or Escape, not only on itself
+document.addEventListener(
+  'pointerdown',
+  e => {
+    const v = $('tour-clip');
+    if (v.classList.contains('big') && e.target !== v) {
+      v.classList.remove('big');
+      e.preventDefault();
+      e.stopPropagation();
+      // and the click that follows does nothing else: closing the video was all it meant
+      addEventListener('click', ev => (ev.preventDefault(), ev.stopPropagation()), { capture: true, once: true });
+    }
+  },
+  true,
+);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') $('tour-clip').classList.remove('big');
+});
 $('tour-clip').addEventListener('click', () => {
   const v = $('tour-clip');
   if (document.body.classList.contains('tour-docked')) {

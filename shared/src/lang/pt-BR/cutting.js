@@ -50,7 +50,7 @@ export default {
   '{n} borders': '{n} barras',
   'finished {size}': 'pronto: {size}',
   'each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1{more}). Double-click a block, the sashing or the borders above to see where they go in the quilt.':
-    'cada peça mostra a letra do tecido + número do bloco . forma (D2.3 = tecido D, bloco 2, forma 3; S = faixas, B1 = barra 1{more}). Clique duas vezes em um bloco, nas faixas ou nas barras acima para ver onde ficam no quilt.',
+    'cada peça mostra a letra do tecido + número do bloco . forma (D2.3 = tecido D, bloco 2, forma 3; AS.1 = tecido A, faixas; DB1.1 = tecido D, barra 1{more}). Clique duas vezes em um bloco, nas faixas ou nas barras acima para ver onde ficam no quilt.',
   ', T = setting triangles': ', T = triângulos laterais',
   'Block {n} · {label}': 'Bloco {n} · {label}',
   '{count} in the quilt, marked in orange · {cols} × {rows} blocks, {size}':
@@ -88,7 +88,7 @@ export default {
   'includes binding: {strips} strips {width} × WOF': 'inclui viés: {strips} tiras de {width} × largura do tecido',
   'buy ≈ {buy}': 'comprar ≈ {buy}',
   Backing: 'Forro',
-  '{n} width of fabric sewn together · buy ≈ {buy}': '{n} largura de tecido costurada · comprar ≈ {buy}',
+  '{n} width of fabric sewn together · buy ≈ {buy}': '{n} largura de tecido, sem emenda · comprar ≈ {buy}',
   '{n} widths of fabric sewn together · buy ≈ {buy}': '{n} larguras de tecido costuradas · comprar ≈ {buy}',
   Batting: 'Manta',
   'large block, {n} × {n} cells ({size})': 'bloco grande, {n} × {n} células ({size})',

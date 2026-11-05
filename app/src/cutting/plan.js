@@ -13,7 +13,7 @@ import { t, tn } from '@quilt/shared/i18n.js';
 //                          on the diagonal: 4 triangles per square
 // Cut sizes round UP to the whole millimetre. Fabric is cut in strips across the
 // width of fabric (WOF) and the strips are sub-cut.
-import { buyLen, dims, len } from '../core/units.js';
+import { buyLen, dims, getUnit, len } from '../core/units.js';
 
 const CG = (() => {
   const upmm = x => Math.ceil(x - 1e-6);
@@ -390,8 +390,10 @@ const CG = (() => {
     result.sort((a, b) => a.letter.localeCompare(b.letter));
     // the backing: widths of fabric sewn side by side, running along the quilt or across it, whichever needs less
     // fabric (a 66 × 78 in back: two widths across, 2 × 66 in, not two along, 2 × 78 in)
-    const backW = QW + 200,
-      backH = QH + 200,
+    // 4 in (or 100 mm) more than the quilt all round, in the unit in use: 8 in, not 200 mm read as 7⅞
+    const backMore = getUnit() === 'in' ? 203.2 : 200,
+      backW = QW + backMore,
+      backH = QH + backMore,
       long = Math.max(backW, backH),
       short = Math.min(backW, backH),
       along = Math.ceil(short / usable),

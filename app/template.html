@@ -455,6 +455,9 @@
   body.tour-docked #tour-min { display: none; }
   /* the video, clicked: large over the page, to read what it shows; clicked again, back in the column */
   body.tour-docked .tour-clip { cursor: zoom-in; }
+  .tour-clip-hint, .tour-clip-tip { display: none; }
+  body.tour-docked .tour-clip:not([hidden]) + .tour-clip-tip { display: block; margin: 4px 0 0; font-size: .85rem; color: var(--muted, var(--ink)); }
+  body:has(.tour-clip.big) .tour-clip-hint { display: block; position: fixed; z-index: 1101; left: 50%; bottom: 4vh; transform: translateX(-50%); margin: 0; padding: 6px 14px; border-radius: 999px; background: var(--ink); color: var(--bg); font: 600 .95rem var(--font-body); }
   .tour .tour-clip.big { position: fixed; z-index: 1100; left: 50%; top: 50%; width: min(1000px, 92vw) !important; transform: translate(-50%, -50%); box-shadow: 0 20px 60px rgba(0,0,0,.45); cursor: zoom-out; }
   body.tour-docked.sim-over #page-sim { left: calc(var(--tour-w) + 18px); }
   body.tour-docked #tour-start { display: none; }
@@ -1490,6 +1493,8 @@
 <div class="tour" id="tour" hidden role="dialog" aria-live="polite" aria-label="Guided tour">
   <div class="tour-head" title="Drag to move"><span id="tour-count"></span><span><button type="button" class="tour-x" id="tour-min" title="Fold the instructions">–</button><button type="button" class="tour-x" id="tour-skip" title="End the tour">Skip tour ×</button></span></div>
   <video id="tour-clip" class="tour-clip" muted playsinline preload="auto" hidden aria-label="A short video of this step"></video>
+  <p class="tour-clip-tip" id="tour-clip-tip">Click the video to see it large.</p>
+  <p class="tour-clip-hint" id="tour-clip-hint">Click anywhere to close the video</p>
   <h3 id="tour-title"></h3>
   <p id="tour-text"></p>
   <p id="tour-note" class="tour-note" role="alert" hidden></p>
