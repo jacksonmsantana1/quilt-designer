@@ -544,7 +544,8 @@ function tourWrong(st) {
   requestAnimationFrame(tourPlace);
 }
 function tourBlock(e) {
-  if (!tour.on || tour.restoring) return;
+  // only what the person does is held back: the app's own clicks (the PDF's download link) go through
+  if (!tour.on || tour.restoring || !e.isTrusted) return;
   const st = TOUR[tour.i],
     el = e.target && e.target.closest ? e.target : null;
   // taking a fabric off the list has no place in the tutorial

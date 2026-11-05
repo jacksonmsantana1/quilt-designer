@@ -253,6 +253,11 @@ test.describe('first visit', () => {
     await page.locator('#cg-blocks .cgblock:last-child h3').click();
     await expect(page.locator('#cg-blocks .cgblock:last-child')).toContainText('Border 1');
     await expect(title).toHaveText('Take it to your sewing table');
+    // the PDF downloads from inside the tutorial too
+    const pdf = page.waitForEvent('download', { timeout: 60_000 });
+    await page.locator('#cg-pdf').click();
+    expect((await pdf).suggestedFilename()).toMatch(/My-first-quilt-cutting-guide-A4-.*\.pdf$/);
+    await expect(title).toHaveText('Take it to your sewing table');
     await page.locator('#tour-actions button').click();
 
     await expect(title).toHaveText('The other round buttons');
