@@ -180,6 +180,8 @@ function floatButtons() {
     b.type = 'button';
     b.className = 'fab-more-btn fab-more-float';
     b.id = id;
+    // a name under it, like the round buttons beside the quilt: a number or a colour wheel alone says little
+    b.dataset.name = n === 0 ? t('All fabrics') : t('By colour');
     b.hidden = true;
     b.addEventListener('mouseenter', () => clearTimeout(float.timer)); // moving onto it keeps it
     b.addEventListener('mouseleave', hideFloatSoon);
@@ -252,9 +254,9 @@ function showFloat(box, region) {
     b.title = src.title;
     b.setAttribute('aria-label', src.getAttribute('aria-label') || '');
     b.style.left = left + 'px';
-    // the buttons together are centred on the row, the second just under the first
+    // the buttons together are centred on the row, the second under the first with room for the first one's name
     b.style.top =
-      row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 8) / 2 + n * (size + 8) + 'px';
+      row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 20) / 2 + n * (size + 20) + 'px';
   }
 }
 function hideFloat() {

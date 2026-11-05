@@ -711,6 +711,7 @@
   /* with a mouse: one floating button, just outside the card of the row the mouse is over (fabric-picker.js);
      the button by each row is for touch screens, which have no hover */
   .fab-more-float { position: fixed; z-index: 50; }
+  .fab-more-float::after { content: attr(data-name); position: absolute; top: calc(100% + 1px); left: 50%; transform: translateX(-50%); white-space: nowrap; font: 600 .66rem/1.1 var(--font-body); color: var(--ink); background: var(--bg); border-radius: 4px; padding: 0 3px; pointer-events: none; }
   .fab-more-stack { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
   @media (hover: hover) { .fabs-row > .fab-more-stack { display: none; } }
   /* the colour finder's round button: a small colour wheel */
