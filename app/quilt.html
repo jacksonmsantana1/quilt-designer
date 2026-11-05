@@ -356,6 +356,9 @@
     .dz.tools-open .dz-side::-webkit-scrollbar-thumb { background: rgba(60,70,90,.3); border-radius: 4px; }
   }
   .dz-toolbar { margin-bottom: 10px; }
+  /* the name of the quilt on the screen, so it is clear which one is being changed */
+  .dz-qname { margin: 0 0 6px; text-align: center; font: 600 1.05rem var(--font-display); color: var(--ink); }
+  .dz-qname small { font: 500 .8rem var(--font-body); color: var(--muted, var(--ink)); }
   .qlayout { gap: 6px; }
   .qlayout .stepper input { width: 2.8em; padding: 5px 2px; }
   .qlayout .stepper .btn { padding: 4px 8px; }
@@ -1285,6 +1288,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
+      <p class="dz-qname" id="dz-qname"></p>
       <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><label class="unit-sw" id="unit-lbl" data-unit="mm" title="Show lengths in millimetres or in inches"><span class="u-mm">mm</span><input type="checkbox" role="switch" id="unit-sw" aria-label="Show lengths in inches"><span class="u-track" aria-hidden="true"><i></i></span><span class="u-in">in</span></label><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
@@ -3207,6 +3211,9 @@ var designer_default = {
 
 // ../shared/src/lang/pt-BR/mine.js
 var mine_default = {
+  "New quilt": "Quilt novo",
+  "changes not saved yet": "mudan\xE7as ainda n\xE3o salvas",
+  "not saved yet": "ainda n\xE3o salvo",
   "An example that comes with the app": "Um exemplo que vem com o app",
   "\u201C{name}\u201D has changes that are not saved yet.": "\u201C{name}\u201D tem mudan\xE7as que ainda n\xE3o foram salvas.",
   "This quilt is not saved yet.": "Este quilt ainda n\xE3o foi salvo.",
@@ -4337,7 +4344,7 @@ var tour_default = {
   "Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button, <b>On a bed</b>.": "O seu quilt est\xE1 salvo: ele est\xE1 em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no bot\xE3o redondo destacado, <b>Na cama</b>.",
   "Back to your quilt": "De volta ao seu quilt",
   "Well done!": "Muito bem!",
-  "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt.": "Voc\xEA fez o seu primeiro quilt, e ele est\xE1 salvo: voc\xEA vai encontr\xE1-lo sempre em <b>Meus projetos</b>. Para come\xE7ar outro, clique em <b>Novo</b>, o primeiro bot\xE3o redondo \xE0 esquerda. Se um quilt tiver mudan\xE7as que n\xE3o foram salvas, o app pergunta antes de fech\xE1-lo. Para medir em mil\xEDmetros de novo, clique no bot\xE3o <b>mm / pol</b> acima do quilt.",
+  "You made your first quilt, and it is saved.<br>\u2022 To find it again: <b>My designs</b>, at the top.<br>\u2022 To start another: <b>New</b>.<br>\u2022 To measure in millimetres: the <b>mm / in</b> switch.": "Voc\xEA fez o seu primeiro quilt, e ele est\xE1 salvo.<br>\u2022 Para ach\xE1-lo de novo: <b>Meus projetos</b>, l\xE1 em cima.<br>\u2022 Para come\xE7ar outro: <b>Novo</b>.<br>\u2022 Para medir em mil\xEDmetros: o bot\xE3o <b>mm / pol</b>.",
   "Save it in My designs": "Salvar em Meus projetos",
   "Discard this quilt": "N\xE3o guardar este quilt",
   // the timeline
@@ -21948,7 +21955,7 @@ var TOUR = [
   {
     title: t("Well done!"),
     text: t(
-      "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt."
+      "You made your first quilt, and it is saved.<br>\u2022 To find it again: <b>My designs</b>, at the top.<br>\u2022 To start another: <b>New</b>.<br>\u2022 To measure in millimetres: the <b>mm / in</b> switch."
     ),
     center: true,
     buttons: [[t("Finish"), "keep", true]]
@@ -22100,7 +22107,7 @@ function tourPlace() {
     }
     if (y + bh > barTop) cost += (y + bh - barTop) * bw * 4;
     if (T) cost += Math.hypot(x + bw / 2 - (T.left + T.width / 2), y + bh / 2 - (T.top + T.height / 2)) * 2;
-    if (c === stay) cost *= 0.35;
+    if (c === stay) cost *= 0.2;
     if (!best || cost < best.cost) best = { x, y, cost };
   }
   tour.pos = { x: best.x, y: best.y };
@@ -22843,6 +22850,13 @@ function showSavedState() {
   if (design === savedSeen[0] && mineCur === savedSeen[1] && rec === savedSeen[2]) return;
   savedSeen = [design, mineCur, rec];
   const done = !!design && !!mineCur && !hasUnsaved();
+  const qn = $("dz-qname");
+  if (qn) {
+    qn.textContent = rec ? shownName(rec) : t("New quilt");
+    const sm = document.createElement("small");
+    sm.textContent = done ? "" : rec ? ` \xB7 ${t("changes not saved yet")}` : ` \xB7 ${t("not saved yet")}`;
+    qn.append(sm);
+  }
   const b = $("dz-save");
   if (b.classList.contains("is-saved") === done) return;
   b.classList.toggle("is-saved", done);

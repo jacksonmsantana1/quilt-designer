@@ -143,8 +143,8 @@ export default {
     'O seu quilt está salvo: ele está em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no botão redondo destacado, <b>Na cama</b>.',
   'Back to your quilt': 'De volta ao seu quilt',
   'Well done!': 'Muito bem!',
-  'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt.':
-    'Você fez o seu primeiro quilt, e ele está salvo: você vai encontrá-lo sempre em <b>Meus projetos</b>. Para começar outro, clique em <b>Novo</b>, o primeiro botão redondo à esquerda. Se um quilt tiver mudanças que não foram salvas, o app pergunta antes de fechá-lo. Para medir em milímetros de novo, clique no botão <b>mm / pol</b> acima do quilt.',
+  'You made your first quilt, and it is saved.<br>• To find it again: <b>My designs</b>, at the top.<br>• To start another: <b>New</b>.<br>• To measure in millimetres: the <b>mm / in</b> switch.':
+    'Você fez o seu primeiro quilt, e ele está salvo.<br>• Para achá-lo de novo: <b>Meus projetos</b>, lá em cima.<br>• Para começar outro: <b>Novo</b>.<br>• Para medir em milímetros: o botão <b>mm / pol</b>.',
   'Save it in My designs': 'Salvar em Meus projetos',
   'Discard this quilt': 'Não guardar este quilt',
 

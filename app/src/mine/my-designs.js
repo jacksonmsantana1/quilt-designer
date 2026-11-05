@@ -508,6 +508,13 @@ function showSavedState() {
   if (design === savedSeen[0] && mineCur === savedSeen[1] && rec === savedSeen[2]) return;
   savedSeen = [design, mineCur, rec];
   const done = !!design && !!mineCur && !hasUnsaved();
+  const qn = $('dz-qname');
+  if (qn) {
+    qn.textContent = rec ? shownName(rec) : t('New quilt');
+    const sm = document.createElement('small');
+    sm.textContent = done ? '' : rec ? ` · ${t('changes not saved yet')}` : ` · ${t('not saved yet')}`;
+    qn.append(sm);
+  }
   const b = $('dz-save');
   if (b.classList.contains('is-saved') === done) return;
   b.classList.toggle('is-saved', done);

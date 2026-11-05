@@ -1,5 +1,8 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'New quilt': 'Quilt novo',
+  'changes not saved yet': 'mudanças ainda não salvas',
+  'not saved yet': 'ainda não salvo',
   'An example that comes with the app': 'Um exemplo que vem com o app',
   '“{name}” has changes that are not saved yet.': '“{name}” tem mudanças que ainda não foram salvas.',
   'This quilt is not saved yet.': 'Este quilt ainda não foi salvo.',

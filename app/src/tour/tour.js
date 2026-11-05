@@ -514,7 +514,7 @@ const TOUR = [
   {
     title: t('Well done!'),
     text: t(
-      'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it. To measure in millimetres again, click the <b>mm / in</b> switch above the quilt.',
+      'You made your first quilt, and it is saved.<br>• To find it again: <b>My designs</b>, at the top.<br>• To start another: <b>New</b>.<br>• To measure in millimetres: the <b>mm / in</b> switch.',
     ),
     center: true,
     buttons: [[t('Finish'), 'keep', true]],
@@ -700,7 +700,7 @@ function tourPlace() {
     }
     if (y + bh > barTop) cost += (y + bh - barTop) * bw * 4; // keep the timeline strip clear
     if (T) cost += Math.hypot(x + bw / 2 - (T.left + T.width / 2), y + bh / 2 - (T.top + T.height / 2)) * 2; // then: as close to the target as possible
-    if (c === stay) cost *= 0.35;
+    if (c === stay) cost *= 0.2;
     if (!best || cost < best.cost) best = { x, y, cost };
   }
   tour.pos = { x: best.x, y: best.y };

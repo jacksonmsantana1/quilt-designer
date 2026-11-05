@@ -355,6 +355,9 @@
     .dz.tools-open .dz-side::-webkit-scrollbar-thumb { background: rgba(60,70,90,.3); border-radius: 4px; }
   }
   .dz-toolbar { margin-bottom: 10px; }
+  /* the name of the quilt on the screen, so it is clear which one is being changed */
+  .dz-qname { margin: 0 0 6px; text-align: center; font: 600 1.05rem var(--font-display); color: var(--ink); }
+  .dz-qname small { font: 500 .8rem var(--font-body); color: var(--muted, var(--ink)); }
   .qlayout { gap: 6px; }
   .qlayout .stepper input { width: 2.8em; padding: 5px 2px; }
   .qlayout .stepper .btn { padding: 4px 8px; }
@@ -1284,6 +1287,7 @@
 <section id="page-design">
   <div class="dz" id="dz">
     <div class="dz-main">
+      <p class="dz-qname" id="dz-qname"></p>
       <p class="fine dz-size" id="dz-size"><label for="dz-cols" class="size-lbl">Columns</label><span class="stepper mini"><button type="button" class="btn sm" data-step="c:-1" aria-label="Fewer columns" title="Fewer columns">−</button><input id="dz-cols" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Columns" title="Columns"><button type="button" class="btn sm" data-step="c:1" aria-label="More columns" title="More columns">+</button></span><span class="size-x">×</span><label for="dz-rows" class="size-lbl">Rows</label><span class="stepper mini"><button type="button" class="btn sm" data-step="r:-1" aria-label="Fewer rows" title="Fewer rows">−</button><input id="dz-rows" type="number" min="1" max="20" value="5" inputmode="numeric" aria-label="Rows" title="Rows"><button type="button" class="btn sm" data-step="r:1" aria-label="More rows" title="More rows">+</button></span><span class="size-x">·</span><label for="dz-setting" class="size-lbl">Layout</label><select id="dz-setting" title="Straight rows and columns, on point (every block turned 45°, in diagonal rows), or a mosaic of one shape"><option value="straight">Straight</option><option value="onpoint">On point</option><option value="mosaic">Mosaic</option></select><label class="unit-sw" id="unit-lbl" data-unit="mm" title="Show lengths in millimetres or in inches"><span class="u-mm">mm</span><input type="checkbox" role="switch" id="unit-sw" aria-label="Show lengths in inches"><span class="u-track" aria-hidden="true"><i></i></span><span class="u-in">in</span></label><span class="sr" id="dz-sync" aria-live="polite"></span></p>
       <div class="dz-backbar" id="dz-backbar" hidden>
         <p class="fine" style="margin:0 0 6px">Backing fabric · now <b id="dz-backname"></b>. Pick one for the whole back of the quilt.</p>
