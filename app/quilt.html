@@ -11225,7 +11225,13 @@ var setToolsSnap = (d) => toolsSnap = d;
 var readOnly = false;
 var setReadOnly = (v) => readOnly = v;
 
-// src/sim/patchwork.js
+// ../shared/src/basic-fabrics.js
+var loadImage2 = (src) => new Promise((ok, fail) => {
+  const im = new Image();
+  im.onload = () => ok(im);
+  im.onerror = fail;
+  im.src = src;
+});
 var BUNDLED = [
   { src: "assets/fabric/weave.jpg", cm: 22, tint: "#efe5cf", name: t("Cream cotton") },
   { src: "assets/fabric/weave.jpg", cm: 22, tint: "#2f466f", name: t("Indigo cotton"), binding: true },
@@ -11340,18 +11346,8 @@ function floralTile() {
     });
   return c;
 }
-var PW = 2048;
-var NP = 12;
-var PATCH = PW / NP;
-var PX_PER_CM = PW / 228.6;
-var patchCanvas = document.createElement("canvas");
-patchCanvas.width = patchCanvas.height = PW;
-setPatchTex(new THREE5.CanvasTexture(patchCanvas));
-patchTex.colorSpace = THREE5.SRGBColorSpace;
-patchTex.anisotropy = maxAniso;
-var swatches = [];
 async function prepareSwatch(def) {
-  const img = def.img || (def.floral ? floralTile() : await loadImage(def.src));
+  const img = def.img || (def.floral ? floralTile() : await loadImage2(def.src));
   const c = document.createElement("canvas");
   c.width = img.naturalWidth || img.width;
   c.height = img.naturalHeight || img.height;
@@ -11365,6 +11361,18 @@ async function prepareSwatch(def) {
   } else g.drawImage(img, 0, 0);
   return { ...def, canvas: c };
 }
+
+// src/sim/patchwork.js
+var PW = 2048;
+var NP = 12;
+var PATCH = PW / NP;
+var PX_PER_CM = PW / 228.6;
+var patchCanvas = document.createElement("canvas");
+patchCanvas.width = patchCanvas.height = PW;
+setPatchTex(new THREE5.CanvasTexture(patchCanvas));
+patchTex.colorSpace = THREE5.SRGBColorSpace;
+patchTex.anisotropy = maxAniso;
+var swatches = [];
 function buildPatchwork() {
   const g = patchCanvas.getContext("2d");
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -13434,6 +13442,19 @@ function collection() {
   return list;
 }
 var drawCollectionFabric = (f) => drawPattern(f.kind, f.seed, f.bg, f.fg);
+function collectionCanvas(p) {
+  const rgb = drawCollectionFabric(p), c = document.createElement("canvas");
+  c.width = c.height = SIZE2;
+  const g = c.getContext("2d"), img = g.createImageData(SIZE2, SIZE2);
+  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
+    img.data[j] = rgb[i];
+    img.data[j + 1] = rgb[i + 1];
+    img.data[j + 2] = rgb[i + 2];
+    img.data[j + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
 
 // src/designer/fabric-library.js
 var fabricLib = [];
@@ -13480,25 +13501,12 @@ async function blobCanvas(blob) {
   bm.close?.();
   return c;
 }
-function patternCanvas(p) {
-  const rgb = drawCollectionFabric(p), c = document.createElement("canvas");
-  c.width = c.height = SIZE2;
-  const g = c.getContext("2d"), img = g.createImageData(SIZE2, SIZE2);
-  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
-    img.data[j] = rgb[i];
-    img.data[j + 1] = rgb[i + 1];
-    img.data[j + 2] = rgb[i + 2];
-    img.data[j + 3] = 255;
-  }
-  g.putImageData(img, 0, 0);
-  return c;
-}
 var THUMB = 64;
 var thumbs = /* @__PURE__ */ new Map();
 function tileSource(f) {
   if (f.canvas) return [f.canvas, Math.min(f.canvas.width, f.canvas.height, 360)];
   if (!thumbs.has(f.id)) {
-    const big = patternCanvas(f.pattern), t2 = document.createElement("canvas");
+    const big = collectionCanvas(f.pattern), t2 = document.createElement("canvas");
     t2.width = t2.height = THUMB;
     t2.getContext("2d").drawImage(big, 0, 0, 360, 360, 0, 0, THUMB, THUMB);
     thumbs.set(f.id, t2);
@@ -13516,7 +13524,7 @@ async function loadFabrics(ids) {
   for (const id of ids) {
     const fab = byId.get(id);
     if (!fab || fab.canvas) continue;
-    fab.loading ??= (fab.pattern ? Promise.resolve().then(() => patternCanvas(fab.pattern)) : blobCanvas(fab.blob)).then(
+    fab.loading ??= (fab.pattern ? Promise.resolve().then(() => collectionCanvas(fab.pattern)) : blobCanvas(fab.blob)).then(
       (c) => {
         fab.canvas = c;
       },
@@ -15176,7 +15184,7 @@ function ensureDesign() {
   setFocusBlock(0);
 }
 
-// src/render/fabric-fill.js
+// ../shared/src/quilt-paint.js
 var DEG = 180 / Math.PI;
 function fabricFillAt(g, fab, pxPerCm, cx, cy, u, v, turn = 0) {
   const pat = g.createPattern(fab.canvas, "repeat"), k = pxPerCm / (fab.canvas.width / fab.cm);
@@ -15184,12 +15192,6 @@ function fabricFillAt(g, fab, pxPerCm, cx, cy, u, v, turn = 0) {
     new DOMMatrix().translate(cx, cy).rotate(turn * DEG).scale(k).translate(-u * fab.canvas.width, -v * fab.canvas.height)
   );
   return pat;
-}
-function pieceFill(g, b, pi, poly, pxPerCm, seed, turn = 0) {
-  const fab = fabricById(b.fabrics[pi]), f = b.fussy && b.fussy[pi];
-  if (!f) return fabricFill(g, fab, pxPerCm, seed, turn);
-  const [cx, cy] = polyCentre(poly);
-  return fabricFillAt(g, fab, pxPerCm, cx, cy, f[0], f[1], turn);
 }
 function fabricFill(g, fab, pxPerCm, seed, turn = 0) {
   const pat = g.createPattern(fab.canvas, "repeat");
@@ -15200,58 +15202,169 @@ function fabricFill(g, fab, pxPerCm, seed, turn = 0) {
   );
   return pat;
 }
-
-// src/render/quilt-draw.js
-function drawBorders(g, d, W, H, pxPerCm, seams, biBase = 0) {
-  const q = quiltMm(d), k = W / q.W, bs = bordersOf(d);
-  let off = 0;
-  for (let bi = bs.length - 1; bi >= 0; bi--) {
-    const b = bs[bi], T = b.mm, ox = off, oy = off, OW = q.W - 2 * off, OH = q.H - 2 * off;
-    const sides = [
-      { L: OW - 2 * T, tf: [ox + T, oy, 0] },
-      { L: OH - 2 * T, tf: [ox + OW, oy + T, 90] },
-      { L: OW - 2 * T, tf: [ox + OW - T, oy + OH, 180] },
-      { L: OH - 2 * T, tf: [ox, oy + OH - T, 270] }
-    ];
-    let seed = 2e3 + bi * 97;
-    for (const sd of sides) {
-      g.save();
-      g.scale(k, k);
-      g.translate(sd.tf[0], sd.tf[1]);
-      g.rotate(sd.tf[2] * Math.PI / 180);
-      for (const pc of borderSidePieces(b, sd.L)) {
-        g.fillStyle = fabricFill(g, fabricById(borderFab(b, pc.slot)), pxPerCm / k, seed++);
-        pathPoly(g, pc.poly);
-        g.fill();
-        dimUnlessHi(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, pc.slot), corner: false });
-        if (seams) {
+function pieceFillWith(fabricById2, g, b, pi, poly, pxPerCm, seed, turn = 0) {
+  const fab = fabricById2(b.fabrics[pi]), f = b.fussy && b.fussy[pi];
+  if (!f) return fabricFill(g, fab, pxPerCm, seed, turn);
+  const [cx, cy] = polyCentre(poly);
+  return fabricFillAt(g, fab, pxPerCm, cx, cy, f[0], f[1], turn);
+}
+function quiltPainter({ fabricById: fabricById2, dim = () => {
+} }) {
+  const pieceFill2 = (g, b, pi, poly, pxPerCm, seed, turn = 0) => pieceFillWith(fabricById2, g, b, pi, poly, pxPerCm, seed, turn);
+  function drawBorders2(g, d, W, H, pxPerCm, seams, biBase = 0) {
+    const q = quiltMm(d), k = W / q.W, bs = bordersOf(d);
+    let off = 0;
+    for (let bi = bs.length - 1; bi >= 0; bi--) {
+      const b = bs[bi], T = b.mm, ox = off, oy = off, OW = q.W - 2 * off, OH = q.H - 2 * off;
+      const sides = [
+        { L: OW - 2 * T, tf: [ox + T, oy, 0] },
+        { L: OH - 2 * T, tf: [ox + OW, oy + T, 90] },
+        { L: OW - 2 * T, tf: [ox + OW - T, oy + OH, 180] },
+        { L: OH - 2 * T, tf: [ox, oy + OH - T, 270] }
+      ];
+      let seed = 2e3 + bi * 97;
+      for (const sd of sides) {
+        g.save();
+        g.scale(k, k);
+        g.translate(sd.tf[0], sd.tf[1]);
+        g.rotate(sd.tf[2] * Math.PI / 180);
+        for (const pc of borderSidePieces(b, sd.L)) {
+          g.fillStyle = fabricFill(g, fabricById2(borderFab(b, pc.slot)), pxPerCm / k, seed++);
+          pathPoly(g, pc.poly);
+          g.fill();
+          dim(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, pc.slot), corner: false });
+          if (seams) {
+            g.strokeStyle = "rgba(40,30,20,.35)";
+            g.lineWidth = Math.max(1, W / 1400) / k;
+            g.stroke();
+          }
+        }
+        g.restore();
+      }
+      for (const [cx, cy] of [
+        [ox, oy],
+        [ox + OW - T, oy],
+        [ox + OW - T, oy + OH - T],
+        [ox, oy + OH - T]
+      ]) {
+        g.fillStyle = fabricFill(g, fabricById2(borderFab(b, borderCornerSlot(b))), pxPerCm, seed++);
+        g.fillRect(cx * k, cy * k, T * k, T * k);
+        g.beginPath();
+        g.rect(cx * k, cy * k, T * k, T * k);
+        dim(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, borderCornerSlot(b)), corner: !plainButted(b) });
+        if (seams && !plainButted(b)) {
           g.strokeStyle = "rgba(40,30,20,.35)";
-          g.lineWidth = Math.max(1, W / 1400) / k;
+          g.lineWidth = Math.max(1, W / 1400);
+          g.strokeRect(cx * k, cy * k, T * k, T * k);
+        }
+      }
+      off += T;
+    }
+  }
+  function drawCornerBlock2(g, cb, rc, pxPerCm, seed, seams, lineW) {
+    const polys = placedPolys(cb, rc);
+    polys.forEach((poly, pi) => {
+      g.fillStyle = pieceFill2(g, cb, pi, poly, pxPerCm, seed * 31 + pi, rc.turn || 0);
+      pathPoly(g, poly);
+      g.fill();
+      dim(g, { t: "sash", kind: "corner", fabric: cb.fabrics[pi] });
+    });
+    if (!seams) return;
+    g.strokeStyle = "rgba(40,30,20,.35)";
+    g.lineWidth = lineW;
+    for (const poly of polys) {
+      pathPoly(g, poly);
+      g.stroke();
+    }
+  }
+  function drawQuilt3(g, W, H, opts) {
+    const d = opts.design;
+    if (bordersOf(d).length) drawBorders2(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
+    const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
+    if (d.mosaic) {
+      const polys = tilePolys(d, W, H);
+      polys.forEach((poly, i) => {
+        g.fillStyle = fabricFill(g, fabricById2(d.mosaic.fabrics[i]), pxPerCm, 500 + i);
+        pathPoly(g, poly);
+        g.fill();
+        dim(g, { t: "qpiece", fabric: d.mosaic.fabrics[i] });
+      });
+      if (opts.seams) {
+        g.strokeStyle = "rgba(40,30,20,.35)";
+        g.lineWidth = Math.max(1, W / 1400);
+        for (const poly of polys) {
+          pathPoly(g, poly);
           g.stroke();
         }
       }
-      g.restore();
+      return;
     }
-    for (const [cx, cy] of [
-      [ox, oy],
-      [ox + OW - T, oy],
-      [ox + OW - T, oy + OH - T],
-      [ox, oy + OH - T]
-    ]) {
-      g.fillStyle = fabricFill(g, fabricById(borderFab(b, borderCornerSlot(b))), pxPerCm, seed++);
-      g.fillRect(cx * k, cy * k, T * k, T * k);
-      g.beginPath();
-      g.rect(cx * k, cy * k, T * k, T * k);
-      dimUnlessHi(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, borderCornerSlot(b)), corner: !plainButted(b) });
-      if (seams && !plainButted(b)) {
+    for (
+      const [k, rc] of
+      /** @type {any[]} */
+      sashRects(d, W, H).entries()
+    ) {
+      if (rc.kind === "corner" && s.cornerBlock) {
+        drawCornerBlock2(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
+        continue;
+      }
+      g.fillStyle = fabricFill(
+        g,
+        fabricById2(rc.kind === "corner" ? s.corner : s.fabric),
+        pxPerCm,
+        900 + k,
+        rc.turn || 0
+      );
+      pathPoly(g, blockOutline(rc));
+      g.fill();
+      dim(g, { t: "sash", kind: rc.kind });
+      if (opts.seams) {
         g.strokeStyle = "rgba(40,30,20,.35)";
         g.lineWidth = Math.max(1, W / 1400);
-        g.strokeRect(cx * k, cy * k, T * k, T * k);
+        g.stroke();
       }
     }
-    off += T;
+    for (const [k, sp] of settingPieces(d, W, H).entries()) {
+      g.fillStyle = fabricFill(g, fabricById2(d.settingFabric || "b0"), pxPerCm, 700 + k);
+      pathPoly(g, sp.poly);
+      g.fill();
+      dim(g, { t: "setting", kind: sp.kind });
+      if (opts.seams) {
+        g.strokeStyle = "rgba(40,30,20,.35)";
+        g.lineWidth = Math.max(1, W / 1400);
+        g.stroke();
+      }
+    }
+    for (let bi = 0, n = cellCount(d); bi < n; bi++) {
+      const b = d.blocks[bi];
+      if (!b || b.under != null) continue;
+      const Pl = blockPlace(d, bi, W, H), polys = placedPolys(b, Pl);
+      polys.forEach((poly, pi) => {
+        g.fillStyle = pieceFill2(g, b, pi, poly, pxPerCm, bi * 31 + pi, Pl.turn);
+        pathPoly(g, poly);
+        g.fill();
+        dim(g, { t: "qpiece", fabric: b.fabrics[pi] });
+      });
+      if (opts.seams) {
+        g.strokeStyle = "rgba(40,30,20,.35)";
+        g.lineWidth = Math.max(1, W / 1400);
+        polys.forEach((poly) => {
+          pathPoly(g, poly);
+          g.stroke();
+        });
+      }
+    }
   }
+  return { drawBorders: drawBorders2, drawCornerBlock: drawCornerBlock2, drawQuilt: drawQuilt3 };
 }
+
+// src/render/fabric-fill.js
+var pieceFill = (g, b, pi, poly, pxPerCm, seed, turn = 0) => pieceFillWith(fabricById, g, b, pi, poly, pxPerCm, seed, turn);
+
+// src/render/quilt-draw.js
+var painter = quiltPainter({ fabricById: (id) => fabricById(id), dim: dimUnlessHi });
+var { drawBorders, drawCornerBlock } = painter;
+var drawQuilt2 = (g, W, H, opts = {}) => painter.drawQuilt(g, W, H, { ...opts, design: opts.design || design });
 function explodedH(W, gap) {
   const q = quiltMm(design), n = bordersOf(design).length, k = (W - 2 * gap * n) / q.W;
   return Math.round(q.H * k + 2 * gap * n);
@@ -15327,90 +15440,6 @@ function drawBordersExploded(g, W, gap, focus = -1) {
   if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
   g.restore();
   return H;
-}
-function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
-  const polys = placedPolys(cb, rc);
-  polys.forEach((poly, pi) => {
-    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi, rc.turn || 0);
-    pathPoly(g, poly);
-    g.fill();
-    dimUnlessHi(g, { t: "sash", kind: "corner", fabric: cb.fabrics[pi] });
-  });
-  if (!seams) return;
-  g.strokeStyle = "rgba(40,30,20,.35)";
-  g.lineWidth = lineW;
-  for (const poly of polys) {
-    pathPoly(g, poly);
-    g.stroke();
-  }
-}
-function drawQuilt2(g, W, H, opts = {}) {
-  const d = opts.design || design;
-  if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
-  const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
-  if (d.mosaic) {
-    const polys = tilePolys(d, W, H);
-    polys.forEach((poly, i) => {
-      g.fillStyle = fabricFill(g, fabricById(d.mosaic.fabrics[i]), pxPerCm, 500 + i);
-      pathPoly(g, poly);
-      g.fill();
-      dimUnlessHi(g, { t: "qpiece", fabric: d.mosaic.fabrics[i] });
-    });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      for (const poly of polys) {
-        pathPoly(g, poly);
-        g.stroke();
-      }
-    }
-    return;
-  }
-  for (const [k, rc] of sashRects(d, W, H).entries()) {
-    if (rc.kind === "corner" && s.cornerBlock) {
-      drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
-      continue;
-    }
-    g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + k, rc.turn || 0);
-    pathPoly(g, blockOutline(rc));
-    g.fill();
-    dimUnlessHi(g, { t: "sash", kind: rc.kind });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      g.stroke();
-    }
-  }
-  for (const [k, sp] of settingPieces(d, W, H).entries()) {
-    g.fillStyle = fabricFill(g, fabricById(d.settingFabric || "b0"), pxPerCm, 700 + k);
-    pathPoly(g, sp.poly);
-    g.fill();
-    dimUnlessHi(g, { t: "setting", kind: sp.kind });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      g.stroke();
-    }
-  }
-  for (let bi = 0, n = cellCount(d); bi < n; bi++) {
-    const b = d.blocks[bi];
-    if (!b || b.under != null) continue;
-    const Pl = blockPlace(d, bi, W, H), polys = placedPolys(b, Pl);
-    polys.forEach((poly, pi) => {
-      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi, Pl.turn);
-      pathPoly(g, poly);
-      g.fill();
-      dimUnlessHi(g, { t: "qpiece", fabric: b.fabrics[pi] });
-    });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      polys.forEach((poly) => {
-        pathPoly(g, poly);
-        g.stroke();
-      });
-    }
-  }
 }
 
 // src/designer/canvas.js

@@ -384,6 +384,23 @@ function collection() {
 /** A collection fabric's picture. @param {CollectionFabric} f @returns {Uint8ClampedArray} SIZE × SIZE RGB */
 const drawCollectionFabric = f => drawPattern(f.kind, f.seed, f.bg, f.fg);
 
+/** A collection fabric's picture on a canvas, drawn now (about 10 ms; in a browser). @param {CollectionFabric} p */
+function collectionCanvas(p) {
+  const rgb = drawCollectionFabric(p),
+    c = document.createElement('canvas');
+  c.width = c.height = SIZE;
+  const g = c.getContext('2d'),
+    img = g.createImageData(SIZE, SIZE);
+  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
+    img.data[j] = rgb[i];
+    img.data[j + 1] = rgb[i + 1];
+    img.data[j + 2] = rgb[i + 2];
+    img.data[j + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+
 export {
   COLLECTION_SIZE,
   COLOURS,
@@ -391,6 +408,7 @@ export {
   SIZE,
   WHITES,
   collection,
+  collectionCanvas,
   drawCollectionFabric,
   drawPattern,
   drawWith,

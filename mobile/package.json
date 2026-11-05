@@ -1,0 +1,18 @@
+{
+  "name": "@quilt/mobile",
+  "private": true,
+  "type": "module",
+  "description": "The phone app: Community, My quiltings, My fabrics and a camera. A web page now; Capacitor wraps it for Android and iOS later.",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node dev.mjs",
+    "test:e2e": "node build.mjs && playwright test"
+  },
+  "dependencies": {
+    "@quilt/shared": "*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "esbuild": "^0.28.2"
+  }
+}

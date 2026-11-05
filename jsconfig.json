@@ -13,6 +13,8 @@
   },
   "include": [
     "shared/src/*.js",
+    "mobile/src/*.js",
+    "mobile/src/*.d.ts",
     "app/src/core/*.js",
     "app/src/cutting/plan.js",
     "app/src/storage/idb.js",

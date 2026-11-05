@@ -17,6 +17,7 @@ app/      front end: plain JavaScript ES modules (no framework), three.js, cloth
           src/README.md has the module map and the rules below in more detail
 shared/   @quilt/shared: block patterns, quilt geometry (mm), the saved design format + checks (pure, Node + browser)
 server/   @quilt/server: Fastify + PostgreSQL 16 (+pgvector) + S3/R2 photo storage; server/README.md
+mobile/   @quilt/mobile: the phone app, plain JavaScript without three.js; a web page now, wrapped by Capacitor later
 ```
 
 One `npm install` at the top. The built app is `app/quilt.html` (one file, three.js from a CDN via import map);
@@ -27,7 +28,8 @@ One `npm install` at the top. The built app is `app/quilt.html` (one file, three
 ```
 npm run build              # app/src -> app/dist/app.js -> app/quilt.html (app/build.py, via app/tools/python.mjs)
 npm run check              # prettier check, eslint, tsc (JSDoc types), unit tests of shared, app, server
-npm run test:e2e           # Playwright browser tests of the app (build first; ~5 min; workers: 1)
+npm run test:e2e           # Playwright browser tests of the app (build first; ~5 min; workers: 1), then the phone app's
+npm run dev -w @quilt/mobile         # the phone app on :8200, in a browser, with quilts from the live API
 npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e/index.html
 npm run dev -w @quilt/server         # API on :8787 (needs server/.env, see server/.env.example)
 npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabrics for user "seed" (sync as "seed")
@@ -107,6 +109,9 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   empty: no server online, no error reports. Sentry's library loads only on the published page, by its fingerprint
   (`ui/error-reports.js`: a new version needs a new one). What leaves goes through `shared/src/scrub-report.js`, which
   keeps a short list of safe fields: quilts, names, emails, tokens and photo links must never get into a report.
+- **The phone app** (`mobile/`) shares with the web app through `@quilt/shared`, including how a quilt is painted
+  (`quilt-paint.js`, told how to find a fabric) and the basic fabrics (`basic-fabrics.js`). It must stay free of three.js
+  and of `app/src` modules with side effects; its text goes through `t()` and the same dictionary.
 - **Style**: Prettier (120 cols, single quotes). Comments say why in plain words. UI text is short and friendly.
 
 ## Server (server/)

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:; object-src 'none'; base-uri 'none'">
+<title>Block &amp; Bind</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Karla:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1 id="title"></h1>
+  <input type="search" id="q" autocomplete="off" enterkeyhint="search">
+</header>
+<main>
+  <div class="board" id="board"></div>
+  <p class="empty" id="empty" role="status" hidden></p>
+  <div class="more"><button type="button" class="btn" id="more" hidden></button></div>
+</main>
+<dialog id="viewer">
+  <button type="button" class="close" id="viewer-close">×</button>
+  <img id="viewer-img" alt="">
+  <p id="viewer-name"></p>
+</dialog>
+<script type="module" src="app.js"></script>
+</body>
+</html>

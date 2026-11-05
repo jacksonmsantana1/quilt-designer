@@ -4,17 +4,18 @@
   "workspaces": [
     "shared",
     "app",
-    "server"
+    "server",
+    "mobile"
   ],
   "scripts": {
     "build": "npm run build -w @quilt/app",
-    "format": "prettier --write \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
-    "format:check": "prettier --check \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
-    "lint": "eslint app/src app/tests shared server",
+    "format": "prettier --write \"mobile/src/**/*.js\" \"mobile/*.mjs\" \"mobile/tests/**/*.mjs\" \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
+    "format:check": "prettier --check \"mobile/src/**/*.js\" \"mobile/*.mjs\" \"mobile/tests/**/*.mjs\" \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
+    "lint": "eslint app/src app/tests shared server mobile",
     "typecheck": "tsc -p jsconfig.json",
     "test": "npm test -w @quilt/shared && npm test -w @quilt/app && npm test -w @quilt/server",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
-    "test:e2e": "npm run test:e2e -w @quilt/app"
+    "test:e2e": "npm run test:e2e -w @quilt/app && npm run test:e2e -w @quilt/mobile"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

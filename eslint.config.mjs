@@ -6,6 +6,8 @@ export default [
     ignores: [
       '**/node_modules/**',
       'app/dist/**',
+      'mobile/dist/**',
+      'mobile/test-results/**',
       'app/coverage/**',
       'app/tests/legacy/**',
       'app/test-results/**',
@@ -17,11 +19,11 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ['app/src/**/*.js', 'shared/src/**/*.js'],
+    files: ['app/src/**/*.js', 'shared/src/**/*.js', 'mobile/src/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: { ...globals.browser, ClothSim: 'readonly' }, // ClothSim: physics.js, loaded as a classic script
+      globals: { ...globals.browser, ClothSim: 'readonly', __API_URL__: 'readonly' }, // ClothSim: physics.js, loaded as a classic script
     },
     rules: {
       'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none', ignoreRestSiblings: true, varsIgnorePattern: '^_' }],
@@ -52,7 +54,7 @@ export default [
     },
   },
   {
-    files: ['app/tests/**/*.mjs', 'shared/tests/**/*.mjs', '**/*.config.mjs', 'app/tools/**/*.mjs', 'shared/tools/**/*.mjs'],
+    files: ['app/tests/**/*.mjs', 'shared/tests/**/*.mjs', '**/*.config.mjs', 'app/tools/**/*.mjs', 'shared/tools/**/*.mjs', 'mobile/*.mjs', 'mobile/tests/**/*.mjs'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
     rules: { 'no-empty': ['error', { allowEmptyCatch: true }], 'no-unused-vars': ['error', { caughtErrors: 'none' }] },
   },
