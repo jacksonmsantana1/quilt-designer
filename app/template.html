@@ -458,6 +458,7 @@
   .tour .tour-clip.big { position: fixed; z-index: 1100; left: 50%; top: 50%; width: min(1000px, 92vw) !important; transform: translate(-50%, -50%); box-shadow: 0 20px 60px rgba(0,0,0,.45); cursor: zoom-out; }
   body.tour-docked.sim-over #page-sim { left: calc(var(--tour-w) + 18px); }
   body.tour-docked #tour-start { display: none; }
+  body.tour-docked .fabs-row > .fab-more-stack { display: flex; }
   /* the header is narrower beside the column: the logo without its name, and no account or language (off in the tutorial) */
   body.tour-docked .app-logo b, body.tour-docked .acct { display: none; }
   .tour.min #tour-text, .tour.min .tour-actions { display: none; }
@@ -590,6 +591,8 @@
   .tl-btns { display: inline-flex; gap: 4px; }
   .dz-size { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; margin: 0 0 10px; }
   .dz-size2 { margin: 10px 0 0; }
+  /* clear of the round buttons' names, which hang below a short quilt */
+  @media (min-width: 641px) { .dz-size2 { padding: 0 64px; } }
   .size-lbl { font-weight: 600; color: var(--ink); margin-right: 2px; }
   .size-x { margin: 0 8px; color: var(--muted); }
   .stepper.mini { display: inline-flex; gap: 2px; }

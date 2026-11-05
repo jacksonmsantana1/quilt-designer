@@ -234,7 +234,8 @@ addEventListener(
  */
 function showFloat(box, region) {
   const inline = inlineButtons(box);
-  if (!inline.length || matchMedia('(hover: none)').matches) return;
+  // (beside the tutorial's column there is no room outside the card: the row's own buttons show instead)
+  if (!inline.length || matchMedia('(hover: none)').matches || document.body.classList.contains('tour-docked')) return;
   const buttons = floatButtons();
   clearTimeout(float.timer);
   float.box = box;
