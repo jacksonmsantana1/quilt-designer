@@ -284,17 +284,11 @@ const TOUR = [
     ...sashStep(2),
   },
   {
-    title: t('Now a wide one'),
-    back: () => showToolsPanel('sash'),
-    text: t(
-      'Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts.',
-    ),
-    ...sashStep(6),
-  },
-  {
     title: t('Choose the one for this quilt'),
     back: () => showToolsPanel('sash'),
-    text: t('Click the highlighted width: it suits this quilt.'),
+    text: t(
+      'Now click this wider one, the one for this quilt: the strips grow, and so does the whole quilt. You can try any width on your own quilts.',
+    ),
     ...sashStep(4),
   },
   {

@@ -180,11 +180,8 @@ test.describe('first visit', () => {
     await expect(page.locator('#tour-note')).toContainText('different width');
     expect((await app.current()).sashing?.mm || 0).toBe(0);
     await page.locator('#sash-presets button:nth-child(2)').click();
-    await expect(title).toHaveText('Now a wide one');
-    expect((await app.current()).sashing.mm).toBe(25);
-    await page.locator('#sash-presets button:nth-child(6)').click();
     await expect(title).toHaveText('Choose the one for this quilt');
-    expect((await app.current()).sashing.mm).toBe(76);
+    expect((await app.current()).sashing.mm).toBe(25);
     await page.locator('#sash-presets button:nth-child(4)').click();
 
     await expect(title).toHaveText('Open the borders');

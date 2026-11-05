@@ -102,11 +102,9 @@ export default {
   'Try a narrow width': 'Experimente uma largura estreita',
   'Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone.':
     'Clique na largura destacada e olhe o quilt: aparecem tiras finas, com um quadradinho onde elas se encontram, o quadrado de canto.',
-  'Now a wide one': 'Agora uma larga',
-  'Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts.':
-    'Clique nesta mais larga: as faixas crescem, e o quilt inteiro também. Nos seus quilts, você pode testar qualquer largura.',
   'Choose the one for this quilt': 'Escolha a deste quilt',
-  'Click the highlighted width: it suits this quilt.': 'Clique na largura destacada: ela combina com este quilt.',
+  'Now click this wider one, the one for this quilt: the strips grow, and so does the whole quilt. You can try any width on your own quilts.':
+    'Agora clique nesta mais larga, a deste quilt: as tiras crescem, e o quilt inteiro também. Nos seus quilts você pode experimentar qualquer largura.',
   'That is a different width. Click the highlighted one.': 'Essa é outra largura. Clique na que está destacada.',
   'Only the highlighted item works on this step. Click it to go on.':
     'Neste passo, só o item destacado funciona. Clique nele para continuar.',

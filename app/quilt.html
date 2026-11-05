@@ -4315,10 +4315,8 @@ var tour_default = {
   "Sashing is the strips between the blocks. Click the highlighted round button, <b>Sashing</b>.": "Faixas s\xE3o as tiras entre os blocos. Clique no bot\xE3o redondo destacado, <b>Faixas</b>.",
   "Try a narrow width": "Experimente uma largura estreita",
   "Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone.": "Clique na largura destacada e olhe o quilt: aparecem tiras finas, com um quadradinho onde elas se encontram, o quadrado de canto.",
-  "Now a wide one": "Agora uma larga",
-  "Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts.": "Clique nesta mais larga: as faixas crescem, e o quilt inteiro tamb\xE9m. Nos seus quilts, voc\xEA pode testar qualquer largura.",
   "Choose the one for this quilt": "Escolha a deste quilt",
-  "Click the highlighted width: it suits this quilt.": "Clique na largura destacada: ela combina com este quilt.",
+  "Now click this wider one, the one for this quilt: the strips grow, and so does the whole quilt. You can try any width on your own quilts.": "Agora clique nesta mais larga, a deste quilt: as tiras crescem, e o quilt inteiro tamb\xE9m. Nos seus quilts voc\xEA pode experimentar qualquer largura.",
   "That is a different width. Click the highlighted one.": "Essa \xE9 outra largura. Clique na que est\xE1 destacada.",
   "Only the highlighted item works on this step. Click it to go on.": "Neste passo, s\xF3 o item destacado funciona. Clique nele para continuar.",
   "See the sizes": "Veja as medidas",
@@ -21726,17 +21724,11 @@ var TOUR = [
     ...sashStep(2)
   },
   {
-    title: t("Now a wide one"),
-    back: () => showToolsPanel("sash"),
-    text: t(
-      "Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts."
-    ),
-    ...sashStep(6)
-  },
-  {
     title: t("Choose the one for this quilt"),
     back: () => showToolsPanel("sash"),
-    text: t("Click the highlighted width: it suits this quilt."),
+    text: t(
+      "Now click this wider one, the one for this quilt: the strips grow, and so does the whole quilt. You can try any width on your own quilts."
+    ),
     ...sashStep(4)
   },
   {
