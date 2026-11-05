@@ -109,7 +109,9 @@ test.describe('first visit', () => {
     // the other controls are off, and clicking them doesn't move the tutorial on
     await page.locator('#rail-brd').click({ force: true });
     await expect(title).toHaveText('Choose the nine patch');
-    await expect(page.locator('#tour-arrow')).toBeVisible();
+    // no arrow along the row: the block to click is brought whole into sight instead
+    await expect(page.locator('#tour-arrow')).toBeHidden();
+    await expect(page.locator('#dz-patterns [data-p="nine"]')).toBeInViewport({ ratio: 1 });
     // another block: it isn't applied, the person is told, and the step's video comes back
     await page.locator('#dz-patterns .pat:not([data-p="nine"])').first().click();
     await expect(page.locator('#tour-note')).toContainText('different block');

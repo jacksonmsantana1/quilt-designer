@@ -170,7 +170,6 @@ const TOUR = [
     ),
     allow: ['#dz-patterns'],
     glow: '#dz-patterns [data-p="nine"]',
-    arrow: '#dz-patterns',
     pick: {
       tile: '#dz-patterns .pat',
       right: '[data-p="nine"]',
@@ -205,7 +204,6 @@ const TOUR = [
     ),
     allow: ['#dz-fabrics2'],
     glow: '#dz-fabrics2 [data-f="b3"]',
-    arrow: '#dz-fabrics2',
     pick: {
       tile: '#dz-fabrics2 .fab',
       right: '[data-f="b3"]',
@@ -452,9 +450,14 @@ const TOUR = [
   {
     title: t('The border pieces'),
     back: () => showPage('cut'),
-    text: t(
-      'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b> after the fabric letter: <b>AB1.1</b> is fabric A, border 1, piece 1.',
-    ),
+    // the code of this quilt's own border strip, read in its parts
+    text: () => {
+      const code = document.querySelector('#cg-blocks .cgblock:last-child td.l')?.textContent || 'AB1.1';
+      return t(
+        'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. A strip marked <b>{code}</b> is cut from fabric <b>{letter}</b> of the shopping list; <b>B1</b> means border 1, and the last number is the piece.',
+        { code, letter: code[0] },
+      );
+    },
     allow: ['#cg-blocks .cgblock:last-child h3'],
     glow: '#cg-blocks .cgblock:last-child h3',
     done: () => !!document.querySelector('#cg-blocks .cgblock:last-child.open'),
@@ -472,6 +475,7 @@ const TOUR = [
   {
     title: t('The other round buttons'),
     back: () => showPage('cut'),
+    keepOff: ['.rail'], // the buttons it talks about stay in sight
     enter: () => showPage('design'),
     // only the buttons this screen has (a phone has no Picture)
     text: () =>
@@ -629,6 +633,11 @@ function tourPlace() {
     const r = rectOf(el);
     if (r) keep.push([r, 8]);
   });
+  for (const sel of st.keepOff || [])
+    document.querySelectorAll(sel).forEach(el => {
+      const r = rectOf(el);
+      if (r) keep.push([r, 40]);
+    });
   // a cutting list just opened is being read: the card keeps off it too
   document.querySelectorAll('#cg-blocks .cgblock.open').forEach(el => {
     const r = rectOf(el);

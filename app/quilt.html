@@ -4263,7 +4263,7 @@ var tour_default = {
   "This table is your shopping list. Each fabric has a letter, and beside it how much to buy, with a little extra for straightening the cut. The <b>binding</b>, the strip that closes the edge of the quilt, is cut from the border fabric and is already counted. Click <b>Next</b> when you have read it.": "Esta tabela \xE9 a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, com uma sobra para acertar o corte. O <b>vi\xE9s</b>, a tira que fecha a beirada do quilt, \xE9 cortado do tecido da barra e j\xE1 est\xE1 na conta. Clique em <b>Pr\xF3ximo</b> quando terminar de ler.",
   Next: "Pr\xF3ximo",
   "The border pieces": "As pe\xE7as da barra",
-  "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b> after the fabric letter: <b>AB1.1</b> is fabric A, border 1, piece 1.": "As faixas e a barra t\xEAm cart\xF5es pr\xF3prios mais abaixo. Clique em <b>Barra 1</b>, o t\xEDtulo destacado: ele lista as tiras para cortar para a barra. Os c\xF3digos delas t\xEAm um <b>B</b> depois da letra do tecido: <b>AB1.1</b> \xE9 o tecido A, barra 1, pe\xE7a 1.",
+  "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. A strip marked <b>{code}</b> is cut from fabric <b>{letter}</b> of the shopping list; <b>B1</b> means border 1, and the last number is the piece.": "As faixas e a barra t\xEAm cart\xF5es pr\xF3prios mais abaixo. Clique em <b>Barra 1</b>, o t\xEDtulo destacado: ele lista as tiras para cortar para a barra. Uma tira marcada <b>{code}</b> \xE9 cortada do tecido <b>{letter}</b> da lista de compras; <b>B1</b> quer dizer barra 1, e o \xFAltimo n\xFAmero \xE9 a pe\xE7a.",
   "Take it to your sewing table": "Leve para a mesa de costura",
   "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list and every block with its pieces; shapes that a ruler cannot cut come with templates at real size. You can click it now, or later. Then click <b>Next</b>.": "O bot\xE3o <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras e cada bloco com as suas pe\xE7as; as formas que n\xE3o se cortam com r\xE9gua v\xEAm com moldes em tamanho real. Voc\xEA pode clicar agora ou depois. Depois clique em <b>Pr\xF3ximo</b>.",
   // the guided tour
@@ -21574,7 +21574,6 @@ var TOUR = [
     ),
     allow: ["#dz-patterns"],
     glow: '#dz-patterns [data-p="nine"]',
-    arrow: "#dz-patterns",
     pick: {
       tile: "#dz-patterns .pat",
       right: '[data-p="nine"]',
@@ -21610,7 +21609,6 @@ var TOUR = [
     ),
     allow: ["#dz-fabrics2"],
     glow: '#dz-fabrics2 [data-f="b3"]',
-    arrow: "#dz-fabrics2",
     pick: {
       tile: "#dz-fabrics2 .fab",
       right: '[data-f="b3"]',
@@ -21859,9 +21857,14 @@ var TOUR = [
   {
     title: t("The border pieces"),
     back: () => showPage("cut"),
-    text: t(
-      "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b> after the fabric letter: <b>AB1.1</b> is fabric A, border 1, piece 1."
-    ),
+    // the code of this quilt's own border strip, read in its parts
+    text: () => {
+      const code = document.querySelector("#cg-blocks .cgblock:last-child td.l")?.textContent || "AB1.1";
+      return t(
+        "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. A strip marked <b>{code}</b> is cut from fabric <b>{letter}</b> of the shopping list; <b>B1</b> means border 1, and the last number is the piece.",
+        { code, letter: code[0] }
+      );
+    },
     allow: ["#cg-blocks .cgblock:last-child h3"],
     glow: "#cg-blocks .cgblock:last-child h3",
     done: () => !!document.querySelector("#cg-blocks .cgblock:last-child.open")
@@ -21879,6 +21882,8 @@ var TOUR = [
   {
     title: t("The other round buttons"),
     back: () => showPage("cut"),
+    keepOff: [".rail"],
+    // the buttons it talks about stay in sight
     enter: () => showPage("design"),
     // only the buttons this screen has (a phone has no Picture)
     text: () => [
@@ -22007,6 +22012,11 @@ function tourPlace() {
     const r = rectOf(el);
     if (r) keep.push([r, 8]);
   });
+  for (const sel of st.keepOff || [])
+    document.querySelectorAll(sel).forEach((el) => {
+      const r = rectOf(el);
+      if (r) keep.push([r, 40]);
+    });
   document.querySelectorAll("#cg-blocks .cgblock.open").forEach((el) => {
     const r = rectOf(el);
     if (r) keep.push([r, 6]);
