@@ -1575,7 +1575,8 @@ const CLIPS = {
       seam.value = '6.4';
       seam.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    await clip('cut', { x: 0, y: 0, w: V.w, h: (V.w * 5) / 8 }, async c => {
+    // the left part of the page: the tab, then the shopping list that opens under it (large enough to read)
+    await clip('cut', { x: 0, y: 0, w: 880, h: (880 * 5) / 8 }, async c => {
       await c.moveTo(cutTab, 900);
       await c.click();
       await page.waitForTimeout(800);
