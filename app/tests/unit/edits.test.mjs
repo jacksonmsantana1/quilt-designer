@@ -175,6 +175,11 @@ test('border edits: add, change, move, fabric slots, remove', () => {
   );
   assert.equal(moveBorder(d, 1, 1), d); // already outermost
   assert.deepEqual(setBorderFabric(d, 0, 2, 'b5').borders[0].fabrics, ['b1', 'b1', 'b5']);
+  // a plain strip's corners follow its fabric while they were the same one, and stay once chosen apart
+  const two = updateBorder(d, 0, { fabrics: ['b1', 'b1'] });
+  assert.deepEqual(setBorderFabric(two, 0, 0, 'b5').borders[0].fabrics, ['b5', 'b5']);
+  const apart = setBorderFabric(two, 0, 1, 'b3');
+  assert.deepEqual(setBorderFabric(apart, 0, 0, 'b5').borders[0].fabrics, ['b5', 'b3']);
   assert.deepEqual(
     removeBorder(d, 0).borders.map(b => b.type),
     ['piano'],

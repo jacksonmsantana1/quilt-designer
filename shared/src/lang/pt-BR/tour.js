@@ -39,8 +39,8 @@ export default {
   'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.':
     'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> para chegar mais perto.',
   'Try it on a table': 'Experimente em uma mesa',
-  'A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.':
-    'Um quilt pequeno também fica lindo como toalha de mesa. No menu lá em cima, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.',
+  'A small quilt also makes a lovely table cover. In the list at the top, the one with the name of the bed, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.':
+    'Um quilt pequeno também fica lindo como toalha de mesa. Na lista lá em cima, a que tem o nome da cama, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.',
   'Click the <b>×</b> at the top left to go back to your quilt.':
     'Clique no <b>×</b> no canto de cima, à esquerda, para voltar ao seu quilt.',
   'Your shopping list': 'Sua lista de compras',

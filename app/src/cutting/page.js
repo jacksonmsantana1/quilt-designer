@@ -638,7 +638,7 @@ function renderCut() {
         ? `${len(cutOpts.fabricWidth)} (${comma(cutOpts.fabricWidth / 10)} cm)`
         : `${comma(cutOpts.fabricWidth / 10)} cm`,
       usable: inInches ? len(P.usable) : `${comma(P.usable / 10)} cm`,
-      seam: len(P.seam),
+      seam: getUnit() === 'in' ? len(P.seam) : `${comma(P.seam)} mm`, // 7.5 mm, not rounded to 8
       rounding: inInches ? t('to the nearest ⅛ inch') : t('up to the whole millimetre'),
       extra: len(50),
       step: inInches ? t('⅛ yard') : '5 cm',

@@ -4273,7 +4273,7 @@ var tour_default = {
   "Look around": "Olhe em volta",
   "The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.": "O quilt cai na cama como um tecido de verdade. Neste tamanho ele \xE9 uma coberta pequena: cobre s\xF3 parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> para chegar mais perto.",
   "Try it on a table": "Experimente em uma mesa",
-  "A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.": "Um quilt pequeno tamb\xE9m fica lindo como toalha de mesa. No menu l\xE1 em cima, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.",
+  "A small quilt also makes a lovely table cover. In the list at the top, the one with the name of the bed, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.": "Um quilt pequeno tamb\xE9m fica lindo como toalha de mesa. Na lista l\xE1 em cima, a que tem o nome da cama, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.",
   "Click the <b>\xD7</b> at the top left to go back to your quilt.": "Clique no <b>\xD7</b> no canto de cima, \xE0 esquerda, para voltar ao seu quilt.",
   "Your shopping list": "Sua lista de compras",
   "This table is your shopping list. Each fabric has a letter, and beside it how much to buy, with a little extra for straightening the cut. The <b>binding</b>, the strip that closes the edge of the quilt, is cut from the border fabric and is already counted. Click <b>Next</b> when you have read it.": "Esta tabela \xE9 a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, com uma sobra para acertar o corte. O <b>vi\xE9s</b>, a tira que fecha a beirada do quilt, \xE9 cortado do tecido da barra e j\xE1 est\xE1 na conta. Clique em <b>Pr\xF3ximo</b> quando terminar de ler.",
@@ -15023,6 +15023,7 @@ function moveBorder(d, i, by) {
 function setBorderFabric(d, i, slot, fid) {
   const fb = (d.borders[i].fabrics || []).slice();
   while (fb.length <= slot) fb.push(fb[0] || "b0");
+  if (slot === 0 && d.borders[i].type === "plain" && fb[1] === fb[0]) fb[1] = fid;
   fb[slot] = fid;
   return updateBorder(d, i, { fabrics: fb });
 }
@@ -19894,7 +19895,8 @@ function renderCut() {
       // in inches with the centimetres too: the menu above, like the shops, says 150 cm
       width: inInches ? `${len(cutOpts.fabricWidth)} (${comma(cutOpts.fabricWidth / 10)} cm)` : `${comma(cutOpts.fabricWidth / 10)} cm`,
       usable: inInches ? len(P.usable) : `${comma(P.usable / 10)} cm`,
-      seam: len(P.seam),
+      seam: getUnit() === "in" ? len(P.seam) : `${comma(P.seam)} mm`,
+      // 7.5 mm, not rounded to 8
       rounding: inInches ? t("to the nearest \u215B inch") : t("up to the whole millimetre"),
       extra: len(50),
       step: inInches ? t("\u215B yard") : "5 cm"
@@ -21668,6 +21670,8 @@ var TOUR = [
     ),
     allow: ["#dz-quilt"],
     glow: "#dz-quilt",
+    keepOff: ["#dz-quilt"],
+    // both corners must be in sight
     done: () => selBlocks.size === 9,
     // part of the quilt; or a single click, as someone does who has never dragged
     check: () => !tour.down && tour.downAt > tour.shownAt && selBlocks.size < 9,
@@ -21840,7 +21844,7 @@ var TOUR = [
     title: t("Try it on a table"),
     back: () => showPage("sim"),
     text: t(
-      "A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table."
+      "A small quilt also makes a lovely table cover. In the list at the top, the one with the name of the bed, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table."
     ),
     allow: ["#bedsel"],
     glow: "#bedsel",

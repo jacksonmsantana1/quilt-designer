@@ -227,6 +227,7 @@ const TOUR = [
         ),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
+    keepOff: ['#dz-quilt'], // both corners must be in sight
     done: () => selBlocks.size === 9,
     // part of the quilt; or a single click, as someone does who has never dragged
     check: () => !tour.down && tour.downAt > tour.shownAt && selBlocks.size < 9,
@@ -406,7 +407,7 @@ const TOUR = [
     title: t('Try it on a table'),
     back: () => showPage('sim'),
     text: t(
-      'A small quilt also makes a lovely table cover. In the menu at the top, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.',
+      'A small quilt also makes a lovely table cover. In the list at the top, the one with the name of the bed, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.',
     ),
     allow: ['#bedsel'],
     glow: '#bedsel',
