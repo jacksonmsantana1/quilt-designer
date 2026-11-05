@@ -25,8 +25,8 @@ export default {
     '<b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
   'Below the quilt, in <b>Block size</b>, type <b>12</b> and tap <b>OK</b> on the keyboard. The old number goes away by itself. Each block will be 12 inches when sewn.':
     'Embaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e toque em <b>OK</b> no teclado. O número antigo sai sozinho. Cada bloco terá 12 polegadas depois de costurado.',
-  'Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen. A small <b>Unite</b> button will appear: leave it for now.':
-    'Ponha o dedo em um canto do quilt e, sem tirar, <b>deslize até o canto oposto</b>. Cada bloco por onde ele passar fica escolhido. Vai aparecer um botãozinho <b>Unir</b>: deixe-o por enquanto.',
+  'Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen.':
+    'Ponha o dedo em um canto do quilt e, sem tirar, <b>deslize até o canto oposto</b>. Cada bloco por onde ele passar fica escolhido.',
   'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Slide your finger on the picture</b> to walk around the bed. To come closer, spread two fingers on it.':
     'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Deslize o dedo na imagem</b> para dar a volta na cama. Para chegar mais perto, abra dois dedos sobre ela.',
   'Make the border narrower': 'Deixe a barra mais estreita',
@@ -93,8 +93,8 @@ export default {
   'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square.':
     'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado.',
   'Select the whole quilt': 'Selecione o quilt inteiro',
-  'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.':
-    'Pressione e segure o mouse em um canto do quilt e <b>arraste até o canto oposto</b>. Todo bloco que ele tocar fica selecionado. Vai aparecer um botãozinho <b>Unir</b>: você não precisa dele agora.',
+  'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected.':
+    'Pressione e segure o mouse em um canto do quilt e <b>arraste até o canto oposto</b>. Todo bloco que ele tocar fica selecionado.',
   'Copy your block': 'Copie o seu bloco',
   'Under <b>Blocks in your quilt</b>, click your <b>Nine patch</b>, the highlighted one. All nine blocks become a copy of it.':
     'Em <b>Blocos do seu quilt</b>, clique no seu <b>Nine patch</b>, o que está destacado. Os nove blocos viram uma cópia dele.',

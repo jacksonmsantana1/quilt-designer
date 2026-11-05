@@ -49,6 +49,8 @@ const tour = {
   bed: '',
   shownAt: 0,
   downAt: 0,
+  /** @type {Element | null} */
+  downOn: null,
 };
 const blk = i => design && design.blocks[i];
 /** Going back a step: the blocks and panel that step expects. @param {number[]} ids the selected blocks, the first in focus */
@@ -217,17 +219,17 @@ const TOUR = [
     back: () => openBlocks([4]),
     text: TOUCH
       ? t(
-          'Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen. A small <b>Unite</b> button will appear: leave it for now.',
+          'Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen.',
         )
       : t(
-          'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.',
+          'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected.',
         ),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
     keepOff: ['#dz-quilt'], // both corners must be in sight
     done: () => selBlocks.size === 9,
     // part of the quilt; or a single click, as someone does who has never dragged
-    check: () => !tour.down && tour.downAt > tour.shownAt && selBlocks.size < 9,
+    check: () => !tour.down && tour.downAt > tour.shownAt && tour.downOn?.id === 'dz-quilt' && selBlocks.size < 9, // (on the quilt: not the video)
     says: () =>
       selBlocks.size > 1
         ? t('That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.')
@@ -1035,9 +1037,10 @@ $('tour-clip').addEventListener('click', () => {
 // (on the window, so it runs before the tour's own blocking of pointerdown on the page)
 window.addEventListener(
   'pointerdown',
-  () => {
+  e => {
     tour.down = true;
     tour.downAt = performance.now();
+    tour.downOn = /** @type {Element | null} */ (e.target);
   },
   true,
 );
