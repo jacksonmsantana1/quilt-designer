@@ -1,6 +1,6 @@
 // Simulation settings: quilt size, beds, tables and couches, fabric presets and physical parameters.
 import '../storage/boot.js'; // load order: runs after storage/boot
-import { comma, fix, t } from '@quilt/shared/i18n.js';
+import { comma, fix, getLang, t } from '@quilt/shared/i18n.js';
 
 const N = 40; // simulation grid (N × N nodes)
 const R = 2 * (N - 1) + 1; // render grid after 4-point subdivision
@@ -32,7 +32,11 @@ const BEDS = [
   { key: 'co-sofa', group: 'Couches', kind: 'couch', label: t('Sofa, 3 seats'), w: 2100, l: 900, seats: 3 },
 ];
 const BED_KEY = 'quilt-bed.v1';
-const bedState = { key: 'us-queen', kind: 'bed', w: 1525, l: 2030, h: 750, drop: 300, tuck: true };
+// the first bed is a queen of the person's own country: Brazil's in Portuguese, the United States' otherwise
+const bedState =
+  getLang() === 'pt-BR'
+    ? { key: 'br-queen', kind: 'bed', w: 1580, l: 1980, h: 750, drop: 300, tuck: true }
+    : { key: 'us-queen', kind: 'bed', w: 1525, l: 2030, h: 750, drop: 300, tuck: true };
 try {
   Object.assign(bedState, JSON.parse(localStorage.getItem(BED_KEY) || '{}'));
 } catch (e) {}

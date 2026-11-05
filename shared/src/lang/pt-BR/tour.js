@@ -1,5 +1,11 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'That is another kind of border. Click <b>Plain strip</b>, please: the next steps are about it.':
+    'Essa é outra barra. Clique em <b>Barra lisa</b>, por favor: os próximos passos são sobre ela.',
+  'Keep your finger on the screen while you slide it: from one corner of the quilt to the opposite one.':
+    'Mantenha o dedo na tela enquanto desliza: de um canto do quilt até o canto oposto.',
+  'Keep the mouse button pressed while you move the mouse: press on one corner of the quilt and, without letting go, move to the opposite corner. Then let go.':
+    'Mantenha o botão do mouse apertado enquanto move o mouse: aperte em um canto do quilt e, sem soltar, vá até o canto oposto. Depois solte.',
   'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and tap <b>OK</b> on the keyboard: the frame gets thinner, and the quilt a little smaller.':
     'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e toque em <b>OK</b> no teclado: a moldura fica mais fina, e o quilt um pouco menor.',
   'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything.':

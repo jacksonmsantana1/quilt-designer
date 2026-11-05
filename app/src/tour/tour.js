@@ -24,7 +24,7 @@ import { tlKeyFor } from '../timeline/timeline.js';
 import { timelines } from '../storage/repo.js';
 import { newDesign } from '@quilt/shared/design.js';
 import { dispatch, ensureDesign, openDesign, replaceDesign } from '../designer/dispatch.js';
-import { setBlockMm, updateBorder } from '../core/edits.js';
+import { removeBorder, setBlockMm, updateBorder } from '../core/edits.js';
 import { drawPartsEditor, renderDesigner } from '../designer/parts-editor.js';
 import { openBlockEditor } from '../designer/side-panel.js';
 import { getLang, t } from '@quilt/shared/i18n.js';
@@ -228,8 +228,16 @@ const TOUR = [
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
     done: () => selBlocks.size === 9,
-    check: () => !tour.down && selBlocks.size > 1 && selBlocks.size < 9,
-    says: t('That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.'),
+    // part of the quilt; or a single click, as someone does who has never dragged
+    check: () => !tour.down && tour.downAt > tour.shownAt && selBlocks.size < 9,
+    says: () =>
+      selBlocks.size > 1
+        ? t('That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.')
+        : TOUCH
+          ? t('Keep your finger on the screen while you slide it: from one corner of the quilt to the opposite one.')
+          : t(
+              'Keep the mouse button pressed while you move the mouse: press on one corner of the quilt and, without letting go, move to the opposite corner. Then let go.',
+            ),
   },
   {
     title: t('Copy your block'),
@@ -303,7 +311,11 @@ const TOUR = [
     text: t('In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt.'),
     allow: ['#brd-types'],
     glow: '.brd-type[data-t="plain"]',
-    done: () => bordersOf(design).length > 0,
+    done: () => bordersOf(design).length > 0 && bordersOf(design)[0].type === 'plain',
+    // another kind of border: taken off again, since the steps that follow are about a plain strip
+    check: () => bordersOf(design).length > 0 && bordersOf(design)[0].type !== 'plain',
+    fix: () => dispatch(removeBorder, 0),
+    says: t('That is another kind of border. Click <b>Plain strip</b>, please: the next steps are about it.'),
   },
   {
     title: t('Make the border narrower'),
@@ -862,8 +874,9 @@ function tourTick() {
   // done, but not as the step asks: put it right where that makes sense, say so, and show the video again
   if (st.check && st.check()) {
     if (st.fix) st.fix();
-    if ($('tour-note').innerHTML !== st.says || $('tour-note').hidden) {
-      tourSay(st.says);
+    const says = typeof st.says === 'function' ? st.says() : st.says;
+    if ($('tour-note').innerHTML !== says || $('tour-note').hidden) {
+      tourSay(says);
       if (st.clip) tourReplay();
     }
   }

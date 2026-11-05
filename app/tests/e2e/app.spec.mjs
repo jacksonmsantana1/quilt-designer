@@ -145,6 +145,10 @@ test.describe('first visit', () => {
 
     await expect(title).toHaveText('Select the whole quilt');
     q = await page.locator('#dz-quilt').boundingBox();
+    // a click, as someone does who has never dragged: told to keep the button pressed
+    await page.mouse.click(q.x + 20, q.y + 20);
+    await expect(page.locator('#tour-note')).toContainText('Keep the mouse button pressed');
+    await expect(title).toHaveText('Select the whole quilt');
     await page.mouse.move(q.x + 6, q.y + 6);
     await page.mouse.down();
     await page.mouse.move(q.x + q.width - 6, q.y + q.height - 6, { steps: 6 });
@@ -185,6 +189,11 @@ test.describe('first visit', () => {
 
     await expect(title).toHaveText('Open the borders');
     await page.locator('#rail-brd').click();
+    await expect(title).toHaveText('Add a border');
+    // another kind of border: taken off again, and the person is told
+    await page.locator('.brd-type[data-t="checker"]').click();
+    await expect(page.locator('#tour-note')).toContainText('another kind of border');
+    await expect.poll(async () => (await app.current()).borders?.length || 0).toBe(0);
     await expect(title).toHaveText('Add a border');
     await page.locator('.brd-type[data-t="plain"]').click();
 

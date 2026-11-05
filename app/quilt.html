@@ -4237,6 +4237,9 @@ var template_default = {
 
 // ../shared/src/lang/pt-BR/tour.js
 var tour_default = {
+  "That is another kind of border. Click <b>Plain strip</b>, please: the next steps are about it.": "Essa \xE9 outra barra. Clique em <b>Barra lisa</b>, por favor: os pr\xF3ximos passos s\xE3o sobre ela.",
+  "Keep your finger on the screen while you slide it: from one corner of the quilt to the opposite one.": "Mantenha o dedo na tela enquanto desliza: de um canto do quilt at\xE9 o canto oposto.",
+  "Keep the mouse button pressed while you move the mouse: press on one corner of the quilt and, without letting go, move to the opposite corner. Then let go.": "Mantenha o bot\xE3o do mouse apertado enquanto move o mouse: aperte em um canto do quilt e, sem soltar, v\xE1 at\xE9 o canto oposto. Depois solte.",
   "The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and tap <b>OK</b> on the keyboard: the frame gets thinner, and the quilt a little smaller.": "A barra veio com 4 polegadas de largura. No cart\xE3o <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e toque em <b>OK</b> no teclado: a moldura fica mais fina, e o quilt um pouco menor.",
   "In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything.": "Em cerca de quinze minutos voc\xEA vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt cl\xE1ssico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Cada cart\xE3o diz o que fazer, e o que \xE9 para tocar fica destacado. Nada do que voc\xEA fizer aqui estraga alguma coisa.",
   "The other round buttons": "Os outros bot\xF5es redondos",
@@ -10787,7 +10790,7 @@ var BEDS = [
   { key: "co-sofa", group: "Couches", kind: "couch", label: t("Sofa, 3 seats"), w: 2100, l: 900, seats: 3 }
 ];
 var BED_KEY = "quilt-bed.v1";
-var bedState = { key: "us-queen", kind: "bed", w: 1525, l: 2030, h: 750, drop: 300, tuck: true };
+var bedState = getLang() === "pt-BR" ? { key: "br-queen", kind: "bed", w: 1580, l: 1980, h: 750, drop: 300, tuck: true } : { key: "us-queen", kind: "bed", w: 1525, l: 2030, h: 750, drop: 300, tuck: true };
 try {
   Object.assign(bedState, JSON.parse(localStorage.getItem(BED_KEY) || "{}"));
 } catch (e) {
@@ -21632,8 +21635,11 @@ var TOUR = [
     allow: ["#dz-quilt"],
     glow: "#dz-quilt",
     done: () => selBlocks.size === 9,
-    check: () => !tour.down && selBlocks.size > 1 && selBlocks.size < 9,
-    says: t("That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.")
+    // part of the quilt; or a single click, as someone does who has never dragged
+    check: () => !tour.down && tour.downAt > tour.shownAt && selBlocks.size < 9,
+    says: () => selBlocks.size > 1 ? t("That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.") : TOUCH ? t("Keep your finger on the screen while you slide it: from one corner of the quilt to the opposite one.") : t(
+      "Keep the mouse button pressed while you move the mouse: press on one corner of the quilt and, without letting go, move to the opposite corner. Then let go."
+    )
   },
   {
     title: t("Copy your block"),
@@ -21707,7 +21713,11 @@ var TOUR = [
     text: t("In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt."),
     allow: ["#brd-types"],
     glow: '.brd-type[data-t="plain"]',
-    done: () => bordersOf(design).length > 0
+    done: () => bordersOf(design).length > 0 && bordersOf(design)[0].type === "plain",
+    // another kind of border: taken off again, since the steps that follow are about a plain strip
+    check: () => bordersOf(design).length > 0 && bordersOf(design)[0].type !== "plain",
+    fix: () => dispatch(removeBorder, 0),
+    says: t("That is another kind of border. Click <b>Plain strip</b>, please: the next steps are about it.")
   },
   {
     title: t("Make the border narrower"),
@@ -22226,8 +22236,9 @@ function tourTick() {
   const st = TOUR[tour.i];
   if (st.check && st.check()) {
     if (st.fix) st.fix();
-    if ($("tour-note").innerHTML !== st.says || $("tour-note").hidden) {
-      tourSay(st.says);
+    const says = typeof st.says === "function" ? st.says() : st.says;
+    if ($("tour-note").innerHTML !== says || $("tour-note").hidden) {
+      tourSay(says);
       if (st.clip) tourReplay();
     }
   }
