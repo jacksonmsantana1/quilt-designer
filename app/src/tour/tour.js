@@ -77,9 +77,15 @@ const sashStep = n => {
 const TOUR = [
   {
     title: t('Welcome to Block & Bind!'),
-    text: t(
-      'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.',
-    ),
+    // a phone shows no videos (tourClip), so its card doesn't promise them
+    text: () =>
+      innerWidth < 640
+        ? t(
+            'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything.',
+          )
+        : t(
+            'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.',
+          ),
     center: true,
     buttons: [
       [t('Start the exercise'), 'next', true],

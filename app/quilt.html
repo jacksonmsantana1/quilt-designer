@@ -4236,6 +4236,7 @@ var template_default = {
 
 // ../shared/src/lang/pt-BR/tour.js
 var tour_default = {
+  "In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything.": "Em cerca de quinze minutos voc\xEA vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt cl\xE1ssico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Cada cart\xE3o diz o que fazer, e o que \xE9 para tocar fica destacado. Nada do que voc\xEA fizer aqui estraga alguma coisa.",
   "The other round buttons": "Os outros bot\xF5es redondos",
   "Beside the quilt there are a few more, to try when you like:": "Ao lado do quilt h\xE1 mais alguns, para experimentar quando quiser:",
   "<b>Undo</b> takes back the last change.": "<b>Desfazer</b> desfaz a \xFAltima mudan\xE7a.",
@@ -21476,7 +21477,10 @@ var sashStep = (n) => {
 var TOUR = [
   {
     title: t("Welcome to Block & Bind!"),
-    text: t(
+    // a phone shows no videos (tourClip), so its card doesn't promise them
+    text: () => innerWidth < 640 ? t(
+      "In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything."
+    ) : t(
       "In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything."
     ),
     center: true,

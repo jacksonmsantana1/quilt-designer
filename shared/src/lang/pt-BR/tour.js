@@ -1,5 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything.':
+    'Em cerca de quinze minutos você vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt clássico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Cada cartão diz o que fazer, e o que é para tocar fica destacado. Nada do que você fizer aqui estraga alguma coisa.',
   'The other round buttons': 'Os outros botões redondos',
   'Beside the quilt there are a few more, to try when you like:':
     'Ao lado do quilt há mais alguns, para experimentar quando quiser:',
