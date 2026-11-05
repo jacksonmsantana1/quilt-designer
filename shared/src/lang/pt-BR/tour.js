@@ -36,8 +36,8 @@ export default {
   'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; later you can change it as often as you like.':
     'Embaixo da barra, clique em <b>Tecido</b>: abre uma lista de tecidos. Clique no que você gostar para a moldura. O quilt muda na hora; depois você pode trocar quantas vezes quiser.',
   'Look around': 'Olhe em volta',
-  'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.':
-    'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> para chegar mais perto.',
+  'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> (on the touchpad of a laptop: slide two fingers up or down) to come closer.':
+    'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> (no touchpad do notebook: deslize dois dedos para cima ou para baixo) para chegar mais perto.',
   'Try it on a table': 'Experimente em uma mesa',
   'A small quilt also makes a lovely table cover. In the list at the top, the one with the name of the bed, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.':
     'Um quilt pequeno também fica lindo como toalha de mesa. Na lista lá em cima, a que tem o nome da cama, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.',
@@ -82,14 +82,14 @@ export default {
   '<b>Click the middle block</b> of your quilt. Your block then opens in the <b>Block parts</b> card.':
     '<b>Clique no bloco do meio</b> do seu quilt. Aí o seu bloco abre no cartão <b>Peças do bloco</b>.',
   'Choose the nine patch': 'Escolha o nine patch',
-  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button beside this row shows all the blocks.)':
-    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. (Agora não: nos seus quilts, o botão redondo <b>+</b> ao lado desta fileira mostra todos os blocos.)',
+  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew.':
+    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar.',
   'Pick a square': 'Escolha um quadrado',
   'In the big picture of the block, <b>click the square in the middle</b> to select it.':
     'Na imagem grande do bloco, <b>clique no quadrado do meio</b> para selecioná-lo.',
   'Give it a fabric': 'Dê um tecido a ele',
-  'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. (Not now: on your own quilts, the round button with a number, beside this row, shows all the fabrics.)':
-    'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado. (Agora não: nos seus quilts, o botão redondo com um número, ao lado desta fileira, mostra todos os tecidos.)',
+  'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square.':
+    'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado.',
   'Select the whole quilt': 'Selecione o quilt inteiro',
   'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.':
     'Pressione e segure o mouse em um canto do quilt e <b>arraste até o canto oposto</b>. Todo bloco que ele tocar fica selecionado. Vai aparecer um botãozinho <b>Unir</b>: você não precisa dele agora.',

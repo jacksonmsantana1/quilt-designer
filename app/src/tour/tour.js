@@ -165,9 +165,7 @@ const TOUR = [
     title: t('Choose the nine patch'),
     clip: 'pattern',
     back: () => openBlocks([4]),
-    text: t(
-      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button beside this row shows all the blocks.)',
-    ),
+    text: t('Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew.'),
     allow: ['#dz-patterns'],
     glow: '#dz-patterns [data-p="nine"]',
     pick: {
@@ -199,9 +197,7 @@ const TOUR = [
     title: t('Give it a fabric'),
     clip: 'fabric',
     back: () => openBlocks([4], [4]), // the square in the middle
-    text: t(
-      'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. (Not now: on your own quilts, the round button with a number, beside this row, shows all the fabrics.)',
-    ),
+    text: t('Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square.'),
     allow: ['#dz-fabrics2'],
     glow: '#dz-fabrics2 [data-f="b3"]',
     pick: {
@@ -390,7 +386,7 @@ const TOUR = [
           'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Slide your finger on the picture</b> to walk around the bed. To come closer, spread two fingers on it.',
         )
       : t(
-          'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.',
+          'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> (on the touchpad of a laptop: slide two fingers up or down) to come closer.',
         ),
     allow: ['#view', '#stage'],
     glow: '#view',
