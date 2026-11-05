@@ -75,7 +75,7 @@ export default {
   Stars: 'Estrelas',
   'Strips and logs': 'Tiras e log cabin',
   'Larger grids': 'Grades maiores',
-  'Your drawings': 'Seus desenhos',
+  'Hand-drawn': 'Desenhados à mão',
   Other: 'Outros',
   'My block': 'Meu bloco',
 
