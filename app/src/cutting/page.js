@@ -396,9 +396,13 @@ function renderCut() {
     meta.push(t('make {n}', { n: b.count }));
     if (mirroredCount(b))
       meta.push(t('{n} mirrored (cut their odd-shaped pieces with the template turned over)', { n: mirroredCount(b) }));
+    // a share such as ½ in "Per block" puzzles people: said once under the list
+    const shared = b.list.some(r => !Number.isInteger(r.pieces / r.yield))
+      ? `<p class="fine">${t('½ or ¼ per block: one square, cut in two or in four, gives pieces for more than one block.')}</p>`
+      : '';
     // pieced cornerstones are a block card too (their IDs carry its number), named for what they are
     div.innerHTML = `<h3>${b.mosaic ? t('Mosaic') : b.corner ? t('Cornerstone block') : t('Block {n}', { n: i + 1 })}</h3><p class="meta">${meta.join(' · ')}</p><div class="cg-art"><canvas aria-label="${t('Block {n}: {label}, pieces labelled with fabric letters', { n: i + 1, label: esc(b.label) })}"></canvas><span class="cg-hint" aria-hidden="true">${t('Click: cutting list · double-click: see it in the quilt')}</span></div>
-      <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>${t('Fabric')}</th><th>${t('Cut')}</th><th>${t('Per block')}</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>${t('Fabric')}</th><th>${t('Cut')}</th><th>${t('Per block')}</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${shared}</div>`;
     box.appendChild(div);
     {
       const bc = div.querySelector('canvas');
@@ -614,7 +618,10 @@ function renderCut() {
   $('cg-note').textContent = t(
     'WOF = width of fabric: {width}, of which {usable} is usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}. Requirements add {extra} to straighten the edge; "buy" rounds up to {step}.',
     {
-      width: inInches ? len(cutOpts.fabricWidth) : `${comma(cutOpts.fabricWidth / 10)} cm`,
+      // in inches with the centimetres too: the menu above, like the shops, says 150 cm
+      width: inInches
+        ? `${len(cutOpts.fabricWidth)} (${comma(cutOpts.fabricWidth / 10)} cm)`
+        : `${comma(cutOpts.fabricWidth / 10)} cm`,
       usable: inInches ? len(P.usable) : `${comma(P.usable / 10)} cm`,
       seam: len(P.seam),
       rounding: inInches ? t('to the nearest ⅛ inch') : t('up to the whole millimetre'),
