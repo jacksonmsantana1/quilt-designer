@@ -115,10 +115,14 @@ function cgCardBehaviour(div, key, pick, hint) {
     clearTimeout(clickT);
     pick();
   };
-  for (const el of [cv, div.querySelector('h3')]) {
-    el.addEventListener('click', onClick);
-    el.addEventListener('dblclick', onDbl);
-  }
+  cv.addEventListener('click', onClick);
+  cv.addEventListener('dblclick', onDbl);
+  // the title only opens and closes the list, at once: a second tap on it (thinking the first missed) must not turn
+  // into a double click that does something else
+  div.querySelector('h3')?.addEventListener('click', () => {
+    clearTimeout(clickT);
+    toggle();
+  });
   cv.tabIndex = 0;
   cv.setAttribute('role', 'button');
   cv.setAttribute('aria-expanded', String(cgOpen.has(key)));
