@@ -688,7 +688,13 @@ function tourClip(st) {
     tour.watching = false;
     tourMark();
   };
-  v.onended = stop;
+  // once it has played, the video shrinks to its last picture, so the card covers less of the page
+  v.onended = () => {
+    stop();
+    box.classList.add('clip-small');
+    requestAnimationFrame(tourPlace);
+  };
+  box.classList.remove('clip-small');
   v.onerror = () => {
     v.hidden = $('tour-replay').hidden = true;
     box.classList.remove('with-clip');
@@ -716,6 +722,8 @@ function tourReplay() {
   if (v.hidden || !v.getAttribute('src')) return;
   tour.watching = true;
   tourMark();
+  $('tour').classList.remove('clip-small');
+  requestAnimationFrame(tourPlace);
   // from the start by loading it again: jumping back fails on a server that can't send part of a file
   v.load();
   v.play().catch(() => {

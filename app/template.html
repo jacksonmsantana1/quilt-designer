@@ -446,6 +446,8 @@
   .tour-x { border: 0; background: none; color: var(--muted); font: 600 .75rem var(--font-body); cursor: pointer; padding: 2px 4px; }
   .tour-x:hover { color: var(--ink); }
   .tour.with-clip { width: min(540px, calc(100vw - 24px)); }
+  .tour.with-clip.clip-small { width: min(400px, calc(100vw - 24px)); }
+  .tour.clip-small .tour-clip { width: 55%; }
   .tour-foot { display: flex; gap: 16px; }
   body.tour-active #dz-library .blib-item[aria-pressed="true"]:not(.tour-glow) { border-color: var(--line); box-shadow: none; }
   #tour-note { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: oklch(0.5 0.15 30); color: #fff; font-size: .95rem; font-weight: 600; }
