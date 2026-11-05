@@ -19,7 +19,16 @@ http
     const url = new URL(req.url, 'http://x');
     if (url.pathname.startsWith('/v1/')) {
       try {
-        const r = await fetch(API + req.url);
+        const chunks = [];
+        for await (const c of req) chunks.push(c);
+        const headers = {};
+        for (const h of ['content-type', 'authorization', 'x-dev-user'])
+          if (req.headers[h]) headers[h] = req.headers[h];
+        const r = await fetch(API + req.url, {
+          method: req.method,
+          headers,
+          body: chunks.length ? Buffer.concat(chunks) : undefined,
+        });
         res.writeHead(r.status, { 'content-type': r.headers.get('content-type') || 'application/json' });
         res.end(Buffer.from(await r.arrayBuffer()));
       } catch (e) {

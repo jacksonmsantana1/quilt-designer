@@ -2,16 +2,26 @@
   "name": "@quilt/mobile",
   "private": true,
   "type": "module",
-  "description": "The phone app: Community, My quiltings, My fabrics and a camera. A web page now; Capacitor wraps it for Android and iOS later.",
+  "description": "The phone app: Community, My quiltings, My fabrics and a camera. A web page that Capacitor wraps for Android and iOS.",
   "scripts": {
     "build": "node build.mjs",
     "dev": "node dev.mjs",
-    "test:e2e": "node build.mjs && playwright test"
+    "test:e2e": "node build.mjs --dev-signin && playwright test",
+    "android": "node build.mjs && cap sync android && cap open android",
+    "ios": "node build.mjs && cap sync ios && cap open ios"
   },
   "dependencies": {
+    "@auth0/auth0-spa-js": "^2.28.4",
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/camera": "^8.2.6",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
     "@quilt/shared": "*"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
     "@playwright/test": "^1.63.0",
     "esbuild": "^0.28.2"
   }

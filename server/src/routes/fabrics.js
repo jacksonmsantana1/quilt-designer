@@ -58,10 +58,21 @@ export function fabricRoutes(app, pool, store, config) {
       const row = await tx(pool, async c => {
         await lockOwner(c, owner);
         const cur = await find(c, owner, id, true);
-        if (cur && cur.uploaded && !cur.deleted) return cur;
+        if (cur && cur.uploaded && !cur.deleted) {
+          if (cur.name === name && Number(cur.cm) === cm) return cur;
+          // the same picture with another name or width: the person's other devices learn of it like any change
+          const renamed = await c.query(
+            `update fabrics set name = $3, cm = $4, rev = rev + 1, seq = nextval('change_seq'), updated_at = now()
+             where owner_id = $1 and id = $2 returning *`,
+            [owner, id, name, cm],
+          );
+          return renamed.rows[0];
+        }
         // what this person keeps, photos still on their way included
         const kept = await c.query(
-          'select coalesce(sum(bytes), 0)::bigint as bytes from fabrics where owner_id = $1 and id <> $2 and not deleted',
+          `select coalesce(sum(bytes), 0)::bigint
+                + (select coalesce(sum(bytes), 0) from quilt_photos where owner_id = $1) as bytes
+           from fabrics where owner_id = $1 and id <> $2 and not deleted`,
           [owner, id],
         );
         if (Number(kept.rows[0].bytes) + bytes > config.perPerson.photoBytes)

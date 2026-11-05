@@ -91,6 +91,11 @@ export function communityRoutes(app, pool, store, config) {
       const { q, before, beforeId } = req.query;
       const args = [];
       const where = ['not hidden'];
+      // what this person has chosen not to see
+      if (req.user?.id) {
+        args.push(req.user.id);
+        where.push(`owner_id not in (select blocked_id from user_blocks where blocker_id = $${args.length})`);
+      }
       if (q) {
         args.push(`%${q.replace(/[\\%_]/g, m => '\\' + m)}%`);
         where.push(`(name ilike $${args.length} or author ilike $${args.length})`);
@@ -317,6 +322,52 @@ export function communityRoutes(app, pool, store, config) {
       await store.remove(row.picture_upload_key);
       if (row.picture_key) await store.remove(row.picture_key);
       return { item: await sharedRecord(rows[0], req.user.id) };
+    },
+  );
+
+  // Stop seeing someone's shared quilts. It only changes what I see, and they aren't told.
+  app.post(
+    '/v1/community/:id/block',
+    {
+      config: { rateLimit: fewer },
+      schema: {
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+      },
+    },
+    async (/** @type {Req} */ req) => {
+      const { rows } = await pool.query('select owner_id from shared_designs where id = $1', [req.params.id]);
+      if (!rows.length) throw new ApiError(404, 'not_found', 'That quilt is not shared.');
+      if (rows[0].owner_id === req.user.id) throw new ApiError(400, 'bad_request', 'This is your own quilt.');
+      await pool.query('insert into user_blocks (blocker_id, blocked_id) values ($1, $2) on conflict do nothing', [
+        req.user.id,
+        rows[0].owner_id,
+      ]);
+      return { ok: true };
+    },
+  );
+
+  // Who I've blocked, by the names they share under: never their email.
+  app.get('/v1/blocks', async (/** @type {Req} */ req) => {
+    const { rows } = await pool.query(
+      `select b.blocked_id as id, coalesce(max(s.author), '') as author
+       from user_blocks b left join shared_designs s on s.owner_id = b.blocked_id
+       where b.blocker_id = $1 group by b.blocked_id, b.created_at order by b.created_at desc`,
+      [req.user.id],
+    );
+    return { items: rows };
+  });
+
+  app.delete(
+    '/v1/blocks/:id',
+    {
+      schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } },
+    },
+    async (/** @type {Req} */ req) => {
+      await pool.query('delete from user_blocks where blocker_id = $1 and blocked_id = $2', [
+        req.user.id,
+        req.params.id,
+      ]);
+      return { ok: true };
     },
   );
 

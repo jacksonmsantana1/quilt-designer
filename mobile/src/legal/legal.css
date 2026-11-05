@@ -1,0 +1,22 @@
+:root {
+  color-scheme: light dark;
+}
+body {
+  max-width: 44em;
+  margin: 0 auto;
+  padding: 16px;
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+h1 {
+  font-size: 1.4rem;
+}
+h2 {
+  margin-top: 1.5em;
+  font-size: 1.05rem;
+}
+.draft {
+  padding: 10px 12px;
+  border: 2px dashed #b4532a;
+  border-radius: 8px;
+  font-weight: 600;
+}

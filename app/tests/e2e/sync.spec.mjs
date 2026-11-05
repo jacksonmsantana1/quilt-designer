@@ -664,3 +664,34 @@ test('a quilt shared without a picture gets one made, and everyone sees it', asy
   await expect(page.locator('#share-cv')).toHaveJSProperty('tagName', 'IMG');
   await page.locator('#share-cancel').click();
 });
+
+test('folders made in the phone app are groups in the fabric library, for the signed-in person', async ({
+  app,
+  page,
+}) => {
+  await app.open('mine');
+  await connect(page, 'folders');
+  const put = await fetch(`${apiUrl}/v1/folders/${crypto.randomUUID()}`, {
+    method: 'PUT',
+    headers: { 'x-dev-user': 'folders', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Christmas',
+      fabricIds: ['c1', 'c2', 'gone'],
+      position: 0,
+      deleted: false,
+      updatedAt: 1,
+    }),
+  });
+  expect(put.status).toBe(200);
+  await page.getByRole('tab', { name: 'Quilt designer' }).click();
+  await page.locator('#rail-parts').click();
+  await page.locator('#dz-fabrics2').hover();
+  await page.locator('#fab-more-float').click();
+  const lib = page.locator('#fablib');
+  const group = lib.locator('#fablib-groups button', { hasText: 'Christmas' });
+  await expect(group).toHaveText('Christmas 2'); // only what this app knows counts
+  await group.click();
+  await expect(lib.locator('#fablib-grid .fab')).toHaveCount(2);
+  await lib.locator('#fablib-q').fill('nothing like this');
+  await expect(lib.locator('#fablib-grid .fab')).toHaveCount(0);
+});

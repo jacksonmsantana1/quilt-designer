@@ -17,7 +17,8 @@ app/      front end: plain JavaScript ES modules (no framework), three.js, cloth
           src/README.md has the module map and the rules below in more detail
 shared/   @quilt/shared: block patterns, quilt geometry (mm), the saved design format + checks (pure, Node + browser)
 server/   @quilt/server: Fastify + PostgreSQL 16 (+pgvector) + S3/R2 photo storage; server/README.md
-mobile/   @quilt/mobile: the phone app, plain JavaScript without three.js; a web page now, wrapped by Capacitor later
+mobile/   @quilt/mobile: the phone app, plain JavaScript without three.js, wrapped by Capacitor (android/, ios/);
+          mobile/README.md has what's left to run it on a phone
 ```
 
 One `npm install` at the top. The built app is `app/quilt.html` (one file, three.js from a CDN via import map);
@@ -51,7 +52,7 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   `node app/tools/chain.mjs list | insert <mod> after <prev> | unchain <mod>`. `storage/boot.js` is first: its
   top-level `await` loads IndexedDB before anything else runs.
 - **Pure modules** (no side effects when loaded, importable in Node): `@quilt/shared/*`, `core/edits`,
-  `core/symmetry`, `core/store`, `core/dom`, `core/quilt-sig`, `cutting/plan`, `render/relief`, `storage/*` except
+  `core/symmetry`, `core/store`, `core/dom`, `core/quilt-sig`, `core/colour-match`, `cutting/plan`, `render/relief`, `storage/*` except
   boot, the `*-state.js` modules, `ui/notice`. Keep them pure; unit tests import them directly.
 - **Edits are pure functions** `(design, ...args) => newDesign` (core/edits.js, core/symmetry.js): never mutate,
   share unchanged blocks, return the same object when nothing changes. The UI applies them only through
@@ -110,8 +111,12 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   (`ui/error-reports.js`: a new version needs a new one). What leaves goes through `shared/src/scrub-report.js`, which
   keeps a short list of safe fields: quilts, names, emails, tokens and photo links must never get into a report.
 - **The phone app** (`mobile/`) shares with the web app through `@quilt/shared`, including how a quilt is painted
-  (`quilt-paint.js`, told how to find a fabric) and the basic fabrics (`basic-fabrics.js`). It must stay free of three.js
-  and of `app/src` modules with side effects; its text goes through `t()` and the same dictionary.
+  (`quilt-paint.js`, told how to find a fabric) and the basic fabrics (`basic-fabrics.js`), and uses the web's pure
+  `storage/repo.js` and `storage/sync.js`. It must stay free of three.js and of `app/src` modules with side effects; its
+  text goes through `t()` and the same dictionary (`pt-BR/phone.js`). What only it keeps (folders, notes, quilt photos,
+  colours) is in its own database (`mobile/src/store.js`); folders show in the web library as groups
+  (`designer/fabric-folders-state.js`). `build.mjs --dev-signin` makes the tests' build, which signs in by name; the
+  scripts that make a real app don't use it. The page allows scripts only from itself, so Auth0's library is bundled.
 - **Style**: Prettier (120 cols, single quotes). Comments say why in plain words. UI text is short and friendly.
 
 ## Server (server/)
@@ -156,8 +161,11 @@ and Sentry for error reports; `server/README.md`, "Going live", has the steps. M
 page is republished with `publish:page` and the API deployed from `fly.toml`. The published page on claude.ai may not be
 able to use Auth0's sign-in popup from inside claude.ai's frame: untested.
 
-**Next: the phone app** (Android and iOS, with Capacitor): Community, My quiltings, My fabrics with folders, and a camera
-for photos of quilts and fabrics. Designs are view-only there; the web app stays the place to design.
+**Next: the phone app on a real phone.** Built and tested in a browser: Community, My quiltings, My fabrics with folders, and
+a camera for photos of quilts and fabrics. Designs are view-only there; the web app stays the place to design. It has never
+run on a device: the camera, sign-in through the phone's browser and the Android back button are untested, and
+`mobile/README.md` lists what the owner must set up first (Android Studio, CORS, R2, Auth0, deploying migration 005). The
+privacy policy and terms are drafts, and deleting an account doesn't yet remove the sign-in at Auth0.
 
 **Known gaps / ideas**
 - Plans on the welcome page: Block (free) and Bind ("Coming soon", no price or button). Nothing takes payments yet, so
@@ -171,7 +179,7 @@ for photos of quilts and fabrics. Designs are view-only there; the web app stays
 - Block editor: drawn blocks can't be deleted from My blocks yet; drawing needs a pointer (no keyboard way).
 - Adding fabric photos: the "+ Add fabric" tile (`designer/add-fabric.js`), first in every fabric list and in the
   fabric library, takes files from the computer. The webcam fabric feature was removed at the owner's request: don't
-  bring it back to the web app. A camera belongs only in the planned phone app.
+  bring it back to the web app. A camera belongs only in the phone app.
 - Photos added on a plain-http page get the simple `h…` fingerprint and are not synced (sync says so).
 - Undo timelines are all loaded into memory at start; load per design if people have hundreds of designs.
 - Later: "fabrics like this one" with pgvector (image embeddings in a background job) and dominant-colour palettes.

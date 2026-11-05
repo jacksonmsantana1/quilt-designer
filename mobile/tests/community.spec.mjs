@@ -1,56 +1,8 @@
 // The Community board on a phone. The page comes from dist/ and the API is played by the test, so no network is needed.
-import { test as base, expect } from '@playwright/test';
-import fs from 'node:fs';
-import path from 'node:path';
 import { defaultDesign } from '@quilt/shared/design.js';
+import { test, expect, quilt } from './fixture.mjs';
 
-const DIST = path.resolve(import.meta.dirname, '../dist');
-const FABRIC = path.resolve(import.meta.dirname, '../../app/assets/fabric/paisley.jpg');
-const API = 'https://block-and-bind-api.fly.dev/v1/community';
 const PHOTO_ID = 'f' + 'a'.repeat(24);
-
-const quilt = (name, extra = {}, design = {}) => ({
-  id: crypto.randomUUID(),
-  name,
-  author: 'Ana S.',
-  design: { ...defaultDesign(), ...design },
-  mine: false,
-  sharedAt: 1_780_000_000_000,
-  updatedAt: 1_780_000_000_000,
-  fabrics: [],
-  ...extra,
-});
-
-const test = base.extend({
-  // the phone app's page, with `api` deciding what the API answers; errors in the page fail the test
-  phone: async ({ page }, use) => {
-    const errors = [];
-    page.on('pageerror', e => errors.push(e.message));
-    const seen = [];
-    let answer = () => ({ items: [], more: false });
-    await page.route('**/*', async route => {
-      const u = new URL(route.request().url());
-      if (u.href.startsWith(API)) {
-        seen.push(u.search);
-        const body = answer(u.searchParams);
-        return body === null ? route.fulfill({ status: 500, body: '{}' }) : route.fulfill({ json: body });
-      }
-      if (u.host === 'pictures.test') return route.fulfill({ path: FABRIC, contentType: 'image/jpeg' });
-      if (u.host === 'x') {
-        const file = path.join(DIST, u.pathname === '/' ? 'index.html' : u.pathname);
-        return fs.existsSync(file) ? route.fulfill({ path: file }) : route.fulfill({ status: 404 });
-      }
-      return route.abort(); // fonts and anything else: the page must cope without them
-    });
-    await use({
-      page,
-      seen,
-      api: f => void (answer = f),
-      open: () => page.goto('http://x/'),
-    });
-    expect(errors, 'no errors in the page').toEqual([]);
-  },
-});
 
 /** Whether a canvas has been painted: more than one colour in it. */
 const painted = canvas =>

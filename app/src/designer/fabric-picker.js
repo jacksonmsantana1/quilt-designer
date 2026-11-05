@@ -17,6 +17,7 @@ import {
 import { fabricIdsIn, findFabrics, paletteList, shortList, withFabric, withoutFabric } from '../core/fabric-picks.js';
 import { notify } from '../ui/notice.js';
 import { choosePhotos } from './add-fabric.js';
+import { folders, refreshFolders } from './fabric-folders-state.js';
 import { t } from '@quilt/shared/i18n.js';
 
 const PAGE = 60; // tiles the library shows at a time ("Show more" adds as many again)
@@ -345,6 +346,11 @@ const GROUPS = {
   mine: t('My photos'),
 };
 
+/** A folder group's folder, when the library shows one. */
+const openFolder = () => folders.find(f => `folder:${f.id}` === lib.group) || null;
+/** The fabrics of a folder that this app knows. */
+const inFolder = (all, f) => all.filter(x => f.fabricIds.includes(x.id));
+
 /** Opens the library for one short list: a fabric picked there goes to that list. @param {HTMLElement} box */
 function openLibrary(box) {
   lib.source = box;
@@ -353,6 +359,7 @@ function openLibrary(box) {
   lib.shown = PAGE;
   $('fablib-q').value = '';
   drawLibrary();
+  refreshFolders().then(drawLibrary); // the phone may have changed them
   const dlg = $('fablib');
   if (!dlg.open) {
     try {
@@ -383,7 +390,23 @@ function drawLibrary() {
     b.setAttribute('aria-pressed', String(g === lib.group));
     groups.appendChild(b);
   }
-  const found = findFabrics(all, { query, group: /** @type {any} */ (lib.group), inQuilt, recent });
+  // the folders made in the phone app, after the groups every fabric list has
+  for (const f of folders) {
+    const n = inFolder(all, f).length,
+      g = `folder:${f.id}`;
+    if (!n && g !== lib.group) continue;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.g = g;
+    b.textContent = `${f.name} ${n}`;
+    b.setAttribute('aria-pressed', String(g === lib.group));
+    groups.appendChild(b);
+  }
+  if (lib.group.startsWith('folder:') && !openFolder()) lib.group = 'all'; // deleted on the phone
+  const folder = openFolder();
+  const found = folder
+    ? findFabrics(inFolder(all, folder), { query, group: 'all', inQuilt, recent })
+    : findFabrics(all, { query, group: /** @type {any} */ (lib.group), inQuilt, recent });
   const grid = $('fablib-grid');
   grid.innerHTML = '';
   if (lib.group === 'all' || lib.group === 'mine') {

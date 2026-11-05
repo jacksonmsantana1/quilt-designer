@@ -7,6 +7,8 @@ export default [
       '**/node_modules/**',
       'app/dist/**',
       'mobile/dist/**',
+      'mobile/android/**',
+      'mobile/ios/**',
       'mobile/test-results/**',
       'app/coverage/**',
       'app/tests/legacy/**',
@@ -23,7 +25,8 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: { ...globals.browser, ClothSim: 'readonly', __API_URL__: 'readonly' }, // ClothSim: physics.js, loaded as a classic script
+      globals: { ...globals.browser, ClothSim: 'readonly', __DEV_SIGNIN__: 'readonly',
+        __API_URL__: 'readonly' }, // ClothSim: physics.js, loaded as a classic script
     },
     rules: {
       'no-unused-vars': ['warn', { args: 'none', caughtErrors: 'none', ignoreRestSiblings: true, varsIgnorePattern: '^_' }],

@@ -11,6 +11,7 @@ import { onChange, repo } from '../storage/repo.js';
 import { notify } from '../ui/notice.js';
 import { openDesign } from '../designer/dispatch.js';
 import { addStoredFabric } from '../designer/fabric-library.js';
+import { setFolderLoader } from '../designer/fabric-folders-state.js';
 import { drawFabricPalette } from '../designer/parts-editor.js';
 import { adoptDesignId, mineSave, renderMine } from './my-designs.js';
 import { state } from '../sim/config.js';
@@ -32,6 +33,13 @@ const sync = createSync({
   onRemote: e => arrived.push(e),
   onStatus: showStatus,
   getToken: async () => (tokenMayGoTo(sync.config()?.url) ? signInToken() : null),
+});
+
+// folders are made in the phone app; a server that doesn't know them yet just has none
+setFolderLoader(async () => {
+  if (!sync.config()) return [];
+  const r = await sync.request('GET', '/v1/organize');
+  return r.status === 200 ? r.body.folders : [];
 });
 
 const time = at => new Date(at).toLocaleTimeString([getLang()], { hour: '2-digit', minute: '2-digit' });

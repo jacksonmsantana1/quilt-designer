@@ -31,3 +31,7 @@ server/.data/
 
 # GIF copies of the clips (the page uses the jpg, mp4 and webm)
 app/assets/clips/*.gif
+# the phone app's icons and start screens are pictures to keep, not screenshots
+!mobile/assets/*.png
+!mobile/android/app/src/main/res/**/*.png
+!mobile/ios/App/App/Assets.xcassets/**/*.png

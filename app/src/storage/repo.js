@@ -321,6 +321,20 @@ function createRepo() {
       changed('fabrics', id);
       return { id, isNew: true };
     },
+    /** Gives a fabric photo another name. @param {string} id @param {string} name */
+    rename(id, name) {
+      const old = cache.fabrics.get(id);
+      if (!old || old.deleted || old.name === name) return;
+      put('fabrics', id, { ...old, name, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+      changed('fabrics', id);
+    },
+    /** Deletes a fabric photo (kept as a marker until the server has the deletion). @param {string} id */
+    remove(id) {
+      const old = cache.fabrics.get(id);
+      if (!old || old.deleted) return;
+      put('fabrics', id, { ...old, blob: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+      changed('fabrics', id);
+    },
     ...syncSide('fabrics'),
   };
 

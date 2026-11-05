@@ -85,7 +85,7 @@ class StopSync extends Error {
  */
 function createSync({
   repo,
-  fetch: fetchFn = (...a) => globalThis.fetch(...a),
+  fetch: fetchFn = (url, init) => globalThis.fetch(url, init),
   onRemote = () => {},
   onStatus = () => {},
   getToken = () => Promise.reject(new Error('no sign-in')),
