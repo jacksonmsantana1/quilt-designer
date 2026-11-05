@@ -17,12 +17,12 @@ export default {
   'Click the <b>×</b> at the top left to go back to your quilt.':
     'Clique no <b>×</b> no canto de cima, à esquerda, para voltar ao seu quilt.',
   'Your shopping list': 'Sua lista de compras',
-  'This table is your shopping list. Each fabric has a letter, and beside it how much to buy, in yards and in metres, with a little extra for straightening the cut. Click <b>Next</b> when you have read it.':
-    'Esta tabela é a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, em jardas e em metros, com uma sobrinha para acertar o corte. Clique em <b>Próximo</b> quando terminar de ler.',
+  'This table is your shopping list. Each fabric has a letter, and beside it how much to buy, with a little extra for straightening the cut. The <b>binding</b>, the strip that closes the edge of the quilt, is cut from the border fabric and is already counted. Click <b>Next</b> when you have read it.':
+    'Esta tabela é a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, com uma sobra para acertar o corte. O <b>viés</b>, a tira que fecha a beirada do quilt, é cortado do tecido da barra e já está na conta. Clique em <b>Próximo</b> quando terminar de ler.',
   Next: 'Próximo',
   'The border pieces': 'As peças da barra',
-  'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b>, for border.':
-    'As faixas e a barra têm cartões próprios mais abaixo. Clique em <b>Barra 1</b>, o título destacado: ele lista as tiras para cortar para a barra. Os códigos delas têm um <b>B</b>, de barra (border, em inglês).',
+  'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b> after the fabric letter: <b>AB1.1</b> is fabric A, border 1, piece 1.':
+    'As faixas e a barra têm cartões próprios mais abaixo. Clique em <b>Barra 1</b>, o título destacado: ele lista as tiras para cortar para a barra. Os códigos delas têm um <b>B</b> depois da letra do tecido: <b>AB1.1</b> é o tecido A, barra 1, peça 1.',
   'Take it to your sewing table': 'Leve para a mesa de costura',
   'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>.':
     'O botão <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras, cada bloco com as suas peças e os moldes em tamanho real. Você pode clicar agora ou depois. Depois clique em <b>Próximo</b>.',
@@ -55,14 +55,14 @@ export default {
   '<b>Click the middle block</b> of your quilt. Your block then appears on the right.':
     '<b>Clique no bloco do meio</b> do seu quilt. Aí o seu bloco aparece à direita.',
   'Choose the nine patch': 'Escolha o nine patch',
-  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, use the round <b>+</b> button beside this row.':
-    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. Depois, para ver todos os blocos, use o botão redondo <b>+</b> ao lado desta fileira.',
+  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, go to the end of this row and click the round <b>+</b> button there.':
+    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. Depois, para ver todos os blocos, vá até o fim desta fileira e clique no botão redondo <b>+</b> que fica lá.',
   'Pick a square': 'Escolha um quadrado',
   'In the big picture of the block, <b>click the square in the middle</b> to select it.':
     'Na imagem grande do bloco, <b>clique no quadrado do meio</b> para selecioná-lo.',
   'Give it a fabric': 'Dê um tecido a ele',
-  'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, use the round button with a number beside this row.':
-    'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado. Depois, para ver todos os tecidos, use o botão redondo com um número ao lado desta fileira.',
+  'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, go to the end of this row and click the round button with a number there.':
+    'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado. Depois, para ver todos os tecidos, vá até o fim desta fileira e clique no botão redondo com um número que fica lá.',
   'Select the whole quilt': 'Selecione o quilt inteiro',
   'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.':
     'Pressione e segure o mouse em um canto do quilt e <b>arraste até o canto oposto</b>. Todo bloco que ele tocar fica selecionado. Vai aparecer um botãozinho <b>Unir</b>: você não precisa dele agora.',
@@ -74,7 +74,7 @@ export default {
     'Faixas são as tiras entre os blocos. Clique no botão redondo destacado ao lado do quilt.',
   'Try a narrow width': 'Experimente uma largura estreita',
   'Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone.':
-    'Clique na largura destacada e olhe o quilt: aparecem tiras finas, com um quadradinho onde elas se encontram, o cornerstone.',
+    'Clique na largura destacada e olhe o quilt: aparecem tiras finas, com um quadradinho onde elas se encontram, o quadrado de canto.',
   'Now a wide one': 'Agora uma larga',
   'Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts.':
     'Clique nesta mais larga: as faixas crescem, e o quilt inteiro também. Nos seus quilts, você pode testar qualquer largura.',
@@ -107,13 +107,13 @@ export default {
     'A barra dá o acabamento da borda. Clique no botão redondo destacado ao lado do quilt.',
   'Add a border': 'Adicionar uma barra',
   'In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt.':
-    'No cartão <b>Barras</b>, clique em <b>Faixa lisa</b> para emoldurar o seu quilt.',
+    'No cartão <b>Barras</b>, clique em <b>Barra lisa</b> para emoldurar o seu quilt.',
   'See what to cut': 'Veja o que cortar',
   'Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out. The fabric list also has the fabrics the sashing, the cornerstones and the border came with; you can change them in their own cards, under <b>Sashing</b> and <b>Borders</b>.':
     'Agora abra o <b>Guia de corte</b>: quanto tecido comprar e cada peça para cortar, já calculados. A lista de tecidos também traz os tecidos que vieram com as faixas, os quadrados de canto e a barra; você pode trocá-los nos cartões deles, em <b>Faixas</b> e <b>Barras</b>.',
   'See it on a bed': 'Veja na cama',
-  'See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed.':
-    'Veja o seu quilt em uma cama. Clique no botão redondo destacado ao lado do quilt, o que tem uma caminha.',
+  'Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button beside the quilt, <b>On a bed</b>.':
+    'O seu quilt está salvo: ele está em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no botão redondo destacado ao lado do quilt, <b>Na cama</b>.',
   'Back to your quilt': 'De volta ao seu quilt',
   'Well done!': 'Muito bem!',
   'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.':

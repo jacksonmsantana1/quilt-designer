@@ -41,7 +41,8 @@ const tour = {
   mark: null,
   watching: false,
   steps: [],
-  looked: false,
+  dragged: false,
+  zoomed: false,
   brdFab: null,
 };
 const blk = i => design && design.blocks[i];
@@ -150,7 +151,7 @@ const TOUR = [
     clip: 'pattern',
     back: () => openBlocks([4]),
     text: t(
-      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, use the round <b>+</b> button beside this row.',
+      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, go to the end of this row and click the round <b>+</b> button there.',
     ),
     allow: ['#dz-patterns'],
     glow: '#dz-patterns [data-p="nine"]',
@@ -185,7 +186,7 @@ const TOUR = [
     clip: 'fabric',
     back: () => openBlocks([4], [4]), // the square in the middle
     text: t(
-      'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, use the round button with a number beside this row.',
+      'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, go to the end of this row and click the round button with a number there.',
     ),
     allow: ['#dz-fabrics2'],
     glow: '#dz-fabrics2 [data-f="b3"]',
@@ -338,7 +339,9 @@ const TOUR = [
     noBack: true,
     clip: 'bed',
     back: () => showToolsPanel('brd'),
-    text: t('See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed.'),
+    text: t(
+      'Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button beside the quilt, <b>On a bed</b>.',
+    ),
     allow: ['#dz-sim', '#bedsel'],
     glow: '#dz-sim',
     // a 120 cm quilt on a single bed, where it covers the top: on a large bed it looks lost
@@ -353,13 +356,13 @@ const TOUR = [
   {
     title: t('Look around'),
     back: () => showPage('sim'),
-    enter: () => (tour.looked = false),
+    enter: () => (tour.dragged = tour.zoomed = false),
     text: t(
       'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.',
     ),
     allow: ['#view', '#stage'],
     glow: '#view',
-    done: () => !!tour.looked,
+    done: () => !!tour.dragged && !!tour.zoomed,
   },
   {
     title: t('Try it on a table'),
@@ -402,7 +405,7 @@ const TOUR = [
     title: t('Your shopping list'),
     back: () => showPage('cut'),
     text: t(
-      'This table is your shopping list. Each fabric has a letter, and beside it how much to buy, in yards and in metres, with a little extra for straightening the cut. Click <b>Next</b> when you have read it.',
+      'This table is your shopping list. Each fabric has a letter, and beside it how much to buy, with a little extra for straightening the cut. The <b>binding</b>, the strip that closes the edge of the quilt, is cut from the border fabric and is already counted. Click <b>Next</b> when you have read it.',
     ),
     allow: [],
     glow: '#cg-fabrics',
@@ -422,7 +425,7 @@ const TOUR = [
     title: t('The border pieces'),
     back: () => showPage('cut'),
     text: t(
-      'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b>, for border.',
+      'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b> after the fabric letter: <b>AB1.1</b> is fabric A, border 1, piece 1.',
     ),
     allow: ['#cg-blocks .cgblock:last-child h3'],
     glow: '#cg-blocks .cgblock:last-child h3',
@@ -737,6 +740,8 @@ function tourShow() {
   tourMark();
   const g = st.glow && document.querySelector(st.glow);
   if (g) g.scrollIntoView({ block: 'center', inline: 'nearest' });
+  // once a panel has finished opening, the thing to click is whole in its row (not cut off at the edge)
+  if (g) setTimeout(() => g.isConnected && g.scrollIntoView({ block: 'nearest', inline: 'nearest' }), 450);
   requestAnimationFrame(tourPlace);
   if (st.buttons) acts.querySelector('button').focus();
 }
@@ -862,7 +867,8 @@ $('tour-start').addEventListener('click', () => confirmLeave(tourBegin));
 // the "look around" step: a drag or a turn of the wheel on the 3D view
 for (const ev of ['pointermove', 'wheel'])
   $('view').addEventListener(ev, e => {
-    if (ev === 'wheel' || /** @type {PointerEvent} */ (e).buttons) tour.looked = true;
+    if (ev === 'wheel') tour.zoomed = true;
+    else if (/** @type {PointerEvent} */ (e).buttons) tour.dragged = true;
   });
 initTourDrag();
 $('tour-skip').addEventListener('click', () => tourAct('skip'));

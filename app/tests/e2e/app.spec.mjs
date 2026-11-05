@@ -215,6 +215,8 @@ test.describe('first visit', () => {
     await page.mouse.down();
     await page.mouse.move(v.x + v.width / 2 + 80, v.y + v.height / 2, { steps: 5 });
     await page.mouse.up();
+    await expect(title).toHaveText('Look around'); // and closer, with the wheel
+    await page.mouse.wheel(0, -200);
     await expect(title).toHaveText('Try it on a table');
     await page.locator('#bedsel').selectOption('tb-square4');
     await expect(title).toHaveText('Back to your quilt');

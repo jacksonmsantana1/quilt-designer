@@ -41,7 +41,7 @@ export default {
   'The quilting went back to stitch in the ditch.': 'A quiltagem voltou para quilt na costura.',
 
   // kinds of border and their fabrics (geometry.js)
-  'Plain strip': 'Faixa lisa',
+  'Plain strip': 'Barra lisa',
   'Piano keys': 'Teclas de piano',
   'Row of squares': 'Fileira de quadrados',
   Checkerboard: 'Xadrez',

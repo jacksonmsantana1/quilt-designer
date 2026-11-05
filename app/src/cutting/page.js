@@ -307,7 +307,8 @@ function renderCut() {
     seam: cutOpts.seam,
     fabricWidth: cutOpts.fabricWidth,
     selvage: cutOpts.selvage,
-    bindingFabric: 'b1',
+    // the binding is cut from the outer border's fabric, the usual choice: a quilt without a border uses indigo
+    bindingFabric: bordersOf(design).at(-1)?.fabrics?.[0] || 'b1',
     bindingWidth: cutOpts.bindingWidth,
     partsOf,
     label: k => PATTERNS[k].label,

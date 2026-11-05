@@ -3,7 +3,7 @@
 // in millimetres; this only changes how a length is written on screen and how a typed number is read. In inches,
 // lengths are written the way quilters say them: to the nearest ⅛, with fractions (6½ in, 11¾ in).
 
-import { fix, t } from '@quilt/shared/i18n.js';
+import { fix, getLang, t } from '@quilt/shared/i18n.js';
 
 /** @typedef {'mm' | 'in'} Unit */
 const MM_PER_IN = 25.4;
@@ -52,9 +52,10 @@ function buyLen(mm) {
   const eighths = Math.ceil(mm / (MM_PER_IN * 4.5) - 1e-6),
     whole = Math.floor(eighths / 8),
     part = FRACTIONS[eighths % 8];
-  // Shops in Brazil sell by the metre even when the pattern is in inches, so the metres come along in brackets.
-  const metres = Math.ceil((eighths * MM_PER_IN * 4.5) / 50 - 1e-6) * 0.05;
-  return `${part && whole === 0 ? part : whole + part} ${t('yd')} (${fix(metres, 2)} m)`;
+  // Shops in Brazil sell by the metre even when the pattern is in inches, so the metres come along, and first there
+  const metres = `${fix(Math.ceil((eighths * MM_PER_IN * 4.5) / 50 - 1e-6) * 0.05, 2)} m`,
+    yards = `${part && whole === 0 ? part : whole + part} ${t('yd')}`;
+  return getLang() === 'pt-BR' ? `${metres} (${yards})` : `${yards} (${metres})`;
 }
 /** Several lengths with the unit written once: "900 × 300 mm" or "35½ × 11¾ in". @param {number[]} mms @param {string} [sep] */
 const dims = (mms, sep = ' × ') => `${mms.map(num).join(sep)} ${unitName()}`;

@@ -265,6 +265,13 @@ function renderMine() {
       date: when(m.updatedAt),
     });
     text.append(nm, sm);
+    // the samples came with the app: said so, so nobody wonders whose quilts these are
+    if (m.sample) {
+      const ex = document.createElement('small');
+      ex.className = 'pin-sample';
+      ex.textContent = t('An example that comes with the app');
+      text.append(ex);
+    }
     if (sharedIds.has(m.id)) {
       const tag = document.createElement('span');
       tag.className = 'pin-tag';
@@ -490,6 +497,23 @@ function initMine() {
   $('mine-sort').addEventListener('change', renderMine);
 }
 initMine();
+
+// The Save button tells whether there is something to save: orange "Save" while there is, "Saved ✓" once the quilt
+// on the screen is the one in My designs. Checked a few times a second, only when the quilt has changed.
+/** @type {[any, any, any]} */
+let savedSeen = [null, null, null];
+function showSavedState() {
+  const rec = mineCur ? designs.get(mineCur) : null;
+  if (design === savedSeen[0] && mineCur === savedSeen[1] && rec === savedSeen[2]) return;
+  savedSeen = [design, mineCur, rec];
+  const done = !!design && !!mineCur && !hasUnsaved();
+  const b = $('dz-save');
+  if (b.classList.contains('is-saved') === done) return;
+  b.classList.toggle('is-saved', done);
+  const name = b.querySelector('.rail-name');
+  if (name) name.textContent = done ? t('Saved ✓') : t('Save');
+}
+window.setInterval(showSavedState, 400);
 
 /**
  * The quilt being edited becomes the saved design `id` (sync kept this device's version of a quilt as a copy):

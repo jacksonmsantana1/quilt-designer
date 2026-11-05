@@ -22,9 +22,16 @@ function sideRoller(box, chosen) {
       },
       { passive: false },
     );
+    box.addEventListener('scroll', () => (box.dataset.left = String(box.scrollLeft)));
   }
   const on = /** @type {HTMLElement | null} */ (box.querySelector(chosen));
-  if (on && box.clientWidth) box.scrollLeft = Math.max(0, on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2);
+  if (!on || !box.clientWidth) return;
+  // where the row was before it was drawn again: it stays there while the chosen item is in sight, so a pick
+  // doesn't slide the tiles from under the mouse
+  const left = Number(box.dataset.left || 0),
+    x = on.offsetLeft;
+  if (x >= left && x + on.offsetWidth <= left + box.clientWidth) box.scrollLeft = left;
+  else box.scrollLeft = Math.max(0, on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2);
 }
 
 /**

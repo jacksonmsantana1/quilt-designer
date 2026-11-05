@@ -1,5 +1,6 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'An example that comes with the app': 'Um exemplo que vem com o app',
   '“{name}” has changes that are not saved yet.': '“{name}” tem mudanças que ainda não foram salvas.',
   'This quilt is not saved yet.': 'Este quilt ainda não foi salvo.',
   // the app's own sample quilts

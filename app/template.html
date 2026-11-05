@@ -381,6 +381,7 @@
   .flipper { position: relative; padding-right: 62px; padding-left: 62px; }
   .rail.rail-left { right: auto; left: 0; }
   .rail-btn.rail-primary { background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent); }
+  .rail-btn.rail-primary.is-saved { background: var(--panel); color: var(--sage-deep); border: 2px solid var(--sage-deep); }
   .rail-btn.saved { background: var(--sage-deep); border: 2px solid var(--sage-deep); color: var(--accent-ink); }
   .rail { position: absolute; right: 0; top: 0; display: flex; flex-direction: column; gap: 24px; z-index: 3; }
   .rail-btn { width: 46px; height: 46px; border-radius: 50%; border: 2px dashed var(--stitch); background: var(--panel); color: var(--accent); display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(var(--shade),.12); transition: transform .12s ease, background .12s ease; }
@@ -426,7 +427,7 @@
   #dz-fussy-cv { border-radius: 6px; box-shadow: 0 1px 6px rgba(var(--shade),.2); cursor: crosshair; touch-action: none; }
   .symrow { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; font-size: .85rem; font-weight: 600; }
   .symrow select { flex: 1; min-width: 0; }
-  .tour-btn { position: fixed; left: 18px; bottom: 18px; z-index: 45; width: 50px; height: 50px; transition: bottom .2s ease, transform .12s ease; }
+  .tour-btn { position: fixed; left: 18px; bottom: 30px; z-index: 45; width: 50px; height: 50px; transition: bottom .2s ease, transform .12s ease; }
   .tour-btn svg { width: 26px; height: 26px; }
   body.tl-open .tour-btn { bottom: calc(var(--tl-h, 170px) + 22px); }
   body.tour-active :is(button, input, select, textarea, label.btn, label.filebtn, .fold-head):not(.tour-allow):not(.tour-allow *):not(#tour *) {
@@ -644,12 +645,12 @@
   .hover-rot { position: absolute; z-index: 2; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25); background: var(--panel); color: var(--accent); display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: 0 2px 6px rgba(var(--shade),.3); transition: transform .12s ease; }
   .hover-rot[hidden] { display: none; }
   /* Unite: at the top-right corner of a selection of several blocks; greyed when they are not a square */
-  .unite-btn { position: absolute; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 0; height: 30px; border-radius: 999px; border: 2px solid #fff; background: var(--accent); color: var(--accent-ink); font: 600 .78rem var(--font-body); cursor: pointer; box-shadow: 0 2px 8px rgba(var(--shade),.3); transform: translate(-15px, -15px); white-space: nowrap; }
+  .unite-btn { position: absolute; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 0; height: 30px; border-radius: 999px; border: 2px solid #fff; background: var(--accent); color: var(--accent-ink); font: 600 .78rem var(--font-body); cursor: pointer; box-shadow: 0 2px 8px rgba(var(--shade),.3); transform: translate(-15px, 6px); white-space: nowrap; }
   .unite-btn[hidden] { display: none; }
   .unite-btn .unite-ic { display: grid; place-items: center; width: 26px; height: 26px; }
   .unite-btn .unite-ic svg { width: 16px; height: 16px; }
   .unite-btn.off { background: oklch(0.72 0.02 60); color: var(--accent-ink); cursor: help; }
-  .unite-btn.lefty { flex-direction: row-reverse; padding: 0 0 0 10px; transform: translate(calc(-100% + 15px), -15px); } /* near the right edge */
+  .unite-btn.lefty { flex-direction: row-reverse; padding: 0 0 0 10px; transform: translate(calc(-100% - 6px), 6px); } /* near the right edge; inside the selection, so it never covers the controls above the quilt */
   .flipper.flipped .unite-btn { display: none; }
   .hover-rot svg { width: 16px; height: 16px; }
   .hover-rot:hover { transform: scale(1.12) rotate(30deg); background: var(--accent); color: var(--accent-ink); }
@@ -947,7 +948,7 @@
     <button type="button" role="tab" data-page="mine" aria-selected="false">My designs</button>
     <button type="button" role="tab" data-page="community" aria-selected="false">Community</button>
   </nav>
-  <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: make your first quilt, a nine patch, step by step"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: make your first quilt, a nine patch, step by step"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="rail-name" aria-hidden="true">Tutorial</span></button>
   <div class="acct" id="acct">
     <select class="lang-menu" data-lang aria-label="Language" title="Language"><option value="en">English</option><option value="pt-BR">Português</option></select>
     <button class="btn sm" type="button" id="acct-signin">Sign in</button>
