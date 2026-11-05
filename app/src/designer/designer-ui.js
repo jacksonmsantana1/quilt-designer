@@ -25,7 +25,7 @@ import {
   setMosaicTool,
 } from './ui-state.js';
 import { $ } from '../core/dom.js';
-import { fromInput, toInput } from '../core/units.js';
+import { fromInput, roundLen, toInput } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { loadImage } from '../sim/textures.js';
 import { addFabric } from './fabric-library.js';
@@ -581,7 +581,7 @@ function initDesignerUI() {
     setMineCur(null);
     setSession('mineCur', undefined);
     timelines.remove(tlKeyFor(null));
-    replaceDesign(newDesign(), { timeline: null });
+    replaceDesign({ ...newDesign(), blockMm: roundLen(300) }, { timeline: null });
     $('dz-reset').dataset.armed = '';
     $('dz-reset').textContent = t('Start over');
   });

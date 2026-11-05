@@ -28,9 +28,9 @@ test('fabricIdsIn finds fabrics anywhere in a design, and nothing else', () => {
   assert.deepEqual([...fabricIdsIn(null, () => true)], []);
 });
 
-test('shortList: all basics, then the chosen one, the quilt, recent picks; capped', () => {
+test('shortList: all basics, then the chosen one, the quilt, recent picks (oldest first); capped', () => {
   assert.deepEqual(shortList({ basics: BASICS }), BASICS);
-  assert.deepEqual(shortList({ basics: BASICS, selected: 'fs', inQuilt: ['b1', 'fq'], recent: ['fq', 'fr'] }), [
+  assert.deepEqual(shortList({ basics: BASICS, selected: 'fs', inQuilt: ['b1', 'fq'], recent: ['fr', 'fq'] }), [
     ...BASICS,
     'fs',
     'fq',
@@ -45,7 +45,7 @@ test('shortList: all basics, then the chosen one, the quilt, recent picks; cappe
 test('shortList: the newest photos fill in only while there are few others', () => {
   const newest = ['n1', 'n2', 'n3', 'n4', 'n5', 'n6'];
   assert.deepEqual(shortList({ basics: BASICS, newest, fill: 3 }), [...BASICS, 'n1', 'n2', 'n3']);
-  assert.deepEqual(shortList({ basics: BASICS, recent: ['r1', 'r2', 'r3'], newest, fill: 3 }), [
+  assert.deepEqual(shortList({ basics: BASICS, recent: ['r3', 'r2', 'r1'], newest, fill: 3 }), [
     ...BASICS,
     'r1',
     'r2',
@@ -56,6 +56,14 @@ test('shortList: the newest photos fill in only while there are few others', () 
 test('withRecent puts the pick first, once, and keeps the list short', () => {
   assert.deepEqual(withRecent(['a', 'b', 'c'], 'b'), ['b', 'a', 'c']);
   assert.deepEqual(withRecent(['a', 'b', 'c'], 'd', 3), ['d', 'a', 'b']);
+  assert.deepEqual(withRecent(['a', 'b', 'c'], 'b', 12, false), ['a', 'b', 'c'], 'kept in place');
+});
+
+test('shortList: a new pick joins at the end, and the others keep their places', () => {
+  const before = shortList({ basics: BASICS, selected: 'f1', recent: ['f2', 'f1'] });
+  const after = shortList({ basics: BASICS, selected: 'f3', recent: ['f3', 'f2', 'f1'] });
+  assert.deepEqual(after.slice(0, before.length), before);
+  assert.equal(after.at(-1), 'f3');
 });
 
 test('findFabrics: words in any order and case, accents ignored, within a group', () => {

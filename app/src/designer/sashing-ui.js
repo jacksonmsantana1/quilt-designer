@@ -3,7 +3,7 @@ import './block-drawer.js'; // load order: runs after designer/block-drawer
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $, themeColour } from '../core/dom.js';
-import { dims, fromInput, getUnit, inputRange, len, toInput } from '../core/units.js';
+import { dims, fromInput, getUnit, inputRange, len, roundLen, toInput } from '../core/units.js';
 import {
   CORNER_BLOCK_MIN_MM,
   CORNER_PATTERNS,
@@ -164,7 +164,7 @@ function initSashUI() {
   $('sash-cs').addEventListener('change', e => setSash({ cornerstones: e.target.checked }));
   $('sash-fabs').addEventListener('click', e => {
     const b = e.target.closest('button.fab');
-    if (b) setSash({ fabric: b.dataset.f, ...(design.sashing && design.sashing.mm ? {} : { mm: 50 }) });
+    if (b) setSash({ fabric: b.dataset.f, ...(design.sashing && design.sashing.mm ? {} : { mm: roundLen(50) }) });
   });
   $('sash-cpats').addEventListener('click', e => {
     const b = e.target.closest('button');
@@ -198,7 +198,7 @@ function initSashUI() {
       setSash({
         cornerBlock: { ...cb, fabrics: cb.fabrics.map((f, i) => (!cbSel.size || cbSel.has(i) ? b.dataset.f : f)) },
       });
-    else setSash({ corner: b.dataset.f, ...(design.sashing && design.sashing.mm ? {} : { mm: 50 }) });
+    else setSash({ corner: b.dataset.f, ...(design.sashing && design.sashing.mm ? {} : { mm: roundLen(50) }) });
   });
 }
 initSashUI();

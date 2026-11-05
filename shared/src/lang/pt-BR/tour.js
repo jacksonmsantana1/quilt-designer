@@ -6,8 +6,8 @@ export default {
   'Show the instructions': 'Mostrar as instruções',
   'Fold the instructions': 'Recolher as instruções',
   'Welcome to Block & Bind!': 'Boas-vindas ao Block & Bind!',
-  'In about five minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.':
-    'Em cerca de cinco minutos você vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt clássico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Um vídeo curto mostra cada passo, e depois é a sua vez. Nada do que você fizer aqui estraga alguma coisa.',
+  'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.':
+    'Em cerca de quinze minutos você vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt clássico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Um vídeo curto mostra cada passo, e depois é a sua vez. Nada do que você fizer aqui estraga alguma coisa.',
   'Start the exercise': 'Começar o exercício',
   'Not now': 'Agora não',
   'Make it three rows': 'Deixe com três linhas',
@@ -58,8 +58,8 @@ export default {
   'Only the highlighted item works on this step. Click it to go on.':
     'Neste passo, só o item destacado funciona. Clique nele para continuar.',
   'See the sizes': 'Veja as medidas',
-  'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Scroll down the page to read it all.':
-    'Clique em <b>Bloco 1</b>, o título destacado: logo abaixo abre a lista das peças para cortar, com cada medida. Desça a página para ler tudo.',
+  'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all.':
+    'Clique em <b>Bloco 1</b>, o título destacado: logo abaixo abre a lista das peças para cortar, com cada medida. Cada peça tem um código: <b>A1.1</b> quer dizer tecido A, bloco 1, forma 1 (as letras são os tecidos listados acima). Desça a página para ler tudo.',
   'My first quilt': 'Meu primeiro quilt',
   Finish: 'Concluir',
   'Type <b>12</b>, please, so that the quilt comes out like the one in the videos.':
@@ -83,8 +83,8 @@ export default {
   'In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt.':
     'No cartão <b>Barras</b>, clique em <b>Faixa lisa</b> para emoldurar o seu quilt.',
   'See what to cut': 'Veja o que cortar',
-  'Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out.':
-    'Agora abra o <b>Guia de corte</b>: quanto tecido comprar e cada peça para cortar, já calculados.',
+  'Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out. The fabric list also has the fabrics the sashing, the cornerstones and the border came with; you can change them in their own cards, under <b>Sashing</b> and <b>Borders</b>.':
+    'Agora abra o <b>Guia de corte</b>: quanto tecido comprar e cada peça para cortar, já calculados. A lista de tecidos também traz os tecidos que vieram com as faixas, os quadrados de canto e a barra; você pode trocá-los nos cartões deles, em <b>Faixas</b> e <b>Barras</b>.',
   'See it on a bed': 'Veja na cama',
   'See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed.':
     'Veja o seu quilt em uma cama. Clique no botão redondo destacado ao lado do quilt, o que tem uma caminha.',
@@ -92,8 +92,8 @@ export default {
   'At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>×</b> at the top left to go back.':
     'Neste tamanho ele é uma coberta pequena, então cobre só parte de uma cama de solteiro: um quilt maior cobriria tudo. Clique no <b>×</b> no alto, à esquerda, para voltar.',
   'Well done!': 'Muito bem!',
-  'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click the round button with a page and a <b>+</b>, and save it before you open a different quilt, or your changes will be lost. Rest the mouse on any round button to see its name.':
-    'Você fez o seu primeiro quilt, e ele está salvo: você vai encontrá-lo sempre em <b>Meus projetos</b>. Para começar outro, clique no botão redondo com uma folha e um <b>+</b>, e salve antes de abrir um quilt diferente, senão as mudanças se perdem. Descanse o mouse em qualquer botão redondo para ver o nome dele.',
+  'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.':
+    'Você fez o seu primeiro quilt, e ele está salvo: você vai encontrá-lo sempre em <b>Meus projetos</b>. Para começar outro, clique em <b>Novo</b>, o primeiro botão redondo à esquerda. Se um quilt tiver mudanças que não foram salvas, o app pergunta antes de fechá-lo.',
   'Save it in My designs': 'Salvar em Meus projetos',
   'Discard this quilt': 'Não guardar este quilt',
 

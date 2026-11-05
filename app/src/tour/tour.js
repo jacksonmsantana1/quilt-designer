@@ -19,7 +19,7 @@ import { bordersOf } from '@quilt/shared/geometry.js';
 import { getUnit } from '../core/units.js';
 import { blockKey } from '../designer/block-library.js';
 import { showPage } from '../app/pages.js';
-import { mineSave } from '../mine/my-designs.js';
+import { confirmLeave, mineSave } from '../mine/my-designs.js';
 import { tlKeyFor } from '../timeline/timeline.js';
 import { timelines } from '../storage/repo.js';
 import { newDesign } from '@quilt/shared/design.js';
@@ -63,7 +63,7 @@ const TOUR = [
   {
     title: t('Welcome to Block & Bind!'),
     text: t(
-      'In about five minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.',
+      'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.',
     ),
     center: true,
     buttons: [
@@ -324,7 +324,9 @@ const TOUR = [
   {
     title: t('See what to cut'),
     clip: 'cut',
-    text: t('Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out.'),
+    text: t(
+      'Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out. The fabric list also has the fabrics the sashing, the cornerstones and the border came with; you can change them in their own cards, under <b>Sashing</b> and <b>Borders</b>.',
+    ),
     allow: ['#tabs [data-page="cut"]'],
     glow: '#tabs [data-page="cut"]',
     // inches mean a quarter-inch seam, as in the patterns a quilter knows
@@ -342,7 +344,7 @@ const TOUR = [
     title: t('See the sizes'),
     back: () => showPage('cut'),
     text: t(
-      'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Scroll down the page to read it all.',
+      'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all.',
     ),
     allow: ['#cg-blocks .cgblock:first-child h3'],
     glow: '#cg-blocks .cgblock:first-child h3',
@@ -351,7 +353,7 @@ const TOUR = [
   {
     title: t('Well done!'),
     text: t(
-      'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click the round button with a page and a <b>+</b>, and save it before you open a different quilt, or your changes will be lost. Rest the mouse on any round button to see its name.',
+      'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.',
     ),
     center: true,
     buttons: [[t('Finish'), 'keep', true]],
@@ -762,7 +764,7 @@ function tourEnd(how) {
   timelines.remove(tlKeyFor('tour'));
   if (how !== 'keep') showPage('design');
 }
-$('tour-start').addEventListener('click', tourBegin);
+$('tour-start').addEventListener('click', () => confirmLeave(tourBegin));
 initTourDrag();
 $('tour-skip').addEventListener('click', () => tourAct('skip'));
 $('tour-back').addEventListener('click', tourBack);

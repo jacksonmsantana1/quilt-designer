@@ -1,6 +1,16 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
   English: 'English',
+  'Save your changes?': 'Salvar as mudanças?',
+  'If you don’t save, the changes are lost.': 'Se você não salvar, as mudanças se perdem.',
+  'Keep editing': 'Continuar editando',
+  'Don’t save': 'Não salvar',
+  'Save and continue': 'Salvar e continuar',
+  New: 'Novo',
+  Share: 'Compartilhar',
+  Parts: 'Peças',
+  'On a bed': 'Na cama',
+  Picture: 'Foto',
   Português: 'Português',
   Language: 'Idioma',
   '. Pick one for the whole back of the quilt.': '. Escolha um para todo o verso do quilt.',

@@ -3,7 +3,7 @@ import './sashing-ui.js'; // load order: runs after designer/sashing-ui
 import { design } from '../core/store.js';
 import { showToolsPanel } from './ui-state.js';
 import { $ } from '../core/dom.js';
-import { fromInput, getUnit, inputRange, toInput, unitName } from '../core/units.js';
+import { fromInput, getUnit, inputRange, roundLen, toInput, unitName } from '../core/units.js';
 import { t } from '@quilt/shared/i18n.js';
 import { fabricById, onFabricsLoaded } from './fabric-library.js';
 import { BORDER_TYPES, borderFab, borderSidePieces, pathPoly } from '@quilt/shared/geometry.js';
@@ -161,7 +161,7 @@ function initBorderUI() {
       sawtooth: ['b4', 'b0', 'b4'],
       geese: ['b1', 'b0', 'b1'],
     }[b.dataset.t];
-    borderEdit(addBorder, { type: b.dataset.t, mm: kind.mm, fabrics: def });
+    borderEdit(addBorder, { type: b.dataset.t, mm: roundLen(kind.mm), fabrics: def });
     brdActive = null;
     renderBorderUI();
     if (n === 0) $('brd-list').scrollIntoView({ block: 'nearest' });

@@ -52,7 +52,9 @@ function buyLen(mm) {
   const eighths = Math.ceil(mm / (MM_PER_IN * 4.5) - 1e-6),
     whole = Math.floor(eighths / 8),
     part = FRACTIONS[eighths % 8];
-  return `${part && whole === 0 ? part : whole + part} ${t('yd')}`;
+  // Shops in Brazil sell by the metre even when the pattern is in inches, so the metres come along in brackets.
+  const metres = Math.ceil((eighths * MM_PER_IN * 4.5) / 50 - 1e-6) * 0.05;
+  return `${part && whole === 0 ? part : whole + part} ${t('yd')} (${fix(metres, 2)} m)`;
 }
 /** Several lengths with the unit written once: "900 × 300 mm" or "35½ × 11¾ in". @param {number[]} mms @param {string} [sep] */
 const dims = (mms, sep = ' × ') => `${mms.map(num).join(sep)} ${unitName()}`;
@@ -92,6 +94,12 @@ function eighthsOf(v) {
 }
 
 /**
+ * A starting length that reads round in the unit in use: in inches the nearest whole inch, so a new quilt's 300 mm
+ * blocks are 12 in (305 mm) and not 11¾. @param {number} mm @returns {number}
+ */
+const roundLen = mm => (unit === 'in' ? Math.round(Math.round(mm / MM_PER_IN) * MM_PER_IN) : mm);
+
+/**
  * How many squares to cut for one block: a square cut in two or four can serve several blocks, so it may be a share
  * of one (half a square per block, three in all for six). @param {number} n
  */
@@ -102,6 +110,7 @@ function sharesOf(n) {
 }
 
 export {
+  roundLen,
   sharesOf,
   FRACTIONS,
   MM_PER_IN,

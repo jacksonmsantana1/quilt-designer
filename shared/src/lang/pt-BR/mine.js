@@ -1,5 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  '“{name}” has changes that are not saved yet.': '“{name}” tem mudanças que ainda não foram salvas.',
+  'This quilt is not saved yet.': 'Este quilt ainda não foi salvo.',
   // the app's own sample quilts
   'Medallion sampler': 'Sampler medalhão',
   'Medallion from the photo': 'Medalhão da foto',

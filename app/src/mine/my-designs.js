@@ -2,13 +2,13 @@
 import '../tour/tour.js'; // load order: runs after tour/tour
 import { design, mineCur, readOnly, setMineCur } from '../core/store.js';
 import { $ } from '../core/dom.js';
-import { dims } from '../core/units.js';
+import { dims, roundLen } from '../core/units.js';
 import { state } from '../sim/config.js';
 import { quiltMm } from '@quilt/shared/geometry.js';
 import { drawQuilt } from '../render/quilt-draw.js';
 import { showPage } from '../app/pages.js';
 import { tl, tlCopy, tlKeyFor, tlSave } from '../timeline/timeline.js';
-import { newDesign } from '@quilt/shared/design.js';
+import { defaultDesign, newDesign } from '@quilt/shared/design.js';
 import { openDesign, replaceDesign } from '../designer/dispatch.js';
 import { readDesign } from '@quilt/shared/format.js';
 import { notify } from '../ui/notice.js';
@@ -55,12 +55,66 @@ function quiltPicture(d, width) {
   g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
   return c;
 }
+/** The person's own saved quilts (the samples don't count), for the name suggested to a new one. */
+const ownCount = () => designs.list().filter(m => !m.sample).length;
+/** A new quilt: three plain squares of 300 mm, or 12 in when the quilt is measured in inches. @returns {import('@quilt/shared/design.js').Design} */
+const freshDesign = () => ({ ...newDesign(), blockMm: roundLen(300) });
+/**
+ * Does the quilt on the screen have changes that would be lost? A saved quilt: when it differs from what was saved
+ * (as the sync card tells). Not saved yet: when it is no longer a fresh new quilt. Never for a quilt that can't be saved.
+ */
+function hasUnsaved() {
+  if (!design || readOnly) return false;
+  const rec = mineCur && designs.get(mineCur);
+  const open = JSON.stringify(design);
+  if (rec) return open !== JSON.stringify(rec.design);
+  return ![freshDesign(), newDesign(), defaultDesign()].some(d => JSON.stringify(d) === open);
+}
+/** what to do once the save dialog has saved (save and continue) @type {(() => void) | null} */
+let afterSave = null;
+/** what the "unsaved changes" dialog continues with @type {(() => void) | null} */
+let leaveNext = null;
+/**
+ * Runs `go`, which puts another quilt on the screen; first, when the one there has unsaved changes, asks whether to
+ * save them (save and continue), leave them (don't keep), or stay (keep editing). @param {() => void} go
+ */
+function confirmLeave(go) {
+  if (!hasUnsaved()) return go();
+  leaveNext = go;
+  const cur = mineCur && designs.get(mineCur);
+  $('leave-text').textContent = cur
+    ? t('“{name}” has changes that are not saved yet.', { name: shownName(cur) })
+    : t('This quilt is not saved yet.');
+  const d = $('leave-dlg');
+  if (!d.open) {
+    try {
+      d.showModal();
+    } catch (e) {
+      d.setAttribute('open', '');
+    }
+  }
+}
+function leaveChoice(how) {
+  const go = leaveNext;
+  leaveNext = null;
+  $('leave-dlg').close();
+  if (!go || how === 'stay') return;
+  if (how === 'drop') return go();
+  const cur = mineCur && designs.get(mineCur);
+  if (cur) {
+    saveCurrent(cur.name);
+    notify(t('“{name}” is in My designs.', { name: shownName(cur) }));
+    return go();
+  }
+  afterSave = go; // not saved before: the save dialog asks for its name, then goes on
+  openSaveDialog(false);
+}
 let saveForceNew = false;
 function openSaveDialog(forceNew) {
   if (!design) return;
   saveForceNew = !!forceNew;
   const cur = !saveForceNew && mineCur && designs.get(mineCur);
-  $('save-name').value = cur ? shownName(cur) : t('Quilt {n}', { n: designs.list().length + 1 });
+  $('save-name').value = cur ? shownName(cur) : t('Quilt {n}', { n: ownCount() + 1 });
   $('save-title').textContent = cur ? t('Save changes') : t('Save design');
   $('save-asnew').hidden = !cur;
   const pic = quiltPicture(design, 300),
@@ -88,9 +142,13 @@ function doSave(asNew) {
     return;
   }
   const saved = saveCurrent(($('save-name').value || '').trim(), asNew || saveForceNew);
-  notify(t('“{name}” is in My designs.', { name: saved.name }));
+  // during the tutorial its own card says so, and the notice would cover the card's buttons
+  if (!document.body.classList.contains('tour-active')) notify(t('“{name}” is in My designs.', { name: saved.name }));
   saveForceNew = false;
+  const next = afterSave;
+  afterSave = null;
   $('save-dlg').close();
+  if (next) next();
   const b = $('dz-save');
   b.classList.add('saved');
   b.title = t('Saved ✓');
@@ -104,7 +162,7 @@ function doSave(asNew) {
  * takes the timeline so far. @param {string} [typed] the name @param {boolean} [asNew] @returns {import('../storage/repo.js').DesignRecord}
  */
 function saveCurrent(typed, asNew = false) {
-  const name = (typed || '').trim() || t('Quilt {n}', { n: designs.list().length + 1 });
+  const name = (typed || '').trim() || t('Quilt {n}', { n: ownCount() + 1 });
   const old = !asNew && mineCur && designs.get(mineCur);
   const prev = mineCur;
   const cur = designs.save({ id: old ? old.id : designs.newId(), name, design });
@@ -119,6 +177,13 @@ function saveCurrent(typed, asNew = false) {
   return cur;
 }
 function openMine(id) {
+  const m = designs.get(id);
+  if (!m) return;
+  if (id !== mineCur) return confirmLeave(() => openSaved(id));
+  openSaved(id);
+}
+/** @param {string} id */
+function openSaved(id) {
   const m = designs.get(id);
   if (!m) return;
   if (!readDesign(m.design)) {
@@ -369,13 +434,20 @@ document.addEventListener('click', e => {
 function initMine() {
   $('dz-save').addEventListener('click', () => openSaveDialog(false));
   // New design: always the same start (three plain cream squares in a row, 300 mm); the timeline keeps the previous one
-  $('dz-new').addEventListener('click', () => {
-    setMineCur(null);
-    mineSave();
-    if ($('dz-dialog').open) $('dz-dialog').close();
-    timelines.remove(tlKeyFor(null)); // a new design starts its own, empty timeline
-    replaceDesign(newDesign(), { timeline: null });
-  });
+  $('dz-new').addEventListener('click', () =>
+    confirmLeave(() => {
+      setMineCur(null);
+      mineSave();
+      if ($('dz-dialog').open) $('dz-dialog').close();
+      timelines.remove(tlKeyFor(null)); // a new design starts its own, empty timeline
+      replaceDesign(freshDesign(), { timeline: null });
+    }),
+  );
+  $('leave-stay').addEventListener('click', () => leaveChoice('stay'));
+  $('leave-x').addEventListener('click', () => leaveChoice('stay'));
+  $('leave-drop').addEventListener('click', () => leaveChoice('drop'));
+  $('leave-save').addEventListener('click', () => leaveChoice('save'));
+  $('leave-dlg').addEventListener('close', () => (leaveNext = null));
   $('mine-new').addEventListener('click', () => openSaveDialog(true));
   $('save-ok').addEventListener('click', () => doSave(false));
   $('save-asnew').addEventListener('click', () => doSave(true));
@@ -391,6 +463,7 @@ function initMine() {
   });
   $('save-dlg').addEventListener('close', () => {
     saveForceNew = false;
+    afterSave = null; // closed without saving: stay on this quilt
     if (state.page === 'mine') renderMine();
   });
   $('mine-q').addEventListener('input', renderMine);
@@ -409,4 +482,4 @@ function adoptDesignId(id) {
   mineSave();
 }
 
-export { adoptDesignId, mineSave, openMine, quiltPicture, renderMine, saveCurrent, shownName };
+export { adoptDesignId, confirmLeave, mineSave, openMine, quiltPicture, renderMine, saveCurrent, shownName };
