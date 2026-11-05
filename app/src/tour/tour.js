@@ -152,7 +152,7 @@ const TOUR = [
     clip: 'pattern',
     back: () => openBlocks([4]),
     text: t(
-      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, go to the end of this row and click the round <b>+</b> button there.',
+      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button at the end of this row shows all the blocks.)',
     ),
     allow: ['#dz-patterns'],
     glow: '#dz-patterns [data-p="nine"]',
@@ -187,7 +187,7 @@ const TOUR = [
     clip: 'fabric',
     back: () => openBlocks([4], [4]), // the square in the middle
     text: t(
-      'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, go to the end of this row and click the round button with a number there.',
+      'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. (Not now: on your own quilts, the round button with a number, beside this row, shows all the fabrics.)',
     ),
     allow: ['#dz-fabrics2'],
     glow: '#dz-fabrics2 [data-f="b3"]',
@@ -311,7 +311,7 @@ const TOUR = [
     back: () => showToolsPanel('brd'),
     enter: () => (tour.brdFab = bordersOf(design)[0]?.fabrics?.[0]),
     text: t(
-      'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; you can try as many as you want.',
+      'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; later you can change it as often as you like.',
     ),
     allow: ['#brd-list', '#brd-palbox'],
     glow: '#brd-list .brd-row:first-child .brd-slot[data-slot="0"]',
@@ -447,7 +447,7 @@ const TOUR = [
     back: () => showPage('cut'),
     enter: () => showPage('design'),
     text: t(
-      'Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. <b>Undo</b>, on the left, takes back the last change. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.',
+      'Beside the quilt there are a few more, to try when you like:<br>• <b>Undo</b> takes back the last change.<br>• <b>Turn over</b> shows the back of the quilt.<br>• <b>Picture</b> makes a realistic photo of it.<br>• <b>Share</b> shows it to other quilters.<br>• <b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.<br>• <b>Tutorial</b>, at the bottom left, starts this exercise again.',
     ),
     allow: [],
     glow: '#rail-sym',
@@ -663,17 +663,21 @@ function initTourDrag() {
 function tourMark() {
   document.querySelectorAll('.tour-allow').forEach(el => el.classList.remove('tour-allow'));
   document.querySelectorAll('.tour-glow').forEach(el => el.classList.remove('tour-glow'));
+  document.querySelectorAll('.tour-target').forEach(el => el.classList.remove('tour-target'));
   if (!tour.on) return;
   const st = TOUR[tour.i];
   for (const sel of st.allow || []) document.querySelectorAll(sel).forEach(el => el.classList.add('tour-allow'));
   // the video shows the step first; the sign lights up as it ends (the button works all along, for the impatient)
-  const g = !tour.watching && st.glow && document.querySelector(st.glow);
-  if (g) {
-    g.classList.add('tour-glow');
-    // in a row that scrolls sideways (drawn again after each change), the lit tile is kept whole in sight
-    const row = /** @type {HTMLElement | null} */ (g.parentElement);
+  // what the step asks to click, lit or not yet (while the video plays): in a row that scrolls sideways (drawn
+  // again after each change) it is kept whole in sight from the start, so the row never moves under a click
+  const target = st.glow && document.querySelector(st.glow);
+  if (target) target.classList.add('tour-target');
+  const g = !tour.watching && target;
+  if (g) g.classList.add('tour-glow');
+  if (target) {
+    const row = /** @type {HTMLElement | null} */ (target.parentElement);
     if (row && row.scrollWidth > row.clientWidth + 1) {
-      const r = g.getBoundingClientRect(),
+      const r = target.getBoundingClientRect(),
         box = row.getBoundingClientRect();
       if (r.left < box.left - 1 || r.right > box.right + 1)
         row.scrollLeft += r.left - box.left - (box.width - r.width) / 2;

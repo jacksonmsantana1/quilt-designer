@@ -190,6 +190,17 @@ function openPartPop(kind) {
   drawQuiltHi($('cg-pop-cv'), Math.min(1000, window.innerWidth - 80), window.innerHeight - 170, kind);
 }
 const cgOpen = new Set(); // blocks whose cutting list is open          // distinct block picked on the cutting guide (double-click), -1 = none
+/**
+ * The fabric the binding is cut from: the outer border's, the usual choice; without a border, the fabric the blocks
+ * use most (not the cream of the background), so it is one of the quilt's own fabrics. @param {any} d
+ */
+function bindingFabric(d) {
+  const outer = bordersOf(d).at(-1)?.fabrics?.[0];
+  if (outer) return outer;
+  const n = new Map();
+  for (const b of d.blocks || []) for (const f of b.fabrics || []) if (f !== 'b0') n.set(f, (n.get(f) || 0) + 1);
+  return [...n].sort((a, b) => b[1] - a[1])[0]?.[0] || 'b1';
+}
 function renderCut() {
   design = exact(current);
   if (!design) return;
@@ -312,8 +323,7 @@ function renderCut() {
     seam: cutOpts.seam,
     fabricWidth: cutOpts.fabricWidth,
     selvage: cutOpts.selvage,
-    // the binding is cut from the outer border's fabric, the usual choice: a quilt without a border uses indigo
-    bindingFabric: bordersOf(design).at(-1)?.fabrics?.[0] || 'b1',
+    bindingFabric: bindingFabric(design),
     bindingWidth: cutOpts.bindingWidth,
     partsOf,
     label: k => PATTERNS[k].label,

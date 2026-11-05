@@ -1,16 +1,16 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
   'The other round buttons': 'Os outros botões redondos',
-  'Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. <b>Undo</b>, on the left, takes back the last change. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.':
-    'Ao lado do quilt há mais alguns, para experimentar quando quiser: <b>Simetria</b> copia cada mudança para os blocos espelhados, <b>Virar</b> mostra o verso do quilt e o tecido do forro, <b>Foto</b> faz uma foto realista do quilt e <b>Compartilhar</b> mostra o quilt para a comunidade. <b>Desfazer</b>, à esquerda, desfaz a última mudança. O botão <b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
+  'Beside the quilt there are a few more, to try when you like:<br>• <b>Undo</b> takes back the last change.<br>• <b>Turn over</b> shows the back of the quilt.<br>• <b>Picture</b> makes a realistic photo of it.<br>• <b>Share</b> shows it to other quilters.<br>• <b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.<br>• <b>Tutorial</b>, at the bottom left, starts this exercise again.':
+    'Ao lado do quilt há mais alguns, para experimentar quando quiser:<br>• <b>Desfazer</b> desfaz a última mudança.<br>• <b>Virar</b> mostra o verso do quilt.<br>• <b>Foto</b> faz uma foto realista dele.<br>• <b>Compartilhar</b> mostra o quilt para outras quilteiras.<br>• <b>Simetria</b> repete cada mudança do outro lado do quilt, como num espelho.<br>• <b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
   'Make the border narrower': 'Deixe a barra mais estreita',
   'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.':
     'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.',
   'Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.':
     'Digite <b>3</b>, por favor, para o quilt ficar igual ao do tutorial.',
   'Choose the border fabric': 'Escolha o tecido da barra',
-  'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; you can try as many as you want.':
-    'Embaixo da barra, clique em <b>Tecido</b>: abre uma lista de tecidos. Clique no que você gostar para a moldura. O quilt muda na hora; você pode experimentar quantos quiser.',
+  'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; later you can change it as often as you like.':
+    'Embaixo da barra, clique em <b>Tecido</b>: abre uma lista de tecidos. Clique no que você gostar para a moldura. O quilt muda na hora; depois você pode trocar quantas vezes quiser.',
   'Look around': 'Olhe em volta',
   'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> to come closer.':
     'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> para chegar mais perto.',
@@ -58,14 +58,14 @@ export default {
   '<b>Click the middle block</b> of your quilt. Your block then appears on the right.':
     '<b>Clique no bloco do meio</b> do seu quilt. Aí o seu bloco aparece à direita.',
   'Choose the nine patch': 'Escolha o nine patch',
-  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, go to the end of this row and click the round <b>+</b> button there.':
-    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. Depois, para ver todos os blocos, vá até o fim desta fileira e clique no botão redondo <b>+</b> que fica lá.',
+  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. (Not now: on your own quilts, the round <b>+</b> button at the end of this row shows all the blocks.)':
+    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar. (Agora não: nos seus quilts, o botão redondo <b>+</b> no fim desta fileira mostra todos os blocos.)',
   'Pick a square': 'Escolha um quadrado',
   'In the big picture of the block, <b>click the square in the middle</b> to select it.':
     'Na imagem grande do bloco, <b>clique no quadrado do meio</b> para selecioná-lo.',
   'Give it a fabric': 'Dê um tecido a ele',
-  'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, go to the end of this row and click the round button with a number there.':
-    'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado. Depois, para ver todos os tecidos, vá até o fim desta fileira e clique no botão redondo com um número que fica lá.',
+  'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. (Not now: on your own quilts, the round button with a number, beside this row, shows all the fabrics.)':
+    'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado. (Agora não: nos seus quilts, o botão redondo com um número, ao lado desta fileira, mostra todos os tecidos.)',
   'Select the whole quilt': 'Selecione o quilt inteiro',
   'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.':
     'Pressione e segure o mouse em um canto do quilt e <b>arraste até o canto oposto</b>. Todo bloco que ele tocar fica selecionado. Vai aparecer um botãozinho <b>Unir</b>: você não precisa dele agora.',
