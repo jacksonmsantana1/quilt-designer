@@ -459,7 +459,7 @@ const TOUR = [
     text: () => {
       const code = document.querySelector('#cg-blocks .cgblock:last-child td.l')?.textContent || 'AB1.1';
       return t(
-        'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. A strip marked <b>{code}</b> is cut from fabric <b>{letter}</b> of the shopping list; <b>B1</b> means border 1, and the last number is the piece. Then click <b>Next</b>.',
+        'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. In a strip marked <b>{code}</b>, the first letter, <b>{letter}</b>, is its fabric in the shopping list; then <b>B1</b> means border 1; the last number is the piece. Then click <b>Next</b>.',
         { code, letter: code[0] },
       );
     },

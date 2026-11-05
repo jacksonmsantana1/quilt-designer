@@ -4297,7 +4297,7 @@ var tour_default = {
   "This table is your shopping list. Each fabric has a letter, and beside it how much to buy, with a little extra for straightening the cut. The <b>binding</b>, the strip that closes the edge of the quilt, is cut from the border fabric and is already counted. Click <b>Next</b> when you have read it.": "Esta tabela \xE9 a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, com uma sobra para acertar o corte. O <b>vi\xE9s</b>, a tira que fecha a beirada do quilt, \xE9 cortado do tecido da barra e j\xE1 est\xE1 na conta. Clique em <b>Pr\xF3ximo</b> quando terminar de ler.",
   Next: "Pr\xF3ximo",
   "The border pieces": "As pe\xE7as da barra",
-  "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. A strip marked <b>{code}</b> is cut from fabric <b>{letter}</b> of the shopping list; <b>B1</b> means border 1, and the last number is the piece. Then click <b>Next</b>.": "As faixas e a barra t\xEAm cart\xF5es pr\xF3prios mais abaixo. Clique em <b>Barra 1</b>, o t\xEDtulo destacado: ele lista as tiras para cortar para a barra. Uma tira marcada <b>{code}</b> \xE9 cortada do tecido <b>{letter}</b> da lista de compras; <b>B1</b> quer dizer barra 1, e o \xFAltimo n\xFAmero \xE9 a pe\xE7a. Depois clique em <b>Pr\xF3ximo</b>.",
+  "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. In a strip marked <b>{code}</b>, the first letter, <b>{letter}</b>, is its fabric in the shopping list; then <b>B1</b> means border 1; the last number is the piece. Then click <b>Next</b>.": "As faixas e a barra t\xEAm cart\xF5es pr\xF3prios mais abaixo. Clique em <b>Barra 1</b>, o t\xEDtulo destacado: ele lista as tiras para cortar para a barra. Numa tira marcada <b>{code}</b>, a primeira letra, <b>{letter}</b>, \xE9 o tecido dela na lista de compras; depois, <b>B1</b> quer dizer barra 1; o \xFAltimo n\xFAmero \xE9 a pe\xE7a. Depois clique em <b>Pr\xF3ximo</b>.",
   "Take it to your sewing table": "Leve para a mesa de costura",
   "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list and every block with its pieces; shapes that a ruler cannot cut come with templates at real size. You can click it now, or later. Then click <b>Next</b>.": "O bot\xE3o <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras e cada bloco com as suas pe\xE7as; as formas que n\xE3o se cortam com r\xE9gua v\xEAm com moldes em tamanho real. Voc\xEA pode clicar agora ou depois. Depois clique em <b>Pr\xF3ximo</b>.",
   // the guided tour
@@ -16451,6 +16451,7 @@ function initDesignerUI() {
       return;
     }
     dispatch(setBlockMm, v);
+    box3.value = String(toInput(v));
   };
   for (const id of ["dz-bmm3"]) $(id).addEventListener("change", blockSize);
   $("dz-cols").addEventListener("change", sizeChange);
@@ -21938,7 +21939,7 @@ var TOUR = [
     text: () => {
       const code = document.querySelector("#cg-blocks .cgblock:last-child td.l")?.textContent || "AB1.1";
       return t(
-        "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. A strip marked <b>{code}</b> is cut from fabric <b>{letter}</b> of the shopping list; <b>B1</b> means border 1, and the last number is the piece. Then click <b>Next</b>.",
+        "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. In a strip marked <b>{code}</b>, the first letter, <b>{letter}</b>, is its fabric in the shopping list; then <b>B1</b> means border 1; the last number is the piece. Then click <b>Next</b>.",
         { code, letter: code[0] }
       );
     },

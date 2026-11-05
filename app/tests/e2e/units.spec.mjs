@@ -85,6 +85,7 @@ test('a block size typed in centimetres is read as such; one out of range is ref
   await box.press('Enter');
   await expect.poll(async () => (await app.current()).blockMm).toBe(250);
   await expect(page.locator('#notice')).toContainText('25 cm is 250 mm');
+  await expect(box).toHaveValue('250'); // the box shows what was used
   await box.fill('5000');
   await box.press('Enter');
   await expect(page.locator('#notice')).toContainText('A block can be from 50 mm to 1000 mm');

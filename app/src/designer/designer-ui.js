@@ -567,6 +567,7 @@ function initDesignerUI() {
       return;
     }
     dispatch(setBlockMm, v);
+    box.value = String(toInput(v)); // the box shows what was used (250 after "25 cm"), not what was typed
   };
   for (const id of ['dz-bmm3']) $(id).addEventListener('change', blockSize);
   $('dz-cols').addEventListener('change', sizeChange);
