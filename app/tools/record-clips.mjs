@@ -1421,7 +1421,7 @@ const CLIPS = {
     V.h = 1120;
     await page.setViewportSize({ width: V.w, height: V.h });
     await page.waitForTimeout(400);
-    await clip('size', await around([size], 640), async c => {
+    await clip('size', await around([size], 480), async c => {
       await c.moveTo(size, 800);
       await c.click(async () => {
         await size.click();
@@ -1488,7 +1488,7 @@ const CLIPS = {
     };
     await tile.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
     await page.waitForTimeout(200);
-    await clip('pattern', await around([page.locator('#dz-patterns')], 680), async c => {
+    await clip('pattern', await around([page.locator('#dz-patterns')], 520), async c => {
       await scrollRow(c, page.locator('#dz-patterns'), tile);
       await c.moveTo(tile, 700);
       await c.click();
@@ -1497,7 +1497,7 @@ const CLIPS = {
     const big = page.locator('#dz-block');
     await big.evaluate(el => el.scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(200);
-    await clip('piece', await around([big], 640), async c => {
+    await clip('piece', await around([big], 480), async c => {
       const b = await big.boundingBox();
       await c.move(b.x + b.width / 2, b.y + b.height / 2, 900);
       await c.click();
@@ -1505,7 +1505,7 @@ const CLIPS = {
     const fab = page.locator('#dz-fabrics2 [data-f="b3"]');
     await fab.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
     await page.waitForTimeout(200);
-    await clip('fabric', await around([page.locator('#dz-fabrics2')], 680), async c => {
+    await clip('fabric', await around([page.locator('#dz-fabrics2')], 520), async c => {
       await scrollRow(c, page.locator('#dz-fabrics2'), fab);
       await c.moveTo(fab, 700);
       await c.click();

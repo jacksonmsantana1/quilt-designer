@@ -445,6 +445,22 @@
   .tour { position: fixed; z-index: 1000; width: min(340px, calc(100vw - 24px)); background: var(--panel); color: var(--ink); border: 2px dashed var(--stitch); border-radius: 14px; box-shadow: 0 18px 50px rgba(var(--shade),.3); padding: 14px 16px 12px; font-family: var(--font-body); }
   .tour-head { display: flex; justify-content: space-between; align-items: center; font: 600 .72rem var(--font-body); color: var(--accent); text-transform: uppercase; letter-spacing: .12em; font-weight: 700; }
   .tour-head { cursor: move; user-select: none; touch-action: none; }
+  /* on a computer the tutorial is a column of its own on the left: the app moves over to make room, so the card
+     never covers the quilt, and the video is large enough to see */
+  :root { --tour-w: 460px; }
+  body.tour-docked { padding-left: var(--tour-w); }
+  body.tour-docked .tour { left: 0 !important; top: 0 !important; bottom: 0; width: var(--tour-w) !important; transform: none !important; border-radius: 0; border-width: 0 2px 0 0; box-shadow: 4px 0 18px rgba(var(--shade),.12); overflow-y: auto; padding: 18px 20px; box-sizing: border-box; font-size: 1.05rem; }
+  body.tour-docked .tour .tour-head { cursor: default; }
+  body.tour-docked .tour #tour-title { font-size: 1.3rem; }
+  body.tour-docked .tour.clip-small .tour-clip, body.tour-docked .tour .tour-clip { width: 100%; }
+  body.tour-docked #tour-min { display: none; }
+  /* the video, clicked: large over the page, to read what it shows; clicked again, back in the column */
+  body.tour-docked .tour-clip { cursor: zoom-in; }
+  .tour .tour-clip.big { position: fixed; z-index: 1100; left: 50%; top: 50%; width: min(1000px, 92vw) !important; transform: translate(-50%, -50%); box-shadow: 0 20px 60px rgba(0,0,0,.45); cursor: zoom-out; }
+  body.tour-docked.sim-over #page-sim { left: calc(var(--tour-w) + 18px); }
+  body.tour-docked #tour-start { display: none; }
+  /* the header is narrower beside the column: the logo without its name, and no account or language (off in the tutorial) */
+  body.tour-docked .app-logo b, body.tour-docked .acct { display: none; }
   .tour.min #tour-text, .tour.min .tour-actions { display: none; }
   .tour.min h3 { font-size: .9rem; margin: 4px 0 0; }
   .tour { width: min(300px, calc(100vw - 24px)); }
@@ -22046,6 +22062,11 @@ function tourPlace() {
   tourArrow();
   const box3 = $("tour"), st = TOUR[tour.i], host = tourHost();
   if (box3.parentElement !== host) host.appendChild(box3);
+  if (document.body.classList.contains("tour-docked")) {
+    box3.classList.remove("center");
+    box3.style.left = box3.style.top = "";
+    return;
+  }
   box3.classList.toggle("center", !!st.center && !tour.userPos);
   const W = innerWidth, H = innerHeight, bw = box3.offsetWidth, bh = box3.offsetHeight, m = 12;
   const clampXY = (x, y) => [Math.max(m, Math.min(W - bw - m, x)), Math.max(m, Math.min(H - bh - m, y))];
@@ -22131,7 +22152,7 @@ function tourPlace() {
 function initTourDrag() {
   const head = document.querySelector("#tour .tour-head");
   head.addEventListener("pointerdown", (e) => {
-    if (e.target.closest("button")) return;
+    if (e.target.closest("button") || document.body.classList.contains("tour-docked")) return;
     const box3 = $("tour"), r = box3.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
     box3.classList.remove("center");
     head.setPointerCapture(e.pointerId);
@@ -22241,6 +22262,7 @@ function tourArrow() {
 function tourShow() {
   const st = TOUR[tour.i];
   tour.shownAt = performance.now();
+  $("tour-clip").classList.remove("big");
   $("tour-note").hidden = true;
   $("tour-count").textContent = st.center ? t("Guided tour") : t("Step {n} of {all}", { n: tour.i, all: TOUR.length - 2 });
   $("tour-title").textContent = st.title;
@@ -22310,6 +22332,8 @@ function tourBegin() {
   tour.userPos = null;
   tour.pos = null;
   document.body.classList.add("tour-active");
+  document.body.classList.toggle("tour-docked", !IS_PHONE && innerWidth >= 1e3);
+  dispatchEvent(new Event("resize"));
   for (const id of ["dz-dialog", "save-dlg", "cg-pop"]) if ($(id).open) $(id).close();
   if (state.page !== "design") showPage("design");
   hideTools();
@@ -22362,6 +22386,10 @@ function tourEnd(how) {
   $("tour-clip").pause();
   clearInterval(tour.poll);
   document.body.classList.remove("tour-active");
+  if (document.body.classList.contains("tour-docked")) {
+    document.body.classList.remove("tour-docked");
+    setTimeout(() => dispatchEvent(new Event("resize")));
+  }
   tourMark();
   tourArrow();
   const box3 = $("tour");
@@ -22407,7 +22435,14 @@ for (const ev of ["pointermove", "wheel"])
 initTourDrag();
 $("tour-skip").addEventListener("click", () => tourAct("skip"));
 $("tour-back").addEventListener("click", tourBack);
-$("tour-clip").addEventListener("click", tourReplay);
+$("tour-clip").addEventListener("click", () => {
+  const v = $("tour-clip");
+  if (document.body.classList.contains("tour-docked")) {
+    v.classList.toggle("big");
+    if (!v.classList.contains("big")) return;
+  }
+  tourReplay();
+});
 window.addEventListener(
   "pointerdown",
   () => {

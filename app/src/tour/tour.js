@@ -608,6 +608,12 @@ function tourPlace() {
     st = TOUR[tour.i],
     host = tourHost();
   if (box.parentElement !== host) host.appendChild(box);
+  if (document.body.classList.contains('tour-docked')) {
+    // a column of its own: nothing to place, and nothing under it
+    box.classList.remove('center');
+    box.style.left = box.style.top = '';
+    return;
+  }
   box.classList.toggle('center', !!st.center && !tour.userPos);
   const W = innerWidth,
     H = innerHeight,
@@ -704,7 +710,7 @@ function tourPlace() {
 function initTourDrag() {
   const head = document.querySelector('#tour .tour-head');
   head.addEventListener('pointerdown', e => {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button') || document.body.classList.contains('tour-docked')) return; // a column stays put
     const box = $('tour'),
       r = box.getBoundingClientRect(),
       dx = e.clientX - r.left,
@@ -822,6 +828,7 @@ function tourArrow() {
 function tourShow() {
   const st = TOUR[tour.i];
   tour.shownAt = performance.now();
+  $('tour-clip').classList.remove('big');
   $('tour-note').hidden = true;
   $('tour-count').textContent = st.center
     ? t('Guided tour')
@@ -895,6 +902,9 @@ function tourBegin() {
   tour.userPos = null;
   tour.pos = null;
   document.body.classList.add('tour-active');
+  // on a computer the card is a column on the left and the app moves over (template.html, body.tour-docked)
+  document.body.classList.toggle('tour-docked', !IS_PHONE && innerWidth >= 1000);
+  dispatchEvent(new Event('resize'));
   for (const id of ['dz-dialog', 'save-dlg', 'cg-pop']) if ($(id).open) $(id).close();
   if (state.page !== 'design') showPage('design');
   hideTools();
@@ -948,6 +958,10 @@ function tourEnd(how) {
   /** @type {HTMLVideoElement} */ ($('tour-clip')).pause();
   clearInterval(tour.poll);
   document.body.classList.remove('tour-active');
+  if (document.body.classList.contains('tour-docked')) {
+    document.body.classList.remove('tour-docked');
+    setTimeout(() => dispatchEvent(new Event('resize')));
+  }
   tourMark();
   tourArrow();
   const box = $('tour');
@@ -989,8 +1003,16 @@ for (const ev of ['pointermove', 'wheel'])
 initTourDrag();
 $('tour-skip').addEventListener('click', () => tourAct('skip'));
 $('tour-back').addEventListener('click', tourBack);
-// the small video, after it has played: a click plays it again, large
-$('tour-clip').addEventListener('click', tourReplay);
+// a click on the video: in the column, it opens large over the page (and plays again), and a second click puts it
+// back; in a floating card, it plays again
+$('tour-clip').addEventListener('click', () => {
+  const v = $('tour-clip');
+  if (document.body.classList.contains('tour-docked')) {
+    v.classList.toggle('big');
+    if (!v.classList.contains('big')) return;
+  }
+  tourReplay();
+});
 // is the mouse held down? (a selection dragged half way is not a mistake yet)
 // (on the window, so it runs before the tour's own blocking of pointerdown on the page)
 window.addEventListener(
