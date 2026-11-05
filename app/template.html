@@ -684,10 +684,11 @@
   .fab .fab-x, .fab .fab-in { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 600 13px/1 var(--font-body); }
   .fab .fab-x { background: rgba(20, 25, 40, .72); color: #fff; cursor: pointer; opacity: 0; transition: opacity .12s; }
   .fab:hover .fab-x, .fab:focus-visible .fab-x { opacity: 1; }
-  .fab .fab-x:hover { background: #b3261e; }
-  @media (hover: none) { .fab .fab-x { opacity: .85; } }
+  /* a calm colour and a minus: it only takes the fabric off this short list (people feared it deleted the fabric) */
+  .fab .fab-x:hover { background: var(--ink); }
+  @media (hover: none) { .fab .fab-x { opacity: .6; } }
   /* the marks are drawn here, not written in the tile: its text stays the fabric's name */
-  .fab .fab-x::before { content: "×"; }
+  .fab .fab-x::before { content: "\2212"; }
   /* a fabric that can't be taken off the list has no corner mark: a tick there read as "chosen" */
   .fab .fab-in { display: none; }
   /* in the library: a dot on the fabrics that are in the lists */
