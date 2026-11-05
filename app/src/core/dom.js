@@ -25,7 +25,10 @@ function sideRoller(box, chosen) {
     box.addEventListener('scroll', () => (box.dataset.left = String(box.scrollLeft)));
   }
   // the tile the guided tour asks for comes first: it is the one to click now
-  const on = /** @type {HTMLElement | null} */ (box.querySelector('.tour-target') || box.querySelector(chosen));
+  const asked = typeof document !== 'undefined' ? document.body.dataset.tourTarget : ''; // set by tour/tour.js
+  const on = /** @type {HTMLElement | null} */ (
+    (asked && box.querySelector(asked)) || box.querySelector('.tour-target') || box.querySelector(chosen)
+  );
   if (!on || !box.clientWidth) return;
   // where the row was before it was drawn again: it stays there while the chosen item is in sight, so a pick
   // doesn't slide the tiles from under the mouse

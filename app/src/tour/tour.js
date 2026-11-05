@@ -184,6 +184,7 @@ const TOUR = [
     text: t('In the big picture of the block, <b>click the square in the middle</b> to select it.'),
     allow: ['#dz-block'],
     glow: '#dz-block',
+    keepOff: ['#dz-block'], // every square of it must be in reach
     done: () => selParts.has(4),
     check: () => selParts.size > 0 && !selParts.has(4),
     fix: () => {
@@ -732,6 +733,8 @@ function tourMark() {
   document.querySelectorAll('.tour-allow').forEach(el => el.classList.remove('tour-allow'));
   document.querySelectorAll('.tour-glow').forEach(el => el.classList.remove('tour-glow'));
   document.querySelectorAll('.tour-target').forEach(el => el.classList.remove('tour-target'));
+  // what the step asks for, by its selector: a row drawn again (core/dom.js sideRoller) keeps it in sight at once
+  document.body.dataset.tourTarget = (tour.on && TOUR[tour.i].glow) || '';
   if (!tour.on) return;
   const st = TOUR[tour.i];
   for (const sel of st.allow || []) document.querySelectorAll(sel).forEach(el => el.classList.add('tour-allow'));
