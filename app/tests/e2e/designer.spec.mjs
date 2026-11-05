@@ -459,4 +459,10 @@ test('"Choose every other block" keeps a chessboard of the blocks chosen, so a p
   const plain = d.blocks.map((b, i) => (b.pattern === 'plain' ? i : -1)).filter(i => i >= 0);
   expect(plain.length).toBe(13); // the corner block's colour of the chessboard: 13 of 25
   expect(plain.every(i => (Math.floor(i / 5) + (i % 5)) % 2 === 0)).toBe(true);
+  // again: the other half, for the second block
+  await page.locator('#dz-alternate').click();
+  await page.locator('#dz-patterns [data-p="hst"]').click();
+  const d2 = await app.current();
+  expect(d2.blocks.filter(b => b.pattern === 'plain').length).toBe(13);
+  expect(d2.blocks.filter(b => b.pattern === 'hst').length).toBe(12);
 });

@@ -579,15 +579,35 @@ function initDesignerUI() {
     });
   // of the blocks chosen, every other one (a chessboard), the one being edited among them: a second block can then be
   // copied into half the quilt at once
+  // clicked again on the half it chose: the other half, for the second block
+  let altFrom = /** @type {{ all: Set<number>, kept: Set<number> } | null} */ (null);
   $('dz-alternate').addEventListener('click', () => {
+    const same = (/** @type {Set<number>} */ a, /** @type {Set<number>} */ b) =>
+      a.size === b.size && [...a].every(i => b.has(i));
+    if (altFrom && same(selBlocks, altFrom.kept)) {
+      const from = altFrom;
+      const other = new Set([...from.all].filter(i => !from.kept.has(i) && design.blocks[i]?.under == null));
+      if (!other.size) return;
+      altFrom = { all: from.all, kept: other };
+      setFocusBlock([...other][0]);
+      setSelBlocks(other);
+      renderDesigner();
+      notify(t('Now the other half is chosen. Click a block pattern, or a block of your quilt, to put it in them.'));
+      return;
+    }
     const at = i => Math.floor(i / design.cols) + (i % design.cols);
     const keep = new Set(
       [...selBlocks].filter(i => at(i) % 2 === at(focusBlock) % 2 && design.blocks[i]?.under == null),
     );
     if (keep.size === selBlocks.size || !keep.size) return;
+    altFrom = { all: new Set(selBlocks), kept: keep };
     setSelBlocks(keep);
     renderDesigner();
-    notify(t('Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them.'));
+    notify(
+      t(
+        'Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them. Click the button again for the other half.',
+      ),
+    );
   });
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {
