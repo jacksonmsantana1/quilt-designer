@@ -1,31 +1,69 @@
 // Guided tour for first-time users.
 import '../designer/units-ui.js'; // load order: runs after designer/units-ui
-import { design, focusBlock, mineCur, selBlocks, selParts, setMineCur } from '../core/store.js';
-import { hideTools, toolsPanel } from '../designer/ui-state.js';
+import {
+  design,
+  focusBlock,
+  mineCur,
+  selBlocks,
+  selParts,
+  setFocusBlock,
+  setMineCur,
+  setSelBlocks,
+} from '../core/store.js';
+import { hideTools, showToolsPanel, toolsPanel } from '../designer/ui-state.js';
 import { $ } from '../core/dom.js';
 import { state } from '../sim/config.js';
 import { IS_PHONE } from '../sim/renderer.js';
 import { initFabricLib } from '../designer/fabric-library.js';
 import { bordersOf } from '@quilt/shared/geometry.js';
+import { getUnit } from '../core/units.js';
 import { blockKey } from '../designer/block-library.js';
 import { showPage } from '../app/pages.js';
 import { mineSave } from '../mine/my-designs.js';
-import { tl, tlCopy, tlKeyFor, tlSwitch } from '../timeline/timeline.js';
+import { tlKeyFor } from '../timeline/timeline.js';
 import { timelines } from '../storage/repo.js';
-import { defaultDesign } from '@quilt/shared/design.js';
-import { ensureDesign, openDesign, replaceDesign } from '../designer/dispatch.js';
-import { t } from '@quilt/shared/i18n.js';
+import { newDesign } from '@quilt/shared/design.js';
+import { dispatch, ensureDesign, openDesign, replaceDesign } from '../designer/dispatch.js';
+import { setBlockMm } from '../core/edits.js';
+import { drawPartsEditor, renderDesigner } from '../designer/parts-editor.js';
+import { openBlockEditor } from '../designer/side-panel.js';
+import { getLang, t } from '@quilt/shared/i18n.js';
 
 // ---- guided tour: a short exercise for first-time users. Every control is greyed out and switched
 // off except the ones the current step needs; the step moves on by itself once it has been done.
 const TOUR_KEY = 'quilt-tour.v1';
-const tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null };
+const tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null, watching: false, steps: [] };
 const blk = i => design && design.blocks[i];
+/** Going back a step: the blocks and panel that step expects. @param {number[]} ids the selected blocks, the first in focus */
+function openBlocks(ids, parts = []) {
+  setSelBlocks(new Set(ids));
+  setFocusBlock(ids[0]);
+  selParts.clear();
+  for (const p of parts) selParts.add(p);
+  renderDesigner();
+  openBlockEditor();
+}
+const ALL = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+/** A step of clicking one of the sashing widths, by its place in the row (their values depend on the unit). @param {number} n */
+const sashStep = n => {
+  const sel = `#sash-presets button:nth-child(${n})`;
+  return {
+    allow: ['#sash-presets'],
+    glow: sel,
+    pick: {
+      tile: '#sash-presets button',
+      right: `:nth-child(${n})`,
+      says: t('That is a different width. Click the highlighted one.'),
+    },
+    done: () =>
+      (design.sashing?.mm || 0) === +(/** @type {HTMLElement} */ (document.querySelector(sel))?.dataset.v ?? -1),
+  };
+};
 const TOUR = [
   {
     title: t('Welcome to Block & Bind!'),
     text: t(
-      'In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.',
+      'In about five minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.',
     ),
     center: true,
     buttons: [
@@ -34,132 +72,335 @@ const TOUR = [
     ],
   },
   {
-    title: t('Fewer columns'),
+    title: t('Make it three rows'),
+    clip: 'rows',
+    back: () => hideTools(),
     text: t(
-      'A new quilt starts with 5 × 5 blocks. Above the quilt, click the <b>−</b> next to <b>Columns</b> until there are <b>3</b> columns.',
+      'A new quilt starts as one row of three blocks. Above the quilt, click the <b>+</b> next to <b>Rows</b> until there are <b>3</b> rows.',
     ),
-    allow: ['[data-step="c:-1"]', '#dz-cols'],
-    glow: '[data-step="c:-1"]',
-    done: () => design.cols === 3,
+    allow: ['[data-step="r:1"]', '#dz-rows'],
+    glow: '[data-step="r:1"]',
+    done: () => design.rows === 3,
   },
   {
-    title: t('Just one row'),
+    title: t('Measure in inches'),
+    clip: 'unit',
+    back: () => {
+      hideTools();
+      const sw = /** @type {HTMLInputElement} */ ($('unit-sw'));
+      sw.checked = false;
+      sw.dispatchEvent(new Event('change', { bubbles: true }));
+    },
     text: t(
-      'Now click the <b>−</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side.',
+      'Quilt patterns are usually written in inches. Above the quilt, click the <b>mm / in</b> switch. You can change it back at any time.',
     ),
-    allow: ['[data-step="r:-1"]', '#dz-rows'],
-    glow: '[data-step="r:-1"]',
-    done: () => design.rows === 1,
+    allow: ['.unit-sw'],
+    glow: '.unit-sw',
+    done: () => getUnit() === 'in',
+  },
+  {
+    title: t('Choose the block size'),
+    clip: 'size',
+    back: () => hideTools(),
+    text: t(
+      'Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn.',
+    ),
+    allow: ['#dz-bsize'],
+    glow: '#dz-bsize .inch-whole',
+    enter: () =>
+      setTimeout(() => {
+        const box = /** @type {HTMLInputElement | null} */ (document.querySelector('#dz-bsize .inch-whole'));
+        if (box) (box.focus(), box.select());
+      }),
+    done: () => design.blockMm === 305,
+    // another size would work, but the cards and videos that follow are about this one
+    check: () => design.blockMm !== 254 && design.blockMm !== 305,
+    fix: () => {
+      dispatch(setBlockMm, 254);
+      const box = /** @type {HTMLInputElement | null} */ (document.querySelector('#dz-bsize .inch-whole'));
+      if (box) (box.blur(), box.focus());
+    },
+    says: t('Type <b>12</b>, please, so that the quilt comes out like the one in the videos.'),
   },
   {
     title: t('Open the middle block'),
-    text: t('<b>Click the middle block</b> of your quilt. The side panel opens with its editor.'),
+    clip: 'block',
+    back: () => hideTools(),
+    text: t('<b>Click the middle block</b> of your quilt. Your block then appears on the right.'),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
-    done: () => !$('dz-side').hidden && focusBlock === 1 && selBlocks.size === 1,
+    done: () => !$('dz-side').hidden && focusBlock === 4 && selBlocks.size === 1,
+    check: () => !$('dz-side').hidden && focusBlock !== 4,
+    fix: () => hideTools(),
+    says: t('That is another block. Click the block in the middle of the quilt.'),
   },
   {
-    title: t('Choose a pattern'),
-    text: t('Under <b>Block pattern</b> at the end of the Block parts card, click <b>Pinwheel</b>.'),
-    allow: ['#dz-patterns'],
-    glow: '#dz-patterns [data-p="pinwheel"]',
-    done: () => blk(1).pattern === 'pinwheel',
-  },
-  {
-    title: t('Pick a piece'),
+    title: t('Choose the nine patch'),
+    clip: 'pattern',
+    back: () => openBlocks([4]),
     text: t(
-      'In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it.',
+      'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, use the round <b>+</b> button beside this row.',
     ),
+    allow: ['#dz-patterns'],
+    glow: '#dz-patterns [data-p="nine"]',
+    arrow: '#dz-patterns',
+    pick: {
+      tile: '#dz-patterns .pat',
+      right: '[data-p="nine"]',
+      says: t(
+        'That is a different block. Watch the video again, and when it ends click <b>Nine patch</b>, which will light up.',
+      ),
+    },
+    done: () => blk(4).pattern === 'nine',
+  },
+  {
+    title: t('Pick a square'),
+    clip: 'piece',
+    back: () => openBlocks([4]),
+    text: t('In the big picture of the block, <b>click the square in the middle</b> to select it.'),
     allow: ['#dz-block'],
     glow: '#dz-block',
-    done: () => selParts.size > 0,
+    done: () => selParts.has(4),
+    check: () => selParts.size > 0 && !selParts.has(4),
+    fix: () => {
+      selParts.clear();
+      renderDesigner();
+      drawPartsEditor();
+    },
+    says: t('That is another square. Click the square in the middle of the block.'),
   },
   {
     title: t('Give it a fabric'),
+    clip: 'fabric',
+    back: () => openBlocks([4], [4]), // the square in the middle
     text: t(
-      'Now click a fabric under <b>Fabric for the selected parts</b>, for example <b>Mustard cotton</b> (any fabric different from the one it has). The piece changes right away.',
+      'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, use the round button with a number beside this row.',
     ),
     allow: ['#dz-fabrics2'],
-    glow: '#dz-fabrics2',
-    done: s => blk(1).fabrics.join() !== s.f,
-    start: () => ({ f: blk(1).fabrics.join() }),
+    glow: '#dz-fabrics2 [data-f="b3"]',
+    arrow: '#dz-fabrics2',
+    pick: {
+      tile: '#dz-fabrics2 .fab',
+      right: '[data-f="b3"]',
+      says: t(
+        'That is a different fabric. Watch the video again, and when it ends click <b>Mustard cotton</b>, which will light up.',
+      ),
+    },
+    done: s => blk(4).fabrics.join() !== s.f,
+    start: () => ({ f: blk(4).fabrics.join() }),
   },
   {
-    title: t('Select all three blocks'),
+    title: t('Select the whole quilt'),
+    clip: 'select',
+    back: () => openBlocks([4]),
     text: t(
-      'Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected.',
+      'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.',
     ),
     allow: ['#dz-quilt'],
     glow: '#dz-quilt',
-    done: () => selBlocks.size === 3,
+    done: () => selBlocks.size === 9,
+    check: () => !tour.down && selBlocks.size > 1 && selBlocks.size < 9,
+    says: t('That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.'),
   },
   {
     title: t('Copy your block'),
+    clip: 'copy',
+    back: () => openBlocks(ALL),
     text: t(
-      'In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it.',
+      'Under <b>Blocks in your quilt</b>, click your <b>Nine patch</b>, the highlighted one. All nine blocks become a copy of it.',
     ),
+    // only your block: dragging made a plain block the current one, and clicking that would wipe out your nine patch
     allow: ['#dz-library'],
-    glow: '#dz-library',
-    done: () => design.blocks.every(b => b.pattern === 'pinwheel' && blockKey(b) === blockKey(blk(1))),
+    glow: '#dz-library .blib-item[data-src="4"]',
+    pick: {
+      tile: '#dz-library .blib-item',
+      right: '[data-src="4"]',
+      says: t(
+        'That is a different block, and it would replace your work. Watch the video again, and when it ends click your <b>Nine patch</b>, which will light up.',
+      ),
+    },
+    done: () => design.blocks.every(b => b.pattern === 'nine' && blockKey(b) === blockKey(blk(4))),
   },
   {
-    title: t('Close the side panel'),
-    text: t(
-      'Click the highlighted <b>round button</b> beside the quilt (Block parts) again to close the side panel and see the whole quilt.',
-    ),
-    allow: ['#rail-parts'],
-    glow: '#rail-parts',
-    done: () => $('dz-side').hidden,
+    title: t('Add sashing'),
+    // the copying is done: back to one block chosen, so the marks of the selection don't stay on the quilt
+    enter: () => {
+      setSelBlocks(new Set([4]));
+      setFocusBlock(4);
+      selParts.clear();
+      renderDesigner();
+    },
+    clip: 'sash',
+    back: () => openBlocks(ALL),
+    text: t('Sashing is the strips between the blocks. Click the highlighted round button beside the quilt.'),
+    allow: ['#rail-sash'],
+    glow: '#rail-sash',
+    done: () => !$('dz-side').hidden && toolsPanel === 'sash',
   },
   {
-    title: t('Go back in time'),
+    title: t('Try a narrow width'),
+    back: () => showToolsPanel('sash'),
     text: t(
-      'Changed your mind? Press the <b>←</b> arrow key on your keyboard. The timeline opens at the bottom of the page and steps back one change.',
+      'Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone.',
     ),
-    allow: ['#tl-panel'],
-    done: s => tl.i < s.i,
-    start: () => ({ i: tl.i }),
+    ...sashStep(2),
   },
   {
-    title: t('And forward again'),
+    title: t('Now a wide one'),
+    back: () => showToolsPanel('sash'),
     text: t(
-      'Now press the <b>→</b> arrow key to bring the change back. Later, double-click an empty part of the page to close the timeline.',
+      'Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts.',
     ),
-    allow: ['#tl-panel'],
-    done: s => tl.i > s.i,
-    start: () => ({ i: tl.i }),
+    ...sashStep(6),
+  },
+  {
+    title: t('Choose the one for this quilt'),
+    back: () => showToolsPanel('sash'),
+    text: t('Click the highlighted width: it suits this quilt.'),
+    ...sashStep(4),
   },
   {
     title: t('Open the borders'),
-    text: t('Click the <b>Borders</b> round button beside the quilt — the one with a frame drawn on it.'),
+    clip: 'border',
+    back: () => showToolsPanel('sash'),
+    text: t('A border finishes the edge. Click the highlighted round button beside the quilt.'),
     allow: ['#rail-brd'],
     glow: '#rail-brd',
     done: () => !$('dz-side').hidden && toolsPanel === 'brd',
   },
   {
     title: t('Add a border'),
-    text: t('In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt.'),
+    back: () => showToolsPanel('brd'),
+    text: t('In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt.'),
     allow: ['#brd-types'],
-    glow: '.brd-type[data-t="piano"]',
+    glow: '.brd-type[data-t="plain"]',
     done: () => bordersOf(design).length > 0,
+  },
+  {
+    title: t('Save your quilt'),
+    text: t('A quilt is only kept once you save it. Click the highlighted round button, to the left of the quilt.'),
+    allow: ['#dz-save'],
+    glow: '#dz-save',
+    done: () => $('save-dlg').open,
+  },
+  {
+    title: t('Give it a name'),
+    noBack: true,
+    enter: () => {
+      /** @type {HTMLInputElement} */ ($('save-name')).value = t('My first quilt');
+    },
+    text: t('You can keep this name or type another. Then click <b>Save</b>.'),
+    allow: ['#save-name', '#save-ok'],
+    glow: '#save-ok',
+    done: () => !!mineCur,
+  },
+  {
+    title: t('See it on a bed'),
+    noBack: true,
+    clip: 'bed',
+    back: () => showToolsPanel('brd'),
+    text: t('See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed.'),
+    allow: ['#dz-sim', '#bedsel'],
+    glow: '#dz-sim',
+    // a 120 cm quilt on a single bed, where it covers the top: on a large bed it looks lost
+    enter: () =>
+      setTimeout(() => {
+        const bed = /** @type {HTMLSelectElement} */ ($('bedsel'));
+        bed.value = 'br-solteiro';
+        bed.dispatchEvent(new Event('change', { bubbles: true }));
+      }),
+    done: () => state.page === 'sim',
+  },
+  {
+    title: t('Back to your quilt'),
+    back: () => showPage('sim'),
+    text: t(
+      'At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>×</b> at the top left to go back.',
+    ),
+    allow: ['#sim-close'],
+    glow: '#sim-close',
+    done: () => state.page === 'design',
+  },
+  {
+    title: t('See what to cut'),
+    clip: 'cut',
+    text: t('Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out.'),
+    allow: ['#tabs [data-page="cut"]'],
+    glow: '#tabs [data-page="cut"]',
+    // inches mean a quarter-inch seam, as in the patterns a quilter knows
+    enter: () => {
+      if (getUnit() !== 'in') return;
+      const seam = /** @type {HTMLSelectElement} */ ($('cg-seam'));
+      tour.restoring = true;
+      seam.value = '6.4';
+      seam.dispatchEvent(new Event('change', { bubbles: true }));
+      tour.restoring = false;
+    },
+    done: () => state.page === 'cut',
+  },
+  {
+    title: t('See the sizes'),
+    back: () => showPage('cut'),
+    text: t(
+      'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Scroll down the page to read it all.',
+    ),
+    allow: ['#cg-blocks .cgblock:first-child h3'],
+    glow: '#cg-blocks .cgblock:first-child h3',
+    done: () => !!document.querySelector('#cg-blocks .cgblock:first-child.open'),
   },
   {
     title: t('Well done!'),
     text: t(
-      'You made a three-block quilt, changed a block, copied it, used undo and redo and added a border. Every change also appears on the bed in <b>Simulation</b>. Keep this quilt, or go back to the one you had before. Restart the tour any time with <b>? Guided tour</b>.',
+      'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click the round button with a page and a <b>+</b>, and save it before you open a different quilt, or your changes will be lost. Rest the mouse on any round button to see its name.',
     ),
     center: true,
-    buttons: [
-      [t('Keep this quilt'), 'keep', true],
-      [t('Go back to my previous quilt'), 'restore'],
-    ],
+    buttons: [[t('Finish'), 'keep', true]],
   },
 ];
+/** The quilt the tutorial starts from: a new quilt, one row of three, of 10 inches exactly, so that typing 12 makes 12. */
+const tutorialQuilt = () => ({ ...newDesign(), blockMm: 254 });
 function tourAllowed(el) {
   return !!(el && el.closest && (el.closest('#tour') || el.closest('.tour-allow')));
 }
+/** A warning on the card, shaken so that a second one is noticed too. @param {string} says */
+function tourSay(says) {
+  const note = $('tour-note');
+  note.innerHTML = says;
+  note.hidden = false;
+  note.classList.remove('shake');
+  void note.offsetWidth;
+  note.classList.add('shake');
+  requestAnimationFrame(tourPlace);
+}
+/** The wrong tile of a step that names one: say so, and show the step's video again. @param {any} st */
+function tourWrong(st) {
+  tourSay(st.pick.says);
+  const right = document.querySelector(`${st.pick.tile}${st.pick.right}`);
+  if (right) right.scrollIntoView({ block: 'nearest', inline: 'center' });
+  tourReplay();
+  requestAnimationFrame(tourPlace);
+}
 function tourBlock(e) {
-  if (!tour.on || tourAllowed(e.target)) return;
+  if (!tour.on || tour.restoring) return;
+  const st = TOUR[tour.i],
+    el = e.target && e.target.closest ? e.target : null;
+  // taking a fabric off the list has no place in the tutorial
+  if (el && el.closest('.fab-x') && !el.closest('#tour')) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return;
+  }
+  const tile = st.pick && el && el.closest(st.pick.tile);
+  if (tile && !tile.matches(st.pick.right)) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.type === 'click') tourWrong(st);
+    return;
+  }
+  if (tourAllowed(e.target)) return;
+  // a control that is off for now: no silence, which would look as if the app had stopped working
+  if (e.type === 'click' && st.glow && el && el.closest('button, input, select, label, canvas'))
+    tourSay(t('Only the highlighted item works on this step. Click it to go on.'));
   if (
     e.type === 'keydown' &&
     !['Enter', ' ', 'Escape'].includes(e.key) &&
@@ -197,6 +438,7 @@ function tourHost() {
 // Place the card where it covers the least of what the user needs: the quilt, the open pop-up, the
 // controls of this step, the toolbar and side panel. It can also be dragged by its top line, or folded.
 function tourPlace() {
+  tourArrow();
   const box = $('tour'),
     st = TOUR[tour.i],
     host = tourHost();
@@ -226,7 +468,9 @@ function tourPlace() {
   const tg = st.glow && document.querySelector(st.glow),
     T = rectOf(tg);
   const keep = []; // [rect, weight]
-  if (T) keep.push([T, 12]);
+  // the card must not sit on what the step asks to click: with a video it is large, and nothing else matters as much
+  // (a target as large as the quilt can't always be cleared, so it only counts like the rest)
+  if (T) keep.push([T, T.width * T.height < 90000 ? 5000 : 12]);
   document.querySelectorAll('.tour-allow').forEach(el => {
     const r = rectOf(el);
     if (r) keep.push([r, 8]);
@@ -242,7 +486,7 @@ function tourPlace() {
   const side = $('dz-side');
   if (side && !side.hidden) {
     const r = rectOf(side);
-    if (r) keep.push([r, 2]);
+    if (r) keep.push([r, 5]);
   }
   const bar = $('tl-panel'),
     barTop = bar && !bar.hidden ? bar.getBoundingClientRect().top : H;
@@ -261,6 +505,9 @@ function tourPlace() {
       [T.left + T.width / 2 - bw / 2, T.bottom + 14],
       [T.left + T.width / 2 - bw / 2, T.top - 14 - bh],
     );
+  // it stays where it is unless that gets in the way: a card that jumps has to be looked for at every step
+  const stay = tour.pos ? [tour.pos.x, tour.pos.y] : null;
+  if (stay) cands.push(stay);
   let best = null;
   for (const c of cands) {
     const [x, y] = clampXY(c[0], c[1]);
@@ -272,8 +519,10 @@ function tourPlace() {
     }
     if (y + bh > barTop) cost += (y + bh - barTop) * bw * 4; // keep the timeline strip clear
     if (T) cost += Math.hypot(x + bw / 2 - (T.left + T.width / 2), y + bh / 2 - (T.top + T.height / 2)) * 2; // then: as close to the target as possible
+    if (c === stay) cost *= 0.35;
     if (!best || cost < best.cost) best = { x, y, cost };
   }
+  tour.pos = { x: best.x, y: best.y };
   box.style.left = best.x + 'px';
   box.style.top = best.y + 'px';
 }
@@ -312,11 +561,67 @@ function tourMark() {
   if (!tour.on) return;
   const st = TOUR[tour.i];
   for (const sel of st.allow || []) document.querySelectorAll(sel).forEach(el => el.classList.add('tour-allow'));
-  const g = st.glow && document.querySelector(st.glow);
+  // the video shows the step first; the sign lights up as it ends (the button works all along, for the impatient)
+  const g = !tour.watching && st.glow && document.querySelector(st.glow);
   if (g) g.classList.add('tour-glow');
+}
+/** The step's short video, in the language in use: it plays once. With none (or none that loads), straight to the sign. */
+function tourClip(st) {
+  const v = /** @type {HTMLVideoElement} */ ($('tour-clip')),
+    box = $('tour');
+  const stop = () => {
+    tour.watching = false;
+    tourMark();
+  };
+  v.onended = stop;
+  v.onerror = () => {
+    v.hidden = $('tour-replay').hidden = true;
+    box.classList.remove('with-clip');
+    stop();
+    tourPlace();
+  };
+  v.pause();
+  if (!st.clip) {
+    v.removeAttribute('src');
+    v.hidden = $('tour-replay').hidden = true;
+    box.classList.remove('with-clip');
+    tour.watching = false;
+    return;
+  }
+  v.hidden = $('tour-replay').hidden = false;
+  box.classList.add('with-clip');
+  v.src = `assets/clips/tut_${getLang() === 'en' ? 'en' : 'pt'}_${st.clip}.mp4`;
+  // with less motion asked for, it waits for "Watch again"
+  tour.watching = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (tour.watching) v.play().catch(stop);
+}
+/** The step's video from the start: the sign waits for it again. */
+function tourReplay() {
+  const v = /** @type {HTMLVideoElement} */ ($('tour-clip'));
+  if (v.hidden || !v.getAttribute('src')) return;
+  tour.watching = true;
+  tourMark();
+  // from the start by loading it again: jumping back fails on a server that can't send part of a file
+  v.load();
+  v.play().catch(() => {
+    tour.watching = false;
+    tourMark();
+  });
+}
+/** The arrow beside a row that scrolls, pointing along it. */
+function tourArrow() {
+  const a = $('tour-arrow'),
+    row = tour.on && TOUR[tour.i].arrow && document.querySelector(TOUR[tour.i].arrow);
+  a.hidden = !row;
+  a.row = row;
+  if (!row) return;
+  const r = row.getBoundingClientRect();
+  a.style.left = `${r.right - 50}px`;
+  a.style.top = `${r.top - 50}px`;
 }
 function tourShow() {
   const st = TOUR[tour.i];
+  $('tour-note').hidden = true;
   $('tour-count').textContent = st.center
     ? t('Guided tour')
     : t('Step {n} of {all}', { n: tour.i, all: TOUR.length - 2 });
@@ -334,6 +639,9 @@ function tourShow() {
     acts.appendChild(b);
   }
   $('tour-skip').hidden = tour.i === TOUR.length - 1;
+  $('tour-back').hidden = tour.i < 2 || !!st.noBack; // (a saved quilt stays saved: no undoing that step)
+  if (design) tour.steps[tour.i] = JSON.stringify(design); // the quilt as this step found it, to come back to
+  tourClip(st);
   if (st.enter) st.enter();
   tour.mark = st.start ? st.start() : null;
   tourMark();
@@ -342,9 +650,29 @@ function tourShow() {
   requestAnimationFrame(tourPlace);
   if (st.buttons) acts.querySelector('button').focus();
 }
+/** One step back: the quilt as that step found it, with its page and panel, so it can be done again. */
+function tourBack() {
+  if (tour.i < 2) return;
+  tour.i--;
+  tour.restoring = true; // (undoing a step goes through controls the step before has switched off)
+  showPage('design');
+  replaceDesign(JSON.parse(tour.steps[tour.i]), { timeline: 'tour' });
+  const st = TOUR[tour.i];
+  if (st.back) st.back();
+  tour.restoring = false;
+  tourShow();
+}
 function tourTick() {
   if (!tour.on) return;
   const st = TOUR[tour.i];
+  // done, but not as the step asks: put it right where that makes sense, say so, and show the video again
+  if (st.check && st.check()) {
+    if (st.fix) st.fix();
+    if ($('tour-note').innerHTML !== st.says || $('tour-note').hidden) {
+      tourSay(st.says);
+      if (st.clip) tourReplay();
+    }
+  }
   tourMark();
   tourPlace();
   if (st.done && st.done(tour.mark || {})) {
@@ -355,19 +683,22 @@ function tourTick() {
 function tourBegin() {
   if (tour.on) return;
   tour.saved = design ? JSON.stringify(design) : null;
+  tour.unit = getUnit();
   tour.savedCur = typeof mineCur !== 'undefined' ? mineCur : null;
   tour.on = true;
   tour.i = 0;
   tour.userPos = null;
+  tour.pos = null;
   document.body.classList.add('tour-active');
   for (const id of ['dz-dialog', 'save-dlg', 'cg-pop']) if ($(id).open) $(id).close();
   if (state.page !== 'design') showPage('design');
   hideTools();
-  // the tour always starts from the same default quilt (5 × 5, 458 mm, Ohio star and nine patch), with its
-  // own timeline; the user's own quilt is put aside and comes back if they skip or ask for it at the end
+  // the tutorial always starts from the same quilt, with its own timeline; the user's own quilt is put aside and
+  // comes back if they skip or ask for it at the end
   const fresh = () => {
     timelines.remove(tlKeyFor('tour'));
-    replaceDesign(defaultDesign(), { timeline: 'tour' });
+    setMineCur(null); // saving it must make a new design, not overwrite the one that was open
+    replaceDesign(tutorialQuilt(), { timeline: 'tour' });
   };
   if (design) fresh();
   else
@@ -393,11 +724,21 @@ function tourAct(act) {
   }
   tourEnd(act);
 }
+/** Skipping or going back to the quilt from before: the unit from before too (keeping the quilt keeps the inches). */
+function setUnitBack() {
+  if (getUnit() === tour.unit) return;
+  const sw = /** @type {HTMLInputElement} */ ($('unit-sw'));
+  sw.checked = tour.unit === 'in';
+  sw.dispatchEvent(new Event('change', { bubbles: true }));
+}
 function tourEnd(how) {
   tour.on = false;
+  tour.watching = false;
+  /** @type {HTMLVideoElement} */ ($('tour-clip')).pause();
   clearInterval(tour.poll);
   document.body.classList.remove('tour-active');
   tourMark();
+  tourArrow();
   const box = $('tour');
   box.hidden = true;
   document.body.appendChild(box);
@@ -406,22 +747,35 @@ function tourEnd(how) {
   } catch (e) {}
   for (const id of ['dz-dialog']) if ($(id).open) $(id).close();
   if (how === 'keep') {
-    // the tour quilt becomes an ordinary unsaved design, with its history
-    tlCopy('tour', null);
-    setMineCur(null);
-    mineSave();
-    tlSwitch(null);
-  } else if (how === 'restore' && tour.saved) {
+    // the quilt was saved along the way: it stays open, with no selection left on it
+    setSelBlocks(new Set([0]));
+    setFocusBlock(0);
+    selParts.clear();
+    hideTools();
+    renderDesigner();
+  } else if (how === 'restore') setUnitBack();
+  if (how === 'restore' && tour.saved) {
     setMineCur(tour.savedCur);
     mineSave();
     openDesign(tour.saved, { timeline: mineCur, quiet: true });
   }
   timelines.remove(tlKeyFor('tour'));
-  showPage('design');
+  if (how !== 'keep') showPage('design');
 }
 $('tour-start').addEventListener('click', tourBegin);
 initTourDrag();
 $('tour-skip').addEventListener('click', () => tourAct('skip'));
+$('tour-back').addEventListener('click', tourBack);
+// is the mouse held down? (a selection dragged half way is not a mistake yet)
+document.addEventListener('pointerdown', () => (tour.down = true), true);
+document.addEventListener('pointerup', () => (tour.down = false), true);
+$('tour-arrow').addEventListener('click', () => {
+  const row = /** @type {any} */ ($('tour-arrow')).row;
+  if (!row) return;
+  const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4;
+  row.scrollTo({ left: atEnd ? 0 : row.scrollLeft + 260, behavior: 'smooth' });
+});
+$('tour-replay').addEventListener('click', tourReplay);
 window.addEventListener('resize', () => {
   if (tour.on) tourPlace();
 });

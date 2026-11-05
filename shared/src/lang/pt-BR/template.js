@@ -213,8 +213,12 @@ export default {
   'Gravitational energy': 'Energia gravitacional',
   Grid: 'Grade',
   'Guided tour': 'Tour guiado',
-  'Guided tour: a short exercise to make and change a three-block quilt':
-    'Tour guiado: um exercício curto para fazer e mudar um quilt de três blocos',
+  'Watch again': 'Ver de novo',
+  'See more': 'Ver mais',
+  '← Back a step': '← Voltar um passo',
+  'A short video of this step': 'Um vídeo curto deste passo',
+  'Guided tour: make your first quilt, a nine patch, step by step':
+    'Tour guiado: faça seu primeiro quilt, um nine patch, passo a passo',
   'Half-square triangle, cut along /': 'Meio quadrado (HST), cortado ao longo de /',
   'Half-square triangle, cut along \\': 'Meio quadrado (HST), cortado ao longo de \\',
   'Hang by one corner': 'Pendurar por um canto',

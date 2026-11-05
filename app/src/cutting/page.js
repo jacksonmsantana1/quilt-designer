@@ -3,7 +3,7 @@ import './draw.js'; // load order: runs after cutting/draw
 import { cgHi, fabHi, lastPlan, setCgHi, setFabHi, setLastPlan } from '../render/hi-state.js';
 import { design } from '../core/store.js';
 import { $, esc } from '../core/dom.js';
-import { dims, getUnit, len } from '../core/units.js';
+import { dims, getUnit, len, sharesOf } from '../core/units.js';
 import { comma, t, tn } from '@quilt/shared/i18n.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -366,7 +366,7 @@ function renderCut() {
         t('includes binding: {strips} strips {width} × WOF', { strips: r.binding.strips, width: len(r.binding.width) }),
       );
     tr.innerHTML = `<td class="sw"></td><td class="letter">${r.letter}<span class="fname">${esc(fab.name)}</span></td>
-      <td class="req">${r.requirement}${r.buy ? `<small>${t('buy ≈ {buy}', { buy: r.buy })}</small>` : ''}${notes.length ? `<small>${notes.join(' · ')}</small>` : ''}</td>`;
+      <td class="req">${r.requirement}${r.buy ? `<small>${t('buy ≈ {buy}', { buy: r.buy })}</small>` : `<small>${t('a small piece: a remnant will do')}</small>`}${notes.length ? `<small>${notes.join(' · ')}</small>` : ''}</td>`;
     tr.querySelector('.sw').appendChild(swatchCanvas(fab));
     tb.appendChild(tr);
   }
@@ -386,7 +386,7 @@ function renderCut() {
     const rows = b.list
       .map(
         r =>
-          `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil((r.pieces * b.count) / r.yield)}</td></tr>`,
+          `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${sharesOf(r.pieces / r.yield)}</td><td class="n">${Math.ceil((r.pieces * b.count) / r.yield)}</td></tr>`,
       )
       .join('');
     const meta = [esc(b.label)];

@@ -79,7 +79,14 @@ function drawPatternButtons() {
   drawPatternList();
 }
 function drawFabricPalette() {
-  for (const id of ['dz-fabrics', 'dz-fabrics2']) if ($(id)) drawPaletteInto($(id));
+  if ($('dz-fabrics')) drawPaletteInto($('dz-fabrics'));
+  // the fabric of the selected parts (of the whole block, when none is), not the last one used: it would look as
+  // if the block had a fabric it hasn't. Different fabrics: none marked.
+  if ($('dz-fabrics2')) {
+    const b = design && design.blocks[focusBlock],
+      used = b ? new Set(selParts.size ? [...selParts].map(i => b.fabrics[i]) : b.fabrics) : new Set();
+    drawPaletteInto($('dz-fabrics2'), used.size === 1 ? [...used][0] : '');
+  }
   if (design) {
     drawPaletteInto($('dz-backfabs'), design.backFabric);
     if ($('set-fabs')) drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');

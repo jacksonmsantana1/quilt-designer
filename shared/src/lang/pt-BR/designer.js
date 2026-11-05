@@ -68,7 +68,7 @@ export default {
   '{n} border ({size})': '{n} barra ({size})',
   '{n} borders ({size})': '{n} barras ({size})',
   'finished quilt {size}': 'quilt pronto {size}',
-  'Select a square': 'Selecione um quadrado',
+  'Select a square': 'Para unir: selecione um quadrado',
   'Select a square of blocks to unite them: 2 × 2, 3 × 3 or 4 × 4':
     'Selecione um quadrado de blocos para uni-los: 2 × 2, 3 × 3 ou 4 × 4',
   'Up to 4 × 4': 'Até 4 × 4',

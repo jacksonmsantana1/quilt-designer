@@ -78,14 +78,17 @@ function openSaveDialog(forceNew) {
     }
   }
   $('save-name').select();
+  saveNameFresh = true;
 }
+let saveNameFresh = false;
 function doSave(asNew) {
   if (readOnly) {
     notify(t('This quilt was made with a newer version of the app, so it cannot be saved here.'));
     $('save-dlg').close();
     return;
   }
-  saveCurrent(($('save-name').value || '').trim(), asNew || saveForceNew);
+  const saved = saveCurrent(($('save-name').value || '').trim(), asNew || saveForceNew);
+  notify(t('“{name}” is in My designs.', { name: saved.name }));
   saveForceNew = false;
   $('save-dlg').close();
   const b = $('dz-save');
@@ -378,6 +381,9 @@ function initMine() {
   $('save-asnew').addEventListener('click', () => doSave(true));
   $('save-x').addEventListener('click', () => $('save-dlg').close());
   $('save-name').addEventListener('keydown', e => {
+    if (saveNameFresh && e.key.length === 1 && !e.ctrlKey && !e.metaKey)
+      /** @type {HTMLInputElement} */ (e.target).value = '';
+    saveNameFresh = false;
     if (e.key === 'Enter') {
       e.preventDefault();
       doSave(false);

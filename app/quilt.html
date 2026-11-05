@@ -386,6 +386,9 @@
   .rail { position: absolute; right: 0; top: 0; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
   .rail-btn { width: 46px; height: 46px; border-radius: 50%; border: 2px dashed var(--stitch); background: var(--panel); color: var(--accent); display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(var(--shade),.12); transition: transform .12s ease, background .12s ease; }
   .rail-btn svg { width: 24px; height: 24px; }
+  .rail .rail-btn { position: relative; }
+  .rail .rail-btn[aria-label]:hover::after { content: attr(aria-label); position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); z-index: 60; padding: 5px 9px; border-radius: 6px; background: var(--ink); color: var(--bg); font: 600 .85rem var(--font-body); white-space: nowrap; pointer-events: none; }
+  .rail.rail-left .rail-btn[aria-label]:hover::after { left: auto; right: calc(100% + 8px); }
   .rail-btn:hover { transform: scale(1.07); border-color: var(--accent); }
   .rail-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent); }
   /* Symmetry: a round button on the tool rail; its five choices slide out beside it (to the left when there is
@@ -428,7 +431,7 @@
   .tour-btn svg { width: 26px; height: 26px; }
   body.tl-open .tour-btn { bottom: calc(var(--tl-h, 170px) + 22px); }
   body.tour-active :is(button, input, select, textarea, label.btn, label.filebtn, .fold-head):not(.tour-allow):not(.tour-allow *):not(#tour *) {
-    pointer-events: none !important; opacity: .32 !important; filter: grayscale(1) !important; }
+    cursor: not-allowed !important; opacity: .32 !important; filter: grayscale(1) !important; }
   body.tour-active canvas:is(#dz-quilt, #dz-block, #view):not(.tour-allow) { pointer-events: none !important; }
   .tour-glow { outline: 3px solid var(--mark) !important; outline-offset: 3px; border-radius: 8px; animation: tour-pulse 1.3s ease-in-out infinite; position: relative; z-index: 2; }
   @keyframes tour-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(214,98,52,.55); } 50% { box-shadow: 0 0 0 9px rgba(214,98,52,0); } }
@@ -441,6 +444,26 @@
   .tour { width: min(300px, calc(100vw - 24px)); }
   .tour-x { border: 0; background: none; color: var(--muted); font: 600 .75rem var(--font-body); cursor: pointer; padding: 2px 4px; }
   .tour-x:hover { color: var(--ink); }
+  .tour.with-clip { width: min(540px, calc(100vw - 24px)); }
+  .tour-foot { display: flex; gap: 16px; }
+  body.tour-active #dz-library .blib-item[aria-pressed="true"]:not(.tour-glow) { border-color: var(--line); box-shadow: none; }
+  #tour-note { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: oklch(0.5 0.15 30); color: #fff; font-size: .95rem; font-weight: 600; }
+  #tour-note b { color: inherit; text-decoration: underline; }
+  .tour-note::before { content: '⚠ '; font-size: 1.1rem; }
+  .tour-note.shake { animation: tour-shake .5s ease-in-out; }
+  @keyframes tour-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  @media (prefers-reduced-motion: reduce) { .tour-note.shake { animation: none; } }
+  .tour-note[hidden] { display: none; }
+  .tour-arrow { position: fixed; z-index: 1001; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: var(--mark); color: #fff; cursor: pointer; font: 700 1.6rem/1 var(--font-body); animation: tour-arrow 1s ease-in-out infinite; }
+  body.tour-active .fab-x { display: none; }
+  .tour-arrow[hidden] { display: none; }
+  @keyframes tour-arrow { 0%, 100% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
+  @media (prefers-reduced-motion: reduce) { .tour-arrow { animation: none; } }
+  .tour-foot .tour-replay { font-size: .85rem; }
+  .tour-clip { display: block; width: 100%; aspect-ratio: 8 / 5; margin-top: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
+  .tour-clip[hidden], .tour.min .tour-clip, .tour.min .tour-replay { display: none; }
+  .tour-replay { display: block; margin-top: 6px; padding-left: 0; text-decoration: underline; }
+  .tour-replay[hidden] { display: none; }
   .tour h3 { margin: 6px 0 4px; font: 600 1.05rem var(--font-body); }
   .tour p { margin: 0; font-size: .92rem; line-height: 1.45; color: var(--ink); }
   .tour p b { color: var(--accent); }
@@ -925,7 +948,7 @@
     <button type="button" role="tab" data-page="mine" aria-selected="false">My designs</button>
     <button type="button" role="tab" data-page="community" aria-selected="false">Community</button>
   </nav>
-  <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: a short exercise to make and change a three-block quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: make your first quilt, a nine patch, step by step"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   <div class="acct" id="acct">
     <select class="lang-menu" data-lang aria-label="Language" title="Language"><option value="en">English</option><option value="pt-BR">Português</option></select>
     <button class="btn sm" type="button" id="acct-signin">Sign in</button>
@@ -1434,10 +1457,14 @@
 
 <div class="tour" id="tour" hidden role="dialog" aria-live="polite" aria-label="Guided tour">
   <div class="tour-head" title="Drag to move"><span id="tour-count"></span><span><button type="button" class="tour-x" id="tour-min" title="Fold the instructions">–</button><button type="button" class="tour-x" id="tour-skip" title="End the tour">Skip tour ×</button></span></div>
+  <video id="tour-clip" class="tour-clip" muted playsinline preload="auto" hidden aria-label="A short video of this step"></video>
   <h3 id="tour-title"></h3>
   <p id="tour-text"></p>
+  <p id="tour-note" class="tour-note" role="alert" hidden></p>
+  <div class="tour-foot"><button type="button" class="tour-x tour-replay" id="tour-replay" hidden>Watch again</button><button type="button" class="tour-x tour-replay" id="tour-back" hidden>← Back a step</button></div>
   <div class="tour-actions" id="tour-actions"></div>
   <div class="tour-bar"><div id="tour-prog"></div></div>
+  <button type="button" class="tour-arrow" id="tour-arrow" aria-label="See more" title="See more" hidden>→</button>
 </div>
 <section id="page-mine" hidden>
   <div class="mine-top">
@@ -2848,7 +2875,9 @@ var cutting_default = {
   "{how} \xB7 fussy cut: one at a time, centred on the chosen motif": "{how} \xB7 fussy cut: um de cada vez, centralizado no motivo escolhido",
   "{n} strip {width} \xD7 WOF, joined and cut to {lens}": "{n} tira de {width} \xD7 LT, emendada e cortada em {lens}",
   "{n} strips {width} \xD7 WOF, joined and cut to {lens}": "{n} tiras de {width} \xD7 LT, emendadas e cortadas em {lens}",
-  "{size} \xD7 WOF": "{size} \xD7 LT",
+  "a small piece: a remnant will do": "pe\xE7a pequena: um retalho resolve",
+  "Saved: look in your Downloads folder": "Salvo: veja na pasta Downloads",
+  "{size} \xD7 WOF": "{size} na largura do tecido",
   "Side triangles": "Tri\xE2ngulos laterais",
   "Corner triangles": "Tri\xE2ngulos de canto",
   // the page (cutting/page.js, cutting/draw.js)
@@ -3055,7 +3084,7 @@ var designer_default = {
   "{n} border ({size})": "{n} barra ({size})",
   "{n} borders ({size})": "{n} barras ({size})",
   "finished quilt {size}": "quilt pronto {size}",
-  "Select a square": "Selecione um quadrado",
+  "Select a square": "Para unir: selecione um quadrado",
   "Select a square of blocks to unite them: 2 \xD7 2, 3 \xD7 3 or 4 \xD7 4": "Selecione um quadrado de blocos para uni-los: 2 \xD7 2, 3 \xD7 3 ou 4 \xD7 4",
   "Up to 4 \xD7 4": "At\xE9 4 \xD7 4",
   "Up to 4 \xD7 4 blocks can be united into one": "At\xE9 4 \xD7 4 blocos podem ser unidos em um s\xF3",
@@ -3895,7 +3924,11 @@ var template_default = {
   "Gravitational energy": "Energia gravitacional",
   Grid: "Grade",
   "Guided tour": "Tour guiado",
-  "Guided tour: a short exercise to make and change a three-block quilt": "Tour guiado: um exerc\xEDcio curto para fazer e mudar um quilt de tr\xEAs blocos",
+  "Watch again": "Ver de novo",
+  "See more": "Ver mais",
+  "\u2190 Back a step": "\u2190 Voltar um passo",
+  "A short video of this step": "Um v\xEDdeo curto deste passo",
+  "Guided tour: make your first quilt, a nine patch, step by step": "Tour guiado: fa\xE7a seu primeiro quilt, um nine patch, passo a passo",
   "Half-square triangle, cut along /": "Meio quadrado (HST), cortado ao longo de /",
   "Half-square triangle, cut along \\": "Meio quadrado (HST), cortado ao longo de \\",
   "Hang by one corner": "Pendurar por um canto",
@@ -4168,39 +4201,66 @@ var tour_default = {
   "Show the instructions": "Mostrar as instru\xE7\xF5es",
   "Fold the instructions": "Recolher as instru\xE7\xF5es",
   "Welcome to Block & Bind!": "Boas-vindas ao Block & Bind!",
-  "In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.": "Em cerca de dois minutos voc\xEA vai fazer um <b>quilt de tr\xEAs blocos</b> no Desenho de quilts, mudar o desenho e os tecidos e adicionar uma barra. Em cada passo, s\xF3 o bot\xE3o necess\xE1rio acende.",
+  "In about five minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.": "Em cerca de cinco minutos voc\xEA vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt cl\xE1ssico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Um v\xEDdeo curto mostra cada passo, e depois \xE9 a sua vez. Nada do que voc\xEA fizer aqui estraga alguma coisa.",
   "Start the exercise": "Come\xE7ar o exerc\xEDcio",
   "Not now": "Agora n\xE3o",
-  "Fewer columns": "Menos colunas",
-  "A new quilt starts with 5 \xD7 5 blocks. Above the quilt, click the <b>\u2212</b> next to <b>Columns</b> until there are <b>3</b> columns.": "Um quilt novo come\xE7a com 5 \xD7 5 blocos. Acima do quilt, clique no <b>\u2212</b> ao lado de <b>Colunas</b> at\xE9 ficarem <b>3</b> colunas.",
-  "Just one row": "S\xF3 uma linha",
-  "Now click the <b>\u2212</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side.": "Agora clique no <b>\u2212</b> ao lado de <b>Linhas</b> at\xE9 ficar <b>1</b> linha. Seu quilt agora tem tr\xEAs blocos lado a lado.",
+  "Make it three rows": "Deixe com tr\xEAs linhas",
+  "A new quilt starts as one row of three blocks. Above the quilt, click the <b>+</b> next to <b>Rows</b> until there are <b>3</b> rows.": "Um quilt novo come\xE7a com uma linha de tr\xEAs blocos. Acima do quilt, clique no <b>+</b> ao lado de <b>Linhas</b> at\xE9 ter <b>3</b> linhas.",
+  "Measure in inches": "Me\xE7a em polegadas",
+  "Quilt patterns are usually written in inches. Above the quilt, click the <b>mm / in</b> switch. You can change it back at any time.": "Os moldes de quilt costumam vir em polegadas. Acima do quilt, clique no bot\xE3o <b>mm / pol</b>. Voc\xEA pode voltar quando quiser.",
+  "Choose the block size": "Escolha o tamanho do bloco",
+  "Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn.": "Abaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e aperte <b>Enter</b>. O n\xFAmero antigo sai sozinho. Cada bloco ter\xE1 12 polegadas depois de costurado.",
+  "That is a different block. Watch the video again, and when it ends click <b>Nine patch</b>, which will light up.": "Esse \xE9 outro bloco. Veja o v\xEDdeo de novo e, quando ele terminar, clique em <b>Nine patch</b>, que vai ficar destacado.",
+  "That is a different fabric. Watch the video again, and when it ends click <b>Mustard cotton</b>, which will light up.": "Esse \xE9 outro tecido. Veja o v\xEDdeo de novo e, quando ele terminar, clique em <b>Algod\xE3o mostarda</b>, que vai ficar destacado.",
+  "That is a different block, and it would replace your work. Watch the video again, and when it ends click your <b>Nine patch</b>, which will light up.": "Esse \xE9 outro bloco, e ele substituiria o seu trabalho. Veja o v\xEDdeo de novo e, quando ele terminar, clique no seu <b>Nine patch</b>, que vai ficar destacado.",
   "Open the middle block": "Abra o bloco do meio",
-  "<b>Click the middle block</b> of your quilt. The side panel opens with its editor.": "<b>Clique no bloco do meio</b> do seu quilt. O painel lateral abre com o editor dele.",
-  "Choose a pattern": "Escolha um desenho",
-  "Under <b>Block pattern</b> at the end of the Block parts card, click <b>Pinwheel</b>.": "Em <b>Desenho do bloco</b>, no fim do cart\xE3o Pe\xE7as do bloco, clique em <b>Cata-vento</b>.",
-  "Pick a piece": "Escolha uma pe\xE7a",
-  "In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it.": "Na imagem grande do bloco, no alto do painel lateral, <b>clique em uma das p\xE1s</b> do cata-vento para selecion\xE1-la.",
-  "Give it a fabric": "Escolha um tecido para ela",
-  "Now click a fabric under <b>Fabric for the selected parts</b>, for example <b>Mustard cotton</b> (any fabric different from the one it has). The piece changes right away.": "Agora clique em um tecido em <b>Tecido das pe\xE7as selecionadas</b>, por exemplo <b>Algod\xE3o mostarda</b> (qualquer tecido diferente do que ela tem). A pe\xE7a muda na hora.",
-  "Select all three blocks": "Selecione os tr\xEAs blocos",
-  "Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected.": "Clique e <b>arraste um ret\xE2ngulo</b> sobre o quilt inteiro, de uma ponta \xE0 outra. Todo bloco que ele tocar fica selecionado.",
+  "<b>Click the middle block</b> of your quilt. Your block then appears on the right.": "<b>Clique no bloco do meio</b> do seu quilt. A\xED o seu bloco aparece \xE0 direita.",
+  "Choose the nine patch": "Escolha o nine patch",
+  "Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, use the round <b>+</b> button beside this row.": "Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais f\xE1cil de costurar. Depois, para ver todos os blocos, use o bot\xE3o redondo <b>+</b> ao lado desta fileira.",
+  "Pick a square": "Escolha um quadrado",
+  "In the big picture of the block, <b>click the square in the middle</b> to select it.": "Na imagem grande do bloco, <b>clique no quadrado do meio</b> para selecion\xE1-lo.",
+  "Give it a fabric": "D\xEA um tecido a ele",
+  "Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, use the round button with a number beside this row.": "Agora clique em <b>Algod\xE3o mostarda</b>, o tecido destacado, para coloc\xE1-lo nesse quadrado. Depois, para ver todos os tecidos, use o bot\xE3o redondo com um n\xFAmero ao lado desta fileira.",
+  "Select the whole quilt": "Selecione o quilt inteiro",
+  "Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now.": "Pressione e segure o mouse em um canto do quilt e <b>arraste at\xE9 o canto oposto</b>. Todo bloco que ele tocar fica selecionado. Vai aparecer um bot\xE3ozinho <b>Unir</b>: voc\xEA n\xE3o precisa dele agora.",
   "Copy your block": "Copie o seu bloco",
-  "In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it.": "No painel lateral, em <b>Blocos do seu quilt</b>, clique no <b>Cata-vento</b>. Os tr\xEAs blocos viram uma c\xF3pia dele.",
-  "Close the side panel": "Feche o painel lateral",
-  "Click the highlighted <b>round button</b> beside the quilt (Block parts) again to close the side panel and see the whole quilt.": "Clique de novo no <b>bot\xE3o redondo</b> destacado ao lado do quilt (Pe\xE7as do bloco) para fechar o painel lateral e ver o quilt inteiro.",
-  "Go back in time": "Volte no tempo",
-  "Changed your mind? Press the <b>\u2190</b> arrow key on your keyboard. The timeline opens at the bottom of the page and steps back one change.": "Mudou de ideia? Aperte a tecla de seta <b>\u2190</b> no teclado. A linha do tempo abre na parte de baixo da p\xE1gina e volta uma altera\xE7\xE3o.",
-  "And forward again": "E para a frente de novo",
-  "Now press the <b>\u2192</b> arrow key to bring the change back. Later, double-click an empty part of the page to close the timeline.": "Agora aperte a tecla de seta <b>\u2192</b> para trazer a altera\xE7\xE3o de volta. Depois, clique duas vezes em uma parte vazia da p\xE1gina para fechar a linha do tempo.",
+  "Under <b>Blocks in your quilt</b>, click your <b>Nine patch</b>, the highlighted one. All nine blocks become a copy of it.": "Em <b>Blocos do seu quilt</b>, clique no seu <b>Nine patch</b>, o que est\xE1 destacado. Os nove blocos viram uma c\xF3pia dele.",
+  "Add sashing": "Adicione faixas",
+  "Sashing is the strips between the blocks. Click the highlighted round button beside the quilt.": "Faixas s\xE3o as tiras entre os blocos. Clique no bot\xE3o redondo destacado ao lado do quilt.",
+  "Try a narrow width": "Experimente uma largura estreita",
+  "Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone.": "Clique na largura destacada e olhe o quilt: aparecem tiras finas, com um quadradinho onde elas se encontram, o cornerstone.",
+  "Now a wide one": "Agora uma larga",
+  "Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts.": "Clique nesta mais larga: as faixas crescem, e o quilt inteiro tamb\xE9m. Nos seus quilts, voc\xEA pode testar qualquer largura.",
+  "Choose the one for this quilt": "Escolha a deste quilt",
+  "Click the highlighted width: it suits this quilt.": "Clique na largura destacada: ela combina com este quilt.",
+  "That is a different width. Click the highlighted one.": "Essa \xE9 outra largura. Clique na que est\xE1 destacada.",
+  "Only the highlighted item works on this step. Click it to go on.": "Neste passo, s\xF3 o item destacado funciona. Clique nele para continuar.",
+  "See the sizes": "Veja as medidas",
+  "Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Scroll down the page to read it all.": "Clique em <b>Bloco 1</b>, o t\xEDtulo destacado: logo abaixo abre a lista das pe\xE7as para cortar, com cada medida. Des\xE7a a p\xE1gina para ler tudo.",
+  "My first quilt": "Meu primeiro quilt",
+  Finish: "Concluir",
+  "Type <b>12</b>, please, so that the quilt comes out like the one in the videos.": "Digite <b>12</b>, por favor, para o quilt sair igual ao dos v\xEDdeos.",
+  "Save your quilt": "Salve o seu quilt",
+  "A quilt is only kept once you save it. Click the highlighted round button, to the left of the quilt.": "Um quilt s\xF3 fica guardado depois de salvo. Clique no bot\xE3o redondo destacado, \xE0 esquerda do quilt.",
+  "Give it a name": "D\xEA um nome a ele",
+  "You can keep this name or type another. Then click <b>Save</b>.": "Voc\xEA pode deixar este nome ou digitar outro. Depois clique em <b>Salvar</b>.",
+  "That is another block. Click the block in the middle of the quilt.": "Esse \xE9 outro bloco. Clique no bloco do meio do quilt.",
+  "That is another square. Click the square in the middle of the block.": "Esse \xE9 outro quadrado. Clique no quadrado do meio do bloco.",
+  "That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.": "Isso pegou s\xF3 uma parte do quilt. Pressione em um canto e arraste at\xE9 o canto oposto.",
   "Open the borders": "Abra as barras",
-  "Click the <b>Borders</b> round button beside the quilt \u2014 the one with a frame drawn on it.": "Clique no bot\xE3o redondo <b>Barras</b> ao lado do quilt \u2014 aquele com uma moldura desenhada.",
+  "A border finishes the edge. Click the highlighted round button beside the quilt.": "A barra d\xE1 o acabamento da borda. Clique no bot\xE3o redondo destacado ao lado do quilt.",
   "Add a border": "Adicionar uma barra",
-  "In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt.": "No cart\xE3o <b>Barras</b>, clique em <b>Teclas de piano</b> para emoldurar o seu quilt.",
+  "In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt.": "No cart\xE3o <b>Barras</b>, clique em <b>Faixa lisa</b> para emoldurar o seu quilt.",
+  "See what to cut": "Veja o que cortar",
+  "Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out.": "Agora abra o <b>Guia de corte</b>: quanto tecido comprar e cada pe\xE7a para cortar, j\xE1 calculados.",
+  "See it on a bed": "Veja na cama",
+  "See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed.": "Veja o seu quilt em uma cama. Clique no bot\xE3o redondo destacado ao lado do quilt, o que tem uma caminha.",
+  "Back to your quilt": "De volta ao seu quilt",
+  "At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>\xD7</b> at the top left to go back.": "Neste tamanho ele \xE9 uma coberta pequena, ent\xE3o cobre s\xF3 parte de uma cama de solteiro: um quilt maior cobriria tudo. Clique no <b>\xD7</b> no alto, \xE0 esquerda, para voltar.",
   "Well done!": "Muito bem!",
-  "You made a three-block quilt, changed a block, copied it, used undo and redo and added a border. Every change also appears on the bed in <b>Simulation</b>. Keep this quilt, or go back to the one you had before. Restart the tour any time with <b>? Guided tour</b>.": "Voc\xEA fez um quilt de tr\xEAs blocos, mudou um bloco, copiou esse bloco, usou desfazer e refazer e adicionou uma barra. Toda altera\xE7\xE3o tamb\xE9m aparece na cama em <b>Simula\xE7\xE3o</b>. Fique com este quilt ou volte para o que voc\xEA tinha antes. Recomece o tour quando quiser em <b>? Tour guiado</b>.",
-  "Keep this quilt": "Ficar com este quilt",
-  "Go back to my previous quilt": "Voltar para o meu quilt anterior",
+  "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click the round button with a page and a <b>+</b>, and save it before you open a different quilt, or your changes will be lost. Rest the mouse on any round button to see its name.": "Voc\xEA fez o seu primeiro quilt, e ele est\xE1 salvo: voc\xEA vai encontr\xE1-lo sempre em <b>Meus projetos</b>. Para come\xE7ar outro, clique no bot\xE3o redondo com uma folha e um <b>+</b>, e salve antes de abrir um quilt diferente, sen\xE3o as mudan\xE7as se perdem. Descanse o mouse em qualquer bot\xE3o redondo para ver o nome dele.",
+  "Save it in My designs": "Salvar em Meus projetos",
+  "Discard this quilt": "N\xE3o guardar este quilt",
   // the timeline
   Opened: "Aberto",
   Start: "In\xEDcio",
@@ -12603,6 +12663,10 @@ function eighthsOf(v) {
   const e = Math.max(0, Math.round((Number.isFinite(v) ? Math.max(0, v) : 0) * 8 - 1e-6));
   return [Math.floor(e / 8), e % 8];
 }
+function sharesOf(n) {
+  const whole = Math.floor(n), part = { 0: "", 0.25: "\xBC", 0.5: "\xBD", 0.75: "\xBE" }[n - whole];
+  return part === void 0 ? String(Math.ceil(n)) : `${whole || ""}${part}` || "0";
+}
 
 // src/sim/controls.js
 var toSlider = (p, v) => p.scale === "log" ? Math.log(v / p.min) / Math.log(p.max / p.min) * 1e3 : (v - p.min) / (p.max - p.min) * 1e3;
@@ -15623,7 +15687,11 @@ function drawPatternButtons() {
   drawPatternList();
 }
 function drawFabricPalette() {
-  for (const id of ["dz-fabrics", "dz-fabrics2"]) if ($(id)) drawPaletteInto($(id));
+  if ($("dz-fabrics")) drawPaletteInto($("dz-fabrics"));
+  if ($("dz-fabrics2")) {
+    const b = design && design.blocks[focusBlock], used = b ? new Set(selParts.size ? [...selParts].map((i) => b.fabrics[i]) : b.fabrics) : /* @__PURE__ */ new Set();
+    drawPaletteInto($("dz-fabrics2"), used.size === 1 ? [...used][0] : "");
+  }
   if (design) {
     drawPaletteInto($("dz-backfabs"), design.backFabric);
     if ($("set-fabs")) drawPaletteInto($("set-fabs"), design.settingFabric || "b0");
@@ -19462,7 +19530,7 @@ function renderCut() {
         t("includes binding: {strips} strips {width} \xD7 WOF", { strips: r.binding.strips, width: len(r.binding.width) })
       );
     tr.innerHTML = `<td class="sw"></td><td class="letter">${r.letter}<span class="fname">${esc(fab.name)}</span></td>
-      <td class="req">${r.requirement}${r.buy ? `<small>${t("buy \u2248 {buy}", { buy: r.buy })}</small>` : ""}${notes.length ? `<small>${notes.join(" \xB7 ")}</small>` : ""}</td>`;
+      <td class="req">${r.requirement}${r.buy ? `<small>${t("buy \u2248 {buy}", { buy: r.buy })}</small>` : `<small>${t("a small piece: a remnant will do")}</small>`}${notes.length ? `<small>${notes.join(" \xB7 ")}</small>` : ""}</td>`;
     tr.querySelector(".sw").appendChild(swatchCanvas(fab));
     tb.appendChild(tr);
   }
@@ -19479,7 +19547,7 @@ function renderCut() {
     const div = document.createElement("div");
     div.className = "cgblock";
     const rows = b.list.map(
-      (r) => `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil(r.pieces * b.count / r.yield)}</td></tr>`
+      (r) => `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${sharesOf(r.pieces / r.yield)}</td><td class="n">${Math.ceil(r.pieces * b.count / r.yield)}</td></tr>`
     ).join("");
     const meta = [esc(b.label)];
     if (b.span > 1) meta.push(t("large block, {n} \xD7 {n} cells ({size})", { n: b.span, size: len(b.size) }));
@@ -21123,6 +21191,17 @@ var VALUE = (
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")
 );
 var inchFields = [];
+function replaceOnTyping(el, also) {
+  let fresh = false;
+  el.addEventListener("focus", () => fresh = true);
+  el.addEventListener("keydown", (e) => {
+    if (fresh && /^[0-9]$/.test(e.key)) {
+      el.value = "";
+      if (also) also();
+    }
+    fresh = false;
+  });
+}
 function inchPair(box3) {
   if (box3.dataset.inchPair) return;
   box3.dataset.inchPair = "1";
@@ -21162,6 +21241,8 @@ function inchPair(box3) {
       sync2();
     }
   });
+  replaceOnTyping(whole, () => frac.value = "0");
+  replaceOnTyping(box3);
   const send2 = () => {
     VALUE.set.call(box3, String((+whole.value || 0) + +frac.value / 8));
     box3.dispatchEvent(new Event("change", { bubbles: true }));
@@ -21213,13 +21294,36 @@ onUnitChange(() => {
 
 // src/tour/tour.js
 var TOUR_KEY = "quilt-tour.v1";
-var tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null };
+var tour = { on: false, i: 0, poll: 0, saved: null, savedCur: null, mark: null, watching: false, steps: [] };
 var blk = (i) => design && design.blocks[i];
+function openBlocks(ids, parts = []) {
+  setSelBlocks(new Set(ids));
+  setFocusBlock(ids[0]);
+  selParts.clear();
+  for (const p of parts) selParts.add(p);
+  renderDesigner();
+  openBlockEditor();
+}
+var ALL2 = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+var sashStep = (n) => {
+  const sel = `#sash-presets button:nth-child(${n})`;
+  return {
+    allow: ["#sash-presets"],
+    glow: sel,
+    pick: {
+      tile: "#sash-presets button",
+      right: `:nth-child(${n})`,
+      says: t("That is a different width. Click the highlighted one.")
+    },
+    done: () => (design.sashing?.mm || 0) === +/** @type {HTMLElement} */
+    (document.querySelector(sel)?.dataset.v ?? -1)
+  };
+};
 var TOUR = [
   {
     title: t("Welcome to Block & Bind!"),
     text: t(
-      "In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step."
+      "In about five minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything."
     ),
     center: true,
     buttons: [
@@ -21228,132 +21332,343 @@ var TOUR = [
     ]
   },
   {
-    title: t("Fewer columns"),
+    title: t("Make it three rows"),
+    clip: "rows",
+    back: () => hideTools(),
     text: t(
-      "A new quilt starts with 5 \xD7 5 blocks. Above the quilt, click the <b>\u2212</b> next to <b>Columns</b> until there are <b>3</b> columns."
+      "A new quilt starts as one row of three blocks. Above the quilt, click the <b>+</b> next to <b>Rows</b> until there are <b>3</b> rows."
     ),
-    allow: ['[data-step="c:-1"]', "#dz-cols"],
-    glow: '[data-step="c:-1"]',
-    done: () => design.cols === 3
+    allow: ['[data-step="r:1"]', "#dz-rows"],
+    glow: '[data-step="r:1"]',
+    done: () => design.rows === 3
   },
   {
-    title: t("Just one row"),
+    title: t("Measure in inches"),
+    clip: "unit",
+    back: () => {
+      hideTools();
+      const sw = (
+        /** @type {HTMLInputElement} */
+        $("unit-sw")
+      );
+      sw.checked = false;
+      sw.dispatchEvent(new Event("change", { bubbles: true }));
+    },
     text: t(
-      "Now click the <b>\u2212</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side."
+      "Quilt patterns are usually written in inches. Above the quilt, click the <b>mm / in</b> switch. You can change it back at any time."
     ),
-    allow: ['[data-step="r:-1"]', "#dz-rows"],
-    glow: '[data-step="r:-1"]',
-    done: () => design.rows === 1
+    allow: [".unit-sw"],
+    glow: ".unit-sw",
+    done: () => getUnit() === "in"
+  },
+  {
+    title: t("Choose the block size"),
+    clip: "size",
+    back: () => hideTools(),
+    text: t(
+      "Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn."
+    ),
+    allow: ["#dz-bsize"],
+    glow: "#dz-bsize .inch-whole",
+    enter: () => setTimeout(() => {
+      const box3 = (
+        /** @type {HTMLInputElement | null} */
+        document.querySelector("#dz-bsize .inch-whole")
+      );
+      if (box3) box3.focus(), box3.select();
+    }),
+    done: () => design.blockMm === 305,
+    // another size would work, but the cards and videos that follow are about this one
+    check: () => design.blockMm !== 254 && design.blockMm !== 305,
+    fix: () => {
+      dispatch(setBlockMm, 254);
+      const box3 = (
+        /** @type {HTMLInputElement | null} */
+        document.querySelector("#dz-bsize .inch-whole")
+      );
+      if (box3) box3.blur(), box3.focus();
+    },
+    says: t("Type <b>12</b>, please, so that the quilt comes out like the one in the videos.")
   },
   {
     title: t("Open the middle block"),
-    text: t("<b>Click the middle block</b> of your quilt. The side panel opens with its editor."),
+    clip: "block",
+    back: () => hideTools(),
+    text: t("<b>Click the middle block</b> of your quilt. Your block then appears on the right."),
     allow: ["#dz-quilt"],
     glow: "#dz-quilt",
-    done: () => !$("dz-side").hidden && focusBlock === 1 && selBlocks.size === 1
+    done: () => !$("dz-side").hidden && focusBlock === 4 && selBlocks.size === 1,
+    check: () => !$("dz-side").hidden && focusBlock !== 4,
+    fix: () => hideTools(),
+    says: t("That is another block. Click the block in the middle of the quilt.")
   },
   {
-    title: t("Choose a pattern"),
-    text: t("Under <b>Block pattern</b> at the end of the Block parts card, click <b>Pinwheel</b>."),
-    allow: ["#dz-patterns"],
-    glow: '#dz-patterns [data-p="pinwheel"]',
-    done: () => blk(1).pattern === "pinwheel"
-  },
-  {
-    title: t("Pick a piece"),
+    title: t("Choose the nine patch"),
+    clip: "pattern",
+    back: () => openBlocks([4]),
     text: t(
-      "In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it."
+      "Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew. Later, to see all the blocks, use the round <b>+</b> button beside this row."
     ),
+    allow: ["#dz-patterns"],
+    glow: '#dz-patterns [data-p="nine"]',
+    arrow: "#dz-patterns",
+    pick: {
+      tile: "#dz-patterns .pat",
+      right: '[data-p="nine"]',
+      says: t(
+        "That is a different block. Watch the video again, and when it ends click <b>Nine patch</b>, which will light up."
+      )
+    },
+    done: () => blk(4).pattern === "nine"
+  },
+  {
+    title: t("Pick a square"),
+    clip: "piece",
+    back: () => openBlocks([4]),
+    text: t("In the big picture of the block, <b>click the square in the middle</b> to select it."),
     allow: ["#dz-block"],
     glow: "#dz-block",
-    done: () => selParts.size > 0
+    done: () => selParts.has(4),
+    check: () => selParts.size > 0 && !selParts.has(4),
+    fix: () => {
+      selParts.clear();
+      renderDesigner();
+      drawPartsEditor();
+    },
+    says: t("That is another square. Click the square in the middle of the block.")
   },
   {
     title: t("Give it a fabric"),
+    clip: "fabric",
+    back: () => openBlocks([4], [4]),
+    // the square in the middle
     text: t(
-      "Now click a fabric under <b>Fabric for the selected parts</b>, for example <b>Mustard cotton</b> (any fabric different from the one it has). The piece changes right away."
+      "Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square. Later, to see all the fabrics, use the round button with a number beside this row."
     ),
     allow: ["#dz-fabrics2"],
-    glow: "#dz-fabrics2",
-    done: (s) => blk(1).fabrics.join() !== s.f,
-    start: () => ({ f: blk(1).fabrics.join() })
+    glow: '#dz-fabrics2 [data-f="b3"]',
+    arrow: "#dz-fabrics2",
+    pick: {
+      tile: "#dz-fabrics2 .fab",
+      right: '[data-f="b3"]',
+      says: t(
+        "That is a different fabric. Watch the video again, and when it ends click <b>Mustard cotton</b>, which will light up."
+      )
+    },
+    done: (s) => blk(4).fabrics.join() !== s.f,
+    start: () => ({ f: blk(4).fabrics.join() })
   },
   {
-    title: t("Select all three blocks"),
+    title: t("Select the whole quilt"),
+    clip: "select",
+    back: () => openBlocks([4]),
     text: t(
-      "Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected."
+      "Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected. A small <b>Unite</b> button will appear: leave it for now."
     ),
     allow: ["#dz-quilt"],
     glow: "#dz-quilt",
-    done: () => selBlocks.size === 3
+    done: () => selBlocks.size === 9,
+    check: () => !tour.down && selBlocks.size > 1 && selBlocks.size < 9,
+    says: t("That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.")
   },
   {
     title: t("Copy your block"),
+    clip: "copy",
+    back: () => openBlocks(ALL2),
     text: t(
-      "In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it."
+      "Under <b>Blocks in your quilt</b>, click your <b>Nine patch</b>, the highlighted one. All nine blocks become a copy of it."
     ),
+    // only your block: dragging made a plain block the current one, and clicking that would wipe out your nine patch
     allow: ["#dz-library"],
-    glow: "#dz-library",
-    done: () => design.blocks.every((b) => b.pattern === "pinwheel" && blockKey(b) === blockKey(blk(1)))
+    glow: '#dz-library .blib-item[data-src="4"]',
+    pick: {
+      tile: "#dz-library .blib-item",
+      right: '[data-src="4"]',
+      says: t(
+        "That is a different block, and it would replace your work. Watch the video again, and when it ends click your <b>Nine patch</b>, which will light up."
+      )
+    },
+    done: () => design.blocks.every((b) => b.pattern === "nine" && blockKey(b) === blockKey(blk(4)))
   },
   {
-    title: t("Close the side panel"),
-    text: t(
-      "Click the highlighted <b>round button</b> beside the quilt (Block parts) again to close the side panel and see the whole quilt."
-    ),
-    allow: ["#rail-parts"],
-    glow: "#rail-parts",
-    done: () => $("dz-side").hidden
+    title: t("Add sashing"),
+    // the copying is done: back to one block chosen, so the marks of the selection don't stay on the quilt
+    enter: () => {
+      setSelBlocks(/* @__PURE__ */ new Set([4]));
+      setFocusBlock(4);
+      selParts.clear();
+      renderDesigner();
+    },
+    clip: "sash",
+    back: () => openBlocks(ALL2),
+    text: t("Sashing is the strips between the blocks. Click the highlighted round button beside the quilt."),
+    allow: ["#rail-sash"],
+    glow: "#rail-sash",
+    done: () => !$("dz-side").hidden && toolsPanel === "sash"
   },
   {
-    title: t("Go back in time"),
+    title: t("Try a narrow width"),
+    back: () => showToolsPanel("sash"),
     text: t(
-      "Changed your mind? Press the <b>\u2190</b> arrow key on your keyboard. The timeline opens at the bottom of the page and steps back one change."
+      "Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone."
     ),
-    allow: ["#tl-panel"],
-    done: (s) => tl.i < s.i,
-    start: () => ({ i: tl.i })
+    ...sashStep(2)
   },
   {
-    title: t("And forward again"),
+    title: t("Now a wide one"),
+    back: () => showToolsPanel("sash"),
     text: t(
-      "Now press the <b>\u2192</b> arrow key to bring the change back. Later, double-click an empty part of the page to close the timeline."
+      "Click this wider one: the strips grow, and so does the whole quilt. You can try any width on your quilts."
     ),
-    allow: ["#tl-panel"],
-    done: (s) => tl.i > s.i,
-    start: () => ({ i: tl.i })
+    ...sashStep(6)
+  },
+  {
+    title: t("Choose the one for this quilt"),
+    back: () => showToolsPanel("sash"),
+    text: t("Click the highlighted width: it suits this quilt."),
+    ...sashStep(4)
   },
   {
     title: t("Open the borders"),
-    text: t("Click the <b>Borders</b> round button beside the quilt \u2014 the one with a frame drawn on it."),
+    clip: "border",
+    back: () => showToolsPanel("sash"),
+    text: t("A border finishes the edge. Click the highlighted round button beside the quilt."),
     allow: ["#rail-brd"],
     glow: "#rail-brd",
     done: () => !$("dz-side").hidden && toolsPanel === "brd"
   },
   {
     title: t("Add a border"),
-    text: t("In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt."),
+    back: () => showToolsPanel("brd"),
+    text: t("In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt."),
     allow: ["#brd-types"],
-    glow: '.brd-type[data-t="piano"]',
+    glow: '.brd-type[data-t="plain"]',
     done: () => bordersOf(design).length > 0
+  },
+  {
+    title: t("Save your quilt"),
+    text: t("A quilt is only kept once you save it. Click the highlighted round button, to the left of the quilt."),
+    allow: ["#dz-save"],
+    glow: "#dz-save",
+    done: () => $("save-dlg").open
+  },
+  {
+    title: t("Give it a name"),
+    noBack: true,
+    enter: () => {
+      $("save-name").value = t("My first quilt");
+    },
+    text: t("You can keep this name or type another. Then click <b>Save</b>."),
+    allow: ["#save-name", "#save-ok"],
+    glow: "#save-ok",
+    done: () => !!mineCur
+  },
+  {
+    title: t("See it on a bed"),
+    noBack: true,
+    clip: "bed",
+    back: () => showToolsPanel("brd"),
+    text: t("See your quilt on a bed. Click the highlighted round button beside the quilt, the one with a little bed."),
+    allow: ["#dz-sim", "#bedsel"],
+    glow: "#dz-sim",
+    // a 120 cm quilt on a single bed, where it covers the top: on a large bed it looks lost
+    enter: () => setTimeout(() => {
+      const bed = (
+        /** @type {HTMLSelectElement} */
+        $("bedsel")
+      );
+      bed.value = "br-solteiro";
+      bed.dispatchEvent(new Event("change", { bubbles: true }));
+    }),
+    done: () => state.page === "sim"
+  },
+  {
+    title: t("Back to your quilt"),
+    back: () => showPage("sim"),
+    text: t(
+      "At this size it is a small cover, so it covers only part of a single bed: a bigger quilt would cover it all. Click the <b>\xD7</b> at the top left to go back."
+    ),
+    allow: ["#sim-close"],
+    glow: "#sim-close",
+    done: () => state.page === "design"
+  },
+  {
+    title: t("See what to cut"),
+    clip: "cut",
+    text: t("Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out."),
+    allow: ['#tabs [data-page="cut"]'],
+    glow: '#tabs [data-page="cut"]',
+    // inches mean a quarter-inch seam, as in the patterns a quilter knows
+    enter: () => {
+      if (getUnit() !== "in") return;
+      const seam = (
+        /** @type {HTMLSelectElement} */
+        $("cg-seam")
+      );
+      tour.restoring = true;
+      seam.value = "6.4";
+      seam.dispatchEvent(new Event("change", { bubbles: true }));
+      tour.restoring = false;
+    },
+    done: () => state.page === "cut"
+  },
+  {
+    title: t("See the sizes"),
+    back: () => showPage("cut"),
+    text: t(
+      "Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Scroll down the page to read it all."
+    ),
+    allow: ["#cg-blocks .cgblock:first-child h3"],
+    glow: "#cg-blocks .cgblock:first-child h3",
+    done: () => !!document.querySelector("#cg-blocks .cgblock:first-child.open")
   },
   {
     title: t("Well done!"),
     text: t(
-      "You made a three-block quilt, changed a block, copied it, used undo and redo and added a border. Every change also appears on the bed in <b>Simulation</b>. Keep this quilt, or go back to the one you had before. Restart the tour any time with <b>? Guided tour</b>."
+      "You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click the round button with a page and a <b>+</b>, and save it before you open a different quilt, or your changes will be lost. Rest the mouse on any round button to see its name."
     ),
     center: true,
-    buttons: [
-      [t("Keep this quilt"), "keep", true],
-      [t("Go back to my previous quilt"), "restore"]
-    ]
+    buttons: [[t("Finish"), "keep", true]]
   }
 ];
+var tutorialQuilt = () => ({ ...newDesign(), blockMm: 254 });
 function tourAllowed(el) {
   return !!(el && el.closest && (el.closest("#tour") || el.closest(".tour-allow")));
 }
+function tourSay(says) {
+  const note = $("tour-note");
+  note.innerHTML = says;
+  note.hidden = false;
+  note.classList.remove("shake");
+  void note.offsetWidth;
+  note.classList.add("shake");
+  requestAnimationFrame(tourPlace);
+}
+function tourWrong(st) {
+  tourSay(st.pick.says);
+  const right = document.querySelector(`${st.pick.tile}${st.pick.right}`);
+  if (right) right.scrollIntoView({ block: "nearest", inline: "center" });
+  tourReplay();
+  requestAnimationFrame(tourPlace);
+}
 function tourBlock(e) {
-  if (!tour.on || tourAllowed(e.target)) return;
+  if (!tour.on || tour.restoring) return;
+  const st = TOUR[tour.i], el = e.target && e.target.closest ? e.target : null;
+  if (el && el.closest(".fab-x") && !el.closest("#tour")) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return;
+  }
+  const tile = st.pick && el && el.closest(st.pick.tile);
+  if (tile && !tile.matches(st.pick.right)) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.type === "click") tourWrong(st);
+    return;
+  }
+  if (tourAllowed(e.target)) return;
+  if (e.type === "click" && st.glow && el && el.closest("button, input, select, label, canvas"))
+    tourSay(t("Only the highlighted item works on this step. Click it to go on."));
   if (e.type === "keydown" && !["Enter", " ", "Escape"].includes(e.key) && !((e.ctrlKey || e.metaKey) && /^[zy]$/i.test(e.key)))
     return;
   e.preventDefault();
@@ -21384,6 +21699,7 @@ function tourHost() {
   return document.body;
 }
 function tourPlace() {
+  tourArrow();
   const box3 = $("tour"), st = TOUR[tour.i], host = tourHost();
   if (box3.parentElement !== host) host.appendChild(box3);
   box3.classList.toggle("center", !!st.center && !tour.userPos);
@@ -21406,7 +21722,7 @@ function tourPlace() {
   };
   const tg = st.glow && document.querySelector(st.glow), T = rectOf(tg);
   const keep = [];
-  if (T) keep.push([T, 12]);
+  if (T) keep.push([T, T.width * T.height < 9e4 ? 5e3 : 12]);
   document.querySelectorAll(".tour-allow").forEach((el) => {
     const r = rectOf(el);
     if (r) keep.push([r, 8]);
@@ -21422,7 +21738,7 @@ function tourPlace() {
   const side = $("dz-side");
   if (side && !side.hidden) {
     const r = rectOf(side);
-    if (r) keep.push([r, 2]);
+    if (r) keep.push([r, 5]);
   }
   const bar = $("tl-panel"), barTop = bar && !bar.hidden ? bar.getBoundingClientRect().top : H;
   const cands = [
@@ -21440,6 +21756,8 @@ function tourPlace() {
       [T.left + T.width / 2 - bw / 2, T.bottom + 14],
       [T.left + T.width / 2 - bw / 2, T.top - 14 - bh]
     );
+  const stay = tour.pos ? [tour.pos.x, tour.pos.y] : null;
+  if (stay) cands.push(stay);
   let best = null;
   for (const c of cands) {
     const [x, y] = clampXY(c[0], c[1]);
@@ -21450,8 +21768,10 @@ function tourPlace() {
     }
     if (y + bh > barTop) cost += (y + bh - barTop) * bw * 4;
     if (T) cost += Math.hypot(x + bw / 2 - (T.left + T.width / 2), y + bh / 2 - (T.top + T.height / 2)) * 2;
+    if (c === stay) cost *= 0.35;
     if (!best || cost < best.cost) best = { x, y, cost };
   }
+  tour.pos = { x: best.x, y: best.y };
   box3.style.left = best.x + "px";
   box3.style.top = best.y + "px";
 }
@@ -21487,11 +21807,65 @@ function tourMark() {
   if (!tour.on) return;
   const st = TOUR[tour.i];
   for (const sel of st.allow || []) document.querySelectorAll(sel).forEach((el) => el.classList.add("tour-allow"));
-  const g = st.glow && document.querySelector(st.glow);
+  const g = !tour.watching && st.glow && document.querySelector(st.glow);
   if (g) g.classList.add("tour-glow");
+}
+function tourClip(st) {
+  const v = (
+    /** @type {HTMLVideoElement} */
+    $("tour-clip")
+  ), box3 = $("tour");
+  const stop = () => {
+    tour.watching = false;
+    tourMark();
+  };
+  v.onended = stop;
+  v.onerror = () => {
+    v.hidden = $("tour-replay").hidden = true;
+    box3.classList.remove("with-clip");
+    stop();
+    tourPlace();
+  };
+  v.pause();
+  if (!st.clip) {
+    v.removeAttribute("src");
+    v.hidden = $("tour-replay").hidden = true;
+    box3.classList.remove("with-clip");
+    tour.watching = false;
+    return;
+  }
+  v.hidden = $("tour-replay").hidden = false;
+  box3.classList.add("with-clip");
+  v.src = `assets/clips/tut_${getLang() === "en" ? "en" : "pt"}_${st.clip}.mp4`;
+  tour.watching = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (tour.watching) v.play().catch(stop);
+}
+function tourReplay() {
+  const v = (
+    /** @type {HTMLVideoElement} */
+    $("tour-clip")
+  );
+  if (v.hidden || !v.getAttribute("src")) return;
+  tour.watching = true;
+  tourMark();
+  v.load();
+  v.play().catch(() => {
+    tour.watching = false;
+    tourMark();
+  });
+}
+function tourArrow() {
+  const a = $("tour-arrow"), row = tour.on && TOUR[tour.i].arrow && document.querySelector(TOUR[tour.i].arrow);
+  a.hidden = !row;
+  a.row = row;
+  if (!row) return;
+  const r = row.getBoundingClientRect();
+  a.style.left = `${r.right - 50}px`;
+  a.style.top = `${r.top - 50}px`;
 }
 function tourShow() {
   const st = TOUR[tour.i];
+  $("tour-note").hidden = true;
   $("tour-count").textContent = st.center ? t("Guided tour") : t("Step {n} of {all}", { n: tour.i, all: TOUR.length - 2 });
   $("tour-title").textContent = st.title;
   $("tour-text").innerHTML = st.text;
@@ -21507,6 +21881,9 @@ function tourShow() {
     acts.appendChild(b);
   }
   $("tour-skip").hidden = tour.i === TOUR.length - 1;
+  $("tour-back").hidden = tour.i < 2 || !!st.noBack;
+  if (design) tour.steps[tour.i] = JSON.stringify(design);
+  tourClip(st);
   if (st.enter) st.enter();
   tour.mark = st.start ? st.start() : null;
   tourMark();
@@ -21515,9 +21892,27 @@ function tourShow() {
   requestAnimationFrame(tourPlace);
   if (st.buttons) acts.querySelector("button").focus();
 }
+function tourBack() {
+  if (tour.i < 2) return;
+  tour.i--;
+  tour.restoring = true;
+  showPage("design");
+  replaceDesign(JSON.parse(tour.steps[tour.i]), { timeline: "tour" });
+  const st = TOUR[tour.i];
+  if (st.back) st.back();
+  tour.restoring = false;
+  tourShow();
+}
 function tourTick() {
   if (!tour.on) return;
   const st = TOUR[tour.i];
+  if (st.check && st.check()) {
+    if (st.fix) st.fix();
+    if ($("tour-note").innerHTML !== st.says || $("tour-note").hidden) {
+      tourSay(st.says);
+      if (st.clip) tourReplay();
+    }
+  }
   tourMark();
   tourPlace();
   if (st.done && st.done(tour.mark || {})) {
@@ -21528,17 +21923,20 @@ function tourTick() {
 function tourBegin() {
   if (tour.on) return;
   tour.saved = design ? JSON.stringify(design) : null;
+  tour.unit = getUnit();
   tour.savedCur = typeof mineCur !== "undefined" ? mineCur : null;
   tour.on = true;
   tour.i = 0;
   tour.userPos = null;
+  tour.pos = null;
   document.body.classList.add("tour-active");
   for (const id of ["dz-dialog", "save-dlg", "cg-pop"]) if ($(id).open) $(id).close();
   if (state.page !== "design") showPage("design");
   hideTools();
   const fresh = () => {
     timelines.remove(tlKeyFor("tour"));
-    replaceDesign(defaultDesign(), { timeline: "tour" });
+    setMineCur(null);
+    replaceDesign(tutorialQuilt(), { timeline: "tour" });
   };
   if (design) fresh();
   else
@@ -21564,11 +21962,23 @@ function tourAct(act) {
   }
   tourEnd(act);
 }
+function setUnitBack() {
+  if (getUnit() === tour.unit) return;
+  const sw = (
+    /** @type {HTMLInputElement} */
+    $("unit-sw")
+  );
+  sw.checked = tour.unit === "in";
+  sw.dispatchEvent(new Event("change", { bubbles: true }));
+}
 function tourEnd(how) {
   tour.on = false;
+  tour.watching = false;
+  $("tour-clip").pause();
   clearInterval(tour.poll);
   document.body.classList.remove("tour-active");
   tourMark();
+  tourArrow();
   const box3 = $("tour");
   box3.hidden = true;
   document.body.appendChild(box3);
@@ -21578,21 +21988,36 @@ function tourEnd(how) {
   }
   for (const id of ["dz-dialog"]) if ($(id).open) $(id).close();
   if (how === "keep") {
-    tlCopy("tour", null);
-    setMineCur(null);
-    mineSave();
-    tlSwitch(null);
-  } else if (how === "restore" && tour.saved) {
+    setSelBlocks(/* @__PURE__ */ new Set([0]));
+    setFocusBlock(0);
+    selParts.clear();
+    hideTools();
+    renderDesigner();
+  } else if (how === "restore") setUnitBack();
+  if (how === "restore" && tour.saved) {
     setMineCur(tour.savedCur);
     mineSave();
     openDesign(tour.saved, { timeline: mineCur, quiet: true });
   }
   timelines.remove(tlKeyFor("tour"));
-  showPage("design");
+  if (how !== "keep") showPage("design");
 }
 $("tour-start").addEventListener("click", tourBegin);
 initTourDrag();
 $("tour-skip").addEventListener("click", () => tourAct("skip"));
+$("tour-back").addEventListener("click", tourBack);
+document.addEventListener("pointerdown", () => tour.down = true, true);
+document.addEventListener("pointerup", () => tour.down = false, true);
+$("tour-arrow").addEventListener("click", () => {
+  const row = (
+    /** @type {any} */
+    $("tour-arrow").row
+  );
+  if (!row) return;
+  const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4;
+  row.scrollTo({ left: atEnd ? 0 : row.scrollLeft + 260, behavior: "smooth" });
+});
+$("tour-replay").addEventListener("click", tourReplay);
 window.addEventListener("resize", () => {
   if (tour.on) tourPlace();
 });
@@ -21659,14 +22084,17 @@ function openSaveDialog(forceNew) {
     }
   }
   $("save-name").select();
+  saveNameFresh = true;
 }
+var saveNameFresh = false;
 function doSave(asNew) {
   if (readOnly) {
     notify(t("This quilt was made with a newer version of the app, so it cannot be saved here."));
     $("save-dlg").close();
     return;
   }
-  saveCurrent(($("save-name").value || "").trim(), asNew || saveForceNew);
+  const saved = saveCurrent(($("save-name").value || "").trim(), asNew || saveForceNew);
+  notify(t("\u201C{name}\u201D is in My designs.", { name: saved.name }));
   saveForceNew = false;
   $("save-dlg").close();
   const b = $("dz-save");
@@ -21931,6 +22359,9 @@ function initMine() {
   $("save-asnew").addEventListener("click", () => doSave(true));
   $("save-x").addEventListener("click", () => $("save-dlg").close());
   $("save-name").addEventListener("keydown", (e) => {
+    if (saveNameFresh && e.key.length === 1 && !e.ctrlKey && !e.metaKey)
+      e.target.value = "";
+    saveNameFresh = false;
     if (e.key === "Enter") {
       e.preventDefault();
       doSave(false);
@@ -24677,7 +25108,7 @@ function pdfBlockPage(P, b, i, page, pages) {
   const rows = b.list.map((r) => [
     `${r.letter}${i + 1}.${r.form}`,
     plainHow(r.how),
-    Math.ceil(r.pieces / r.yield),
+    sharesOf(r.pieces / r.yield),
     Math.ceil(r.pieces * b.count / r.yield)
   ]);
   const tH = pdfTableHeight(g, widths, rows);
@@ -25250,7 +25681,7 @@ function cgPdfStatus(msg) {
   el.textContent = msg;
   el.hidden = !msg;
   clearTimeout(cgPdfStatus.t);
-  if (msg && !msg.endsWith("\u2026")) cgPdfStatus.t = setTimeout(() => cgPdfStatus(""), 5e3);
+  if (msg && !msg.endsWith("\u2026")) cgPdfStatus.t = setTimeout(() => cgPdfStatus(""), 3e4);
 }
 async function downloadCutPdf() {
   const btn2 = $("cg-pdf");
@@ -25265,7 +25696,7 @@ async function downloadCutPdf() {
     if (downloads) {
       cgPdfStatus(t("Saving\u2026"));
       const res = await downloads.save({ filename, data: blob });
-      cgPdfStatus(res && res.status === "delivered" ? t("Sent") : t("Saved"));
+      cgPdfStatus(res && res.status === "delivered" ? t("Sent") : t("Saved: look in your Downloads folder"));
     } else {
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -25274,7 +25705,7 @@ async function downloadCutPdf() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 1e4);
-      cgPdfStatus(t("Saved"));
+      cgPdfStatus(t("Saved: look in your Downloads folder"));
     }
   } catch (e) {
     const code = e && e.code;

@@ -2,7 +2,7 @@
 import '../sim/save-image.js'; // load order: runs after sim/save-image
 import { cgHi, fabHi, setCgHi, setFabHi } from '../render/hi-state.js';
 import { design } from '../core/store.js';
-import { dims, getUnit, len } from '../core/units.js';
+import { dims, getUnit, len, sharesOf } from '../core/units.js';
 import { comma, t, tn } from '@quilt/shared/i18n.js';
 import { fabricById } from '../designer/fabric-library.js';
 import { BORDER_TYPES, bordersOf, isOnPoint, quiltMm, sashOf } from '@quilt/shared/geometry.js';
@@ -501,7 +501,7 @@ function pdfBlockPage(P, b, i, page, pages) {
   const rows = b.list.map(r => [
     `${r.letter}${i + 1}.${r.form}`,
     plainHow(r.how),
-    Math.ceil(r.pieces / r.yield),
+    sharesOf(r.pieces / r.yield),
     Math.ceil((r.pieces * b.count) / r.yield),
   ]);
   const tH = pdfTableHeight(g, widths, rows);

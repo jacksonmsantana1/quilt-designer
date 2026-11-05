@@ -91,7 +91,18 @@ function eighthsOf(v) {
   return [Math.floor(e / 8), e % 8];
 }
 
+/**
+ * How many squares to cut for one block: a square cut in two or four can serve several blocks, so it may be a share
+ * of one (half a square per block, three in all for six). @param {number} n
+ */
+function sharesOf(n) {
+  const whole = Math.floor(n),
+    part = { 0: '', 0.25: '¼', 0.5: '½', 0.75: '¾' }[n - whole];
+  return part === undefined ? String(Math.ceil(n)) : `${whole || ''}${part}` || '0';
+}
+
 export {
+  sharesOf,
   FRACTIONS,
   MM_PER_IN,
   buyLen,

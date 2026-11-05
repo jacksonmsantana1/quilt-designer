@@ -6,6 +6,7 @@ import {
   eighthsOf,
   fromInput,
   getUnit,
+  sharesOf,
   inches,
   inputRange,
   len,
@@ -14,6 +15,15 @@ import {
   setUnit,
   toInput,
 } from '../../src/core/units.js';
+
+test('a square cut in two or four can be a share of one per block', () => {
+  assert.equal(sharesOf(1), '1');
+  assert.equal(sharesOf(0.5), '½');
+  assert.equal(sharesOf(0.25), '¼');
+  assert.equal(sharesOf(1.5), '1½');
+  assert.equal(sharesOf(2), '2');
+  assert.equal(sharesOf(1 / 3), '1');
+});
 
 test('millimetres (the start): whole numbers with "mm"', () => {
   assert.equal(getUnit(), 'mm');

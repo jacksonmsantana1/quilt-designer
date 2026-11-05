@@ -17,7 +17,9 @@ export default {
     '{how} · fussy cut: um de cada vez, centralizado no motivo escolhido',
   '{n} strip {width} × WOF, joined and cut to {lens}': '{n} tira de {width} × LT, emendada e cortada em {lens}',
   '{n} strips {width} × WOF, joined and cut to {lens}': '{n} tiras de {width} × LT, emendadas e cortadas em {lens}',
-  '{size} × WOF': '{size} × LT',
+  'a small piece: a remnant will do': 'peça pequena: um retalho resolve',
+  'Saved: look in your Downloads folder': 'Salvo: veja na pasta Downloads',
+  '{size} × WOF': '{size} na largura do tecido',
   'Side triangles': 'Triângulos laterais',
   'Corner triangles': 'Triângulos de canto',
 

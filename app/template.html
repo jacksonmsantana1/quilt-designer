@@ -385,6 +385,9 @@
   .rail { position: absolute; right: 0; top: 0; display: flex; flex-direction: column; gap: 10px; z-index: 3; }
   .rail-btn { width: 46px; height: 46px; border-radius: 50%; border: 2px dashed var(--stitch); background: var(--panel); color: var(--accent); display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(var(--shade),.12); transition: transform .12s ease, background .12s ease; }
   .rail-btn svg { width: 24px; height: 24px; }
+  .rail .rail-btn { position: relative; }
+  .rail .rail-btn[aria-label]:hover::after { content: attr(aria-label); position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); z-index: 60; padding: 5px 9px; border-radius: 6px; background: var(--ink); color: var(--bg); font: 600 .85rem var(--font-body); white-space: nowrap; pointer-events: none; }
+  .rail.rail-left .rail-btn[aria-label]:hover::after { left: auto; right: calc(100% + 8px); }
   .rail-btn:hover { transform: scale(1.07); border-color: var(--accent); }
   .rail-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent); }
   /* Symmetry: a round button on the tool rail; its five choices slide out beside it (to the left when there is
@@ -427,7 +430,7 @@
   .tour-btn svg { width: 26px; height: 26px; }
   body.tl-open .tour-btn { bottom: calc(var(--tl-h, 170px) + 22px); }
   body.tour-active :is(button, input, select, textarea, label.btn, label.filebtn, .fold-head):not(.tour-allow):not(.tour-allow *):not(#tour *) {
-    pointer-events: none !important; opacity: .32 !important; filter: grayscale(1) !important; }
+    cursor: not-allowed !important; opacity: .32 !important; filter: grayscale(1) !important; }
   body.tour-active canvas:is(#dz-quilt, #dz-block, #view):not(.tour-allow) { pointer-events: none !important; }
   .tour-glow { outline: 3px solid var(--mark) !important; outline-offset: 3px; border-radius: 8px; animation: tour-pulse 1.3s ease-in-out infinite; position: relative; z-index: 2; }
   @keyframes tour-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(214,98,52,.55); } 50% { box-shadow: 0 0 0 9px rgba(214,98,52,0); } }
@@ -440,6 +443,26 @@
   .tour { width: min(300px, calc(100vw - 24px)); }
   .tour-x { border: 0; background: none; color: var(--muted); font: 600 .75rem var(--font-body); cursor: pointer; padding: 2px 4px; }
   .tour-x:hover { color: var(--ink); }
+  .tour.with-clip { width: min(540px, calc(100vw - 24px)); }
+  .tour-foot { display: flex; gap: 16px; }
+  body.tour-active #dz-library .blib-item[aria-pressed="true"]:not(.tour-glow) { border-color: var(--line); box-shadow: none; }
+  #tour-note { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: oklch(0.5 0.15 30); color: #fff; font-size: .95rem; font-weight: 600; }
+  #tour-note b { color: inherit; text-decoration: underline; }
+  .tour-note::before { content: '⚠ '; font-size: 1.1rem; }
+  .tour-note.shake { animation: tour-shake .5s ease-in-out; }
+  @keyframes tour-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  @media (prefers-reduced-motion: reduce) { .tour-note.shake { animation: none; } }
+  .tour-note[hidden] { display: none; }
+  .tour-arrow { position: fixed; z-index: 1001; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: var(--mark); color: #fff; cursor: pointer; font: 700 1.6rem/1 var(--font-body); animation: tour-arrow 1s ease-in-out infinite; }
+  body.tour-active .fab-x { display: none; }
+  .tour-arrow[hidden] { display: none; }
+  @keyframes tour-arrow { 0%, 100% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
+  @media (prefers-reduced-motion: reduce) { .tour-arrow { animation: none; } }
+  .tour-foot .tour-replay { font-size: .85rem; }
+  .tour-clip { display: block; width: 100%; aspect-ratio: 8 / 5; margin-top: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); }
+  .tour-clip[hidden], .tour.min .tour-clip, .tour.min .tour-replay { display: none; }
+  .tour-replay { display: block; margin-top: 6px; padding-left: 0; text-decoration: underline; }
+  .tour-replay[hidden] { display: none; }
   .tour h3 { margin: 6px 0 4px; font: 600 1.05rem var(--font-body); }
   .tour p { margin: 0; font-size: .92rem; line-height: 1.45; color: var(--ink); }
   .tour p b { color: var(--accent); }
@@ -924,7 +947,7 @@
     <button type="button" role="tab" data-page="mine" aria-selected="false">My designs</button>
     <button type="button" role="tab" data-page="community" aria-selected="false">Community</button>
   </nav>
-  <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: a short exercise to make and change a three-block quilt"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+  <button class="rail-btn tour-btn" type="button" id="tour-start" aria-label="Guided tour" title="Guided tour: make your first quilt, a nine patch, step by step"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="#fff"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   <div class="acct" id="acct">
     <select class="lang-menu" data-lang aria-label="Language" title="Language"><option value="en">English</option><option value="pt-BR">Português</option></select>
     <button class="btn sm" type="button" id="acct-signin">Sign in</button>
@@ -1433,10 +1456,14 @@
 
 <div class="tour" id="tour" hidden role="dialog" aria-live="polite" aria-label="Guided tour">
   <div class="tour-head" title="Drag to move"><span id="tour-count"></span><span><button type="button" class="tour-x" id="tour-min" title="Fold the instructions">–</button><button type="button" class="tour-x" id="tour-skip" title="End the tour">Skip tour ×</button></span></div>
+  <video id="tour-clip" class="tour-clip" muted playsinline preload="auto" hidden aria-label="A short video of this step"></video>
   <h3 id="tour-title"></h3>
   <p id="tour-text"></p>
+  <p id="tour-note" class="tour-note" role="alert" hidden></p>
+  <div class="tour-foot"><button type="button" class="tour-x tour-replay" id="tour-replay" hidden>Watch again</button><button type="button" class="tour-x tour-replay" id="tour-back" hidden>← Back a step</button></div>
   <div class="tour-actions" id="tour-actions"></div>
   <div class="tour-bar"><div id="tour-prog"></div></div>
+  <button type="button" class="tour-arrow" id="tour-arrow" aria-label="See more" title="See more" hidden>→</button>
 </div>
 <section id="page-mine" hidden>
   <div class="mine-top">

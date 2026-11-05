@@ -55,7 +55,7 @@ function cgPdfStatus(msg) {
   el.textContent = msg;
   el.hidden = !msg;
   clearTimeout(cgPdfStatus.t);
-  if (msg && !msg.endsWith('…')) cgPdfStatus.t = setTimeout(() => cgPdfStatus(''), 5000);
+  if (msg && !msg.endsWith('…')) cgPdfStatus.t = setTimeout(() => cgPdfStatus(''), 30000);
 }
 async function downloadCutPdf() {
   const btn = $('cg-pdf');
@@ -71,7 +71,7 @@ async function downloadCutPdf() {
     if (downloads) {
       cgPdfStatus(t('Saving…'));
       const res = await downloads.save({ filename, data: blob });
-      cgPdfStatus(res && res.status === 'delivered' ? t('Sent') : t('Saved'));
+      cgPdfStatus(res && res.status === 'delivered' ? t('Sent') : t('Saved: look in your Downloads folder'));
     } else {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -80,7 +80,7 @@ async function downloadCutPdf() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-      cgPdfStatus(t('Saved'));
+      cgPdfStatus(t('Saved: look in your Downloads folder'));
     }
   } catch (e) {
     const code = e && e.code;

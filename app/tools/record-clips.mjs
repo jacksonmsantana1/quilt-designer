@@ -1,5 +1,8 @@
 // Records the short clips of the welcome page's feature cards from the real app, with a visible pointer:
 //   node app/tools/record-clips.mjs [block|cut|fabric|bed ...]     (build first; needs ffmpeg, and pdftoppm for "cut")
+//   node app/tools/record-clips.mjs tutorial                       the first-quilt tutorial's clips, in both languages
+//   CLIP_ONLY=sash,fabric node app/tools/record-clips.mjs tutorial only those are saved (the others are still acted out,
+//                                                                  since each follows on from the one before)
 // Every frame is a screenshot taken when the script is ready, not in real time, so a slow computer gives the same clip.
 // All four follow one quilt: it's made in "block", cut in "cut", gets a new fabric in "fabric", goes on the bed in "bed".
 import { chromium } from 'playwright';
@@ -20,8 +23,20 @@ const ORIGIN = 'http://localhost:9'; // localhost: a secure context, so a photo 
 const LANG = process.env.CLIP_LANG || 'pt-BR'; // the language of the app in the clips
 /** The clips' own words, and the names of the made-up photos. */
 const T = {
-  en: { realSize: 'Real size', photo: 'My paisley', stripe: 'Blue stripe', linen: 'Green linen' },
-  'pt-BR': { realSize: 'Tamanho real', photo: 'Meu paisley', stripe: 'Listra azul', linen: 'Linho verde' },
+  en: {
+    realSize: 'Real size',
+    photo: 'My paisley',
+    stripe: 'Blue stripe',
+    linen: 'Green linen',
+    scroll: 'More along the row',
+  },
+  'pt-BR': {
+    realSize: 'Tamanho real',
+    photo: 'Meu paisley',
+    stripe: 'Listra azul',
+    linen: 'Linho verde',
+    scroll: 'Há mais na fileira',
+  },
 }[LANG];
 const FPS = 30;
 const FRAME_W = 1280; // frames are made larger than the video, for sharp edges
@@ -435,6 +450,25 @@ async function blockSpot(page, d, i) {
   const box = await page.locator('#dz-quilt').boundingBox();
   const P = blockPlace(d, i, box.width, box.height);
   return { x: box.x + P.x + P.w / 2, y: box.y + P.y + P.h / 2 };
+}
+/** The tutorial's quilt, as tour.js starts it. */
+const tutorialDesign = () => ({ ...newDesign(), blockMm: 254 });
+/** The logo, in the corner of what the camera sees (the app's own, from its top bar). */
+async function logoOn(page, cam) {
+  await page.evaluate(
+    ({ x, y }) => {
+      document.getElementById('clip-logo')?.remove();
+      const c = document.createElement('div');
+      c.id = 'clip-logo';
+      c.popover = 'manual';
+      c.style.cssText = `position:fixed;left:${x}px;top:${y}px;margin:0;padding:4px;border:0;background:#fef9f1;border-radius:6px;overflow:visible;width:34px;height:34px;box-sizing:content-box`;
+      c.innerHTML = document.querySelector('.app-logo svg').outerHTML;
+      c.firstElementChild.style.cssText = 'display:block;width:34px;height:34px';
+      document.documentElement.append(c);
+      c.showPopover();
+    },
+    { x: cam.x + cam.w - 54, y: cam.y + cam.h - 54 },
+  );
 }
 /** Where to press on the big block of the panel to get a part of the first kind of this colour role. */
 async function partSpot(page, pattern, role) {
@@ -1293,6 +1327,260 @@ const CLIPS = {
     await drop(1.8, 1.2);
     await clip.hold(700);
     clip.encode({ posterAt: poster });
+    await browser.close();
+  },
+  // The first-quilt tutorial (tour/tour.js): one short clip for each step that has one, following one quilt from
+  // start to end, in the language of the words on screen. Each is run as tutorial_en and tutorial_pt.
+  async tutorial() {
+    if (!process.env.CLIP_LANG) {
+      for (const lang of ['en', 'pt-BR'])
+        execFileSync(process.execPath, [import.meta.filename, 'tutorial'], {
+          env: { ...process.env, CLIP_LANG: lang },
+          stdio: 'inherit',
+        });
+      return;
+    }
+    const d = tutorialDesign();
+    const { browser, page } = await openApp(d, { viewport: { width: 1300, height: 900 } });
+    await page.addStyleTag({ content: '#tour-start { display: none !important; }' });
+    const lang = LANG === 'en' ? 'en' : 'pt';
+    const only = process.env.CLIP_ONLY?.split(',');
+    const V = { w: 1300, h: 900 };
+    /** a camera of the clips' shape around some things on the page, kept inside it */
+    const around = async (locs, w = 780) => {
+      const boxes = await Promise.all(locs.map(l => l.boundingBox()));
+      const x0 = Math.min(...boxes.map(b => b.x)),
+        x1 = Math.max(...boxes.map(b => b.x + b.width)),
+        y0 = Math.min(...boxes.map(b => b.y)),
+        y1 = Math.max(...boxes.map(b => b.y + b.height));
+      const W = Math.min(V.w, Math.max(w, x1 - x0 + 80, ((y1 - y0 + 80) * 8) / 5)),
+        H = (W * 5) / 8;
+      return {
+        x: Math.max(0, Math.min(V.w - W, (x0 + x1) / 2 - W / 2)),
+        y: Math.max(0, Math.min(V.h - H, (y0 + y1) / 2 - H / 2)),
+        w: W,
+        h: H,
+      };
+    };
+    /** one clip: the pointer comes in, does what `act` says, and the result is held a moment */
+    const clip = async (name, cam, act) => {
+      const c = new Clip(page, `tut_${lang}_${name}`, cam);
+      c.story = true; // it plays once and stays on its last frame, so no fading out
+      await c.start();
+      await logoOn(page, cam);
+      await page.evaluate(() => window.__clipTop());
+      await c.hold(500);
+      await act(c);
+      await c.hold(1100);
+      await page.evaluate(() => {
+        document.getElementById('clip-cursor')?.remove();
+        document.getElementById('clip-logo')?.remove();
+      });
+      if (only && !only.includes(name)) return;
+      c.encode();
+      // the tour only needs the video
+      for (const e of ['webm', 'gif', 'jpg']) fs.rmSync(path.join(OUT, `${c.name}.${e}`), { force: true });
+    };
+    const q = page.locator('#dz-quilt');
+    const rowsPlus = page.locator('[data-step="r:1"]');
+    // the quilt grows during this clip, so the camera is framed on it at its full height: three rows, measured unseen,
+    // then back to one (in a taller window, so all of it fits)
+    V.h = 1120;
+    await page.setViewportSize({ width: V.w, height: V.h });
+    await page.waitForTimeout(300);
+    const rowsMinus = page.locator('[data-step="r:-1"]');
+    for (let i = 0; i < 2; i++) await rowsPlus.click();
+    await page.waitForTimeout(400);
+    const grown = await q.boundingBox();
+    for (let i = 0; i < 2; i++) await rowsMinus.click();
+    await page.waitForTimeout(400);
+    const rowsH = Math.min((V.w * 5) / 8, grown.height + 110);
+    const rowsW = (rowsH * 8) / 5;
+    const rowsCam = {
+      x: Math.max(0, Math.min(V.w - rowsW, grown.x + grown.width / 2 - rowsW / 2)),
+      y: Math.max(0, grown.y - 70),
+      w: rowsW,
+      h: rowsH,
+    };
+    await clip('rows', rowsCam, async c => {
+      await c.moveTo(rowsPlus, 800);
+      for (let i = 0; i < 2; i++) {
+        await c.click();
+        await page.waitForTimeout(250);
+        await c.hold(350);
+      }
+    });
+    const unit = page.locator('.unit-sw');
+    await clip('unit', await around([unit, q]), async c => {
+      await c.moveTo(unit, 800);
+      await c.click();
+      await page.waitForTimeout(300);
+    });
+    const size = page.locator('#dz-bsize .inch-whole');
+    // the box sits below the window with a large quilt: a taller window, for this clip
+    V.h = 1120;
+    await page.setViewportSize({ width: V.w, height: V.h });
+    await page.waitForTimeout(400);
+    await clip('size', await around([size], 640), async c => {
+      await c.moveTo(size, 800);
+      await c.click(async () => {
+        await size.click();
+        await page.keyboard.press('Control+A');
+      });
+      await c.hold(250);
+      for (const key of ['1', '2']) {
+        await page.keyboard.type(key);
+        await c.hold(300);
+      }
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(300);
+      await c.hold(300);
+    });
+    V.h = 900;
+    await page.setViewportSize({ width: V.w, height: V.h });
+    await page.waitForTimeout(400);
+    const middle = await blockSpot(page, { ...d, rows: 3, blocks: new Array(9).fill(d.blocks[0]) }, 4);
+    await clip('block', await around([q]), async c => {
+      await c.move(middle.x, middle.y, 900);
+      await c.click();
+      await page.waitForTimeout(400);
+    });
+    const tile = page.locator('#dz-patterns [data-p="nine"]');
+    /** the row scrolled to show there's more, and back, with the keys named beside the pointer */
+    const scrollRow = async (c, row, lookFor) => {
+      const r = await row.boundingBox();
+      await c.move(r.x + r.width * 0.6, r.y + r.height / 2, 700);
+      await page.evaluate(
+        ({ x, y, words }) => {
+          const n = document.createElement('div');
+          n.id = 'clip-keys';
+          n.popover = 'manual';
+          n.textContent = words;
+          n.style.cssText = `position:fixed;left:${x}px;top:${y}px;margin:0;border:0;padding:8px 12px;border-radius:8px;background:#7a2f12;color:#fff;font:600 18px sans-serif;white-space:nowrap`;
+          document.documentElement.append(n);
+          n.showPopover();
+          window.__clipTop();
+        },
+        { x: r.x + 8, y: r.y - 46, words: T.scroll },
+      );
+      await row.evaluate(el => {
+        el.style.scrollSnapType = 'none';
+        el.style.scrollBehavior = 'auto';
+      });
+      const start = await row.evaluate(el => el.scrollLeft);
+      const far = await row.evaluate(el => Math.min(el.scrollWidth - el.clientWidth, el.scrollLeft + 420));
+      const to = v => row.evaluate((el, x) => (el.scrollLeft = x), v);
+      await c.tween(1100, t => to(mix(start, far, t)));
+      await c.hold(350);
+      await c.tween(900, t => to(mix(far, start, t)));
+      await page.evaluate(() => document.getElementById('clip-keys').remove());
+      // the tile to click in the middle of the row, and settled, so the click lands on it
+      await c.tween(350, t =>
+        lookFor.evaluate((el, t) => {
+          const row = el.parentElement,
+            rr = row.getBoundingClientRect(),
+            er = el.getBoundingClientRect();
+          const want = row.scrollLeft + er.left + er.width / 2 - rr.left - rr.width / 2;
+          row.scrollLeft += (want - row.scrollLeft) * t;
+        }, t),
+      );
+      await page.waitForTimeout(300);
+    };
+    await tile.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+    await page.waitForTimeout(200);
+    await clip('pattern', await around([page.locator('#dz-patterns')], 680), async c => {
+      await scrollRow(c, page.locator('#dz-patterns'), tile);
+      await c.moveTo(tile, 700);
+      await c.click();
+      await page.waitForTimeout(300);
+    });
+    const big = page.locator('#dz-block');
+    await big.evaluate(el => el.scrollIntoView({ block: 'center' }));
+    await page.waitForTimeout(200);
+    await clip('piece', await around([big], 640), async c => {
+      const b = await big.boundingBox();
+      await c.move(b.x + b.width / 2, b.y + b.height / 2, 900);
+      await c.click();
+    });
+    const fab = page.locator('#dz-fabrics2 [data-f="b3"]');
+    await fab.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+    await page.waitForTimeout(200);
+    await clip('fabric', await around([page.locator('#dz-fabrics2')], 680), async c => {
+      await scrollRow(c, page.locator('#dz-fabrics2'), fab);
+      await c.moveTo(fab, 700);
+      await c.click();
+    });
+    // the side panel moves the quilt: read it again
+    const select = await around([q]);
+    await clip('select', select, async c => {
+      const b = await q.boundingBox();
+      await c.move(b.x + 6, b.y + 6, 700);
+      await page.mouse.move(c.pt.x, c.pt.y);
+      await page.mouse.down();
+      await c.move(b.x + b.width - 6, b.y + b.height - 6, 1200);
+      await page.mouse.up();
+      await c.pointer();
+    });
+    const lib = page.locator('#dz-library .blib-item[data-src="4"]');
+    await lib.evaluate(el => el.scrollIntoView({ block: 'center' }));
+    await page.waitForTimeout(200);
+    await clip('copy', await around([q, lib]), async c => {
+      await c.moveTo(lib, 900);
+      await c.click();
+      await page.waitForTimeout(300);
+    });
+    const sash = page.locator('#rail-sash');
+    // the quilt and the whole side panel, where the widths are
+    await clip('sash', { x: 300, y: 0, w: 1000, h: 625 }, async c => {
+      await c.moveTo(sash, 800);
+      await c.click();
+      await page.waitForTimeout(400);
+      // the widths tried one after the other, as the tutorial asks
+      for (const n of [2, 6, 4]) {
+        await c.moveTo(page.locator(`#sash-presets button:nth-child(${n})`), 550);
+        await c.click();
+        await page.waitForTimeout(200);
+        await c.hold(350);
+      }
+    });
+    const brd = page.locator('#rail-brd');
+    await clip('border', await around([q, brd]), async c => {
+      await c.moveTo(brd, 800);
+      await c.click();
+      await page.waitForTimeout(400);
+      const plain = page.locator('.brd-type[data-t="plain"]');
+      await c.moveTo(plain, 800);
+      await c.click();
+      await page.waitForTimeout(300);
+    });
+    const simTab = page.locator('#dz-sim');
+    // as the tutorial does: a single bed, which this size of quilt covers
+    await page.evaluate(() => {
+      const bed = document.getElementById('bedsel');
+      bed.value = 'br-solteiro';
+      bed.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await clip('bed', { x: 0, y: 0, w: V.w, h: (V.w * 5) / 8 }, async c => {
+      await c.moveTo(simTab, 900);
+      await c.click();
+      await page.waitForTimeout(600);
+      await c.simFrames(2.2);
+    });
+    await page.locator('#sim-close').click();
+    await page.waitForTimeout(400);
+    const cutTab = page.locator('#tabs [data-page="cut"]');
+    // a quarter-inch seam, as the tutorial sets it
+    await page.evaluate(() => {
+      const seam = document.getElementById('cg-seam');
+      seam.value = '6.4';
+      seam.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await clip('cut', { x: 0, y: 0, w: V.w, h: (V.w * 5) / 8 }, async c => {
+      await c.moveTo(cutTab, 900);
+      await c.click();
+      await page.waitForTimeout(800);
+      await c.hold(900);
+    });
     await browser.close();
   },
 };
