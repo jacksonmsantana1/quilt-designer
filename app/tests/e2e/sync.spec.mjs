@@ -92,6 +92,7 @@ test('device 1: a quilt and a fabric photo, made before connecting, go up once a
     buffer: fs.readFileSync(new URL('../../assets/fabric/linen.jpg', import.meta.url)),
   };
   await page.locator('#dz-upload').setInputFiles(photo);
+  await page.locator('#addfab-ok').click();
   await expect.poll(() => app.storage(s => s.fabrics.list().length)).toBe(1);
   await page.locator('[data-step="c:-1"]').click(); // 4 × 5
   await page.locator('#dz-save').click();

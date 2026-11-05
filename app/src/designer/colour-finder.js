@@ -2,7 +2,7 @@
 // colour wheel. Up to three colours are picked on it, each with how much of it the fabric should have, and every
 // fabric is ranked by how well its own colours match (core/colour-match.js). A fabric clicked there goes to the
 // list the window was opened from, as from the library.
-import './fabric-picker.js'; // load order: runs after designer/fabric-picker
+import './add-fabric.js'; // load order: runs after designer/add-fabric
 import { design } from '../core/store.js';
 import { $, sideRoller } from '../core/dom.js';
 import { isFabric, listedFabrics, tileSource } from './fabric-library.js';

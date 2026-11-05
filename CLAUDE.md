@@ -145,13 +145,14 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
 Done, in order: module split → tooling and tests → pure edits through dispatch → store modules, one undo step
 per edit → versioned format → IndexedDB → coverage and more tests → server (steps 1–4, 6) → app sync (step 7).
 
-**Next: step 8, going live.** The owner chose Fly.io (São Paulo) for the API, Neon (São Paulo) for the database,
-Cloudflare R2 for photos and backups, Cloudflare Pages for the page, and Sentry for error reports. Everything that can be
-prepared on a computer is (`server/Dockerfile`, `fly.toml`, `publish:page`, `.github/workflows/backup.yml`); the steps
-that are left need the owner's accounts, and are in `server/README.md`, "Going live". None of it has run on a real host
-yet, so expect small corrections there: the photo size limit on R2 and how long Neon takes to wake are untested. The
-published page on claude.ai can only sync once the API is on https on the internet (Chrome blocks pages from reaching a
-server on the person's own computer), and Auth0's sign-in popup may not open from inside claude.ai's frame: untested.
+**The app is live** (step 8): the page at https://block-and-bind.pages.dev (Cloudflare Pages) and the API at
+https://block-and-bind-api.fly.dev (Fly.io, São Paulo), with Neon for the database, Cloudflare R2 for photos and backups,
+and Sentry for error reports; `server/README.md`, "Going live", has the steps. Merging to `main` doesn't update them: the
+page is republished with `publish:page` and the API deployed from `fly.toml`. The published page on claude.ai may not be
+able to use Auth0's sign-in popup from inside claude.ai's frame: untested.
+
+**Next: the phone app** (Android and iOS, with Capacitor): Community, My quiltings, My fabrics with folders, and a camera
+for photos of quilts and fabrics. Designs are view-only there; the web app stays the place to design.
 
 **Known gaps / ideas**
 - Plans on the welcome page: Block (free) and Bind ("Coming soon", no price or button). Nothing takes payments yet, so
@@ -163,9 +164,9 @@ server on the person's own computer), and Auth0's sign-in popup may not open fro
   (`app/assets/brands`). No permission has been asked for yet, and the app's 1500 fabrics are drawn by code, not those
   makers' fabrics: the heading and the logos need real fabrics and the makers' permission before the page goes public.
 - Block editor: drawn blocks can't be deleted from My blocks yet; drawing needs a pointer (no keyboard way).
-- The "Add fabric photos" button sits in a section that is always hidden, so people can't add their own fabrics
-  (tests reach it through the code). Proposed: a "+ Add fabric" tile at the end of the fabric list (photo file).
-  Not done yet: ask first. The webcam fabric feature was removed at the owner's request: don't bring it back.
+- Adding fabric photos: the "+ Add fabric" tile (`designer/add-fabric.js`), first in every fabric list and in the
+  fabric library, takes files from the computer. The webcam fabric feature was removed at the owner's request: don't
+  bring it back to the web app. A camera belongs only in the planned phone app.
 - Photos added on a plain-http page get the simple `h…` fingerprint and are not synced (sync says so).
 - Undo timelines are all loaded into memory at start; load per design if people have hundreds of designs.
 - Later: "fabrics like this one" with pgvector (image embeddings in a background job) and dominant-colour palettes.

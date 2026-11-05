@@ -641,7 +641,7 @@
   .stepper { display: flex; align-items: center; gap: 4px; }
   .stepper input { width: 3.4em; text-align: center; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 2px; }
   .pats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-  .pats .pat, .fabs .fab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
+  .pats .pat, .fabs .fab, .fabs .fab-add { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
   .pats .pat canvas, .fabs .fab canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
   .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; hyphens: auto; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
@@ -649,7 +649,10 @@
   /* a fabric list is one row that scrolls sideways (the mouse wheel scrolls it too), with a round "More fabrics"
      button just outside its card while the mouse is over it. The library window keeps its grid (.fablib-grid) */
   .fabs { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
-  .fabs .fab { flex: 0 0 84px; scroll-snap-align: start; }
+  .fabs .fab, .fabs .fab-add { flex: 0 0 84px; scroll-snap-align: start; }
+  .addfab-pics { display: flex; flex-wrap: wrap; gap: 6px; }
+  .addfab-pics img { width: 84px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--line); }
+  #addfab-name-row[hidden] { display: none; }
   .fabs:not(.fablib-grid) .fab span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* the palette: an × to take a fabric off the lists (on hover; always on touch screens), a ✓ on one that stays */
   .fabs .fab { position: relative; }
@@ -665,8 +668,9 @@
   /* in the library: a dot on the fabrics that are in the lists */
   .fablib-grid .fab.on-palette::after { content: ""; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--panel); }
   .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
-  /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
+  /* "+ Add fabric": a dashed tile, first in a list and staying in view as the row scrolls */
   .fabs .fab-more { border-style: dashed; color: var(--muted); }
+  .fabs:not(.fablib-grid) .fab-add { position: sticky; left: 0; z-index: 1; box-shadow: -4px 0 0 var(--panel); } /* the shadow hides fabrics rolling by in the row's padding */
   .fabs-row { display: flex; align-items: center; gap: 8px; }
   .fabs-row > .fabs { flex: 1 1 auto; min-width: 0; }
   /* Block pattern: one row that scrolls sideways, like the fabric lists (with the same round button beside it) */
@@ -1573,6 +1577,24 @@
     </div>
   </div>
 </dialog>
+<input id="dz-upload" type="file" accept="image/*" multiple class="sr" aria-label="Add fabric" tabindex="-1">
+<dialog class="dz-dialog" id="addfab" aria-labelledby="addfab-title">
+  <div class="dlg-head"><h2 id="addfab-title">Add fabric photos</h2><button class="btn sm dlg-x" type="button" id="addfab-x" aria-label="Close">×</button></div>
+  <div class="addfab-pics" id="addfab-pics"></div>
+  <div id="addfab-name-row">
+    <label for="addfab-name" style="display:block;margin-top:10px">Fabric name</label>
+    <input type="text" id="addfab-name" maxlength="40" style="width:100%">
+  </div>
+  <div class="param" style="margin-top:12px">
+    <label for="dz-cm">How wide is the fabric in the picture?</label><output id="dz-cm-o"></output>
+    <input id="dz-cm" type="range" min="5" max="150" step="1" value="25">
+  </div>
+  <p class="fine" style="margin:6px 0 0">Measure it, or make your best guess: it sets the size of the print on your quilt.</p>
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button class="btn" type="button" id="addfab-cancel">Cancel</button>
+    <button class="btn primary" type="button" id="addfab-ok">Add</button>
+  </div>
+</dialog>
 <dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
   <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>
   <input type="search" id="fablib-q" placeholder="Search: gingham, teal, chintz…" aria-label="Search fabrics by name" autocomplete="off">
@@ -1581,12 +1603,6 @@
   <p class="fine" id="fablib-none" hidden></p>
   <button class="btn sm fablib-more" type="button" id="fablib-more" hidden></button>
   <div class="fablib-foot">
-    <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
-    <div class="param">
-      <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
-      <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
-    </div>
-    <p class="fine" id="dz-fabnote"></p>
     <p class="fine" style="margin:6px 0 0"><button class="btn sm" type="button" id="fablib-reset" hidden title="Bring back the fabric lists as they were at first: the basics and your newest photos">Reset palette</button></p>
   </div>
 </dialog>
@@ -3107,7 +3123,17 @@ var designer_default = {
   Collection: "Cole\xE7\xE3o",
   "My photos": "Minhas fotos",
   "Add photos of your own fabrics": "Adicione fotos dos seus tecidos",
-  "Add fabric photo": "Adicionar foto do tecido",
+  // adding your own fabric photos
+  "Add fabric": "Adicionar tecido",
+  "Add fabric photos": "Adicionar fotos de tecidos",
+  Add: "Adicionar",
+  "Fabric name": "Nome do tecido",
+  "How wide is the fabric in the picture?": "Qual \xE9 a largura do tecido na foto?",
+  "Measure it, or make your best guess: it sets the size of the print on your quilt.": "Me\xE7a ou fa\xE7a uma boa estimativa: isso define o tamanho da estampa na sua colcha.",
+  "Those files aren\u2019t pictures.": "Esses arquivos n\xE3o s\xE3o imagens.",
+  "Couldn\u2019t read {names}. Try a JPG or PNG picture.": "N\xE3o foi poss\xEDvel ler {names}. Tente uma imagem JPG ou PNG.",
+  "Add {n} fabric": "Adicionar {n} tecido",
+  "Add {n} fabrics": "Adicionar {n} tecidos",
   "{name} \xB7 in your fabric lists": "{name} \xB7 nas suas listas de tecidos",
   "No fabrics match \u201C{q}\u201D.": "Nenhum tecido corresponde a \u201C{q}\u201D.",
   "No fabrics here yet.": "Ainda n\xE3o h\xE1 tecidos aqui.",
@@ -4130,7 +4156,6 @@ var template_default = {
   "Which fabrics": "Quais tecidos",
   "Whole quilt": "Quilt inteiro",
   Width: "Largura",
-  "Width a new photo covers": "Largura que uma nova foto cobre",
   "Without cornerstones, the strips between the rows run the full width of the quilt": "Sem quadrados de canto, as faixas entre as linhas ocupam toda a largura do quilt",
   "Wool blanket": "Cobertor de l\xE3",
   "Your designs on all your devices": "Seus projetos em todos os seus aparelhos",
@@ -10778,7 +10803,7 @@ var setRenderT0 = (v) => renderT0 = v;
 // src/core/dom.js
 var $ = (id) => document.getElementById(id);
 var esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
-function sideRoller(box3, chosen) {
+function sideRoller(box3, chosen2) {
   if (!box3.dataset.roller) {
     box3.dataset.roller = "1";
     box3.addEventListener(
@@ -10795,7 +10820,7 @@ function sideRoller(box3, chosen) {
   }
   const on = (
     /** @type {HTMLElement | null} */
-    box3.querySelector(chosen)
+    box3.querySelector(chosen2)
   );
   if (on && box3.clientWidth) box3.scrollLeft = Math.max(0, on.offsetLeft - (box3.clientWidth - on.offsetWidth) / 2);
 }
@@ -13639,6 +13664,15 @@ function redrawLists() {
     else lists.delete(box3);
   }
 }
+function showInLists(id) {
+  for (const box3 of lists.keys()) {
+    const tile = (
+      /** @type {HTMLElement | null} */
+      box3.querySelector(`[data-f="${id}"]`)
+    );
+    if (tile) box3.scrollLeft = tile.offsetLeft - box3.clientWidth / 2;
+  }
+}
 function removeFromPalette(f) {
   const before2 = fabricPalette();
   setFabricPalette(withoutFabric(before2 || defaultPalette(), f.id));
@@ -13673,6 +13707,15 @@ function moreButton(box3, shown) {
     b.append(n);
   }
   b.addEventListener("click", () => openLibrary(box3));
+  return b;
+}
+function addFabricTile() {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "fab-add fab-more";
+  b.title = t("Add photos of your own fabrics");
+  b.innerHTML = `<b aria-hidden="true">+</b><span>${t("Add fabric")}</span>`;
+  b.addEventListener("click", () => choosePhotos(b));
   return b;
 }
 var float = {
@@ -13807,6 +13850,7 @@ function drawShortList(box3, selected) {
   box3.innerHTML = "";
   const fabs = shortListFabrics(selected);
   for (const { f, fixed } of fabs) box3.appendChild(fabricTile(f, f.id === selected, fixed ? "fixed" : "remove"));
+  box3.prepend(addFabricTile());
   placeMoreButton(box3, moreButton(box3, fabs.length), colourButton ? colourButton(box3) : null);
   sideRoller(box3, '.fab[aria-pressed="true"]');
 }
@@ -13865,12 +13909,7 @@ function drawLibrary() {
   const grid = $("fablib-grid");
   grid.innerHTML = "";
   if (lib.group === "all" || lib.group === "mine") {
-    const add2 = document.createElement("label");
-    add2.className = "fab fab-more";
-    add2.htmlFor = "dz-upload";
-    add2.title = t("Add photos of your own fabrics");
-    add2.innerHTML = `<b aria-hidden="true">+</b><span>${t("Add fabric photo")}</span>`;
-    grid.appendChild(add2);
+    grid.appendChild(addFabricTile());
   }
   const onPalette = new Set(fabricPalette() || defaultPalette());
   for (const f of found.slice(0, lib.shown)) {
@@ -13958,6 +13997,104 @@ var colourButton = (
   null
 );
 var setColourButton = (make) => colourButton = make;
+
+// src/designer/add-fabric.js
+var CM_KEY = "quilt-photo-cm.v1";
+var PREVIEWS = 6;
+var chosen = [];
+var adding = false;
+function choosePhotos(from) {
+  const input = $("dz-upload"), home = from.closest("dialog[open]") || document.body;
+  if (input.parentElement !== home) home.append(input);
+  input.click();
+}
+var nameOf = (file) => file.name.replace(/\.[^.]+$/, "").slice(0, 40);
+function showWidth() {
+  $("dz-cm-o").textContent = len(+$("dz-cm").value * 10);
+}
+function letGo() {
+  for (const c of chosen) URL.revokeObjectURL(c.url);
+  chosen = [];
+  $("addfab-pics").replaceChildren();
+}
+function photosPicked(files) {
+  const images = files.filter((f) => f.type.startsWith("image/"));
+  if (!images.length) return notify(t("Those files aren\u2019t pictures."));
+  letGo();
+  chosen = images.map((file) => ({ file, url: URL.createObjectURL(file) }));
+  $("addfab-pics").replaceChildren(
+    ...chosen.slice(0, PREVIEWS).map((c) => {
+      const im = new Image();
+      im.src = c.url;
+      im.alt = "";
+      return im;
+    })
+  );
+  const one = chosen.length === 1;
+  $("addfab-name-row").hidden = !one;
+  if (one) $("addfab-name").value = nameOf(images[0]);
+  $("addfab-ok").textContent = tn(chosen.length, "Add {n} fabric", "Add {n} fabrics");
+  showWidth();
+  $("addfab").showModal();
+}
+async function addChosen() {
+  adding = true;
+  $("addfab-ok").disabled = true;
+  const cm = +$("dz-cm").value, one = chosen.length === 1, failed = [];
+  let last = null, added = 0;
+  for (const { file, url } of chosen)
+    try {
+      const im = await loadImage(url), c = document.createElement("canvas");
+      c.width = im.naturalWidth;
+      c.height = im.naturalHeight;
+      c.getContext("2d").drawImage(im, 0, 0);
+      const name = one && $("addfab-name").value.trim().slice(0, 40) || nameOf(file);
+      last = await addFabric(c, { name, cm });
+      added++;
+    } catch (e) {
+      failed.push(file.name);
+    }
+  try {
+    localStorage.setItem(CM_KEY, String(cm));
+  } catch (e) {
+  }
+  adding = false;
+  $("addfab-ok").disabled = false;
+  $("addfab").close();
+  redrawLists();
+  refreshLibrary();
+  if (last) showInLists(last);
+  const note = added ? tn(
+    added,
+    "{n} photo added. They are kept in this browser with your designs.",
+    "{n} photos added. They are kept in this browser with your designs."
+  ) : "";
+  notify(
+    failed.length ? `${note} ${t("Couldn\u2019t read {names}. Try a JPG or PNG picture.", { names: failed.join(", ") })}`.trim() : note
+  );
+}
+function init() {
+  const dlg = $("addfab");
+  try {
+    const saved = +localStorage.getItem(CM_KEY);
+    if (saved) $("dz-cm").value = String(saved);
+  } catch (e) {
+  }
+  $("dz-upload").addEventListener("change", (e) => {
+    const files = [...e.target.files];
+    e.target.value = "";
+    if (files.length) photosPicked(files);
+  });
+  $("dz-cm").addEventListener("input", showWidth);
+  $("addfab-ok").addEventListener("click", addChosen);
+  $("addfab-cancel").addEventListener("click", () => dlg.close());
+  $("addfab-x").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("cancel", (e) => {
+    if (adding) e.preventDefault();
+  });
+  dlg.addEventListener("close", letGo);
+}
+init();
 
 // src/core/colour-match.js
 var lin = (c) => {
@@ -16252,30 +16389,6 @@ function initDesignerUI() {
     $("dz-reset").dataset.armed = "";
     $("dz-reset").textContent = t("Start over");
   });
-  $("dz-upload").addEventListener("change", async (e) => {
-    const files = [...e.target.files].filter((f) => f.type.startsWith("image/"));
-    for (const f of files) {
-      const im = await loadImage(URL.createObjectURL(f));
-      const c = document.createElement("canvas");
-      c.width = im.naturalWidth;
-      c.height = im.naturalHeight;
-      c.getContext("2d").drawImage(im, 0, 0);
-      await addFabric(c, { name: f.name.replace(/\.[^.]+$/, "").slice(0, 40), cm: +$("dz-cm").value });
-    }
-    e.target.value = "";
-    drawFabricPalette();
-    refreshLibrary();
-    $("dz-fabnote").textContent = tn(
-      files.length,
-      "{n} photo added. They are kept in this browser with your designs.",
-      "{n} photos added. They are kept in this browser with your designs."
-    );
-  });
-  const cmOut2 = () => {
-    $("dz-cm-o").textContent = comma($("dz-cm").value) + " cm";
-  };
-  $("dz-cm").addEventListener("input", cmOut2);
-  cmOut2();
   new ResizeObserver(() => {
     if (state.page === "design") drawDesignerCanvas();
   }).observe($("dz-quilt").closest(".dz-quiltwrap"));
@@ -18246,7 +18359,7 @@ function clicked() {
   if (job2) return notify(t("A picture of another version of a quilt is being made. Wait for it, or stop it first."));
   if (startPicture(design)) notify(t("Making the picture. Keep working: it will tell you when it\u2019s ready."));
 }
-function init() {
+function init2() {
   if (!canMakePictures()) btn.hidden = true;
   btn.addEventListener("click", clicked);
   $("pic-job-stop").addEventListener("click", stopPicture);
@@ -18274,7 +18387,7 @@ function init() {
   });
   pictures.load().then(refreshButton);
 }
-init();
+init2();
 
 // src/mine/shared-state.js
 var sharedIds = /* @__PURE__ */ new Set();

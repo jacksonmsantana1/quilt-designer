@@ -640,7 +640,7 @@
   .stepper { display: flex; align-items: center; gap: 4px; }
   .stepper input { width: 3.4em; text-align: center; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 2px; }
   .pats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-  .pats .pat, .fabs .fab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
+  .pats .pat, .fabs .fab, .fabs .fab-add { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
   .pats .pat canvas, .fabs .fab canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
   .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; hyphens: auto; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
@@ -648,7 +648,10 @@
   /* a fabric list is one row that scrolls sideways (the mouse wheel scrolls it too), with a round "More fabrics"
      button just outside its card while the mouse is over it. The library window keeps its grid (.fablib-grid) */
   .fabs { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
-  .fabs .fab { flex: 0 0 84px; scroll-snap-align: start; }
+  .fabs .fab, .fabs .fab-add { flex: 0 0 84px; scroll-snap-align: start; }
+  .addfab-pics { display: flex; flex-wrap: wrap; gap: 6px; }
+  .addfab-pics img { width: 84px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--line); }
+  #addfab-name-row[hidden] { display: none; }
   .fabs:not(.fablib-grid) .fab span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* the palette: an × to take a fabric off the lists (on hover; always on touch screens), a ✓ on one that stays */
   .fabs .fab { position: relative; }
@@ -664,8 +667,9 @@
   /* in the library: a dot on the fabrics that are in the lists */
   .fablib-grid .fab.on-palette::after { content: ""; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--panel); }
   .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
-  /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
+  /* "+ Add fabric": a dashed tile, first in a list and staying in view as the row scrolls */
   .fabs .fab-more { border-style: dashed; color: var(--muted); }
+  .fabs:not(.fablib-grid) .fab-add { position: sticky; left: 0; z-index: 1; box-shadow: -4px 0 0 var(--panel); } /* the shadow hides fabrics rolling by in the row's padding */
   .fabs-row { display: flex; align-items: center; gap: 8px; }
   .fabs-row > .fabs { flex: 1 1 auto; min-width: 0; }
   /* Block pattern: one row that scrolls sideways, like the fabric lists (with the same round button beside it) */
@@ -1572,6 +1576,24 @@
     </div>
   </div>
 </dialog>
+<input id="dz-upload" type="file" accept="image/*" multiple class="sr" aria-label="Add fabric" tabindex="-1">
+<dialog class="dz-dialog" id="addfab" aria-labelledby="addfab-title">
+  <div class="dlg-head"><h2 id="addfab-title">Add fabric photos</h2><button class="btn sm dlg-x" type="button" id="addfab-x" aria-label="Close">×</button></div>
+  <div class="addfab-pics" id="addfab-pics"></div>
+  <div id="addfab-name-row">
+    <label for="addfab-name" style="display:block;margin-top:10px">Fabric name</label>
+    <input type="text" id="addfab-name" maxlength="40" style="width:100%">
+  </div>
+  <div class="param" style="margin-top:12px">
+    <label for="dz-cm">How wide is the fabric in the picture?</label><output id="dz-cm-o"></output>
+    <input id="dz-cm" type="range" min="5" max="150" step="1" value="25">
+  </div>
+  <p class="fine" style="margin:6px 0 0">Measure it, or make your best guess: it sets the size of the print on your quilt.</p>
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button class="btn" type="button" id="addfab-cancel">Cancel</button>
+    <button class="btn primary" type="button" id="addfab-ok">Add</button>
+  </div>
+</dialog>
 <dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
   <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>
   <input type="search" id="fablib-q" placeholder="Search: gingham, teal, chintz…" aria-label="Search fabrics by name" autocomplete="off">
@@ -1580,12 +1602,6 @@
   <p class="fine" id="fablib-none" hidden></p>
   <button class="btn sm fablib-more" type="button" id="fablib-more" hidden></button>
   <div class="fablib-foot">
-    <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
-    <div class="param">
-      <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
-      <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
-    </div>
-    <p class="fine" id="dz-fabnote"></p>
     <p class="fine" style="margin:6px 0 0"><button class="btn sm" type="button" id="fablib-reset" hidden title="Bring back the fabric lists as they were at first: the basics and your newest photos">Reset palette</button></p>
   </div>
 </dialog>

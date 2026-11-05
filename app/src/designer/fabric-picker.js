@@ -16,6 +16,7 @@ import {
 } from './fabric-library.js';
 import { fabricIdsIn, findFabrics, paletteList, shortList, withFabric, withoutFabric } from '../core/fabric-picks.js';
 import { notify } from '../ui/notice.js';
+import { choosePhotos } from './add-fabric.js';
 import { t } from '@quilt/shared/i18n.js';
 
 const PAGE = 60; // tiles the library shows at a time ("Show more" adds as many again)
@@ -115,6 +116,13 @@ function redrawLists() {
     else lists.delete(box);
   }
 }
+/** Rolls every list that has this fabric to it (just added: it may be past the end of the row). @param {string} id */
+function showInLists(id) {
+  for (const box of lists.keys()) {
+    const tile = /** @type {HTMLElement | null} */ (box.querySelector(`[data-f="${id}"]`));
+    if (tile) box.scrollLeft = tile.offsetLeft - box.clientWidth / 2;
+  }
+}
 
 /** Takes a fabric off the palette (every short list), with an Undo. @param {import('./fabric-library.js').Fabric} f */
 function removeFromPalette(f) {
@@ -157,6 +165,20 @@ function moreButton(box, shown) {
     b.append(n);
   }
   b.addEventListener('click', () => openLibrary(box));
+  return b;
+}
+
+/**
+ * "+ Add fabric": opens the computer's file picker (designer/add-fabric.js). Not a `.fab`: it isn't a fabric, and the
+ * lists choose whatever their `.fab` buttons name.
+ */
+function addFabricTile() {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'fab-add fab-more';
+  b.title = t('Add photos of your own fabrics');
+  b.innerHTML = `<b aria-hidden="true">+</b><span>${t('Add fabric')}</span>`;
+  b.addEventListener('click', () => choosePhotos(b));
   return b;
 }
 
@@ -306,6 +328,7 @@ function drawShortList(box, selected) {
   box.innerHTML = '';
   const fabs = shortListFabrics(selected);
   for (const { f, fixed } of fabs) box.appendChild(fabricTile(f, f.id === selected, fixed ? 'fixed' : 'remove'));
+  box.prepend(addFabricTile()); // first, and pinned there: at the end of a long row nobody would find it
   placeMoreButton(box, moreButton(box, fabs.length), colourButton ? colourButton(box) : null);
   // one row that scrolls sideways, the chosen fabric in view
   sideRoller(box, '.fab[aria-pressed="true"]');
@@ -364,13 +387,7 @@ function drawLibrary() {
   const grid = $('fablib-grid');
   grid.innerHTML = '';
   if (lib.group === 'all' || lib.group === 'mine') {
-    // adding a photo: the file input sits in the window's foot, with the width a photo covers
-    const add = document.createElement('label');
-    add.className = 'fab fab-more';
-    add.htmlFor = 'dz-upload';
-    add.title = t('Add photos of your own fabrics');
-    add.innerHTML = `<b aria-hidden="true">+</b><span>${t('Add fabric photo')}</span>`;
-    grid.appendChild(add);
+    grid.appendChild(addFabricTile());
   }
   // a dot marks the fabrics on the palette (in the short lists)
   const onPalette = new Set(fabricPalette() || defaultPalette());
@@ -476,4 +493,14 @@ let colourButton = /** @type {((box: HTMLElement) => HTMLButtonElement) | null} 
 /** @param {(box: HTMLElement) => HTMLButtonElement} make */
 const setColourButton = make => (colourButton = make);
 
-export { drawShortList, fabricTile, openLibrary, placeMoreButton, refreshLibrary, setColourButton, useFabricIn };
+export {
+  drawShortList,
+  fabricTile,
+  openLibrary,
+  placeMoreButton,
+  redrawLists,
+  refreshLibrary,
+  setColourButton,
+  showInLists,
+  useFabricIn,
+};
