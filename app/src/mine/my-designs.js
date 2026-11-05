@@ -65,11 +65,29 @@ const freshDesign = () => ({ ...newDesign(), blockMm: roundLen(300) });
  */
 function hasUnsaved() {
   if (!design || readOnly) return false;
+  const open = sameText(design);
+  if (open === openedAs) return false; // as it was opened (a sample, read and repaired, may differ from its record)
   const rec = mineCur && designs.get(mineCur);
-  const open = JSON.stringify(design);
-  if (rec) return open !== JSON.stringify(rec.design);
-  return ![freshDesign(), newDesign(), defaultDesign()].some(d => JSON.stringify(d) === open);
+  if (rec) return open !== sameText(rec.design);
+  return ![freshDesign(), newDesign(), defaultDesign()].some(d => sameText(d) === open);
 }
+/**
+ * A design as text with its fields in a fixed order: one that came back from the server has the same fields in
+ * another order. @param {any} v @returns {string}
+ */
+function sameText(v) {
+  if (Array.isArray(v)) return `[${v.map(sameText).join(',')}]`;
+  if (v && typeof v === 'object')
+    return `{${Object.keys(v)
+      .filter(k => v[k] !== undefined)
+      .sort()
+      .map(k => `${JSON.stringify(k)}:${sameText(v[k])}`)
+      .join(',')}}`;
+  return JSON.stringify(v) ?? 'null';
+}
+/** the quilt on the screen as it was when it was opened or saved, as sameText */
+let openedAs = '';
+const markOpened = () => (openedAs = design ? sameText(design) : '');
 /** what to do once the save dialog has saved (save and continue) @type {(() => void) | null} */
 let afterSave = null;
 /** what the "unsaved changes" dialog continues with @type {(() => void) | null} */
@@ -174,6 +192,7 @@ function saveCurrent(typed, asNew = false) {
   }
   setMineCur(cur.id);
   mineSave();
+  markOpened();
   return cur;
 }
 function openMine(id) {
@@ -193,6 +212,7 @@ function openSaved(id) {
   setMineCur(id);
   mineSave();
   openDesign(m.design, { timeline: id, what: `“${shownName(m)}”` });
+  markOpened();
   showPage('design');
 }
 /** fabrics whose pictures My designs has asked for */
@@ -431,18 +451,18 @@ document.addEventListener('click', e => {
   if (menu && !menu.contains(/** @type {Node} */ (e.target))) closeCardMenu();
 });
 
+/** A new quilt on the screen, without asking (signing out opens one: the quilt there belongs to the account). */
+function startNew() {
+  setMineCur(null);
+  mineSave();
+  if ($('dz-dialog').open) $('dz-dialog').close();
+  timelines.remove(tlKeyFor(null)); // a new design starts its own, empty timeline
+  replaceDesign(freshDesign(), { timeline: null });
+}
 function initMine() {
   $('dz-save').addEventListener('click', () => openSaveDialog(false));
   // New design: always the same start (three plain cream squares in a row, 300 mm); the timeline keeps the previous one
-  $('dz-new').addEventListener('click', () =>
-    confirmLeave(() => {
-      setMineCur(null);
-      mineSave();
-      if ($('dz-dialog').open) $('dz-dialog').close();
-      timelines.remove(tlKeyFor(null)); // a new design starts its own, empty timeline
-      replaceDesign(freshDesign(), { timeline: null });
-    }),
-  );
+  $('dz-new').addEventListener('click', () => confirmLeave(startNew));
   $('leave-stay').addEventListener('click', () => leaveChoice('stay'));
   $('leave-x').addEventListener('click', () => leaveChoice('stay'));
   $('leave-drop').addEventListener('click', () => leaveChoice('drop'));
@@ -482,4 +502,4 @@ function adoptDesignId(id) {
   mineSave();
 }
 
-export { adoptDesignId, confirmLeave, mineSave, openMine, quiltPicture, renderMine, saveCurrent, shownName };
+export { adoptDesignId, confirmLeave, mineSave, startNew, openMine, quiltPicture, renderMine, saveCurrent, shownName };

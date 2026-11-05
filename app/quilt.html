@@ -22211,11 +22211,20 @@ var ownCount = () => designs.list().filter((m) => !m.sample).length;
 var freshDesign = () => ({ ...newDesign(), blockMm: roundLen(300) });
 function hasUnsaved() {
   if (!design || readOnly) return false;
+  const open = sameText(design);
+  if (open === openedAs) return false;
   const rec = mineCur && designs.get(mineCur);
-  const open = JSON.stringify(design);
-  if (rec) return open !== JSON.stringify(rec.design);
-  return ![freshDesign(), newDesign(), defaultDesign()].some((d) => JSON.stringify(d) === open);
+  if (rec) return open !== sameText(rec.design);
+  return ![freshDesign(), newDesign(), defaultDesign()].some((d) => sameText(d) === open);
 }
+function sameText(v) {
+  if (Array.isArray(v)) return `[${v.map(sameText).join(",")}]`;
+  if (v && typeof v === "object")
+    return `{${Object.keys(v).filter((k) => v[k] !== void 0).sort().map((k) => `${JSON.stringify(k)}:${sameText(v[k])}`).join(",")}}`;
+  return JSON.stringify(v) ?? "null";
+}
+var openedAs = "";
+var markOpened = () => openedAs = design ? sameText(design) : "";
 var afterSave = null;
 var leaveNext = null;
 function confirmLeave(go) {
@@ -22305,6 +22314,7 @@ function saveCurrent(typed, asNew = false) {
   }
   setMineCur(cur.id);
   mineSave();
+  markOpened();
   return cur;
 }
 function openMine(id) {
@@ -22323,6 +22333,7 @@ function openSaved(id) {
   setMineCur(id);
   mineSave();
   openDesign(m.design, { timeline: id, what: `\u201C${shownName(m)}\u201D` });
+  markOpened();
   showPage("design");
 }
 var askedFabrics = /* @__PURE__ */ new Set();
@@ -22539,18 +22550,16 @@ document.addEventListener("click", (e) => {
     e.target
   )) closeCardMenu();
 });
+function startNew() {
+  setMineCur(null);
+  mineSave();
+  if ($("dz-dialog").open) $("dz-dialog").close();
+  timelines.remove(tlKeyFor(null));
+  replaceDesign(freshDesign(), { timeline: null });
+}
 function initMine() {
   $("dz-save").addEventListener("click", () => openSaveDialog(false));
-  $("dz-new").addEventListener(
-    "click",
-    () => confirmLeave(() => {
-      setMineCur(null);
-      mineSave();
-      if ($("dz-dialog").open) $("dz-dialog").close();
-      timelines.remove(tlKeyFor(null));
-      replaceDesign(freshDesign(), { timeline: null });
-    })
-  );
+  $("dz-new").addEventListener("click", () => confirmLeave(startNew));
   $("leave-stay").addEventListener("click", () => leaveChoice("stay"));
   $("leave-x").addEventListener("click", () => leaveChoice("stay"));
   $("leave-drop").addEventListener("click", () => leaveChoice("drop"));
@@ -23386,7 +23395,7 @@ async function signInAndSync({ url, signup = false } = {}) {
 }
 async function signOutAndStop() {
   const was = sync.config();
-  if (was) $("dz-new").click();
+  if (was) startNew();
   sync.configure(null);
   accountChanged();
   await repo.flush();

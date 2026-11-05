@@ -106,6 +106,9 @@ test('new design and undo', async ({ app, page }) => {
   await page.locator('[data-step="c:-1"]').click();
   await page.waitForTimeout(1500);
   await page.locator('#dz-new').click();
+  // the changed quilt isn't saved: asked first
+  await expect(page.locator('#leave-dlg')).toBeVisible();
+  await page.locator('#leave-drop').click();
   // every new design starts the same: three plain cream squares in a row, 300 mm
   const d = await app.current();
   expect([d.cols, d.rows, d.blockMm]).toEqual([3, 1, 300]);

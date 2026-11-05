@@ -12,7 +12,7 @@ import { notify } from '../ui/notice.js';
 import { openDesign } from '../designer/dispatch.js';
 import { addStoredFabric } from '../designer/fabric-library.js';
 import { drawFabricPalette } from '../designer/parts-editor.js';
-import { adoptDesignId, mineSave, renderMine } from './my-designs.js';
+import { adoptDesignId, mineSave, renderMine, startNew } from './my-designs.js';
 import { state } from '../sim/config.js';
 import { getLang, t, tn } from '@quilt/shared/i18n.js';
 
@@ -92,7 +92,7 @@ async function signInAndSync({ url, signup = false } = {}) {
  */
 async function signOutAndStop() {
   const was = sync.config();
-  if (was) $('dz-new').click(); // New design (mine/my-designs.js): the open quilt's timeline is kept with it
+  if (was) startNew(); // the open quilt's timeline is kept with it
   sync.configure(null);
   accountChanged();
   // signing out of Auth0 leaves the page for a moment: what's waiting to be saved here goes first
