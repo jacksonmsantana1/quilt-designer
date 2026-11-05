@@ -442,6 +442,17 @@ const TOUR = [
     buttons: [[t('Next'), 'on', true]],
   },
   {
+    title: t('The other round buttons'),
+    back: () => showPage('cut'),
+    enter: () => showPage('design'),
+    text: t(
+      'Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.',
+    ),
+    allow: [],
+    glow: '#rail-sym',
+    buttons: [[t('Next'), 'on', true]],
+  },
+  {
     title: t('Well done!'),
     text: t(
       'You made your first quilt, and it is saved: you will always find it under <b>My designs</b>. To start another, click <b>New</b>, the first round button on the left. If a quilt has changes that are not saved, the app asks you before closing it.',

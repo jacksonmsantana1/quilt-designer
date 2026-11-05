@@ -244,13 +244,17 @@ test.describe('first visit', () => {
     await expect(title).toHaveText('Take it to your sewing table');
     await page.locator('#tour-actions button').click();
 
+    await expect(title).toHaveText('The other round buttons');
+    await expect(page.locator('#rail-sym')).toBeVisible();
+    await page.locator('#tour-actions button').click();
+
     await expect(title).toHaveText('Well done!');
     await expect(page.locator('#cg-blocks .cgblock:first-child')).toContainText('4½');
     await expect(page.locator('#cg-blocks .cgblock').first()).toContainText('Nine patch');
     await page.getByRole('button', { name: 'Finish' }).click();
     await expect(page.locator('body')).not.toHaveClass(/tour-active/);
-    // the cutting guide stays open: it is still being read
-    await expect(page.locator('#cg-blocks')).toBeVisible();
+    // back on the quilt, where the round buttons were just shown
+    await expect(page.locator('#page-design')).toBeVisible();
     const d = await app.current();
     expect(new Set(d.blocks.map(b => b.pattern))).toEqual(new Set(['nine']));
     expect(d.blocks.every(b => b.fabrics.includes('b3'))).toBe(true);

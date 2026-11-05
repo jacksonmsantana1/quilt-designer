@@ -4220,6 +4220,8 @@ var template_default = {
 
 // ../shared/src/lang/pt-BR/tour.js
 var tour_default = {
+  "The other round buttons": "Os outros bot\xF5es redondos",
+  "Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. The <b>Tutorial</b> button, at the bottom left, starts this exercise again.": "Ao lado do quilt h\xE1 mais alguns, para experimentar quando quiser: <b>Simetria</b> copia cada mudan\xE7a para os blocos espelhados, <b>Virar</b> mostra o verso do quilt e o tecido do forro, <b>Foto</b> faz uma foto realista do quilt e <b>Compartilhar</b> mostra o quilt para a comunidade. O bot\xE3o <b>Tutorial</b>, embaixo \xE0 esquerda, come\xE7a este exerc\xEDcio de novo.",
   "Make the border narrower": "Deixe a barra mais estreita",
   "The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.": "A barra veio com 4 polegadas de largura. No cart\xE3o <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.",
   "Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.": "Digite <b>3</b>, por favor, para o quilt ficar igual ao do tutorial.",
@@ -21766,6 +21768,17 @@ var TOUR = [
     ),
     allow: ["#cg-pdf"],
     glow: "#cg-pdf",
+    buttons: [[t("Next"), "on", true]]
+  },
+  {
+    title: t("The other round buttons"),
+    back: () => showPage("cut"),
+    enter: () => showPage("design"),
+    text: t(
+      "Beside the quilt there are a few more, to try when you like: <b>Symmetry</b> copies each change to the mirror blocks, <b>Turn over</b> shows the back of the quilt and its backing fabric, <b>Picture</b> makes a realistic photo of the quilt, and <b>Share</b> shows it to the community. The <b>Tutorial</b> button, at the bottom left, starts this exercise again."
+    ),
+    allow: [],
+    glow: "#rail-sym",
     buttons: [[t("Next"), "on", true]]
   },
   {
