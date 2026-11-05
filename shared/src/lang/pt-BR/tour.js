@@ -27,8 +27,8 @@ export default {
   'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b> after the fabric letter: <b>AB1.1</b> is fabric A, border 1, piece 1.':
     'As faixas e a barra têm cartões próprios mais abaixo. Clique em <b>Barra 1</b>, o título destacado: ele lista as tiras para cortar para a barra. Os códigos delas têm um <b>B</b> depois da letra do tecido: <b>AB1.1</b> é o tecido A, barra 1, peça 1.',
   'Take it to your sewing table': 'Leve para a mesa de costura',
-  'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>.':
-    'O botão <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras, cada bloco com as suas peças e os moldes em tamanho real. Você pode clicar agora ou depois. Depois clique em <b>Próximo</b>.',
+  'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list and every block with its pieces; shapes that a ruler cannot cut come with templates at real size. You can click it now, or later. Then click <b>Next</b>.':
+    'O botão <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras e cada bloco com as suas peças; as formas que não se cortam com régua vêm com moldes em tamanho real. Você pode clicar agora ou depois. Depois clique em <b>Próximo</b>.',
   // the guided tour
   'Guided tour': 'Tour guiado',
   'Step {n} of {all}': 'Passo {n} de {all}',

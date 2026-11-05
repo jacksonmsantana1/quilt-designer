@@ -436,7 +436,7 @@ const TOUR = [
     title: t('Take it to your sewing table'),
     back: () => showPage('cut'),
     text: t(
-      'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>.',
+      'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list and every block with its pieces; shapes that a ruler cannot cut come with templates at real size. You can click it now, or later. Then click <b>Next</b>.',
     ),
     allow: ['#cg-pdf'],
     glow: '#cg-pdf',

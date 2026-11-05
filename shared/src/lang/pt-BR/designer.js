@@ -1,5 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them.':
+    'Ficou escolhido um bloco sim, um não. Agora clique em um desenho de bloco, ou em um bloco do seu quilt, para colocá-lo neles.',
   'A border can be from {min} to {max} wide.': 'Uma barra pode ter de {min} a {max} de largura.',
   '{cm} cm is {mm} mm: the sizes here are in millimetres.': '{cm} cm são {mm} mm: aqui as medidas são em milímetros.',
   'A block can be from {min} to {max}.': 'Um bloco pode ter de {min} a {max}.',

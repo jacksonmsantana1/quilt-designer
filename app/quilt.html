@@ -2880,7 +2880,6 @@ var blocks_default = {
 
 // ../shared/src/lang/pt-BR/cutting.js
 var cutting_default = {
-  "Cutting guide \xB7 {name}": "Guia de corte \xB7 {name}",
   "\xBD or \xBC per block: one square, cut in two or in four, gives pieces for more than one block.": "\xBD ou \xBC por bloco: um quadrado, cortado em dois ou em quatro, d\xE1 pe\xE7as para mais de um bloco.",
   // how to cut (cutting/plan.js)
   "square {size}": "quadrado de {size}",
@@ -3045,6 +3044,7 @@ var cutting_default = {
 
 // ../shared/src/lang/pt-BR/designer.js
 var designer_default = {
+  "Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them.": "Ficou escolhido um bloco sim, um n\xE3o. Agora clique em um desenho de bloco, ou em um bloco do seu quilt, para coloc\xE1-lo neles.",
   "A border can be from {min} to {max} wide.": "Uma barra pode ter de {min} a {max} de largura.",
   "{cm} cm is {mm} mm: the sizes here are in millimetres.": "{cm} cm s\xE3o {mm} mm: aqui as medidas s\xE3o em mil\xEDmetros.",
   "A block can be from {min} to {max}.": "Um bloco pode ter de {min} a {max}.",
@@ -4253,7 +4253,7 @@ var tour_default = {
   "The border pieces": "As pe\xE7as da barra",
   "The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. Their codes have a <b>B</b> after the fabric letter: <b>AB1.1</b> is fabric A, border 1, piece 1.": "As faixas e a barra t\xEAm cart\xF5es pr\xF3prios mais abaixo. Clique em <b>Barra 1</b>, o t\xEDtulo destacado: ele lista as tiras para cortar para a barra. Os c\xF3digos delas t\xEAm um <b>B</b> depois da letra do tecido: <b>AB1.1</b> \xE9 o tecido A, barra 1, pe\xE7a 1.",
   "Take it to your sewing table": "Leve para a mesa de costura",
-  "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>.": "O bot\xE3o <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras, cada bloco com as suas pe\xE7as e os moldes em tamanho real. Voc\xEA pode clicar agora ou depois. Depois clique em <b>Pr\xF3ximo</b>.",
+  "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list and every block with its pieces; shapes that a ruler cannot cut come with templates at real size. You can click it now, or later. Then click <b>Next</b>.": "O bot\xE3o <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras e cada bloco com as suas pe\xE7as; as formas que n\xE3o se cortam com r\xE9gua v\xEAm com moldes em tamanho real. Voc\xEA pode clicar agora ou depois. Depois clique em <b>Pr\xF3ximo</b>.",
   // the guided tour
   "Guided tour": "Tour guiado",
   "Step {n} of {all}": "Passo {n} de {all}",
@@ -16405,6 +16405,7 @@ function initDesignerUI() {
     if (keep.size === selBlocks.size || !keep.size) return;
     setSelBlocks(keep);
     renderDesigner();
+    notify(t("Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them."));
   });
   $("dz-reset").addEventListener("click", () => {
     if ($("dz-reset").dataset.armed !== "1") {
@@ -21836,7 +21837,7 @@ var TOUR = [
     title: t("Take it to your sewing table"),
     back: () => showPage("cut"),
     text: t(
-      "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list, every block with its pieces, and the templates at real size. You can click it now, or later. Then click <b>Next</b>."
+      "The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list and every block with its pieces; shapes that a ruler cannot cut come with templates at real size. You can click it now, or later. Then click <b>Next</b>."
     ),
     allow: ["#cg-pdf"],
     glow: "#cg-pdf",
@@ -25174,8 +25175,9 @@ function pdfFabricPage(P, pages) {
   pdfHeader(
     g,
     P,
-    rec ? t("Cutting guide \xB7 {name}", { name: rec.name }) : t("Cutting guide"),
-    `${gridText()} \xB7 ${tn(P.blocks.length, "{n} distinct block", "{n} distinct blocks")}`,
+    t("Cutting guide"),
+    // the name on the line below the title: a long one must not run into the quilt's sizes on the right
+    `${rec ? `${rec.name} \xB7 ` : ""}${gridText()} \xB7 ${tn(P.blocks.length, "{n} distinct block", "{n} distinct blocks")}`,
     1,
     pages
   );

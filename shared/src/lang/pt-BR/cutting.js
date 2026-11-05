@@ -1,6 +1,5 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
-  'Cutting guide · {name}': 'Guia de corte · {name}',
   '½ or ¼ per block: one square, cut in two or in four, gives pieces for more than one block.':
     '½ ou ¼ por bloco: um quadrado, cortado em dois ou em quatro, dá peças para mais de um bloco.',
   // how to cut (cutting/plan.js)

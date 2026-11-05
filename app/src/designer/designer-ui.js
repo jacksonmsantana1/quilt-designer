@@ -587,6 +587,7 @@ function initDesignerUI() {
     if (keep.size === selBlocks.size || !keep.size) return;
     setSelBlocks(keep);
     renderDesigner();
+    notify(t('Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them.'));
   });
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {

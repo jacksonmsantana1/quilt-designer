@@ -157,8 +157,9 @@ function pdfFabricPage(P, pages) {
   pdfHeader(
     g,
     P,
-    rec ? t('Cutting guide · {name}', { name: rec.name }) : t('Cutting guide'),
-    `${gridText()} · ${tn(P.blocks.length, '{n} distinct block', '{n} distinct blocks')}`,
+    t('Cutting guide'),
+    // the name on the line below the title: a long one must not run into the quilt's sizes on the right
+    `${rec ? `${rec.name} · ` : ''}${gridText()} · ${tn(P.blocks.length, '{n} distinct block', '{n} distinct blocks')}`,
     1,
     pages,
   );
