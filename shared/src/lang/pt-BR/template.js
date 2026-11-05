@@ -1,6 +1,9 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
   English: 'English',
+  'Choose every other block': 'Escolher um sim, um não',
+  'Of the blocks chosen, keep every other one, like the squares of a chessboard: then click a block above to copy it into them':
+    'Dos blocos escolhidos, fica um sim, um não, como as casas de um tabuleiro de xadrez: depois clique em um bloco acima para copiá-lo neles',
   'Undo the last change (Ctrl+Z)': 'Desfazer a última mudança (Ctrl+Z)',
   Tutorial: 'Tutorial',
   'Save your changes?': 'Salvar as mudanças?',

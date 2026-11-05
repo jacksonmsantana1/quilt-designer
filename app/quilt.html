@@ -1454,6 +1454,7 @@
     <div id="dz-libbox">
     <p class="fine" style="margin:14px 0 6px">Blocks in your quilt · click one to copy it into the block you are editing</p>
     <div class="blib" id="dz-library" aria-label="Distinct blocks in your quilt"></div>
+    <p class="fine" id="dz-alt-row" style="margin:8px 0 0" hidden><button type="button" class="btn sm" id="dz-alternate" title="Of the blocks chosen, keep every other one, like the squares of a chessboard: then click a block above to copy it into them">Choose every other block</button></p>
     </div>
     <div class="dlg-foot"><button class="btn primary" type="button" id="dz-done">Done</button></div>
   </dialog>
@@ -3757,6 +3758,8 @@ var sim_default = {
 // ../shared/src/lang/pt-BR/template.js
 var template_default = {
   English: "English",
+  "Choose every other block": "Escolher um sim, um n\xE3o",
+  "Of the blocks chosen, keep every other one, like the squares of a chessboard: then click a block above to copy it into them": "Dos blocos escolhidos, fica um sim, um n\xE3o, como as casas de um tabuleiro de xadrez: depois clique em um bloco acima para copi\xE1-lo neles",
   "Undo the last change (Ctrl+Z)": "Desfazer a \xFAltima mudan\xE7a (Ctrl+Z)",
   Tutorial: "Tutorial",
   "Save your changes?": "Salvar as mudan\xE7as?",
@@ -15742,6 +15745,7 @@ function drawPartsEditor() {
   $("dz-parts-info").textContent = selParts.size === 0 ? t("Click a part to select it, or double-click to select every part in the same fabric. Then pick a fabric.") : selParts.size === 1 ? b.fussy && b.fussy[one] ? t("Selected: {part} \xB7 {fabric} \xB7 fussy cut", picked) : t("Selected: {part} \xB7 {fabric}", picked) : t("{n} parts selected", { n: selParts.size });
   drawFussy();
   $("dz-blockname").textContent = t("{name} \xB7 block {cell}", { name: PATTERNS[b.pattern].label, cell: cellName(design, focusBlock) }) + (selBlocks.size > 1 ? ` \xB7 ${t("editing {n} blocks", { n: selBlocks.size })}` : "");
+  if ($("dz-alt-row")) $("dz-alt-row").hidden = selBlocks.size < 3 || isOnPoint(design) || !!design.mosaic;
 }
 function drawPatternButtons() {
   drawPatternList();
@@ -16370,6 +16374,15 @@ function initDesignerUI() {
       const [which, d] = b.dataset.step.split(":"), g = design.mosaic || design;
       resizeTo(g.cols + (which === "c" ? +d : 0), g.rows + (which === "r" ? +d : 0));
     });
+  $("dz-alternate").addEventListener("click", () => {
+    const at = (i) => Math.floor(i / design.cols) + i % design.cols;
+    const keep = new Set(
+      [...selBlocks].filter((i) => at(i) % 2 === at(focusBlock) % 2 && design.blocks[i]?.under == null)
+    );
+    if (keep.size === selBlocks.size || !keep.size) return;
+    setSelBlocks(keep);
+    renderDesigner();
+  });
   $("dz-reset").addEventListener("click", () => {
     if ($("dz-reset").dataset.armed !== "1") {
       $("dz-reset").dataset.armed = "1";

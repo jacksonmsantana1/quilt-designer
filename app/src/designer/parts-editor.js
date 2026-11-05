@@ -73,6 +73,8 @@ function drawPartsEditor() {
   $('dz-blockname').textContent =
     t('{name} · block {cell}', { name: PATTERNS[b.pattern].label, cell: cellName(design, focusBlock) }) +
     (selBlocks.size > 1 ? ` · ${t('editing {n} blocks', { n: selBlocks.size })}` : '');
+  // "every other block" makes sense for several blocks of a straight quilt, not for one or for a quilt on point
+  if ($('dz-alt-row')) $('dz-alt-row').hidden = selBlocks.size < 3 || isOnPoint(design) || !!design.mosaic;
 }
 /** The list under "Block pattern" (designer/block-picker.js). */
 function drawPatternButtons() {

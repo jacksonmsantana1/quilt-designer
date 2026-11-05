@@ -446,3 +446,17 @@ test('switching between straight and on point turns symmetry off', async ({ app,
   expect((await app.current()).sym).toBeUndefined();
   await expect(page.locator('#rail-sym')).toHaveAttribute('aria-pressed', 'false');
 });
+
+test('"Choose every other block" keeps a chessboard of the blocks chosen, so a pattern goes into half of them', async ({
+  app,
+  page,
+}) => {
+  await dragSelect(app, page, 0, 24); // the whole 5 × 5 quilt
+  await expect(page.locator('#dz-alternate')).toBeVisible();
+  await page.locator('#dz-alternate').click();
+  await page.locator('#dz-patterns [data-p="plain"]').click();
+  const d = await app.current();
+  const plain = d.blocks.map((b, i) => (b.pattern === 'plain' ? i : -1)).filter(i => i >= 0);
+  expect(plain.length).toBe(13); // the corner block's colour of the chessboard: 13 of 25
+  expect(plain.every(i => (Math.floor(i / 5) + (i % 5)) % 2 === 0)).toBe(true);
+});

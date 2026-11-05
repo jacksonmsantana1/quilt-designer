@@ -577,6 +577,17 @@ function initDesignerUI() {
         g = design.mosaic || design; // a mosaic: shapes across and down
       resizeTo(g.cols + (which === 'c' ? +d : 0), g.rows + (which === 'r' ? +d : 0));
     });
+  // of the blocks chosen, every other one (a chessboard), the one being edited among them: a second block can then be
+  // copied into half the quilt at once
+  $('dz-alternate').addEventListener('click', () => {
+    const at = i => Math.floor(i / design.cols) + (i % design.cols);
+    const keep = new Set(
+      [...selBlocks].filter(i => at(i) % 2 === at(focusBlock) % 2 && design.blocks[i]?.under == null),
+    );
+    if (keep.size === selBlocks.size || !keep.size) return;
+    setSelBlocks(keep);
+    renderDesigner();
+  });
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {
       $('dz-reset').dataset.armed = '1';
