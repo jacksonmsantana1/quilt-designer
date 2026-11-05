@@ -17,8 +17,10 @@ export default {
     'peça com molde em um retângulo de {box}, {seam} de margem de costura incluídos',
   '{how} · fussy cut: one at a time, centred on the chosen motif':
     '{how} · fussy cut: um de cada vez, centralizado no motivo escolhido',
-  '{n} strip {width} × WOF, joined and cut to {lens}': '{n} tira de {width} de largura, de um lado a outro do tecido, emendada e cortada em {lens}',
-  '{n} strips {width} × WOF, joined and cut to {lens}': '{n} tiras de {width} de largura, de um lado a outro do tecido, emendadas e cortadas em {lens}',
+  '{n} strip {width} × WOF, joined and cut to {lens}':
+    '{n} tira de {width} de largura, de um lado a outro do tecido, emendada e cortada em {lens}',
+  '{n} strips {width} × WOF, joined and cut to {lens}':
+    '{n} tiras de {width} de largura, de um lado a outro do tecido, emendadas e cortadas em {lens}',
   'a small piece: a remnant will do': 'peça pequena: um retalho resolve',
   'Saved: look in your Downloads folder': 'Salvo: veja na pasta Downloads',
   '{size} × WOF': 'um pedaço de {size} de altura, com a largura toda do tecido',
@@ -83,7 +85,8 @@ export default {
   Block: 'Bloco',
   '{finished} finished · {cut} with seam allowance': '{finished} pronto · {cut} com margem de costura',
   'Distinct blocks': 'Blocos diferentes',
-  'includes binding: {strips} strips {width} × WOF': 'inclui viés: {strips} tiras de {width}, de um lado a outro do tecido',
+  'includes binding: {strips} strips {width} × WOF':
+    'inclui viés: {strips} tiras de {width}, de um lado a outro do tecido',
   'buy ≈ {buy}': 'comprar ≈ {buy}',
   Backing: 'Forro',
   '{n} width of fabric sewn together · buy ≈ {buy}': '{n} largura de tecido costurada · comprar ≈ {buy}',
