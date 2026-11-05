@@ -445,11 +445,12 @@ const TOUR = [
     title: t('See the sizes'),
     back: () => showPage('cut'),
     text: t(
-      'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all.',
+      'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all, then click <b>Next</b>.',
     ),
     allow: ['#cg-blocks .cgblock:first-child h3'],
     glow: '#cg-blocks .cgblock:first-child h3',
-    done: () => !!document.querySelector('#cg-blocks .cgblock:first-child.open'),
+    // opened, it waits to be read, like the border's
+    buttons: [[t('Next'), 'on', true]],
   },
   {
     title: t('The border pieces'),

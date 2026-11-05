@@ -4320,7 +4320,7 @@ var tour_default = {
   "That is a different width. Click the highlighted one.": "Essa \xE9 outra largura. Clique na que est\xE1 destacada.",
   "Only the highlighted item works on this step. Click it to go on.": "Neste passo, s\xF3 o item destacado funciona. Clique nele para continuar.",
   "See the sizes": "Veja as medidas",
-  "Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all.": "Clique em <b>Bloco 1</b>, o t\xEDtulo destacado: logo abaixo abre a lista das pe\xE7as para cortar, com cada medida. Cada pe\xE7a tem um c\xF3digo: <b>A1.1</b> quer dizer tecido A, bloco 1, forma 1 (as letras s\xE3o os tecidos listados acima). Des\xE7a a p\xE1gina para ler tudo.",
+  "Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all, then click <b>Next</b>.": "Clique em <b>Bloco 1</b>, o t\xEDtulo destacado: logo abaixo abre a lista das pe\xE7as para cortar, com cada medida. Cada pe\xE7a tem um c\xF3digo: <b>A1.1</b> quer dizer tecido A, bloco 1, forma 1 (as letras s\xE3o os tecidos listados acima). Des\xE7a a p\xE1gina para ler tudo e depois clique em <b>Pr\xF3ximo</b>.",
   "My first quilt": "Meu primeiro quilt",
   Finish: "Concluir",
   "Type <b>12</b>, please, so that the quilt comes out like the one in the videos.": "Digite <b>12</b>, por favor, para o quilt sair igual ao dos v\xEDdeos.",
@@ -14309,12 +14309,26 @@ function measureAll() {
       for (const f of todo.slice(i, i + 12)) colours.set(f.id, await measure(f));
       if ($("colfind").open) {
         drawQuilt();
-        drawResults(true);
+        const box3 = $("colfind-results");
+        if (box3.matches(":hover")) {
+          if (!box3.dataset.later) {
+            box3.dataset.later = "1";
+            box3.addEventListener(
+              "mouseleave",
+              () => {
+                delete box3.dataset.later;
+                drawResults(true);
+              },
+              { once: true }
+            );
+          }
+        } else drawResults(true);
       }
       await new Promise((r) => setTimeout(r, 0));
     }
     if (todo.some((f) => f.blob || f.collection)) keepColours();
     measuring = null;
+    if ($("colfind").open && !$("colfind-results").matches(":hover")) drawResults(true);
   })();
 }
 var pickRgb = (p) => hslToRgb(p.h, p.s, p.l);
@@ -21891,11 +21905,12 @@ var TOUR = [
     title: t("See the sizes"),
     back: () => showPage("cut"),
     text: t(
-      "Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all."
+      "Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all, then click <b>Next</b>."
     ),
     allow: ["#cg-blocks .cgblock:first-child h3"],
     glow: "#cg-blocks .cgblock:first-child h3",
-    done: () => !!document.querySelector("#cg-blocks .cgblock:first-child.open")
+    // opened, it waits to be read, like the border's
+    buttons: [[t("Next"), "on", true]]
   },
   {
     title: t("The border pieces"),

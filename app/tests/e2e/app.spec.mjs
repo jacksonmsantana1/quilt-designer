@@ -245,6 +245,8 @@ test.describe('first visit', () => {
     await expect(title).toHaveText('See the sizes');
     await expect(page.locator('#cg-seam')).toHaveValue('6.4');
     await page.locator('#cg-blocks .cgblock:first-child h3').click();
+    await expect(page.locator('#cg-blocks .cgblock:first-child')).toHaveClass(/open/);
+    await page.locator('#tour-actions button').click();
 
     await expect(title).toHaveText('The border pieces');
     await page.locator('#cg-blocks .cgblock:last-child h3').click();

@@ -109,8 +109,8 @@ export default {
   'Only the highlighted item works on this step. Click it to go on.':
     'Neste passo, só o item destacado funciona. Clique nele para continuar.',
   'See the sizes': 'Veja as medidas',
-  'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all.':
-    'Clique em <b>Bloco 1</b>, o título destacado: logo abaixo abre a lista das peças para cortar, com cada medida. Cada peça tem um código: <b>A1.1</b> quer dizer tecido A, bloco 1, forma 1 (as letras são os tecidos listados acima). Desça a página para ler tudo.',
+  'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all, then click <b>Next</b>.':
+    'Clique em <b>Bloco 1</b>, o título destacado: logo abaixo abre a lista das peças para cortar, com cada medida. Cada peça tem um código: <b>A1.1</b> quer dizer tecido A, bloco 1, forma 1 (as letras são os tecidos listados acima). Desça a página para ler tudo e depois clique em <b>Próximo</b>.',
   'My first quilt': 'Meu primeiro quilt',
   Finish: 'Concluir',
   'Type <b>12</b>, please, so that the quilt comes out like the one in the videos.':

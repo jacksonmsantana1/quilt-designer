@@ -75,12 +75,28 @@ function measureAll() {
       for (const f of todo.slice(i, i + 12)) colours.set(f.id, await measure(f));
       if ($('colfind').open) {
         drawQuilt();
-        drawResults(true);
+        // the list is not reordered under the mouse (a click took the fabric that had just moved there): it is
+        // drawn again once the mouse leaves it, or at the end
+        const box = $('colfind-results');
+        if (box.matches(':hover')) {
+          if (!box.dataset.later) {
+            box.dataset.later = '1';
+            box.addEventListener(
+              'mouseleave',
+              () => {
+                delete box.dataset.later;
+                drawResults(true);
+              },
+              { once: true },
+            );
+          }
+        } else drawResults(true);
       }
       await new Promise(r => setTimeout(r, 0)); // lets the page answer clicks in between
     }
     if (todo.some(f => f.blob || f.collection)) keepColours();
     measuring = null;
+    if ($('colfind').open && !$('colfind-results').matches(':hover')) drawResults(true);
   })());
 }
 
