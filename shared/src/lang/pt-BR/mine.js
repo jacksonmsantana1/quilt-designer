@@ -36,8 +36,8 @@ export default {
     'Seus projetos e fotos de tecido são sincronizados com seus outros aparelhos.',
 
   // sync card
-  'Sync is off: your designs are kept in this browser only.':
-    'A sincronização está desligada: seus projetos ficam só neste navegador.',
+  'Your designs are kept on this computer. Sign in to have them on your other devices too.':
+    'Seus projetos ficam guardados neste computador. Entre com uma conta para tê-los também nos seus outros aparelhos.',
   'Syncing…': 'Sincronizando…',
   'Synced at {time}{waiting}': 'Sincronizado às {time}{waiting}',
   'Connected{waiting}': 'Conectado{waiting}',

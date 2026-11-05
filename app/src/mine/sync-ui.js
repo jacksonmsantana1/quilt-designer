@@ -41,7 +41,7 @@ function showStatus(s) {
   $('sync-dot').dataset.state = s.state;
   const waiting = s.pending ? tn(s.pending, ' · {n} change waiting', ' · {n} changes waiting') : '';
   const text = {
-    off: t('Sync is off: your designs are kept in this browser only.'),
+    off: t('Your designs are kept on this computer. Sign in to have them on your other devices too.'),
     syncing: t('Syncing…'),
     ok: s.at ? t('Synced at {time}{waiting}', { time: time(s.at), waiting }) : t('Connected{waiting}', { waiting }),
     offline: t("Can't reach the server: changes wait here and go when it's back{waiting}.", { waiting }),

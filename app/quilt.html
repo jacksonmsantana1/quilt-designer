@@ -3241,7 +3241,7 @@ var mine_default = {
   "Can't reach the server: changes wait here.": "N\xE3o foi poss\xEDvel acessar o servidor: as altera\xE7\xF5es ficam aguardando aqui.",
   "Your designs and fabric photos sync to your other devices.": "Seus projetos e fotos de tecido s\xE3o sincronizados com seus outros aparelhos.",
   // sync card
-  "Sync is off: your designs are kept in this browser only.": "A sincroniza\xE7\xE3o est\xE1 desligada: seus projetos ficam s\xF3 neste navegador.",
+  "Your designs are kept on this computer. Sign in to have them on your other devices too.": "Seus projetos ficam guardados neste computador. Entre com uma conta para t\xEA-los tamb\xE9m nos seus outros aparelhos.",
   "Syncing\u2026": "Sincronizando\u2026",
   "Synced at {time}{waiting}": "Sincronizado \xE0s {time}{waiting}",
   "Connected{waiting}": "Conectado{waiting}",
@@ -23655,7 +23655,7 @@ function showStatus(s) {
   $("sync-dot").dataset.state = s.state;
   const waiting = s.pending ? tn(s.pending, " \xB7 {n} change waiting", " \xB7 {n} changes waiting") : "";
   const text = {
-    off: t("Sync is off: your designs are kept in this browser only."),
+    off: t("Your designs are kept on this computer. Sign in to have them on your other devices too."),
     syncing: t("Syncing\u2026"),
     ok: s.at ? t("Synced at {time}{waiting}", { time: time(s.at), waiting }) : t("Connected{waiting}", { waiting }),
     offline: t("Can't reach the server: changes wait here and go when it's back{waiting}.", { waiting }),
