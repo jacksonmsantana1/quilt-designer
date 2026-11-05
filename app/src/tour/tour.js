@@ -580,6 +580,11 @@ function tourPlace() {
     const r = rectOf(el);
     if (r) keep.push([r, 8]);
   });
+  // a cutting list just opened is being read: the card keeps off it too
+  document.querySelectorAll('#cg-blocks .cgblock.open').forEach(el => {
+    const r = rectOf(el);
+    if (r) keep.push([r, 6]);
+  });
   for (const sel of ['#dz-quilt', '#dz-size2', '#dz-size']) {
     const r = rectOf(document.querySelector(sel));
     if (r) keep.push([r, 3]);
