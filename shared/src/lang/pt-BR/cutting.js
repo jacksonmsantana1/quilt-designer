@@ -17,11 +17,11 @@ export default {
     'peça com molde em um retângulo de {box}, {seam} de margem de costura incluídos',
   '{how} · fussy cut: one at a time, centred on the chosen motif':
     '{how} · fussy cut: um de cada vez, centralizado no motivo escolhido',
-  '{n} strip {width} × WOF, joined and cut to {lens}': '{n} tira de {width} × LT, emendada e cortada em {lens}',
-  '{n} strips {width} × WOF, joined and cut to {lens}': '{n} tiras de {width} × LT, emendadas e cortadas em {lens}',
+  '{n} strip {width} × WOF, joined and cut to {lens}': '{n} tira de {width} de largura, de um lado a outro do tecido, emendada e cortada em {lens}',
+  '{n} strips {width} × WOF, joined and cut to {lens}': '{n} tiras de {width} de largura, de um lado a outro do tecido, emendadas e cortadas em {lens}',
   'a small piece: a remnant will do': 'peça pequena: um retalho resolve',
   'Saved: look in your Downloads folder': 'Salvo: veja na pasta Downloads',
-  '{size} × WOF': '{size} na largura do tecido',
+  '{size} × WOF': 'um pedaço de {size} de altura, com a largura toda do tecido',
   'Side triangles': 'Triângulos laterais',
   'Corner triangles': 'Triângulos de canto',
 
@@ -83,7 +83,7 @@ export default {
   Block: 'Bloco',
   '{finished} finished · {cut} with seam allowance': '{finished} pronto · {cut} com margem de costura',
   'Distinct blocks': 'Blocos diferentes',
-  'includes binding: {strips} strips {width} × WOF': 'inclui viés: {strips} tiras de {width} × LT',
+  'includes binding: {strips} strips {width} × WOF': 'inclui viés: {strips} tiras de {width}, de um lado a outro do tecido',
   'buy ≈ {buy}': 'comprar ≈ {buy}',
   Backing: 'Forro',
   '{n} width of fabric sewn together · buy ≈ {buy}': '{n} largura de tecido costurada · comprar ≈ {buy}',
@@ -125,7 +125,7 @@ export default {
   'Click to show or hide the cutting list · double-click to see border {n} in the whole quilt':
     'Clique para mostrar ou esconder a lista de corte · clique duas vezes para ver a barra {n} no quilt inteiro',
   'WOF = width of fabric: {width}, of which {usable} is usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}. Requirements add {extra} to straighten the edge; "buy" rounds up to {step}.':
-    'LT = largura do tecido: {width}, dos quais {usable} são aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}. As quantidades somam {extra} para acertar a beirada; "comprar" arredonda para cima até {step}.',
+    'Largura do tecido: {width}, dos quais {usable} são aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}. As quantidades somam {extra} para acertar a beirada; "comprar" arredonda para cima até {step}.',
   'to the nearest ⅛ inch': 'para o ⅛ de polegada mais próximo',
   'up to the whole millimetre': 'para cima, ao milímetro inteiro',
   '⅛ yard': '⅛ de jarda',
@@ -157,7 +157,7 @@ export default {
   "Each piece is labelled fabric letter + block number + form: D2.3 is a piece of fabric D in block 2, in that block's third shape cut from fabric D. The letters are the fabrics listed above; pieces with the same label are cut identically.":
     'Cada peça é marcada com a letra do tecido + número do bloco + forma: D2.3 é uma peça do tecido D no bloco 2, na terceira forma desse bloco cortada do tecido D. As letras são os tecidos listados acima; peças com a mesma marca são cortadas iguais.',
   'WOF = width of fabric: {width}, {usable} usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}.':
-    'LT = largura do tecido: {width}, {usable} aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}.',
+    'Largura do tecido: {width}, {usable} aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}.',
   'Whole quilt': 'Quilt inteiro',
   'every piece with its ID': 'cada peça com seu ID',
   'Columns are numbered across the top and rows down the side. Each block piece is labelled with its fabric letter, the number of its block in this guide and its form (D2.3 = fabric D, block 2, form 3).':
