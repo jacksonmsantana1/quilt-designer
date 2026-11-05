@@ -914,6 +914,8 @@ for (const ev of ['pointermove', 'wheel'])
 initTourDrag();
 $('tour-skip').addEventListener('click', () => tourAct('skip'));
 $('tour-back').addEventListener('click', tourBack);
+// the small video, after it has played: a click plays it again, large
+$('tour-clip').addEventListener('click', tourReplay);
 // is the mouse held down? (a selection dragged half way is not a mistake yet)
 document.addEventListener('pointerdown', () => (tour.down = true), true);
 document.addEventListener('pointerup', () => (tour.down = false), true);

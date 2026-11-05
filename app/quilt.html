@@ -448,7 +448,7 @@
   .tour-x:hover { color: var(--ink); }
   .tour.with-clip { width: min(540px, calc(100vw - 24px)); }
   .tour.with-clip.clip-small { width: min(400px, calc(100vw - 24px)); }
-  .tour.clip-small .tour-clip { width: 55%; }
+  .tour.clip-small .tour-clip { width: 55%; cursor: pointer; }
   .tour-foot { display: flex; gap: 16px; }
   body.tour-active #dz-library .blib-item[aria-pressed="true"]:not(.tour-glow) { border-color: var(--line); box-shadow: none; }
   #tour-note { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: oklch(0.5 0.15 30); color: #fff; font-size: .95rem; font-weight: 600; }
@@ -22289,6 +22289,7 @@ for (const ev of ["pointermove", "wheel"])
 initTourDrag();
 $("tour-skip").addEventListener("click", () => tourAct("skip"));
 $("tour-back").addEventListener("click", tourBack);
+$("tour-clip").addEventListener("click", tourReplay);
 document.addEventListener("pointerdown", () => tour.down = true, true);
 document.addEventListener("pointerup", () => tour.down = false, true);
 $("tour-arrow").addEventListener("click", () => {
