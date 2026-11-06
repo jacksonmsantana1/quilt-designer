@@ -73,7 +73,7 @@ import {
 import { notify } from '../ui/notice.js';
 import { newDesign } from '@quilt/shared/design.js';
 import { tilesForTool } from '@quilt/shared/mosaic.js';
-import { t, tn } from '@quilt/shared/i18n.js';
+import { comma, t, tn } from '@quilt/shared/i18n.js';
 
 function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected

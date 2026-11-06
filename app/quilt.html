@@ -4600,8 +4600,8 @@ function saveLang(l) {
 var fill = (s, vars) => vars ? s.replace(/\{(\w+)\}/g, (whole, k) => k in vars ? String(vars[k]) : whole) : s;
 var t = (text, vars) => fill(lang === "en" ? text : DICT[text] ?? text, vars);
 var tn = (n, one, many, vars) => t((lang === "pt-BR" ? Math.abs(n) < 2 : n === 1) ? one : many, { n, ...vars });
-var comma2 = (s) => lang === "pt-BR" ? String(s).replace(".", ",") : String(s);
-var fix = (v, digits) => comma2(v.toFixed(digits));
+var comma = (s) => lang === "pt-BR" ? String(s).replace(".", ",") : String(s);
+var fix = (v, digits) => comma(v.toFixed(digits));
 var blockName = (label) => lang === "en" ? label : BLOCKS[label] ?? label;
 function pieceText(name) {
   if (lang === "en") return name;
@@ -11042,7 +11042,7 @@ var PARAMS = [
     min: 1e-6,
     max: 0.01,
     scale: "log",
-    fmt: (v) => comma2(v.toExponential(1))
+    fmt: (v) => comma(v.toExponential(1))
   },
   { key: "muS", label: t("Static friction \u03BCs"), unit: "", min: 0, max: 1.2, scale: "lin", fmt: (v) => fix(v, 2) },
   {
@@ -12897,7 +12897,7 @@ function drawChart() {
     g.moveTo(padL, y);
     g.lineTo(padL + pw, y);
     g.stroke();
-    g.fillText(comma2(v) + " J", padL - 4, y);
+    g.fillText(comma(v) + " J", padL - 4, y);
   }
   g.textAlign = "center";
   g.textBaseline = "top";
@@ -20265,9 +20265,9 @@ function renderCut() {
     'WOF = width of fabric: {width}, of which {usable} is usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}. Requirements add {extra} to straighten the edge; "buy" rounds up to {step}.',
     {
       // in inches with the centimetres too: the menu above, like the shops, says 150 cm
-      width: inInches ? `${len(cutOpts.fabricWidth)} (${comma2(cutOpts.fabricWidth / 10)} cm)` : `${comma2(cutOpts.fabricWidth / 10)} cm`,
-      usable: inInches ? len(P.usable) : `${comma2(P.usable / 10)} cm`,
-      seam: getUnit() === "in" ? len(P.seam) : `${comma2(P.seam)} mm`,
+      width: inInches ? `${len(cutOpts.fabricWidth)} (${comma(cutOpts.fabricWidth / 10)} cm)` : `${comma(cutOpts.fabricWidth / 10)} cm`,
+      usable: inInches ? len(P.usable) : `${comma(P.usable / 10)} cm`,
+      seam: getUnit() === "in" ? len(P.seam) : `${comma(P.seam)} mm`,
       // 7.5 mm, not rounded to 8
       rounding: inInches ? t("to the nearest \u215B inch") : t("up to the whole millimetre"),
       extra: len(50),
@@ -21722,7 +21722,7 @@ var SEAM_IN = {
 function relabelCuttingOptions() {
   const inches2 = getUnit() === "in";
   for (const o of $("cg-seam").options)
-    o.textContent = inches2 ? SEAM_IN[o.value] || len(+o.value) : `${comma2(o.value)} mm`;
+    o.textContent = inches2 ? SEAM_IN[o.value] || len(+o.value) : `${comma(o.value)} mm`;
   for (const o of $("cg-binding").options) o.textContent = len(+o.value);
 }
 function relabelHints() {
@@ -25808,8 +25808,8 @@ function pdfFabricPage(P, pages) {
     t(
       "WOF = width of fabric: {width}, {usable} usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}.",
       {
-        width: inInches ? len(cutOpts.fabricWidth) : `${comma2(cutOpts.fabricWidth / 10)} cm`,
-        usable: inInches ? len(P.usable) : `${comma2(P.usable / 10)} cm`,
+        width: inInches ? len(cutOpts.fabricWidth) : `${comma(cutOpts.fabricWidth / 10)} cm`,
+        usable: inInches ? len(P.usable) : `${comma(P.usable / 10)} cm`,
         seam: len(P.seam),
         rounding: inInches ? t("to the nearest \u215B inch") : t("up to the whole millimetre")
       }
