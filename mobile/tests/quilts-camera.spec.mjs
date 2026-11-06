@@ -44,7 +44,12 @@ test('a photo with no design starts an album, kept on the phone, and goes up aft
   await page.reload(); // it's kept
   await phone.tab('quilts');
   await expect(page.locator('#quilts-board .pin .name')).toHaveText('Grandma’s quilt');
+  await phone.tab('camera');
   await phone.signIn();
+  // the Camera tab's list follows the sync, without leaving the tab
+  await expect(page.locator('#recent .badge')).toHaveCount(0);
+  await expect(page.locator('#recent-wait')).toBeHidden();
+  await phone.tab('quilts');
   await expect(page.locator('#quilts-board .pin .badge')).toHaveCount(0);
   const [sent] = [...server.photos.values()];
   expect(sent.album).toBe('Grandma’s quilt');

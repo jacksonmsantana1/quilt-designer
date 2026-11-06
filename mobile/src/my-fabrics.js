@@ -23,7 +23,7 @@ import {
   setNote,
 } from './organize.js';
 import { whenNear } from './quilt-card.js';
-import { fromCm, lastUnit, parseLength, short, sizeLabel, toCm, MAX_CM, MIN_CM } from './piece-size.js';
+import { boxesFor, fractionMenu, lastUnit, readSide, sizeLabel, toCm, MAX_CM, MIN_CM } from './piece-size.js';
 import { get, put } from './store.js';
 import { $, ask, el, openSheet, pressable, say, shown } from './ui.js';
 
@@ -612,12 +612,20 @@ function sizeField(it) {
   const box = id => el('input', { type: 'text', inputMode: 'decimal', id, class: 'size-box', maxLength: 6 });
   const w = box('fabric-w'),
     h = box('fabric-h'),
+    // in inches, a fraction menu beside each box, as the web app has
+    wf = fractionMenu('fabric-wf', t('{name}: fraction of an inch', { name: t('Width') })),
+    hf = fractionMenu('fabric-hf', t('{name}: fraction of an inch', { name: t('Height') })),
     said = el('p', { class: 'hint', id: 'fabric-size-said', role: 'status' });
+  wf.hidden = hf.hidden = unit !== 'in';
   let aspect = 1;
   const fill = () => {
-    const cm = repo.fabrics.get(it.id)?.cm || NEW_FABRIC_CM;
-    w.value = short(fromCm(cm, unit));
-    h.value = short(fromCm(cm / aspect, unit));
+    const cm = repo.fabrics.get(it.id)?.cm || NEW_FABRIC_CM,
+      across = boxesFor(cm, unit),
+      down = boxesFor(cm / aspect, unit);
+    w.value = across.text;
+    wf.value = across.eighths;
+    h.value = down.text;
+    hf.value = down.eighths;
   };
   loadImage(it.blob)
     .then(im => {
@@ -626,8 +634,8 @@ function sizeField(it) {
     })
     .catch(() => fill());
   fill();
-  const typed = (from, toWidth) => () => {
-    const v = parseLength(from.value);
+  const typed = (from, frac, toWidth) => () => {
+    const v = readSide(from.value, frac.value, unit);
     const wCm = toCm(toWidth(v), unit);
     if (!(v > 0) || wCm < MIN_CM || wCm > MAX_CM || wCm / aspect < MIN_CM || wCm / aspect > MAX_CM) {
       said.textContent = t('A piece can be from 1 to 300 cm on each side.');
@@ -639,24 +647,24 @@ function sizeField(it) {
     said.textContent = t('Its quilts show it at {size} now.', { size: sizeLabel(wCm, wCm / aspect, unit) });
     renderFabrics();
   };
-  w.addEventListener(
-    'change',
-    typed(w, v => v),
-  );
-  h.addEventListener(
-    'change',
-    typed(h, v => v * aspect),
-  );
+  const across = typed(w, wf, v => v),
+    down = typed(h, hf, v => v * aspect);
+  w.addEventListener('change', across);
+  wf.addEventListener('change', across);
+  h.addEventListener('change', down);
+  hf.addEventListener('change', down);
   return el(
     'div',
-    { class: 'field' },
+    { class: unit === 'in' ? 'field in' : 'field' },
     el('span', { textContent: t('Its real size') }),
     el(
       'div',
       { class: 'size-row' },
       w,
+      wf,
       el('span', { textContent: '×' }),
       h,
+      hf,
       el('span', { textContent: unit === 'in' ? t('in') : 'cm' }),
     ),
     said,

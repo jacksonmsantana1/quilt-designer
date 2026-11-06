@@ -1,22 +1,39 @@
 // The size of a cut piece of fabric, as the person types it: in cm or in inches, a comma or a point for decimals. The
 // app keeps fabrics in cm (how much cloth the picture's width covers), so inches are turned into cm here. The last size
-// and unit are remembered on this phone, for the next piece cut the same.
+// and unit are remembered on this phone, for the next piece cut the same. In inches each box has a fraction menu beside
+// it (⅛ … ⅞), and sizes are written the way quilters say them, as the web app does: 6½ × 4¼ in.
 import { comma, t } from '@quilt/shared/i18n.js';
 
 const KEY = 'quilt-phone-piece.v1',
   CM_PER_IN = 2.54,
   // what the server takes as a fabric's width (server/src/routes/fabrics.js)
   MIN_CM = 1,
-  MAX_CM = 300;
+  MAX_CM = 300,
+  // the web app's inch fractions (app/src/core/units.js)
+  FRACTIONS = ['', '⅛', '¼', '⅜', '½', '⅝', '¾', '⅞'];
 
 /** @typedef {'cm' | 'in'} Unit */
-/** @typedef {{ w: string, h: string, unit: Unit }} PieceText what is in the boxes */
+/**
+ * What is in the boxes: the numbers as typed, and in inches the eighths chosen beside them ('0' … '7').
+ * @typedef {{ w: string, h: string, unit: Unit, wf?: string, hf?: string }} PieceText
+ */
+
+/** @param {unknown} f */
+const isEighths = f => f === undefined || (typeof f === 'string' && /^[0-7]$/.test(f));
 
 /** @returns {PieceText} */
 function lastPiece() {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (v && typeof v.w === 'string' && typeof v.h === 'string' && (v.unit === 'cm' || v.unit === 'in')) return v;
+    if (
+      v &&
+      typeof v.w === 'string' &&
+      typeof v.h === 'string' &&
+      (v.unit === 'cm' || v.unit === 'in') &&
+      isEighths(v.wf) &&
+      isEighths(v.hf)
+    )
+      return v;
   } catch (e) {
     // nothing kept, or not readable: the usual starting size
   }
@@ -45,11 +62,48 @@ const fromCm = (cm, unit) => (unit === 'in' ? cm / CM_PER_IN : cm);
 /** A length for reading: at most one decimal, with the language's comma. @param {number} v */
 const short = v => comma(String(Math.round(v * 10) / 10));
 
-/** "15 × 15 cm", "6 × 6 in". @param {number} wCm @param {number} hCm @param {Unit} unit */
+/** Inches as whole inches and eighths, to the nearest eighth: 6.5 → "6½", 0.25 → "¼". @param {number} v */
+function inches(v) {
+  const eighths = Math.round(v * 8),
+    whole = Math.floor(eighths / 8),
+    part = FRACTIONS[eighths % 8];
+  return part && whole === 0 ? part : `${whole}${part}`;
+}
+
+/** "15 × 15 cm", "6½ × 4¼ in". @param {number} wCm @param {number} hCm @param {Unit} unit */
 function sizeLabel(wCm, hCm, unit) {
-  const w = short(fromCm(wCm, unit)),
-    h = short(fromCm(hCm, unit));
-  return unit === 'in' ? t('{w} × {h} in', { w, h }) : t('{w} × {h} cm', { w, h });
+  if (unit === 'in') return t('{w} × {h} in', { w: inches(fromCm(wCm, unit)), h: inches(fromCm(hCm, unit)) });
+  return t('{w} × {h} cm', { w: short(wCm), h: short(hCm) });
+}
+
+/**
+ * One side: the number typed, and in inches the eighths chosen beside it. The number may be left empty for "⅞ in".
+ * NaN when it isn't a length. @param {string} text @param {string | undefined} eighthsText @param {Unit} unit
+ */
+function readSide(text, eighthsText, unit) {
+  const eighths = unit === 'in' ? Number(eighthsText || 0) / 8 : 0;
+  if (eighths && !String(text).trim()) return eighths;
+  return parseLength(text) + eighths;
+}
+
+/**
+ * What to put in a box and its fraction menu for a length: in cm "15,5" (no fraction), in inches the whole inches and
+ * the nearest eighth, 6.5 in → "6" and "4". @param {number} cm @param {Unit} unit @returns {{ text: string, eighths: string }}
+ */
+function boxesFor(cm, unit) {
+  if (unit !== 'in') return { text: short(cm), eighths: '0' };
+  const e = Math.round(fromCm(cm, unit) * 8);
+  return { text: String(Math.floor(e / 8)), eighths: String(e % 8) };
+}
+
+/** The fraction menu beside an inch box: 0, ⅛, ¼ … ⅞, as in the web app. @param {string} id @param {string} label */
+function fractionMenu(id, label) {
+  const menu = document.createElement('select');
+  menu.id = id;
+  menu.className = 'frac-box';
+  menu.setAttribute('aria-label', label);
+  FRACTIONS.forEach((f, i) => menu.add(new Option(f || '0', String(i))));
+  return menu;
 }
 
 /**
@@ -57,8 +111,8 @@ function sizeLabel(wCm, hCm, unit) {
  * @param {PieceText} p @returns {{ wCm: number, hCm: number, aspect: number, label: string } | { error: string }}
  */
 function readPiece(p) {
-  const w = parseLength(p.w),
-    h = parseLength(p.h);
+  const w = readSide(p.w, p.wf, p.unit),
+    h = readSide(p.h, p.hf, p.unit);
   if (!(w > 0) || !(h > 0)) return { error: t('Type the width and the height of the piece.') };
   const wCm = toCm(w, p.unit),
     hCm = toCm(h, p.unit);
@@ -70,4 +124,18 @@ function readPiece(p) {
 /** The unit the person last used. @returns {Unit} */
 const lastUnit = () => lastPiece().unit;
 
-export { fromCm, keepPiece, lastPiece, lastUnit, MAX_CM, MIN_CM, parseLength, readPiece, short, sizeLabel, toCm };
+export {
+  boxesFor,
+  fractionMenu,
+  fromCm,
+  inches,
+  keepPiece,
+  lastPiece,
+  lastUnit,
+  MAX_CM,
+  MIN_CM,
+  readPiece,
+  readSide,
+  sizeLabel,
+  toCm,
+};

@@ -81,20 +81,39 @@ test('a piece in inches, from the photos, is cropped in its shape and kept in cm
   const { page } = phone;
   await phone.open();
   await fabricMode(phone, '6', '4,5');
+  // decimals still do, in cm and in inches, and the size is written in fractions, as quilters say it
+  await expect(page.locator('#cam-hf')).toBeHidden();
   await page.locator('#cam-unit-in').click();
-  await expect(page.locator('#cam-shape-label')).toHaveText('6 × 4.5 in');
+  await expect(page.locator('#cam-shape-label')).toHaveText('6 × 4½ in');
+  // the fraction menu beside the box, as in the web app: 4 and ½
+  await page.locator('#cam-h').fill('4');
+  await expect(page.locator('#cam-shape-label')).toHaveText('6 × 4 in');
+  await page.locator('#cam-hf').selectOption('½');
+  await expect(page.locator('#cam-shape-label')).toHaveText('6 × 4½ in');
   await phone.pick(page.locator('#cam-pick'), await colourFile(page, 'teal', 't.jpg', 800, 600));
   await expect(page.locator('#crop-box')).toBeVisible();
   expect(await shape(page.locator('#crop-box'))).toBeCloseTo(1.33, 1);
   await page.locator('#crop-done').click();
-  await expect(page.locator('#new-size')).toHaveText('Its real size: 6 × 4.5 in');
+  await expect(page.locator('#new-size')).toHaveText('Its real size: 6 × 4½ in');
   await page.locator('#new-save').click();
   await expect.poll(() => kept(page)).toEqual([{ name: 'Fabric 1', cm: 15.24, aspect: 1.33 }]);
+  // the fabric's own page shows it in inches and fractions too, and takes a new one the same way
+  await phone.tab('fabrics');
+  await page.locator('#fab-board .fab', { hasText: 'Fabric 1' }).click();
+  await expect(page.locator('#fabric-w')).toHaveValue('6');
+  await expect(page.locator('#fabric-wf')).toHaveValue('0');
+  await expect(page.locator('#fabric-h')).toHaveValue('4');
+  await expect(page.locator('#fabric-hf')).toHaveValue('4');
+  await page.locator('#fabric-wf').selectOption('½');
+  await expect(page.locator('#fabric-size-said')).toHaveText('Its quilts show it at 6½ × 4⅞ in now.');
+  await expect(page.locator('#fabric-hf')).toHaveValue('7');
+  await page.locator('dialog[open] .close').click();
   await page.reload();
   await phone.tab('camera');
   await page.locator('#cam-kind-fabric').click();
   await expect(page.locator('#cam-w')).toHaveValue('6');
-  await expect(page.locator('#cam-h')).toHaveValue('4,5');
+  await expect(page.locator('#cam-h')).toHaveValue('4');
+  await expect(page.locator('#cam-hf')).toHaveValue('4');
   await expect(page.locator('#cam-unit-in')).toHaveAttribute('aria-pressed', 'true');
 });
 

@@ -715,8 +715,9 @@ input[type='search'] {
 .cam-shape span {
   padding: 0 4px;
   color: var(--accent);
-  font: 700 0.72rem var(--font-body);
-  white-space: nowrap;
+  font: 700 0.72rem/1.15 var(--font-body);
+  /* a long size (15½ × 15⅞ in) goes on two lines, inside the shape */
+  text-align: center;
 }
 .cam-size {
   margin-top: 12px;
@@ -744,6 +745,26 @@ input[type='search'] {
   color: var(--ink);
   font: 500 1.1rem var(--font-body);
   text-align: center;
+}
+/* in inches each box has a fraction menu beside it (0, ⅛ … ⅞): narrower boxes, so the row still fits */
+.in .size-row {
+  gap: 4px;
+}
+.in .size-box {
+  width: 2.6em;
+  padding: 6px 4px;
+}
+.frac-box {
+  min-height: 44px;
+  padding: 6px 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 1.1rem var(--font-body);
+}
+.frac-box[hidden] {
+  display: none;
 }
 .cam-unit {
   display: flex;

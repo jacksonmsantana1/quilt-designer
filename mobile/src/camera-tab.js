@@ -2,9 +2,10 @@
 // A fabric is best a cut piece of a known size: framed live in its shape, it is kept at its real size, so its print is
 // drawn at that size on every quilt.
 import { t } from '@quilt/shared/i18n.js';
+import { onAccountChange } from './account.js';
 import { getPicture } from './camera.js';
 import { liveShot } from './live-camera.js';
-import { keepPiece, lastPiece, readPiece } from './piece-size.js';
+import { fractionMenu, keepPiece, lastPiece, readPiece } from './piece-size.js';
 import { quiltPhoto } from './images.js';
 import { addFabricFrom } from './my-fabrics.js';
 import { addPhoto, newAlbumId, photoUrl, photos } from './photos.js';
@@ -47,9 +48,11 @@ const pieceText = () => ({
   w: $('cam-w').value,
   h: $('cam-h').value,
   unit: $('cam-unit-in').getAttribute('aria-pressed') === 'true' ? 'in' : 'cm',
+  wf: $('cam-wf').value,
+  hf: $('cam-hf').value,
 });
 /** No size at all: a photo of a whole fabric, as before (a square, and a width guessed). */
-const noSize = p => !p.w.trim() && !p.h.trim();
+const noSize = p => !p.w.trim() && !p.h.trim() && (p.unit === 'cm' || (p.wf === '0' && p.hf === '0'));
 
 /** The frame shows the piece's shape and size, or the fabric's icon when there's no size (or not one yet). */
 function showPiece() {
@@ -72,6 +75,9 @@ function showPiece() {
 function setUnit(unit) {
   $('cam-unit-cm').setAttribute('aria-pressed', String(unit === 'cm'));
   $('cam-unit-in').setAttribute('aria-pressed', String(unit === 'in'));
+  // in inches, a fraction menu beside each box, as the web app has
+  for (const id of ['cam-wf', 'cam-hf']) $(id).hidden = unit !== 'in';
+  $('cam-size').classList.toggle('in', unit === 'in');
   keepPiece(pieceText());
   showPiece();
 }
@@ -197,19 +203,26 @@ function initCameraTab() {
   $('cam-unit').setAttribute('aria-label', t('Unit'));
   $('cam-unit-in').textContent = t('in');
   $('cam-size-hint').textContent = t('Leave it empty for a photo of a whole fabric, without its size.');
+  $('cam-w').after(fractionMenu('cam-wf', t('{name}: fraction of an inch', { name: t('Width') })));
+  $('cam-h').after(fractionMenu('cam-hf', t('{name}: fraction of an inch', { name: t('Height') })));
   const kept = lastPiece();
   $('cam-w').value = kept.w;
   $('cam-h').value = kept.h;
+  $('cam-wf').value = kept.wf || '0';
+  $('cam-hf').value = kept.hf || '0';
   $('cam-unit-cm').addEventListener('click', () => setUnit('cm'));
   $('cam-unit-in').addEventListener('click', () => setUnit('in'));
-  for (const id of ['cam-w', 'cam-h']) $(id).addEventListener('input', showPiece);
-  for (const id of ['cam-w', 'cam-h']) $(id).addEventListener('change', () => keepPiece(pieceText()));
+  for (const id of ['cam-w', 'cam-h', 'cam-wf', 'cam-hf']) $(id).addEventListener('input', showPiece);
+  for (const id of ['cam-w', 'cam-h', 'cam-wf', 'cam-hf'])
+    $(id).addEventListener('change', () => keepPiece(pieceText()));
   setUnit(kept.unit);
   $('cam-kind-quilt').addEventListener('click', () => showKind('quilt'));
   $('cam-kind-fabric').addEventListener('click', () => showKind('fabric'));
   $('cam-shoot').addEventListener('click', () => KINDS[kind].take(false));
   $('cam-pick').addEventListener('click', () => KINDS[kind].take(true));
   showKind('quilt');
+  // after a sync (photos sent, or come from another phone) and on signing in or out
+  onAccountChange(renderRecent);
   renderRecent();
 }
 
