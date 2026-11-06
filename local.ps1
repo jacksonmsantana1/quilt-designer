@@ -49,7 +49,7 @@ Run npm.cmd run build
 Step 'Ligando o banco de dados e o armazenamento de fotos (Docker)'
 & docker info *> $null
 if ($LASTEXITCODE -ne 0) { Stop-Here 'o Docker não está rodando. Abra o Docker Desktop, espere ele ficar pronto, e rode de novo.' }
-Run docker compose up -d
+Run docker compose -p quilt-designer up -d
 
 # ---- 4. the API, in a window of its own (it adds the database's new tables when it starts)
 Step 'Ligando o servidor (API)'
