@@ -129,8 +129,24 @@ test('a fabric’s details and name are kept as they’re typed, and go to the s
   await page.locator('dialog[open] .close').click();
   await expect(page.locator('#fab-board .fab-name')).toHaveText(['Deep rose']);
   await expect(page.locator('#fab-board .fab-note')).toHaveText('Fat quarter · Box 3');
+  // the new name written down on the phone before the reload: a reload a moment after typing could cut that write
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise(done => {
+            const o = indexedDB.open('quilt');
+            o.onsuccess = () => {
+              const all = o.result.transaction('fabrics', 'readonly').objectStore('fabrics').getAll();
+              all.onsuccess = () => done(all.result.map(f => f.name));
+            };
+          }),
+      ),
+    )
+    .toEqual(['Deep rose']);
   await page.reload();
   await phone.tab('fabrics');
+  await expect(page.locator('#fab-board .fab-name')).toHaveText(['Deep rose']);
   await expect(page.locator('#fab-board .fab-note')).toHaveText('Fat quarter · Box 3');
   await page.locator('#me').click();
   await page.getByRole('button', { name: 'Sync now' }).click();

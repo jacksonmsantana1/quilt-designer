@@ -98,7 +98,9 @@ test('in inches the sizes add up exactly: 10 in blocks, 2 in sashing, 2 in and 4
   page,
 }) => {
   await app.open();
-  await page.locator('#unit-sw').check({ force: true });
+  // the visible switch, as a person clicks it (the box itself is hidden under it)
+  await page.locator('#unit-lbl').click();
+  await expect(page.locator('#unit-sw')).toBeChecked();
   await page.locator('#dz-new').click();
   if (await page.locator('#leave-dlg').isVisible()) await page.locator('#leave-drop').click();
   for (let i = 0; i < 1; i++) await page.locator('[data-step="c:1"]').click();
