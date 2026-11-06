@@ -66,7 +66,7 @@ npx wrangler pages deploy app/publish --project-name block-and-bind
 **6. Auth0.** Add the page's address: Allowed Callback URLs and Allowed Web Origins (the origin), Allowed Logout URLs
 (the page itself). Also turn on Refresh Token Rotation, and give Google sign-in your own keys, not Auth0's dev keys.
 
-**7. Backups on.** In the GitHub repository, add the secrets `BACKUP_DATABASE_URL`, `BACKUP_PASSPHRASE`,
+**7. Backups on.** (`.\backups.bat on` does the variable and the first run, once the secrets are there.) In the GitHub repository, add the secrets `BACKUP_DATABASE_URL`, `BACKUP_PASSPHRASE`,
 `BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY_ID` and `BACKUP_S3_SECRET_ACCESS_KEY`, and the
 variable `BACKUPS_ON` = `true`. Run "Nightly backup" once by hand under Actions, then restore it (below) before relying
 on it. **Keep the passphrase somewhere safe outside GitHub: without it, the backups can't be read.**
@@ -101,6 +101,12 @@ A change to the database goes first in a new file in `migrations/`, and must kee
 before it, since that is what going back returns to.
 
 ### When something goes wrong
+
+On Windows, from the top folder: `.\status.bat` says whether the API, its database, the page and the backups are all
+right, and what main has that isn't online yet; `.\logs.bat` shows what the API is saying; `.\rollback.bat` lists
+main's last versions and puts an earlier one online again (the API and the page, with `deploy.ps1 -Version`). logs and
+rollback need PowerShell as administrator: Fly's commands don't connect from that computer over the Wi-Fi's IPv6, which
+`fly-network.ps1` turns off meanwhile.
 
 - **A bad version of the API:** `fly releases --image` lists them; `fly deploy --image <the last good one>` goes back.
 - **A bad version of the page:** in Cloudflare Pages, "Rollback" on the last good deployment.

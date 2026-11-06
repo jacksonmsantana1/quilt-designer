@@ -38,6 +38,9 @@ node app/tools/record-clips.mjs      # re-records the welcome cards' clips (app/
 .\deploy.bat                         # Windows (runs deploy.ps1): the API, then the page, online (-DryRun: only checks)
 .\local.bat                          # Windows: the app on this computer (latest main, Docker, API :8787, page :8000)
 .\local-stop.bat                     # Windows: turns it all off again (Docker stopped, its data kept)
+.\status.bat                         # Windows: is the app online all right (API, database, page, version, backups)
+.\logs.bat / .\rollback.bat          # Windows, as administrator: the API online's messages / an earlier version online
+.\backups.bat [on|off|now]           # Windows: the nightly backup (on/off/now need gh signed in)
 node app/tools/record-clips.mjs tutorial   # re-records the first-quilt tutorial's clips, in both languages, with the logo (CLIP_ONLY=sash,fabric: just those)
 ```
 
