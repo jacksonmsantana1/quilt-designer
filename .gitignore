@@ -35,3 +35,6 @@ app/assets/clips/*.gif
 !mobile/assets/*.png
 !mobile/android/app/src/main/res/**/*.png
 !mobile/ios/App/App/Assets.xcassets/**/*.png
+
+# the page's Sentry address for deploy.ps1, kept on this computer only
+.deploy-sentry-dsn

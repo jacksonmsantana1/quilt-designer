@@ -1,17 +1,29 @@
 ﻿# Puts the app online in one go: the API on Fly.io, then the page on Cloudflare Pages (server/README.md, "Going live").
-#   .\deploy.ps1 -ApiUrl https://block-and-bind-api.fly.dev -SentryDsn https://...
+#   .\deploy.bat        (or .\deploy.ps1 -ApiUrl https://... -SentryDsn https://... for other addresses)
 # Run it in Windows PowerShell, in this folder, on main. -DryRun checks everything and builds the page, but puts nothing
 # online. -SkipCiCheck goes ahead without GitHub's checks having passed (only when you know why).
+# The page's Sentry address is asked for once and kept in .deploy-sentry-dsn, on this computer only (.gitignore).
 # The API goes first: the new page may call addresses only the new API has. The database's new tables are added by the
 # API itself when it starts.
 param(
-  [Parameter(Mandatory = $true)] [string]$ApiUrl,
+  [string]$ApiUrl = 'https://block-and-bind-api.fly.dev',
   [string]$SentryDsn = '',
   [switch]$DryRun,
   [switch]$SkipCiCheck
 )
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
+
+# the error reports' address: given, kept from last time, or asked for now (before anything else, so the rest runs alone)
+$dsnFile = Join-Path $PSScriptRoot '.deploy-sentry-dsn'
+if (-not $SentryDsn -and (Test-Path $dsnFile)) { $SentryDsn = (Get-Content $dsnFile -Raw).Trim() }
+if (-not $SentryDsn) {
+  $SentryDsn = (Read-Host 'Cole a DSN do Sentry da página (ou Enter para publicar sem relatórios de erro)').Trim()
+  if ($SentryDsn) {
+    Set-Content -Path $dsnFile -Value $SentryDsn -Encoding ASCII
+    Write-Host 'Guardada em .deploy-sentry-dsn: da próxima vez não pergunto.'
+  }
+}
 
 function Step($text) { Write-Host ''; Write-Host "== $text" -ForegroundColor Cyan }
 function Stop-Here($text) { Write-Host ''; Write-Host "Parei: $text" -ForegroundColor Red; exit 1 }

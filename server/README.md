@@ -83,10 +83,11 @@ On Windows, `deploy.ps1` in the top folder does all of it, once GitHub's checks 
 folder is on main with nothing changed, pulls, checks the CI of that version, builds the page, deploys the API (Wi-Fi's
 IPv6 off meanwhile, as an administrator), waits for `/health`, then publishes the page. `-DryRun` stops before anything
 goes online. Run it through `deploy.bat`: Windows blocks `.ps1` files by default, and the .bat runs it without
-changing that setting.
+changing that setting. The page's Sentry address is asked for the first time and kept in `.deploy-sentry-dsn`, on that
+computer only.
 
 ```
-.\deploy.bat -ApiUrl https://block-and-bind-api.fly.dev -SentryDsn https://...
+.\deploy.bat          # the API at https://block-and-bind-api.fly.dev; -ApiUrl https://... for another
 ```
 
 By hand:

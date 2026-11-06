@@ -35,7 +35,7 @@ npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e
 npm run dev -w @quilt/server         # API on :8787 (needs server/.env, see server/.env.example)
 npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabrics for user "seed" (sync as "seed")
 node app/tools/record-clips.mjs      # re-records the welcome cards' clips (app/assets/clips) from the real app; build first; needs ffmpeg, pdftoppm
-.\deploy.bat -ApiUrl https://... -SentryDsn https://...   # Windows (runs deploy.ps1): the API, then the page, online (-DryRun: only checks)
+.\deploy.bat                         # Windows (runs deploy.ps1): the API, then the page, online (-DryRun: only checks)
 node app/tools/record-clips.mjs tutorial   # re-records the first-quilt tutorial's clips, in both languages, with the logo (CLIP_ONLY=sash,fabric: just those)
 ```
 
