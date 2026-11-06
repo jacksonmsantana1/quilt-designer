@@ -35,6 +35,7 @@ npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e
 npm run dev -w @quilt/server         # API on :8787 (needs server/.env, see server/.env.example)
 npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabrics for user "seed" (sync as "seed")
 node app/tools/record-clips.mjs      # re-records the welcome cards' clips (app/assets/clips) from the real app; build first; needs ffmpeg, pdftoppm
+.\deploy.ps1 -ApiUrl https://... -SentryDsn https://...   # Windows: the API, then the page, online (-DryRun: only checks)
 node app/tools/record-clips.mjs tutorial   # re-records the first-quilt tutorial's clips, in both languages, with the logo (CLIP_ONLY=sash,fabric: just those)
 ```
 
@@ -166,8 +167,8 @@ per edit → versioned format → IndexedDB → coverage and more tests → serv
 **The app is live** (step 8): the page at https://block-and-bind.pages.dev (Cloudflare Pages) and the API at
 https://block-and-bind-api.fly.dev (Fly.io, São Paulo), with Neon for the database, Cloudflare R2 for photos and backups,
 and Sentry for error reports; `server/README.md`, "Going live", has the steps. Merging to `main` doesn't update them: the
-page is republished with `publish:page` and the API deployed from `fly.toml`. The published page on claude.ai may not be
-able to use Auth0's sign-in popup from inside claude.ai's frame: untested.
+page is republished with `publish:page` and the API deployed from `fly.toml`, both by `deploy.ps1`. The published page on claude.ai
+may not be able to use Auth0's sign-in popup from inside claude.ai's frame: untested.
 
 **Next: the phone app on a real phone.** Built and tested in a browser: Community, My quiltings, My fabrics with folders, and
 a camera for photos of quilts and fabrics. Designs are view-only there; the web app stays the place to design. It has never
