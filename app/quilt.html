@@ -641,7 +641,7 @@
   .stepper { display: flex; align-items: center; gap: 4px; }
   .stepper input { width: 3.4em; text-align: center; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 2px; }
   .pats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-  .pats .pat, .fabs .fab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
+  .pats .pat, .fabs .fab, .fabs .fab-add { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; font: 500 .66rem var(--font-body); line-height: 1.15; text-align: center; min-width: 0; }
   .pats .pat canvas, .fabs .fab canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 3px; display: block; }
   .pats .pat span, .fabs .fab span { overflow-wrap: anywhere; hyphens: auto; }
   .pats .pat[aria-pressed="true"], .fabs .fab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
@@ -649,7 +649,10 @@
   /* a fabric list is one row that scrolls sideways (the mouse wheel scrolls it too), with a round "More fabrics"
      button just outside its card while the mouse is over it. The library window keeps its grid (.fablib-grid) */
   .fabs { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; position: relative; padding: 3px 3px 7px; scrollbar-width: thin; }
-  .fabs .fab { flex: 0 0 84px; scroll-snap-align: start; }
+  .fabs .fab, .fabs .fab-add { flex: 0 0 84px; scroll-snap-align: start; }
+  .addfab-pics { display: flex; flex-wrap: wrap; gap: 6px; }
+  .addfab-pics img { width: 84px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--line); }
+  #addfab-name-row[hidden] { display: none; }
   .fabs:not(.fablib-grid) .fab span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* the palette: an × to take a fabric off the lists (on hover; always on touch screens), a ✓ on one that stays */
   .fabs .fab { position: relative; }
@@ -665,8 +668,9 @@
   /* in the library: a dot on the fabrics that are in the lists */
   .fablib-grid .fab.on-palette::after { content: ""; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--panel); }
   .fabs .fab img { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 3px; display: block; background: var(--line); }
-  /* "More fabrics" / "Add fabric photo": a dashed tile at the end of a list */
+  /* "+ Add fabric": a dashed tile, first in a list and staying in view as the row scrolls */
   .fabs .fab-more { border-style: dashed; color: var(--muted); }
+  .fabs:not(.fablib-grid) .fab-add { position: sticky; left: 0; z-index: 1; box-shadow: -4px 0 0 var(--panel); } /* the shadow hides fabrics rolling by in the row's padding */
   .fabs-row { display: flex; align-items: center; gap: 8px; }
   .fabs-row > .fabs { flex: 1 1 auto; min-width: 0; }
   /* Block pattern: one row that scrolls sideways, like the fabric lists (with the same round button beside it) */
@@ -1573,6 +1577,24 @@
     </div>
   </div>
 </dialog>
+<input id="dz-upload" type="file" accept="image/*" multiple class="sr" aria-label="Add fabric" tabindex="-1">
+<dialog class="dz-dialog" id="addfab" aria-labelledby="addfab-title">
+  <div class="dlg-head"><h2 id="addfab-title">Add fabric photos</h2><button class="btn sm dlg-x" type="button" id="addfab-x" aria-label="Close">×</button></div>
+  <div class="addfab-pics" id="addfab-pics"></div>
+  <div id="addfab-name-row">
+    <label for="addfab-name" style="display:block;margin-top:10px">Fabric name</label>
+    <input type="text" id="addfab-name" maxlength="40" style="width:100%">
+  </div>
+  <div class="param" style="margin-top:12px">
+    <label for="dz-cm">How wide is the fabric in the picture?</label><output id="dz-cm-o"></output>
+    <input id="dz-cm" type="range" min="5" max="150" step="1" value="25">
+  </div>
+  <p class="fine" style="margin:6px 0 0">Measure it, or make your best guess: it sets the size of the print on your quilt.</p>
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button class="btn" type="button" id="addfab-cancel">Cancel</button>
+    <button class="btn primary" type="button" id="addfab-ok">Add</button>
+  </div>
+</dialog>
 <dialog class="dz-dialog fablib" id="fablib" aria-labelledby="fablib-title">
   <div class="dlg-head"><h2 id="fablib-title">Fabric library</h2><button class="btn sm dlg-x" type="button" id="fablib-x" aria-label="Close">×</button></div>
   <input type="search" id="fablib-q" placeholder="Search: gingham, teal, chintz…" aria-label="Search fabrics by name" autocomplete="off">
@@ -1581,12 +1603,6 @@
   <p class="fine" id="fablib-none" hidden></p>
   <button class="btn sm fablib-more" type="button" id="fablib-more" hidden></button>
   <div class="fablib-foot">
-    <input id="dz-upload" type="file" accept="image/*" multiple class="sr">
-    <div class="param">
-      <label for="dz-cm">Width a new photo covers</label><output id="dz-cm-o"></output>
-      <input id="dz-cm" type="range" min="5" max="80" step="1" value="25">
-    </div>
-    <p class="fine" id="dz-fabnote"></p>
     <p class="fine" style="margin:6px 0 0"><button class="btn sm" type="button" id="fablib-reset" hidden title="Bring back the fabric lists as they were at first: the basics and your newest photos">Reset palette</button></p>
   </div>
 </dialog>
@@ -3107,7 +3123,17 @@ var designer_default = {
   Collection: "Cole\xE7\xE3o",
   "My photos": "Minhas fotos",
   "Add photos of your own fabrics": "Adicione fotos dos seus tecidos",
-  "Add fabric photo": "Adicionar foto do tecido",
+  // adding your own fabric photos
+  "Add fabric": "Adicionar tecido",
+  "Add fabric photos": "Adicionar fotos de tecidos",
+  Add: "Adicionar",
+  "Fabric name": "Nome do tecido",
+  "How wide is the fabric in the picture?": "Qual \xE9 a largura do tecido na foto?",
+  "Measure it, or make your best guess: it sets the size of the print on your quilt.": "Me\xE7a ou fa\xE7a uma boa estimativa: isso define o tamanho da estampa na sua colcha.",
+  "Those files aren\u2019t pictures.": "Esses arquivos n\xE3o s\xE3o imagens.",
+  "Couldn\u2019t read {names}. Try a JPG or PNG picture.": "N\xE3o foi poss\xEDvel ler {names}. Tente uma imagem JPG ou PNG.",
+  "Add {n} fabric": "Adicionar {n} tecido",
+  "Add {n} fabrics": "Adicionar {n} tecidos",
   "{name} \xB7 in your fabric lists": "{name} \xB7 nas suas listas de tecidos",
   "No fabrics match \u201C{q}\u201D.": "Nenhum tecido corresponde a \u201C{q}\u201D.",
   "No fabrics here yet.": "Ainda n\xE3o h\xE1 tecidos aqui.",
@@ -3293,6 +3319,153 @@ var mine_default = {
   "This account can no longer share with the community.": "Esta conta n\xE3o pode mais compartilhar com a comunidade.",
   "This quilt was taken down from the community.": "Este quilt foi retirado da comunidade.",
   "Sign-in only works with this app\u2019s own server.": "O login s\xF3 funciona com o servidor do pr\xF3prio aplicativo."
+};
+
+// ../shared/src/lang/pt-BR/phone.js
+var phone_default = {
+  // tabs
+  "My quiltings": "Meus quilts",
+  "My fabrics": "Meus tecidos",
+  Camera: "C\xE2mera",
+  "Search my quilts": "Buscar nos meus quilts",
+  "Search name, amount or place": "Buscar por nome, quantidade ou local",
+  "This phone couldn\u2019t keep that. Is its storage full?": "O celular n\xE3o conseguiu guardar isso. O armazenamento est\xE1 cheio?",
+  // Community
+  "More about \u201C{name}\u201D": "Mais sobre \u201C{name}\u201D",
+  "You already have this quilt.": "Voc\xEA j\xE1 tem este quilt.",
+  "\u201C{name}\u201D is in My quiltings.": "\u201C{name}\u201D est\xE1 em Meus quilts.",
+  "Report \u201C{name}\u201D": "Denunciar \u201C{name}\u201D",
+  "Why should this quilt not be here?": "Por que este quilt n\xE3o deveria estar aqui?",
+  Spam: "Spam",
+  "Something else": "Outro motivo",
+  "Thank you: someone will look at it.": "Obrigado: algu\xE9m vai olhar.",
+  "The report could not be sent. Try again when you\u2019re online.": "A den\xFAncia n\xE3o p\xF4de ser enviada. Tente de novo quando estiver on-line.",
+  "Stop seeing {author}\u2019s quilts?": "Deixar de ver os quilts de {author}?",
+  "They won\u2019t be told. You can see them again from your account.": "A pessoa n\xE3o ser\xE1 avisada. Voc\xEA pode voltar a ver pela sua conta.",
+  "Stop seeing them": "Deixar de ver",
+  "That didn\u2019t work. Try again when you\u2019re online.": "N\xE3o deu certo. Tente de novo quando estiver on-line.",
+  "Save to My quiltings": "Salvar em Meus quilts",
+  "Sign in to save quilts.": "Entre para salvar quilts.",
+  "Report this quilt": "Denunciar este quilt",
+  "Sign in to report a quilt.": "Entre para denunciar um quilt.",
+  "Stop seeing {author}\u2019s quilts": "Deixar de ver os quilts de {author}",
+  "Sign in to choose whose quilts you see.": "Entre para escolher de quem ver os quilts.",
+  // the account
+  "Your account": "Sua conta",
+  "Looking\u2026": "Procurando\u2026",
+  "You haven\u2019t blocked anyone.": "Voc\xEA n\xE3o bloqueou ningu\xE9m.",
+  "Someone who no longer shares": "Algu\xE9m que n\xE3o compartilha mais",
+  "See them again": "Voltar a ver",
+  "Delete your account?": "Excluir sua conta?",
+  "Your quilts, fabric photos, quilt photos, folders and shared quilts will be deleted from Block & Bind for good, on all your devices. This can\u2019t be undone.": "Seus quilts, fotos de tecidos, fotos de quilts, pastas e quilts compartilhados ser\xE3o exclu\xEDdos do Block & Bind para sempre, em todos os seus aparelhos. Isso n\xE3o pode ser desfeito.",
+  "Delete everything": "Excluir tudo",
+  "Your account has been deleted.": "Sua conta foi exclu\xEDda.",
+  "The account could not be deleted. Nothing was removed. Try again when you\u2019re online.": "A conta n\xE3o p\xF4de ser exclu\xEDda. Nada foi removido. Tente de novo quando estiver on-line.",
+  "Signed in as {who}": "Conectado como {who}",
+  "Offline: everything is kept on this phone and goes up when you\u2019re back.": "Sem conex\xE3o: tudo fica guardado neste celular e sobe quando voc\xEA voltar.",
+  "In step with your account.": "Em dia com a sua conta.",
+  "Your quilts and fabrics follow you between your devices.": "Seus quilts e tecidos acompanham voc\xEA entre os aparelhos.",
+  "People you\u2019ve blocked": "Pessoas que voc\xEA bloqueou",
+  "Sign in with the same account as the web app: your quilts come here, and your fabrics and photos are kept safe.": "Entre com a mesma conta do site: seus quilts v\xEAm para c\xE1, e seus tecidos e fotos ficam protegidos.",
+  "Privacy policy": "Pol\xEDtica de privacidade",
+  "Terms of use": "Termos de uso",
+  "Write to us": "Fale conosco",
+  "Delete my account": "Excluir minha conta",
+  // My quiltings
+  "A photo of \u201C{name}\u201D": "Uma foto de \u201C{name}\u201D",
+  "Delete this photo?": "Excluir esta foto?",
+  "It will be deleted from all your devices.": "Ser\xE1 exclu\xEDdo de todos os seus aparelhos.",
+  "That picture could not be read.": "N\xE3o foi poss\xEDvel ler essa imagem.",
+  "{cols} \xD7 {rows} blocks. To change it, open it on the web app.": "{cols} \xD7 {rows} blocos. Para mudar, abra no site.",
+  "Photos of the real quilt": "Fotos do quilt de verdade",
+  "Take a photo": "Tirar foto",
+  "From my photos": "Das minhas fotos",
+  "No photos yet.": "Ainda n\xE3o h\xE1 fotos.",
+  "{cols} \xD7 {rows} blocks": "{cols} \xD7 {rows} blocos",
+  "{n} photo": "{n} foto",
+  "{n} photos": "{n} fotos",
+  "Waiting to upload": "Esperando para enviar",
+  "None of your quilts match your search.": "Nenhum dos seus quilts corresponde \xE0 busca.",
+  "Quilts you design on the web app come here. Photos of your real quilts can start here too: try the camera.": "Os quilts que voc\xEA desenha no site v\xEAm para c\xE1. Fotos dos seus quilts de verdade tamb\xE9m podem come\xE7ar aqui: experimente a c\xE2mera.",
+  "Sign in to see the quilts you designed on the web app. You can take photos of real quilts without an account.": "Entre para ver os quilts que voc\xEA desenhou no site. Voc\xEA pode tirar fotos de quilts de verdade sem ter conta.",
+  // the camera
+  "Which quilt is this?": "Que quilt \xE9 este?",
+  "For example: Grandma\u2019s quilt": "Por exemplo: quilt da vov\xF3",
+  "The name of a new quilt": "O nome de um novo quilt",
+  Add: "Adicionar",
+  "Or one you already have": "Ou um que voc\xEA j\xE1 tem",
+  "Kept on this phone. It goes up when you\u2019re online and signed in.": "Guardada neste celular. Sobe quando voc\xEA estiver on-line e conectado.",
+  "A photo of a quilt": "Uma foto de um quilt",
+  "A photo of a real quilt": "Uma foto de um quilt de verdade",
+  "A photo of a fabric": "Uma foto de um tecido",
+  "Crop it, and it sorts itself by colour.": "Recorte, e ela se organiza sozinha por cor.",
+  "The photo keeps nothing about where it was taken.": "A foto n\xE3o guarda nada sobre onde foi tirada.",
+  "Latest photos": "\xDAltimas fotos",
+  // My fabrics
+  Red: "Vermelho",
+  Orange: "Laranja",
+  Yellow: "Amarelo",
+  Green: "Verde",
+  Blue: "Azul",
+  Purple: "Roxo",
+  Pink: "Rosa",
+  Brown: "Marrom",
+  Grey: "Cinza",
+  Black: "Preto",
+  White: "Branco",
+  "All my fabrics": "Todos os meus tecidos",
+  "Not in a folder": "Fora de pastas",
+  "The app\u2019s fabrics": "Tecidos do app",
+  "+ Folder": "+ Pasta",
+  "+ Add fabric": "+ Adicionar tecido",
+  "More fabrics": "Mais tecidos",
+  "A new folder": "Uma nova pasta",
+  "Arrange folders": "Organizar pastas",
+  "Add fabrics": "Adicionar tecidos",
+  Rename: "Renomear",
+  "Rename this folder": "Renomear esta pasta",
+  "One chosen": "Um escolhido",
+  "{n} chosen": "{n} escolhidos",
+  "Add to folder": "Adicionar \xE0 pasta",
+  "Take out": "Tirar",
+  "No fabrics match.": "Nenhum tecido corresponde.",
+  "This folder is empty. Add fabrics to it: they stay in your other folders too.": "Esta pasta est\xE1 vazia. Adicione tecidos: eles continuam nas suas outras pastas.",
+  "All your fabrics are in folders.": "Todos os seus tecidos est\xE3o em pastas.",
+  "No fabrics yet. Add a photo of one: it sorts itself by colour.": "Ainda n\xE3o h\xE1 tecidos. Adicione a foto de um: ela se organiza sozinha por cor.",
+  OK: "OK",
+  "Delete the folder \u201C{name}\u201D?": "Excluir a pasta \u201C{name}\u201D?",
+  "The fabrics in it are not deleted.": "Os tecidos dela n\xE3o s\xE3o exclu\xEDdos.",
+  "Delete the folder": "Excluir a pasta",
+  "Move \u201C{name}\u201D up": "Mover \u201C{name}\u201D para cima",
+  "Move \u201C{name}\u201D down": "Mover \u201C{name}\u201D para baixo",
+  "Add {n} fabric to\u2026": "Adicionar {n} tecido a\u2026",
+  "Add {n} fabrics to\u2026": "Adicionar {n} tecidos a\u2026",
+  "Added to \u201C{name}\u201D.": "Adicionado a \u201C{name}\u201D.",
+  "Add to \u201C{name}\u201D": "Adicionar a \u201C{name}\u201D",
+  "My photos": "Minhas fotos",
+  "Add {n} fabric": "Adicionar {n} tecido",
+  "Add {n} fabrics": "Adicionar {n} tecidos",
+  "Tick the fabrics to add": "Marque os tecidos para adicionar",
+  "Search fabrics": "Buscar tecidos",
+  "{quilts} uses this fabric: its parts will show another fabric instead.": "{quilts} usa este tecido: essas partes v\xE3o mostrar outro tecido.",
+  "Delete \u201C{name}\u201D?": "Excluir \u201C{name}\u201D?",
+  "Delete the fabric": "Excluir o tecido",
+  "For example: 2 m, or a fat quarter": "Por exemplo: 2 m, ou um fat quarter",
+  "For example: Box 1": "Por exemplo: Caixa 1",
+  Name: "Nome",
+  "How much": "Quanto",
+  "Where it\u2019s kept": "Onde est\xE1 guardado",
+  Folders: "Pastas",
+  "Delete this fabric": "Excluir este tecido",
+  "Crop to the fabric": "Recorte o tecido",
+  "Drag the square, or its corner, to frame only the fabric.": "Arraste o quadrado, ou o canto dele, para enquadrar s\xF3 o tecido.",
+  "Use this part": "Usar esta parte",
+  "Your new fabric": "Seu novo tecido",
+  "Fabric {n}": "Tecido {n}",
+  "How much (you can leave this)": "Quanto (pode deixar em branco)",
+  "Where it\u2019s kept (you can leave this)": "Onde est\xE1 guardado (pode deixar em branco)",
+  "Keep this fabric": "Guardar este tecido",
+  "You already have this photo.": "Voc\xEA j\xE1 tem esta foto."
 };
 
 // ../shared/src/lang/pt-BR/pieces.js
@@ -4130,7 +4303,6 @@ var template_default = {
   "Which fabrics": "Quais tecidos",
   "Whole quilt": "Quilt inteiro",
   Width: "Largura",
-  "Width a new photo covers": "Largura que uma nova foto cobre",
   "Without cornerstones, the strips between the rows run the full width of the quilt": "Sem quadrados de canto, as faixas entre as linhas ocupam toda a largura do quilt",
   "Wool blanket": "Cobertor de l\xE3",
   "Your designs on all your devices": "Seus projetos em todos os seus aparelhos",
@@ -4232,7 +4404,7 @@ var tour_default = {
 };
 
 // ../shared/src/lang/pt-BR.js
-var PARTS = { cutting: cutting_default, designer: designer_default, mine: mine_default, shared: shared_default, sim: sim_default, template: template_default, tour: tour_default };
+var PARTS = { cutting: cutting_default, designer: designer_default, mine: mine_default, phone: phone_default, shared: shared_default, sim: sim_default, template: template_default, tour: tour_default };
 var DICT = Object.assign({}, ...Object.values(PARTS));
 var BLOCKS = blocks_default;
 var PIECES = pieces_default;
@@ -10428,6 +10600,20 @@ function createRepo() {
       changed("fabrics", id);
       return { id, isNew: true };
     },
+    /** Gives a fabric photo another name. @param {string} id @param {string} name */
+    rename(id, name) {
+      const old = cache2.fabrics.get(id);
+      if (!old || old.deleted || old.name === name) return;
+      put2("fabrics", id, { ...old, name, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+      changed("fabrics", id);
+    },
+    /** Deletes a fabric photo (kept as a marker until the server has the deletion). @param {string} id */
+    remove(id) {
+      const old = cache2.fabrics.get(id);
+      if (!old || old.deleted) return;
+      put2("fabrics", id, { ...old, blob: null, deleted: true, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+      changed("fabrics", id);
+    },
     ...syncSide("fabrics")
   };
   const timelines2 = {
@@ -10778,7 +10964,7 @@ var setRenderT0 = (v) => renderT0 = v;
 // src/core/dom.js
 var $ = (id) => document.getElementById(id);
 var esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
-function sideRoller(box3, chosen) {
+function sideRoller(box3, chosen2) {
   if (!box3.dataset.roller) {
     box3.dataset.roller = "1";
     box3.addEventListener(
@@ -10795,7 +10981,7 @@ function sideRoller(box3, chosen) {
   }
   const on = (
     /** @type {HTMLElement | null} */
-    box3.querySelector(chosen)
+    box3.querySelector(chosen2)
   );
   if (on && box3.clientWidth) box3.scrollLeft = Math.max(0, on.offsetLeft - (box3.clientWidth - on.offsetWidth) / 2);
 }
@@ -11200,7 +11386,13 @@ var setToolsSnap = (d) => toolsSnap = d;
 var readOnly = false;
 var setReadOnly = (v) => readOnly = v;
 
-// src/sim/patchwork.js
+// ../shared/src/basic-fabrics.js
+var loadImage2 = (src) => new Promise((ok, fail) => {
+  const im = new Image();
+  im.onload = () => ok(im);
+  im.onerror = fail;
+  im.src = src;
+});
 var BUNDLED = [
   { src: "assets/fabric/weave.jpg", cm: 22, tint: "#efe5cf", name: t("Cream cotton") },
   { src: "assets/fabric/weave.jpg", cm: 22, tint: "#2f466f", name: t("Indigo cotton"), binding: true },
@@ -11315,18 +11507,8 @@ function floralTile() {
     });
   return c;
 }
-var PW = 2048;
-var NP = 12;
-var PATCH = PW / NP;
-var PX_PER_CM = PW / 228.6;
-var patchCanvas = document.createElement("canvas");
-patchCanvas.width = patchCanvas.height = PW;
-setPatchTex(new THREE5.CanvasTexture(patchCanvas));
-patchTex.colorSpace = THREE5.SRGBColorSpace;
-patchTex.anisotropy = maxAniso;
-var swatches = [];
 async function prepareSwatch(def) {
-  const img = def.img || (def.floral ? floralTile() : await loadImage(def.src));
+  const img = def.img || (def.floral ? floralTile() : await loadImage2(def.src));
   const c = document.createElement("canvas");
   c.width = img.naturalWidth || img.width;
   c.height = img.naturalHeight || img.height;
@@ -11340,6 +11522,18 @@ async function prepareSwatch(def) {
   } else g.drawImage(img, 0, 0);
   return { ...def, canvas: c };
 }
+
+// src/sim/patchwork.js
+var PW = 2048;
+var NP = 12;
+var PATCH = PW / NP;
+var PX_PER_CM = PW / 228.6;
+var patchCanvas = document.createElement("canvas");
+patchCanvas.width = patchCanvas.height = PW;
+setPatchTex(new THREE5.CanvasTexture(patchCanvas));
+patchTex.colorSpace = THREE5.SRGBColorSpace;
+patchTex.anisotropy = maxAniso;
+var swatches = [];
 function buildPatchwork() {
   const g = patchCanvas.getContext("2d");
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -13409,6 +13603,19 @@ function collection() {
   return list;
 }
 var drawCollectionFabric = (f) => drawPattern(f.kind, f.seed, f.bg, f.fg);
+function collectionCanvas(p) {
+  const rgb = drawCollectionFabric(p), c = document.createElement("canvas");
+  c.width = c.height = SIZE2;
+  const g = c.getContext("2d"), img = g.createImageData(SIZE2, SIZE2);
+  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
+    img.data[j] = rgb[i];
+    img.data[j + 1] = rgb[i + 1];
+    img.data[j + 2] = rgb[i + 2];
+    img.data[j + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
 
 // src/designer/fabric-library.js
 var fabricLib = [];
@@ -13455,25 +13662,12 @@ async function blobCanvas(blob) {
   bm.close?.();
   return c;
 }
-function patternCanvas(p) {
-  const rgb = drawCollectionFabric(p), c = document.createElement("canvas");
-  c.width = c.height = SIZE2;
-  const g = c.getContext("2d"), img = g.createImageData(SIZE2, SIZE2);
-  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
-    img.data[j] = rgb[i];
-    img.data[j + 1] = rgb[i + 1];
-    img.data[j + 2] = rgb[i + 2];
-    img.data[j + 3] = 255;
-  }
-  g.putImageData(img, 0, 0);
-  return c;
-}
 var THUMB = 64;
 var thumbs = /* @__PURE__ */ new Map();
 function tileSource(f) {
   if (f.canvas) return [f.canvas, Math.min(f.canvas.width, f.canvas.height, 360)];
   if (!thumbs.has(f.id)) {
-    const big = patternCanvas(f.pattern), t2 = document.createElement("canvas");
+    const big = collectionCanvas(f.pattern), t2 = document.createElement("canvas");
     t2.width = t2.height = THUMB;
     t2.getContext("2d").drawImage(big, 0, 0, 360, 360, 0, 0, THUMB, THUMB);
     thumbs.set(f.id, t2);
@@ -13491,7 +13685,7 @@ async function loadFabrics(ids) {
   for (const id of ids) {
     const fab = byId.get(id);
     if (!fab || fab.canvas) continue;
-    fab.loading ??= (fab.pattern ? Promise.resolve().then(() => patternCanvas(fab.pattern)) : blobCanvas(fab.blob)).then(
+    fab.loading ??= (fab.pattern ? Promise.resolve().then(() => collectionCanvas(fab.pattern)) : blobCanvas(fab.blob)).then(
       (c) => {
         fab.canvas = c;
       },
@@ -13567,6 +13761,17 @@ async function addFabric(canvas4, meta) {
   return id;
 }
 
+// src/designer/fabric-folders-state.js
+var folders = [];
+var loader = async () => [];
+var setFolderLoader = (f) => void (loader = f);
+async function refreshFolders() {
+  try {
+    folders = (await loader()).filter((f) => !f.deleted).sort((a, b) => a.position - b.position);
+  } catch (e) {
+  }
+}
+
 // src/designer/fabric-picker.js
 var PAGE = 60;
 function fabricTile(f, pressed, mark) {
@@ -13639,6 +13844,15 @@ function redrawLists() {
     else lists.delete(box3);
   }
 }
+function showInLists(id) {
+  for (const box3 of lists.keys()) {
+    const tile = (
+      /** @type {HTMLElement | null} */
+      box3.querySelector(`[data-f="${id}"]`)
+    );
+    if (tile) box3.scrollLeft = tile.offsetLeft - box3.clientWidth / 2;
+  }
+}
 function removeFromPalette(f) {
   const before2 = fabricPalette();
   setFabricPalette(withoutFabric(before2 || defaultPalette(), f.id));
@@ -13673,6 +13887,15 @@ function moreButton(box3, shown) {
     b.append(n);
   }
   b.addEventListener("click", () => openLibrary(box3));
+  return b;
+}
+function addFabricTile() {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "fab-add fab-more";
+  b.title = t("Add photos of your own fabrics");
+  b.innerHTML = `<b aria-hidden="true">+</b><span>${t("Add fabric")}</span>`;
+  b.addEventListener("click", () => choosePhotos(b));
   return b;
 }
 var float = {
@@ -13807,6 +14030,7 @@ function drawShortList(box3, selected) {
   box3.innerHTML = "";
   const fabs = shortListFabrics(selected);
   for (const { f, fixed } of fabs) box3.appendChild(fabricTile(f, f.id === selected, fixed ? "fixed" : "remove"));
+  box3.prepend(addFabricTile());
   placeMoreButton(box3, moreButton(box3, fabs.length), colourButton ? colourButton(box3) : null);
   sideRoller(box3, '.fab[aria-pressed="true"]');
 }
@@ -13822,6 +14046,8 @@ var GROUPS = {
   collection: t("Collection"),
   mine: t("My photos")
 };
+var openFolder = () => folders.find((f) => `folder:${f.id}` === lib.group) || null;
+var inFolder = (all, f) => all.filter((x) => f.fabricIds.includes(x.id));
 function openLibrary(box3) {
   lib.source = box3;
   lib.selected = /** @type {HTMLElement | null} */
@@ -13830,6 +14056,7 @@ function openLibrary(box3) {
   lib.shown = PAGE;
   $("fablib-q").value = "";
   drawLibrary();
+  refreshFolders().then(drawLibrary);
   const dlg = $("fablib");
   if (!dlg.open) {
     try {
@@ -13858,19 +14085,26 @@ function drawLibrary() {
     b.setAttribute("aria-pressed", String(g === lib.group));
     groups.appendChild(b);
   }
-  const found = findFabrics(all, { query, group: (
+  for (const f of folders) {
+    const n = inFolder(all, f).length, g = `folder:${f.id}`;
+    if (!n && g !== lib.group) continue;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.g = g;
+    b.textContent = `${f.name} ${n}`;
+    b.setAttribute("aria-pressed", String(g === lib.group));
+    groups.appendChild(b);
+  }
+  if (lib.group.startsWith("folder:") && !openFolder()) lib.group = "all";
+  const folder = openFolder();
+  const found = folder ? findFabrics(inFolder(all, folder), { query, group: "all", inQuilt, recent }) : findFabrics(all, { query, group: (
     /** @type {any} */
     lib.group
   ), inQuilt, recent });
   const grid = $("fablib-grid");
   grid.innerHTML = "";
   if (lib.group === "all" || lib.group === "mine") {
-    const add2 = document.createElement("label");
-    add2.className = "fab fab-more";
-    add2.htmlFor = "dz-upload";
-    add2.title = t("Add photos of your own fabrics");
-    add2.innerHTML = `<b aria-hidden="true">+</b><span>${t("Add fabric photo")}</span>`;
-    grid.appendChild(add2);
+    grid.appendChild(addFabricTile());
   }
   const onPalette = new Set(fabricPalette() || defaultPalette());
   for (const f of found.slice(0, lib.shown)) {
@@ -13958,6 +14192,104 @@ var colourButton = (
   null
 );
 var setColourButton = (make) => colourButton = make;
+
+// src/designer/add-fabric.js
+var CM_KEY = "quilt-photo-cm.v1";
+var PREVIEWS = 6;
+var chosen = [];
+var adding = false;
+function choosePhotos(from) {
+  const input = $("dz-upload"), home = from.closest("dialog[open]") || document.body;
+  if (input.parentElement !== home) home.append(input);
+  input.click();
+}
+var nameOf = (file) => file.name.replace(/\.[^.]+$/, "").slice(0, 40);
+function showWidth() {
+  $("dz-cm-o").textContent = len(+$("dz-cm").value * 10);
+}
+function letGo() {
+  for (const c of chosen) URL.revokeObjectURL(c.url);
+  chosen = [];
+  $("addfab-pics").replaceChildren();
+}
+function photosPicked(files) {
+  const images = files.filter((f) => f.type.startsWith("image/"));
+  if (!images.length) return notify(t("Those files aren\u2019t pictures."));
+  letGo();
+  chosen = images.map((file) => ({ file, url: URL.createObjectURL(file) }));
+  $("addfab-pics").replaceChildren(
+    ...chosen.slice(0, PREVIEWS).map((c) => {
+      const im = new Image();
+      im.src = c.url;
+      im.alt = "";
+      return im;
+    })
+  );
+  const one = chosen.length === 1;
+  $("addfab-name-row").hidden = !one;
+  if (one) $("addfab-name").value = nameOf(images[0]);
+  $("addfab-ok").textContent = tn(chosen.length, "Add {n} fabric", "Add {n} fabrics");
+  showWidth();
+  $("addfab").showModal();
+}
+async function addChosen() {
+  adding = true;
+  $("addfab-ok").disabled = true;
+  const cm = +$("dz-cm").value, one = chosen.length === 1, failed = [];
+  let last = null, added = 0;
+  for (const { file, url } of chosen)
+    try {
+      const im = await loadImage(url), c = document.createElement("canvas");
+      c.width = im.naturalWidth;
+      c.height = im.naturalHeight;
+      c.getContext("2d").drawImage(im, 0, 0);
+      const name = one && $("addfab-name").value.trim().slice(0, 40) || nameOf(file);
+      last = await addFabric(c, { name, cm });
+      added++;
+    } catch (e) {
+      failed.push(file.name);
+    }
+  try {
+    localStorage.setItem(CM_KEY, String(cm));
+  } catch (e) {
+  }
+  adding = false;
+  $("addfab-ok").disabled = false;
+  $("addfab").close();
+  redrawLists();
+  refreshLibrary();
+  if (last) showInLists(last);
+  const note = added ? tn(
+    added,
+    "{n} photo added. They are kept in this browser with your designs.",
+    "{n} photos added. They are kept in this browser with your designs."
+  ) : "";
+  notify(
+    failed.length ? `${note} ${t("Couldn\u2019t read {names}. Try a JPG or PNG picture.", { names: failed.join(", ") })}`.trim() : note
+  );
+}
+function init() {
+  const dlg = $("addfab");
+  try {
+    const saved = +localStorage.getItem(CM_KEY);
+    if (saved) $("dz-cm").value = String(saved);
+  } catch (e) {
+  }
+  $("dz-upload").addEventListener("change", (e) => {
+    const files = [...e.target.files];
+    e.target.value = "";
+    if (files.length) photosPicked(files);
+  });
+  $("dz-cm").addEventListener("input", showWidth);
+  $("addfab-ok").addEventListener("click", addChosen);
+  $("addfab-cancel").addEventListener("click", () => dlg.close());
+  $("addfab-x").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("cancel", (e) => {
+    if (adding) e.preventDefault();
+  });
+  dlg.addEventListener("close", letGo);
+}
+init();
 
 // src/core/colour-match.js
 var lin = (c) => {
@@ -15039,7 +15371,7 @@ function ensureDesign() {
   setFocusBlock(0);
 }
 
-// src/render/fabric-fill.js
+// ../shared/src/quilt-paint.js
 var DEG = 180 / Math.PI;
 function fabricFillAt(g, fab, pxPerCm, cx, cy, u, v, turn = 0) {
   const pat = g.createPattern(fab.canvas, "repeat"), k = pxPerCm / (fab.canvas.width / fab.cm);
@@ -15047,12 +15379,6 @@ function fabricFillAt(g, fab, pxPerCm, cx, cy, u, v, turn = 0) {
     new DOMMatrix().translate(cx, cy).rotate(turn * DEG).scale(k).translate(-u * fab.canvas.width, -v * fab.canvas.height)
   );
   return pat;
-}
-function pieceFill(g, b, pi, poly, pxPerCm, seed, turn = 0) {
-  const fab = fabricById(b.fabrics[pi]), f = b.fussy && b.fussy[pi];
-  if (!f) return fabricFill(g, fab, pxPerCm, seed, turn);
-  const [cx, cy] = polyCentre(poly);
-  return fabricFillAt(g, fab, pxPerCm, cx, cy, f[0], f[1], turn);
 }
 function fabricFill(g, fab, pxPerCm, seed, turn = 0) {
   const pat = g.createPattern(fab.canvas, "repeat");
@@ -15063,58 +15389,169 @@ function fabricFill(g, fab, pxPerCm, seed, turn = 0) {
   );
   return pat;
 }
-
-// src/render/quilt-draw.js
-function drawBorders(g, d, W, H, pxPerCm, seams, biBase = 0) {
-  const q = quiltMm(d), k = W / q.W, bs = bordersOf(d);
-  let off = 0;
-  for (let bi = bs.length - 1; bi >= 0; bi--) {
-    const b = bs[bi], T = b.mm, ox = off, oy = off, OW = q.W - 2 * off, OH = q.H - 2 * off;
-    const sides = [
-      { L: OW - 2 * T, tf: [ox + T, oy, 0] },
-      { L: OH - 2 * T, tf: [ox + OW, oy + T, 90] },
-      { L: OW - 2 * T, tf: [ox + OW - T, oy + OH, 180] },
-      { L: OH - 2 * T, tf: [ox, oy + OH - T, 270] }
-    ];
-    let seed = 2e3 + bi * 97;
-    for (const sd of sides) {
-      g.save();
-      g.scale(k, k);
-      g.translate(sd.tf[0], sd.tf[1]);
-      g.rotate(sd.tf[2] * Math.PI / 180);
-      for (const pc of borderSidePieces(b, sd.L)) {
-        g.fillStyle = fabricFill(g, fabricById(borderFab(b, pc.slot)), pxPerCm / k, seed++);
-        pathPoly(g, pc.poly);
-        g.fill();
-        dimUnlessHi(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, pc.slot), corner: false });
-        if (seams) {
+function pieceFillWith(fabricById2, g, b, pi, poly, pxPerCm, seed, turn = 0) {
+  const fab = fabricById2(b.fabrics[pi]), f = b.fussy && b.fussy[pi];
+  if (!f) return fabricFill(g, fab, pxPerCm, seed, turn);
+  const [cx, cy] = polyCentre(poly);
+  return fabricFillAt(g, fab, pxPerCm, cx, cy, f[0], f[1], turn);
+}
+function quiltPainter({ fabricById: fabricById2, dim = () => {
+} }) {
+  const pieceFill2 = (g, b, pi, poly, pxPerCm, seed, turn = 0) => pieceFillWith(fabricById2, g, b, pi, poly, pxPerCm, seed, turn);
+  function drawBorders2(g, d, W, H, pxPerCm, seams, biBase = 0) {
+    const q = quiltMm(d), k = W / q.W, bs = bordersOf(d);
+    let off = 0;
+    for (let bi = bs.length - 1; bi >= 0; bi--) {
+      const b = bs[bi], T = b.mm, ox = off, oy = off, OW = q.W - 2 * off, OH = q.H - 2 * off;
+      const sides = [
+        { L: OW - 2 * T, tf: [ox + T, oy, 0] },
+        { L: OH - 2 * T, tf: [ox + OW, oy + T, 90] },
+        { L: OW - 2 * T, tf: [ox + OW - T, oy + OH, 180] },
+        { L: OH - 2 * T, tf: [ox, oy + OH - T, 270] }
+      ];
+      let seed = 2e3 + bi * 97;
+      for (const sd of sides) {
+        g.save();
+        g.scale(k, k);
+        g.translate(sd.tf[0], sd.tf[1]);
+        g.rotate(sd.tf[2] * Math.PI / 180);
+        for (const pc of borderSidePieces(b, sd.L)) {
+          g.fillStyle = fabricFill(g, fabricById2(borderFab(b, pc.slot)), pxPerCm / k, seed++);
+          pathPoly(g, pc.poly);
+          g.fill();
+          dim(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, pc.slot), corner: false });
+          if (seams) {
+            g.strokeStyle = "rgba(40,30,20,.35)";
+            g.lineWidth = Math.max(1, W / 1400) / k;
+            g.stroke();
+          }
+        }
+        g.restore();
+      }
+      for (const [cx, cy] of [
+        [ox, oy],
+        [ox + OW - T, oy],
+        [ox + OW - T, oy + OH - T],
+        [ox, oy + OH - T]
+      ]) {
+        g.fillStyle = fabricFill(g, fabricById2(borderFab(b, borderCornerSlot(b))), pxPerCm, seed++);
+        g.fillRect(cx * k, cy * k, T * k, T * k);
+        g.beginPath();
+        g.rect(cx * k, cy * k, T * k, T * k);
+        dim(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, borderCornerSlot(b)), corner: !plainButted(b) });
+        if (seams && !plainButted(b)) {
           g.strokeStyle = "rgba(40,30,20,.35)";
-          g.lineWidth = Math.max(1, W / 1400) / k;
+          g.lineWidth = Math.max(1, W / 1400);
+          g.strokeRect(cx * k, cy * k, T * k, T * k);
+        }
+      }
+      off += T;
+    }
+  }
+  function drawCornerBlock2(g, cb, rc, pxPerCm, seed, seams, lineW) {
+    const polys = placedPolys(cb, rc);
+    polys.forEach((poly, pi) => {
+      g.fillStyle = pieceFill2(g, cb, pi, poly, pxPerCm, seed * 31 + pi, rc.turn || 0);
+      pathPoly(g, poly);
+      g.fill();
+      dim(g, { t: "sash", kind: "corner", fabric: cb.fabrics[pi] });
+    });
+    if (!seams) return;
+    g.strokeStyle = "rgba(40,30,20,.35)";
+    g.lineWidth = lineW;
+    for (const poly of polys) {
+      pathPoly(g, poly);
+      g.stroke();
+    }
+  }
+  function drawQuilt3(g, W, H, opts) {
+    const d = opts.design;
+    if (bordersOf(d).length) drawBorders2(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
+    const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
+    if (d.mosaic) {
+      const polys = tilePolys(d, W, H);
+      polys.forEach((poly, i) => {
+        g.fillStyle = fabricFill(g, fabricById2(d.mosaic.fabrics[i]), pxPerCm, 500 + i);
+        pathPoly(g, poly);
+        g.fill();
+        dim(g, { t: "qpiece", fabric: d.mosaic.fabrics[i] });
+      });
+      if (opts.seams) {
+        g.strokeStyle = "rgba(40,30,20,.35)";
+        g.lineWidth = Math.max(1, W / 1400);
+        for (const poly of polys) {
+          pathPoly(g, poly);
           g.stroke();
         }
       }
-      g.restore();
+      return;
     }
-    for (const [cx, cy] of [
-      [ox, oy],
-      [ox + OW - T, oy],
-      [ox + OW - T, oy + OH - T],
-      [ox, oy + OH - T]
-    ]) {
-      g.fillStyle = fabricFill(g, fabricById(borderFab(b, borderCornerSlot(b))), pxPerCm, seed++);
-      g.fillRect(cx * k, cy * k, T * k, T * k);
-      g.beginPath();
-      g.rect(cx * k, cy * k, T * k, T * k);
-      dimUnlessHi(g, { t: "brd", bi: bi + biBase, fabric: borderFab(b, borderCornerSlot(b)), corner: !plainButted(b) });
-      if (seams && !plainButted(b)) {
+    for (
+      const [k, rc] of
+      /** @type {any[]} */
+      sashRects(d, W, H).entries()
+    ) {
+      if (rc.kind === "corner" && s.cornerBlock) {
+        drawCornerBlock2(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
+        continue;
+      }
+      g.fillStyle = fabricFill(
+        g,
+        fabricById2(rc.kind === "corner" ? s.corner : s.fabric),
+        pxPerCm,
+        900 + k,
+        rc.turn || 0
+      );
+      pathPoly(g, blockOutline(rc));
+      g.fill();
+      dim(g, { t: "sash", kind: rc.kind });
+      if (opts.seams) {
         g.strokeStyle = "rgba(40,30,20,.35)";
         g.lineWidth = Math.max(1, W / 1400);
-        g.strokeRect(cx * k, cy * k, T * k, T * k);
+        g.stroke();
       }
     }
-    off += T;
+    for (const [k, sp] of settingPieces(d, W, H).entries()) {
+      g.fillStyle = fabricFill(g, fabricById2(d.settingFabric || "b0"), pxPerCm, 700 + k);
+      pathPoly(g, sp.poly);
+      g.fill();
+      dim(g, { t: "setting", kind: sp.kind });
+      if (opts.seams) {
+        g.strokeStyle = "rgba(40,30,20,.35)";
+        g.lineWidth = Math.max(1, W / 1400);
+        g.stroke();
+      }
+    }
+    for (let bi = 0, n = cellCount(d); bi < n; bi++) {
+      const b = d.blocks[bi];
+      if (!b || b.under != null) continue;
+      const Pl = blockPlace(d, bi, W, H), polys = placedPolys(b, Pl);
+      polys.forEach((poly, pi) => {
+        g.fillStyle = pieceFill2(g, b, pi, poly, pxPerCm, bi * 31 + pi, Pl.turn);
+        pathPoly(g, poly);
+        g.fill();
+        dim(g, { t: "qpiece", fabric: b.fabrics[pi] });
+      });
+      if (opts.seams) {
+        g.strokeStyle = "rgba(40,30,20,.35)";
+        g.lineWidth = Math.max(1, W / 1400);
+        polys.forEach((poly) => {
+          pathPoly(g, poly);
+          g.stroke();
+        });
+      }
+    }
   }
+  return { drawBorders: drawBorders2, drawCornerBlock: drawCornerBlock2, drawQuilt: drawQuilt3 };
 }
+
+// src/render/fabric-fill.js
+var pieceFill = (g, b, pi, poly, pxPerCm, seed, turn = 0) => pieceFillWith(fabricById, g, b, pi, poly, pxPerCm, seed, turn);
+
+// src/render/quilt-draw.js
+var painter = quiltPainter({ fabricById: (id) => fabricById(id), dim: dimUnlessHi });
+var { drawBorders, drawCornerBlock } = painter;
+var drawQuilt2 = (g, W, H, opts = {}) => painter.drawQuilt(g, W, H, { ...opts, design: opts.design || design });
 function explodedH(W, gap) {
   const q = quiltMm(design), n = bordersOf(design).length, k = (W - 2 * gap * n) / q.W;
   return Math.round(q.H * k + 2 * gap * n);
@@ -15190,90 +15627,6 @@ function drawBordersExploded(g, W, gap, focus = -1) {
   if (focus >= 0) fade(0, 0, W - 2 * off, H - 2 * off, 0);
   g.restore();
   return H;
-}
-function drawCornerBlock(g, cb, rc, pxPerCm, seed, seams, lineW) {
-  const polys = placedPolys(cb, rc);
-  polys.forEach((poly, pi) => {
-    g.fillStyle = pieceFill(g, cb, pi, poly, pxPerCm, seed * 31 + pi, rc.turn || 0);
-    pathPoly(g, poly);
-    g.fill();
-    dimUnlessHi(g, { t: "sash", kind: "corner", fabric: cb.fabrics[pi] });
-  });
-  if (!seams) return;
-  g.strokeStyle = "rgba(40,30,20,.35)";
-  g.lineWidth = lineW;
-  for (const poly of polys) {
-    pathPoly(g, poly);
-    g.stroke();
-  }
-}
-function drawQuilt2(g, W, H, opts = {}) {
-  const d = opts.design || design;
-  if (bordersOf(d).length) drawBorders(g, d, W, H, W / (quiltMm(d).W / 10), opts.seams);
-  const q = quiltMm(d), pxPerCm = W / (q.W / 10), s = sashOf(d);
-  if (d.mosaic) {
-    const polys = tilePolys(d, W, H);
-    polys.forEach((poly, i) => {
-      g.fillStyle = fabricFill(g, fabricById(d.mosaic.fabrics[i]), pxPerCm, 500 + i);
-      pathPoly(g, poly);
-      g.fill();
-      dimUnlessHi(g, { t: "qpiece", fabric: d.mosaic.fabrics[i] });
-    });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      for (const poly of polys) {
-        pathPoly(g, poly);
-        g.stroke();
-      }
-    }
-    return;
-  }
-  for (const [k, rc] of sashRects(d, W, H).entries()) {
-    if (rc.kind === "corner" && s.cornerBlock) {
-      drawCornerBlock(g, s.cornerBlock, rc, pxPerCm, 900 + k, opts.seams, Math.max(1, W / 1400));
-      continue;
-    }
-    g.fillStyle = fabricFill(g, fabricById(rc.kind === "corner" ? s.corner : s.fabric), pxPerCm, 900 + k, rc.turn || 0);
-    pathPoly(g, blockOutline(rc));
-    g.fill();
-    dimUnlessHi(g, { t: "sash", kind: rc.kind });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      g.stroke();
-    }
-  }
-  for (const [k, sp] of settingPieces(d, W, H).entries()) {
-    g.fillStyle = fabricFill(g, fabricById(d.settingFabric || "b0"), pxPerCm, 700 + k);
-    pathPoly(g, sp.poly);
-    g.fill();
-    dimUnlessHi(g, { t: "setting", kind: sp.kind });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      g.stroke();
-    }
-  }
-  for (let bi = 0, n = cellCount(d); bi < n; bi++) {
-    const b = d.blocks[bi];
-    if (!b || b.under != null) continue;
-    const Pl = blockPlace(d, bi, W, H), polys = placedPolys(b, Pl);
-    polys.forEach((poly, pi) => {
-      g.fillStyle = pieceFill(g, b, pi, poly, pxPerCm, bi * 31 + pi, Pl.turn);
-      pathPoly(g, poly);
-      g.fill();
-      dimUnlessHi(g, { t: "qpiece", fabric: b.fabrics[pi] });
-    });
-    if (opts.seams) {
-      g.strokeStyle = "rgba(40,30,20,.35)";
-      g.lineWidth = Math.max(1, W / 1400);
-      polys.forEach((poly) => {
-        pathPoly(g, poly);
-        g.stroke();
-      });
-    }
-  }
 }
 
 // src/designer/canvas.js
@@ -16252,30 +16605,6 @@ function initDesignerUI() {
     $("dz-reset").dataset.armed = "";
     $("dz-reset").textContent = t("Start over");
   });
-  $("dz-upload").addEventListener("change", async (e) => {
-    const files = [...e.target.files].filter((f) => f.type.startsWith("image/"));
-    for (const f of files) {
-      const im = await loadImage(URL.createObjectURL(f));
-      const c = document.createElement("canvas");
-      c.width = im.naturalWidth;
-      c.height = im.naturalHeight;
-      c.getContext("2d").drawImage(im, 0, 0);
-      await addFabric(c, { name: f.name.replace(/\.[^.]+$/, "").slice(0, 40), cm: +$("dz-cm").value });
-    }
-    e.target.value = "";
-    drawFabricPalette();
-    refreshLibrary();
-    $("dz-fabnote").textContent = tn(
-      files.length,
-      "{n} photo added. They are kept in this browser with your designs.",
-      "{n} photos added. They are kept in this browser with your designs."
-    );
-  });
-  const cmOut2 = () => {
-    $("dz-cm-o").textContent = comma($("dz-cm").value) + " cm";
-  };
-  $("dz-cm").addEventListener("input", cmOut2);
-  cmOut2();
   new ResizeObserver(() => {
     if (state.page === "design") drawDesignerCanvas();
   }).observe($("dz-quilt").closest(".dz-quiltwrap"));
@@ -17202,10 +17531,10 @@ function drawView(g, w, h) {
     g.fillRect(x - r, y - r, 2 * r, 2 * r);
   }
 }
-var loader = new THREE14.TextureLoader();
+var loader2 = new THREE14.TextureLoader();
 var photos = /* @__PURE__ */ new Map();
 async function photo(url, repeat, srgb = true) {
-  if (!photos.has(url)) photos.set(url, loader.loadAsync(url));
+  if (!photos.has(url)) photos.set(url, loader2.loadAsync(url));
   const t2 = (await photos.get(url)).clone();
   t2.needsUpdate = true;
   if (srgb) t2.colorSpace = THREE14.SRGBColorSpace;
@@ -18246,7 +18575,7 @@ function clicked() {
   if (job2) return notify(t("A picture of another version of a quilt is being made. Wait for it, or stop it first."));
   if (startPicture(design)) notify(t("Making the picture. Keep working: it will tell you when it\u2019s ready."));
 }
-function init() {
+function init2() {
   if (!canMakePictures()) btn.hidden = true;
   btn.addEventListener("click", clicked);
   $("pic-job-stop").addEventListener("click", stopPicture);
@@ -18274,7 +18603,7 @@ function init() {
   });
   pictures.load().then(refreshButton);
 }
-init();
+init2();
 
 // src/mine/shared-state.js
 var sharedIds = /* @__PURE__ */ new Set();
@@ -22390,7 +22719,7 @@ var StopSync = class extends Error {
 };
 function createSync({
   repo: repo2,
-  fetch: fetchFn = (...a) => globalThis.fetch(...a),
+  fetch: fetchFn = (url, init3) => globalThis.fetch(url, init3),
   onRemote = () => {
   },
   onStatus = () => {
@@ -22711,6 +23040,11 @@ var sync = createSync({
   onRemote: (e) => arrived.push(e),
   onStatus: showStatus,
   getToken: async () => tokenMayGoTo(sync.config()?.url) ? signInToken() : null
+});
+setFolderLoader(async () => {
+  if (!sync.config()) return [];
+  const r = await sync.request("GET", "/v1/organize");
+  return r.status === 200 ? r.body.folders : [];
 });
 var time = (at) => new Date(at).toLocaleTimeString([getLang()], { hour: "2-digit", minute: "2-digit" });
 function showStatus(s) {

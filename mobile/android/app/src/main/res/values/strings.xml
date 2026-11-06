@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Block &amp; Bind</string>
+    <string name="title_activity_main">Block &amp; Bind</string>
+    <string name="package_name">com.blockandbind.app</string>
+    <string name="custom_url_scheme">com.blockandbind.app</string>
+</resources>

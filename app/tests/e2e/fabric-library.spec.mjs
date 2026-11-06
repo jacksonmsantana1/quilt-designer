@@ -1,5 +1,6 @@
 // Many fabric photos: the short lists stay short, and the fabric library behind their "More fabrics" tile
 // finds a photo by name and gives it to the list it was opened from.
+import fs from 'fs';
 import { test, expect } from './fixtures.mjs';
 
 /** Stores n small photos of different colours, "Test photo 01" to n, then reloads so the app reads them. */
@@ -23,8 +24,8 @@ const photoId = (app, name) => app.storage((s, nm) => s.fabrics.list().find(f =>
 
 test('the short list: the basics, a few photos, and a button for the rest', async ({ app, page }) => {
   await addPhotos(app, page, 70);
-  // the 5 newest photos fill in; "More fabrics" is a round button outside the row
-  await expect(page.locator('#dz-fabrics2 > *')).toHaveCount(15 + 5);
+  // "+ Add fabric", then the 5 newest photos fill in; "More fabrics" is a round button outside the row
+  await expect(page.locator('#dz-fabrics2 > *')).toHaveCount(15 + 5 + 1);
   await page.locator('#rail-parts').click(); // the Block parts card, where this list is
   await page.locator('#dz-fabrics2').hover(); // the round button appears beside the card
   await expect(page.locator('#fab-more-float')).toHaveAttribute('aria-label', 'More fabrics (1565)'); // 65 photos, 1500 in the collection
@@ -66,6 +67,101 @@ test('the library also serves the other fabric choices (sashing here)', async ({
   await page.locator('#fablib-grid button.fab').click();
   expect((await app.current()).sashing.fabric).toBe(await photoId(app, 'Test photo 03'));
   expect((await app.current()).sashing.mm).toBe(50); // choosing a fabric first gives the sashing a width
+});
+
+const picture = name => ({
+  name,
+  mimeType: 'image/jpeg',
+  buffer: fs.readFileSync(new URL('../../assets/fabric/paisley.jpg', import.meta.url)),
+});
+
+test('+ Add fabric: a photo from this computer, with its name and width, joins the lists', async ({ app, page }) => {
+  await app.open();
+  await page.locator('#rail-parts').click();
+  const row = page.locator('#dz-fabrics2'),
+    dlg = page.locator('#addfab');
+  const picked = page.waitForEvent('filechooser');
+  await row.locator('.fab-add').click();
+  await (await picked).setFiles(picture('Grandma paisley scan.jpg'));
+  await expect(dlg).toBeVisible();
+  await expect(dlg.locator('#addfab-pics img')).toHaveCount(1);
+  await expect(dlg.locator('#addfab-name')).toHaveValue('Grandma paisley scan');
+  await dlg.locator('#addfab-name').fill('Grandma paisley');
+  await dlg.locator('#dz-cm').fill('40');
+  await expect(dlg.locator('#dz-cm-o')).toContainText('40');
+  await expect(dlg.locator('#addfab-ok')).toHaveText('Add 1 fabric');
+  await expect(row.locator('> *').first()).toHaveClass(/fab-add/); // first in the row
+  await dlg.locator('#addfab-ok').click();
+  await expect(dlg).toBeHidden();
+  await expect(page.locator('#notice')).toContainText('1 photo added');
+  await expect(row.locator('.fab', { hasText: 'Grandma paisley' })).toBeVisible();
+  expect(await app.storage(s => s.fabrics.list().map(f => [f.name, f.cm]))).toEqual([['Grandma paisley', 40]]);
+  // nothing in the quilt changed, and the width is remembered for next time
+  expect((await app.current()).blocks.flatMap(b => b.fabrics).some(f => f.startsWith('f') || f.startsWith('h'))).toBe(
+    false,
+  );
+  await page.reload();
+  await page.locator('#rail-parts').click();
+  await expect(row.locator('.fab', { hasText: 'Grandma paisley' })).toHaveCount(1);
+  expect(await page.locator('#dz-cm').inputValue()).toBe('40');
+});
+
+test('+ Add fabric: from inside the library, several at once, and Cancel adds nothing', async ({ app, page }) => {
+  await app.open();
+  await page.locator('#rail-parts').click();
+  await page.locator('#dz-fabrics2').hover();
+  await page.locator('#fab-more-float').click();
+  const lib = page.locator('#fablib'),
+    dlg = page.locator('#addfab');
+  await expect(lib).toBeVisible();
+  // Cancel
+  let picked = page.waitForEvent('filechooser');
+  await lib.locator('.fab-add').click();
+  await (await picked).setFiles(picture('Not this one.jpg'));
+  await dlg.locator('#addfab-cancel').click();
+  await expect(dlg).toBeHidden();
+  await expect(lib).toBeVisible();
+  expect(await app.storage(s => s.fabrics.list().length)).toBe(0);
+  // two pictures: no name box, each keeps its file's name
+  picked = page.waitForEvent('filechooser');
+  await lib.locator('.fab-add').click();
+  await (
+    await picked
+  ).setFiles([
+    picture('First.jpg'),
+    {
+      name: 'Second.jpg',
+      mimeType: 'image/jpeg',
+      buffer: fs.readFileSync(new URL('../../assets/fabric/linen.jpg', import.meta.url)),
+    },
+  ]);
+  await expect(dlg.locator('#addfab-name')).toBeHidden();
+  await expect(dlg.locator('#addfab-ok')).toHaveText('Add 2 fabrics');
+  await dlg.locator('#addfab-ok').click();
+  await expect(dlg).toBeHidden();
+  await expect(page.locator('#notice')).toContainText('2 photos added');
+  await lib.locator('#fablib-groups button', { hasText: 'My photos' }).click();
+  await expect(lib.locator('#fablib-grid button.fab')).toHaveText(['Second', 'First']); // the newest first
+});
+
+test('+ Add fabric: a file that is not a picture, or one the browser cannot read, is explained', async ({
+  app,
+  page,
+}) => {
+  await app.open();
+  await page.locator('#rail-parts').click();
+  const tile = page.locator('#dz-fabrics2 .fab-add');
+  let picked = page.waitForEvent('filechooser');
+  await tile.click();
+  await (await picked).setFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+  await expect(page.locator('#notice')).toContainText('aren’t pictures');
+  await expect(page.locator('#addfab')).toBeHidden();
+  picked = page.waitForEvent('filechooser');
+  await tile.click();
+  await (await picked).setFiles({ name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a picture') });
+  await page.locator('#addfab-ok').click();
+  await expect(page.locator('#notice')).toContainText('Couldn’t read broken.jpg');
+  expect(await app.storage(s => s.fabrics.list().length)).toBe(0);
 });
 
 test('a search with no match says so', async ({ app, page }) => {

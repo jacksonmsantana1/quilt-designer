@@ -9,6 +9,9 @@ import { designRoutes } from './routes/designs.js';
 import { fabricRoutes } from './routes/fabrics.js';
 import { changeRoutes } from './routes/changes.js';
 import { communityRoutes } from './routes/community.js';
+import { photoRoutes } from './routes/photos.js';
+import { organizeRoutes } from './routes/organize.js';
+import { accountRoutes } from './routes/account.js';
 
 /**
  * @param {{ config: import('./config.js').Config, pool: import('pg').Pool, store: import('./objects.js').ObjectStore, onError?: (err: any, route?: string) => void, logger?: any, keys?: import('./auth.js').KeySet }} deps
@@ -67,5 +70,8 @@ export async function buildApp({ config, pool, store, logger = false, keys, onEr
   fabricRoutes(app, pool, store, config);
   changeRoutes(app, pool);
   communityRoutes(app, pool, store, config);
+  photoRoutes(app, pool, store, config);
+  organizeRoutes(app, pool);
+  accountRoutes(app, pool, store, config);
   return app;
 }

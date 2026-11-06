@@ -55,7 +55,7 @@ const value = lit => (0, eval)(lit); // eslint-disable-line no-eval
 /** Every sentence given to t() and tn() in the code. @returns {{ text: string, file: string }[]} */
 export function codeStrings() {
   const out = [];
-  for (const file of [...walk(path.join(ROOT, 'app/src')), ...walk(path.join(ROOT, 'shared/src'))]) {
+  for (const file of [...walk(path.join(ROOT, 'app/src')), ...walk(path.join(ROOT, 'shared/src')), ...walk(path.join(ROOT, 'mobile/src'))]) {
     const src = fs.readFileSync(file, 'utf8').replace(/^\s*(\/\/|\*).*$/gm, '');
     for (const m of src.matchAll(T_CALL)) out.push({ text: value(m[1]), file: path.relative(ROOT, file) });
     for (const m of src.matchAll(TN_CALL))

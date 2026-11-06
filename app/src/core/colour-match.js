@@ -155,3 +155,54 @@ export function shareAmounts(amounts, changed) {
   if (diff && fix >= 0) rounded[fix] += diff;
   return rounded;
 }
+
+/** The colours people sort fabrics by, in the order they're shown. */
+export const COLOUR_FAMILIES = [
+  { key: 'red', rgb: [196, 44, 44] },
+  { key: 'orange', rgb: [232, 124, 36] },
+  { key: 'yellow', rgb: [240, 204, 60] },
+  { key: 'green', rgb: [62, 140, 76] },
+  { key: 'blue', rgb: [48, 96, 176] },
+  { key: 'purple', rgb: [120, 72, 168] },
+  { key: 'pink', rgb: [236, 132, 172] },
+  { key: 'brown', rgb: [120, 80, 48] },
+  { key: 'grey', rgb: [140, 140, 140] },
+  { key: 'black', rgb: [28, 28, 28] },
+  { key: 'white', rgb: [246, 242, 232] },
+];
+/** Which of those a colour is. @param {number[]} rgb @returns {string} */
+export function colourFamily(rgb) {
+  const { h, s, l } = rgbToHsl(rgb);
+  if (l >= 0.9 || (s < 0.15 && l >= 0.82)) return 'white';
+  if (l <= 0.12 || (s < 0.15 && l <= 0.22)) return 'black';
+  if (s < 0.15) return 'grey';
+  if (h < 15 || h >= 345) {
+    if (l >= 0.7) return 'pink';
+    return l < 0.3 && s < 0.6 ? 'brown' : 'red';
+  }
+  if (h < 45) return l < 0.45 || (s < 0.5 && l < 0.6) ? 'brown' : 'orange';
+  if (h < 70) return l < 0.35 ? 'brown' : 'yellow';
+  if (h < 170) return 'green';
+  if (h < 255) return 'blue';
+  if (h < 300) return 'purple';
+  return 'pink';
+}
+/**
+ * The families a fabric belongs to: its largest colour's, and any other that covers a fair part of it.
+ * @param {{ rgb: number[], share: number }[]} colours @returns {string[]}
+ */
+export function fabricFamilies(colours) {
+  const out = new Set();
+  colours.forEach((c, i) => {
+    if (i === 0 || c.share >= 0.2) out.add(colourFamily(c.rgb));
+  });
+  return [...out];
+}
+/** A number to sort fabrics by, so that like colours sit together; ones with no colours go last. @param {{ rgb: number[], share: number }[]} colours */
+export function colourOrder(colours) {
+  if (!colours.length) return Infinity;
+  const { rgb } = colours[0],
+    { h, l } = rgbToHsl(rgb),
+    family = COLOUR_FAMILIES.findIndex(f => f.key === colourFamily(rgb));
+  return family * 1000 + h + l;
+}

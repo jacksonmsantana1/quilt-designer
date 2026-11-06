@@ -470,7 +470,6 @@ export default {
   'Which fabrics': 'Quais tecidos',
   'Whole quilt': 'Quilt inteiro',
   Width: 'Largura',
-  'Width a new photo covers': 'Largura que uma nova foto cobre',
   'Without cornerstones, the strips between the rows run the full width of the quilt':
     'Sem quadrados de canto, as faixas entre as linhas ocupam toda a largura do quilt',
   'Wool blanket': 'Cobertor de lã',

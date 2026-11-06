@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:; object-src 'none'; base-uri 'none'">
+<title>Block &amp; Bind</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Karla:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <h1 id="title"></h1>
+    <button type="button" class="me" id="me">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c1-5 4-7 8-7s7 2 8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <input type="search" id="q" autocomplete="off" enterkeyhint="search">
+</header>
+<main>
+  <section id="tab-community">
+    <div class="board" id="board"></div>
+    <p class="empty" id="empty" role="status" hidden></p>
+    <div class="more"><button type="button" class="btn" id="more" hidden></button></div>
+  </section>
+  <section id="tab-quilts" hidden>
+    <div class="board" id="quilts-board"></div>
+    <p class="empty" id="quilts-empty" role="status" hidden></p>
+    <div class="more"><button type="button" class="btn solid" id="quilts-signin" hidden></button></div>
+  </section>
+  <section id="tab-fabrics" hidden>
+    <div class="chips" id="fab-views"></div>
+    <div class="dots" id="fab-colours"></div>
+    <div class="row wrap" id="fab-folder" hidden></div>
+    <div class="fab-grid" id="fab-board"></div>
+    <p class="empty" id="fab-empty" role="status" hidden></p>
+    <div class="more"><button type="button" class="btn" id="fab-more" hidden></button></div>
+    <div class="chosen-bar" id="fab-chosen" hidden></div>
+  </section>
+  <section id="tab-camera" hidden>
+    <div class="cam-card">
+      <h2 id="cam-quilt-title"></h2>
+      <p class="hint" id="cam-quilt-hint"></p>
+      <div class="row">
+        <button type="button" class="btn solid" id="cam-quilt"></button>
+        <button type="button" class="btn" id="cam-quilt-pick"></button>
+      </div>
+    </div>
+    <div class="cam-card">
+      <h2 id="cam-fabric-title"></h2>
+      <p class="hint" id="cam-fabric-hint"></p>
+      <div class="row">
+        <button type="button" class="btn solid" id="cam-fabric"></button>
+        <button type="button" class="btn" id="cam-fabric-pick"></button>
+      </div>
+    </div>
+    <h3 id="recent-title" hidden></h3>
+    <div class="shots" id="recent"></div>
+  </section>
+</main>
+<nav class="tabs">
+  <button type="button" id="go-community">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span></span>
+  </button>
+  <button type="button" id="go-quilts">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 3h18v18H3zM3 12l9-9 9 9-9 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span></span>
+  </button>
+  <button type="button" id="go-fabrics">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6c5-3 11 3 16 0v14c-5 3-11-3-16 0zM4 13c5-3 11 3 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span></span>
+  </button>
+  <button type="button" id="go-camera">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v12H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <span></span>
+  </button>
+</nav>
+<input type="file" id="pick-camera" accept="image/*" capture="environment" hidden>
+<input type="file" id="pick-gallery" accept="image/*" hidden>
+<dialog id="viewer">
+  <button type="button" class="close" id="viewer-close">×</button>
+  <img id="viewer-img" alt="">
+  <p id="viewer-name"></p>
+  <div class="more"><button type="button" class="btn" id="viewer-delete" hidden></button></div>
+</dialog>
+<script type="module" src="app.js"></script>
+</body>
+</html>

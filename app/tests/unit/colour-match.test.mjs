@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { colourMatch, fabricColours, hslToRgb, rgbToHsl, shareAmounts } from '../../src/core/colour-match.js';
+import {
+  colourMatch,
+  fabricColours,
+  hslToRgb,
+  rgbToHsl,
+  shareAmounts,
+  COLOUR_FAMILIES,
+  colourFamily,
+  colourOrder,
+  fabricFamilies,
+} from '../../src/core/colour-match.js';
 
 /** An RGBA picture: `parts` of [rgb, how many pixels]. */
 const picture = parts => {
@@ -73,4 +83,40 @@ test('hsl and rgb round trip', () => {
     const { h, s, l } = rgbToHsl(rgb);
     hslToRgb(h, s, l).forEach((v, i) => assert.ok(Math.abs(v - rgb[i]) <= 1, `${rgb} -> ${v}`));
   }
+});
+
+test('colour families: what a quilter would call them', () => {
+  const named = {
+    red: [190, 30, 40],
+    orange: [235, 130, 40],
+    yellow: [240, 210, 70],
+    green: [50, 140, 80],
+    blue: [40, 80, 170],
+    purple: [120, 60, 170],
+    pink: [240, 150, 190],
+    brown: [110, 70, 40],
+    grey: [130, 130, 130],
+    black: [15, 15, 18],
+    white: [250, 247, 240],
+  };
+  for (const [family, rgb] of Object.entries(named)) assert.equal(colourFamily(rgb), family);
+  // every family has a colour to show, which is of that family
+  for (const f of COLOUR_FAMILIES) assert.equal(colourFamily(f.rgb), f.key);
+});
+
+test('a fabric is in the family of its largest colour, and of any other that covers a fair part of it', () => {
+  const colours = [
+    { rgb: [190, 30, 40], share: 0.6 },
+    { rgb: [40, 80, 170], share: 0.3 },
+    { rgb: [50, 140, 80], share: 0.1 },
+  ];
+  assert.deepEqual(fabricFamilies(colours), ['red', 'blue']);
+  assert.deepEqual(fabricFamilies([]), []);
+});
+
+test('sorting by colour puts like with like, and a fabric with no colours last', () => {
+  const of = rgb => colourOrder([{ rgb, share: 1 }]);
+  assert.ok(of([190, 30, 40]) < of([40, 80, 170]));
+  assert.ok(of([40, 80, 170]) < of([250, 247, 240]));
+  assert.equal(colourOrder([]), Infinity);
 });

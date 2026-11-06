@@ -27,9 +27,6 @@ import {
 import { $ } from '../core/dom.js';
 import { fromInput, toInput } from '../core/units.js';
 import { state } from '../sim/config.js';
-import { loadImage } from '../sim/textures.js';
-import { addFabric } from './fabric-library.js';
-import { refreshLibrary } from './fabric-picker.js';
 import {
   anchorOf,
   blockAt,
@@ -49,7 +46,7 @@ import {
   uniteOf,
 } from '@quilt/shared/geometry.js';
 import { BLOCK_PX, drawDesignerCanvas, flipped, panBy, turnQuilt, zoom, zoomAt } from './canvas.js';
-import { drawFabricPalette, drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
+import { drawPaletteInto, drawPartsEditor, renderDesigner } from './parts-editor.js';
 import { copyBlockFrom, selectSameFabric } from './block-library.js';
 import { PANEL_CARDS, openBlockEditor, placeBlockEditor, syncRail, updateMultiUI } from './side-panel.js';
 import { applyFabric, choosePattern } from './edits.js';
@@ -76,7 +73,7 @@ import {
 import { notify } from '../ui/notice.js';
 import { newDesign } from '@quilt/shared/design.js';
 import { tilesForTool } from '@quilt/shared/mosaic.js';
-import { comma, t, tn } from '@quilt/shared/i18n.js';
+import { t, tn } from '@quilt/shared/i18n.js';
 
 function initDesignerUI() {
   // ---- area selection: drag a dotted rectangle; every block it touches is selected
@@ -585,30 +582,6 @@ function initDesignerUI() {
     $('dz-reset').dataset.armed = '';
     $('dz-reset').textContent = t('Start over');
   });
-  $('dz-upload').addEventListener('change', async e => {
-    const files = [...e.target.files].filter(f => f.type.startsWith('image/'));
-    for (const f of files) {
-      const im = await loadImage(URL.createObjectURL(f));
-      const c = document.createElement('canvas');
-      c.width = im.naturalWidth;
-      c.height = im.naturalHeight;
-      c.getContext('2d').drawImage(im, 0, 0);
-      await addFabric(c, { name: f.name.replace(/\.[^.]+$/, '').slice(0, 40), cm: +$('dz-cm').value });
-    }
-    e.target.value = '';
-    drawFabricPalette();
-    refreshLibrary();
-    $('dz-fabnote').textContent = tn(
-      files.length,
-      '{n} photo added. They are kept in this browser with your designs.',
-      '{n} photos added. They are kept in this browser with your designs.',
-    );
-  });
-  const cmOut2 = () => {
-    $('dz-cm-o').textContent = comma($('dz-cm').value) + ' cm';
-  };
-  $('dz-cm').addEventListener('input', cmOut2);
-  cmOut2();
   new ResizeObserver(() => {
     if (state.page === 'design') drawDesignerCanvas();
   }).observe($('dz-quilt').closest('.dz-quiltwrap'));

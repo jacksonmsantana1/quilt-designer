@@ -98,8 +98,10 @@ test('a fabric from a photo is kept, under the same id for the same picture', as
     buffer: fs.readFileSync('assets/fabric/paisley.jpg'),
   };
   await page.locator('#dz-upload').setInputFiles(file);
+  await page.locator('#addfab-ok').click();
   await expect.poll(() => app.storage(s => s.fabrics.list().length)).toBe(1);
   await page.locator('#dz-upload').setInputFiles(file); // the same picture again
+  await page.locator('#addfab-ok').click();
   await page.waitForTimeout(500);
   const list = await app.storage(s => s.fabrics.list().map(f => ({ id: f.id, name: f.name, size: f.blob.size })));
   expect(list).toHaveLength(1);
