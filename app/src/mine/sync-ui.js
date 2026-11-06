@@ -13,7 +13,7 @@ import { openDesign } from '../designer/dispatch.js';
 import { addStoredFabric } from '../designer/fabric-library.js';
 import { setFolderLoader } from '../designer/fabric-folders-state.js';
 import { drawFabricPalette } from '../designer/parts-editor.js';
-import { adoptDesignId, mineSave, renderMine } from './my-designs.js';
+import { adoptDesignId, mineSave, renderMine, startNew } from './my-designs.js';
 import { state } from '../sim/config.js';
 import { getLang, t, tn } from '@quilt/shared/i18n.js';
 
@@ -49,7 +49,7 @@ function showStatus(s) {
   $('sync-dot').dataset.state = s.state;
   const waiting = s.pending ? tn(s.pending, ' · {n} change waiting', ' · {n} changes waiting') : '';
   const text = {
-    off: t('Sync is off: your designs are kept in this browser only.'),
+    off: t('Your designs are kept on this computer. Sign in to have them on your other devices too.'),
     syncing: t('Syncing…'),
     ok: s.at ? t('Synced at {time}{waiting}', { time: time(s.at), waiting }) : t('Connected{waiting}', { waiting }),
     offline: t("Can't reach the server: changes wait here and go when it's back{waiting}.", { waiting }),
@@ -100,7 +100,7 @@ async function signInAndSync({ url, signup = false } = {}) {
  */
 async function signOutAndStop() {
   const was = sync.config();
-  if (was) $('dz-new').click(); // New design (mine/my-designs.js): the open quilt's timeline is kept with it
+  if (was) startNew(); // the open quilt's timeline is kept with it
   sync.configure(null);
   accountChanged();
   // signing out of Auth0 leaves the page for a moment: what's waiting to be saved here goes first

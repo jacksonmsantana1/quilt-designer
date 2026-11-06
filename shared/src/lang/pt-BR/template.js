@@ -1,6 +1,21 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
   English: 'English',
+  'Choose every other block': 'Escolher um sim, um não',
+  'Of the blocks chosen, keep every other one, like the squares of a chessboard: then click a block above to copy it into them':
+    'Dos blocos escolhidos, fica um sim, um não, como as casas de um tabuleiro de xadrez: depois clique em um bloco acima para copiá-lo neles',
+  'Undo the last change (Ctrl+Z)': 'Desfazer a última mudança (Ctrl+Z)',
+  Tutorial: 'Tutorial',
+  'Save your changes?': 'Salvar as mudanças?',
+  'If you don’t save, the changes are lost.': 'Se você não salvar, as mudanças se perdem.',
+  'Keep editing': 'Continuar editando',
+  'Don’t save': 'Não salvar',
+  'Save and continue': 'Salvar e continuar',
+  New: 'Novo',
+  Share: 'Compartilhar',
+  Parts: 'Peças',
+  'On a bed': 'Na cama',
+  Picture: 'Foto',
   Português: 'Português',
   Language: 'Idioma',
   '. Pick one for the whole back of the quilt.': '. Escolha um para todo o verso do quilt.',
@@ -213,8 +228,12 @@ export default {
   'Gravitational energy': 'Energia gravitacional',
   Grid: 'Grade',
   'Guided tour': 'Tour guiado',
-  'Guided tour: a short exercise to make and change a three-block quilt':
-    'Tour guiado: um exercício curto para fazer e mudar um quilt de três blocos',
+  'Watch again': 'Ver de novo',
+  'See more': 'Ver mais',
+  '← Back a step': '← Voltar um passo',
+  'A short video of this step': 'Um vídeo curto deste passo',
+  'Guided tour: make your first quilt, a nine patch, step by step':
+    'Tour guiado: faça seu primeiro quilt, um nine patch, passo a passo',
   'Half-square triangle, cut along /': 'Meio quadrado (HST), cortado ao longo de /',
   'Half-square triangle, cut along \\': 'Meio quadrado (HST), cortado ao longo de \\',
   'Hang by one corner': 'Pendurar por um canto',

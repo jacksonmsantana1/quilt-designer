@@ -1,5 +1,11 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'New quilt': 'Quilt novo',
+  'changes not saved yet': 'mudanças ainda não salvas',
+  'not saved yet': 'ainda não salvo',
+  'An example that comes with the app': 'Um exemplo que vem com o app',
+  '“{name}” has changes that are not saved yet.': '“{name}” tem mudanças que ainda não foram salvas.',
+  'This quilt is not saved yet.': 'Este quilt ainda não foi salvo.',
   // the app's own sample quilts
   'Medallion sampler': 'Sampler medalhão',
   'Medallion from the photo': 'Medalhão da foto',
@@ -30,8 +36,8 @@ export default {
     'Seus projetos e fotos de tecido são sincronizados com seus outros aparelhos.',
 
   // sync card
-  'Sync is off: your designs are kept in this browser only.':
-    'A sincronização está desligada: seus projetos ficam só neste navegador.',
+  'Your designs are kept on this computer. Sign in to have them on your other devices too.':
+    'Seus projetos ficam guardados neste computador. Entre com uma conta para tê-los também nos seus outros aparelhos.',
   'Syncing…': 'Sincronizando…',
   'Synced at {time}{waiting}': 'Sincronizado às {time}{waiting}',
   'Connected{waiting}': 'Conectado{waiting}',

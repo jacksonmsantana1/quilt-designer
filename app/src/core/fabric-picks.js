@@ -35,11 +35,19 @@ export function shortList({ basics, selected = null, inQuilt = [], recent = [], 
   };
   [selected, ...inQuilt, ...recent].forEach(add);
   for (const id of newest) if (extra.length < fill) add(id);
+  // shown in a steady order, so that a pick doesn't shuffle the tiles under the mouse: the ones that aren't recent
+  // picks first, then the recent picks from the oldest to the newest (a new pick joins at the end)
+  const age = new Map(recent.map((id, i) => [id, recent.length - i]));
+  extra.sort((a, b) => (age.get(a) || 0) - (age.get(b) || 0));
   return [...basics, ...extra];
 }
 
-/** Puts an id first in a recent list, without repeats, keeping `max`. @param {string[]} list @param {string} id */
-export const withRecent = (list, id, max = 12) => [id, ...list.filter(x => x !== id)].slice(0, max);
+/**
+ * Puts an id first in a recent list, without repeats, keeping `max`. With `move` false, an id already in the list
+ * stays where it is. @param {string[]} list @param {string} id @param {number} [max] @param {boolean} [move]
+ */
+export const withRecent = (list, id, max = 12, move = true) =>
+  !move && list.includes(id) ? list : [id, ...list.filter(x => x !== id)].slice(0, max);
 
 /**
  * A search for the libraries: true for a text that has every word typed, in any case, accents ignored

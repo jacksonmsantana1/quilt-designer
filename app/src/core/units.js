@@ -3,7 +3,7 @@
 // in millimetres; this only changes how a length is written on screen and how a typed number is read. In inches,
 // lengths are written the way quilters say them: to the nearest ⅛, with fractions (6½ in, 11¾ in).
 
-import { fix, t } from '@quilt/shared/i18n.js';
+import { fix, getLang, t } from '@quilt/shared/i18n.js';
 
 /** @typedef {'mm' | 'in'} Unit */
 const MM_PER_IN = 25.4;
@@ -49,10 +49,14 @@ const len = mm => `${num(mm)} ${unitName()}`;
  */
 function buyLen(mm) {
   if (unit === 'mm') return `${fix(Math.ceil(mm / 50 - 1e-6) * 0.05, 2)} m`;
-  const eighths = Math.ceil(mm / (MM_PER_IN * 4.5) - 1e-6),
+  // (less than a millimetre over an eighth is that eighth: 9 in kept as 229 mm is ¼ yd, not ⅜)
+  const eighths = Math.ceil((mm - 1) / (MM_PER_IN * 4.5)),
     whole = Math.floor(eighths / 8),
     part = FRACTIONS[eighths % 8];
-  return `${part && whole === 0 ? part : whole + part} ${t('yd')}`;
+  // Shops in Brazil sell by the metre even when the pattern is in inches, so the metres come along, and first there
+  const metres = `${fix(Math.ceil((eighths * MM_PER_IN * 4.5) / 50 - 1e-6) * 0.05, 2)} m`,
+    yards = `${part && whole === 0 ? part : whole + part} ${t('yd')}`;
+  return getLang() === 'pt-BR' ? `${metres} (${yards})` : `${yards} (${metres})`;
 }
 /** Several lengths with the unit written once: "900 × 300 mm" or "35½ × 11¾ in". @param {number[]} mms @param {string} [sep] */
 const dims = (mms, sep = ' × ') => `${mms.map(num).join(sep)} ${unitName()}`;
@@ -91,7 +95,52 @@ function eighthsOf(v) {
   return [Math.floor(e / 8), e % 8];
 }
 
+/**
+ * The design with its lengths as typed in the unit in use. A quilt keeps whole millimetres, so 2 in is kept as 51 mm;
+ * added up (blocks, sashing, borders) those odd tenths make 58 in come out as 58⅛. In inches, the sizes and the
+ * cutting lists are worked out from the inches themselves (2 in = 50.8 mm). Not for saving: the same design is
+ * given back in millimetres, and the copy is kept while the design is the same object.
+ * @template {{ blockMm: number, sashing?: any, borders?: any[], mosaic?: any }} D @param {D} d @returns {D}
+ */
+function exact(d) {
+  if (unit !== 'in' || !d) return d;
+  if (exactMemo.d === d) return /** @type {D} */ (exactMemo.out);
+  // a length within half a millimetre of an eighth of an inch is that eighth; others (300 mm) stay as they are
+  const x = (/** @type {number} */ mm) => {
+    const e = (Math.round((mm / MM_PER_IN) * 8) * MM_PER_IN) / 8;
+    return Math.abs(e - mm) < 0.5 ? e : mm;
+  };
+  const out = { ...d, blockMm: x(d.blockMm) };
+  if (d.sashing && d.sashing.mm) out.sashing = { ...d.sashing, mm: x(d.sashing.mm) };
+  if (d.borders) out.borders = d.borders.map(b => ({ ...b, mm: x(b.mm) }));
+  if (d.mosaic && d.mosaic.mm) out.mosaic = { ...d.mosaic, mm: x(d.mosaic.mm) };
+  exactMemo.d = d;
+  exactMemo.out = out;
+  return out;
+}
+/** @type {{ d: any, out: any }} */
+const exactMemo = { d: null, out: null };
+
+/**
+ * A starting length that reads round in the unit in use: in inches the nearest whole inch, so a new quilt's 300 mm
+ * blocks are 12 in (305 mm) and not 11¾. @param {number} mm @returns {number}
+ */
+const roundLen = mm => (unit === 'in' ? Math.round(Math.round(mm / MM_PER_IN) * MM_PER_IN) : mm);
+
+/**
+ * How many squares to cut for one block: a square cut in two or four can serve several blocks, so it may be a share
+ * of one (half a square per block, three in all for six). @param {number} n
+ */
+function sharesOf(n) {
+  const whole = Math.floor(n),
+    part = { 0: '', 0.25: '¼', 0.5: '½', 0.75: '¾' }[n - whole];
+  return part === undefined ? String(Math.ceil(n)) : `${whole || ''}${part}` || '0';
+}
+
 export {
+  exact,
+  roundLen,
+  sharesOf,
   FRACTIONS,
   MM_PER_IN,
   buyLen,

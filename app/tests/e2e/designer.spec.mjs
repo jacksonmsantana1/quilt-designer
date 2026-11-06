@@ -65,13 +65,14 @@ test('a square selection gets a Unite button at its top-right corner; one click 
   const btn = page.locator('#dz-unite');
   await expect(btn).toBeVisible();
   await expect(btn).toHaveText('Unite 2 × 2');
-  // its round end sits on the selection's top-right corner: block 1's right edge, the top of row 1
+  // its round end sits at the selection's top-right corner, just inside it (it never covers the controls above):
+  // block 1's right edge, the top of row 1
   const quilt = await page.locator('#dz-quilt').boundingBox(),
     b1 = await app.blockCentre(before, 1),
     corner = { x: b1.x + b1.w / 2, y: quilt.y + (b1.y - quilt.y) - b1.w / 2 },
     box = await btn.boundingBox();
   expect(Math.abs(box.x + 15 - corner.x)).toBeLessThan(4);
-  expect(Math.abs(box.y + box.height / 2 - corner.y)).toBeLessThan(4);
+  expect(Math.abs(box.y - 6 - corner.y)).toBeLessThan(4);
   await btn.click();
   const d = await app.current();
   expect(d.blocks[0].span).toBe(2);
@@ -444,4 +445,24 @@ test('switching between straight and on point turns symmetry off', async ({ app,
   await page.locator('#dz-setting').selectOption('straight');
   expect((await app.current()).sym).toBeUndefined();
   await expect(page.locator('#rail-sym')).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('"Choose every other block" keeps a chessboard of the blocks chosen, so a pattern goes into half of them', async ({
+  app,
+  page,
+}) => {
+  await dragSelect(app, page, 0, 24); // the whole 5 × 5 quilt
+  await expect(page.locator('#dz-alternate')).toBeVisible();
+  await page.locator('#dz-alternate').click();
+  await page.locator('#dz-patterns [data-p="plain"]').click();
+  const d = await app.current();
+  const plain = d.blocks.map((b, i) => (b.pattern === 'plain' ? i : -1)).filter(i => i >= 0);
+  expect(plain.length).toBe(13); // the corner block's colour of the chessboard: 13 of 25
+  expect(plain.every(i => (Math.floor(i / 5) + (i % 5)) % 2 === 0)).toBe(true);
+  // again: the other half, for the second block
+  await page.locator('#dz-alternate').click();
+  await page.locator('#dz-patterns [data-p="hst"]').click();
+  const d2 = await app.current();
+  expect(d2.blocks.filter(b => b.pattern === 'plain').length).toBe(13);
+  expect(d2.blocks.filter(b => b.pattern === 'hst').length).toBe(12);
 });

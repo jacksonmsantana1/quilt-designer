@@ -114,6 +114,25 @@ test('a cornerstone pattern starts in the colours of its button, whatever the la
   expect((await app.current()).sashing.cornerBlock.fabrics).toEqual(newBlock('ohio').fabrics); // cream, indigo, mustard
 });
 
+test('a square cut in four can serve two blocks: half a square per block, whole squares in all', async ({
+  app,
+  page,
+}) => {
+  await page.locator('#tabs [data-page="design"]').click();
+  const d = await app.current();
+  for (const i of d.blocks.keys()) {
+    const c = await app.blockCentre(await app.current(), i);
+    await page.mouse.click(c.x, c.y);
+    await page.locator('#dz-patterns [data-p="hourglass"]').click();
+  }
+  await page.locator('#tabs [data-page="cut"]').click();
+  const line = page.locator('#cg-blocks .cgblock').first().locator('tbody tr').first();
+  await expect(line.locator('td.n').first()).toHaveText('½');
+  // this card is every other block (the quilt alternates two): half a square each, rounded up to whole squares
+  const here = Math.ceil(d.blocks.length / 2);
+  await expect(line.locator('td.n').last()).toHaveText(String(Math.ceil(here / 2)));
+});
+
 test('a click opens and closes a cutting list', async ({ page }) => {
   const card = page.locator('#cg-blocks .cgblock').first();
   await card.locator('canvas').click();

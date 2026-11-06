@@ -1,5 +1,7 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  '½ or ¼ per block: one square, cut in two or in four, gives pieces for more than one block.':
+    '½ ou ¼ por bloco: um quadrado, cortado em dois ou em quatro, dá peças para mais de um bloco.',
   // how to cut (cutting/plan.js)
   'square {size}': 'quadrado de {size}',
   'rectangle {size}': 'retângulo de {size}',
@@ -15,9 +17,13 @@ export default {
     'peça com molde em um retângulo de {box}, {seam} de margem de costura incluídos',
   '{how} · fussy cut: one at a time, centred on the chosen motif':
     '{how} · fussy cut: um de cada vez, centralizado no motivo escolhido',
-  '{n} strip {width} × WOF, joined and cut to {lens}': '{n} tira de {width} × LT, emendada e cortada em {lens}',
-  '{n} strips {width} × WOF, joined and cut to {lens}': '{n} tiras de {width} × LT, emendadas e cortadas em {lens}',
-  '{size} × WOF': '{size} × LT',
+  '{n} strip {width} × WOF, joined and cut to {lens}':
+    '{n} tira de {width} × largura do tecido, emendada e cortada em {lens}',
+  '{n} strips {width} × WOF, joined and cut to {lens}':
+    '{n} tiras de {width} × largura do tecido, emendadas e cortadas em {lens}',
+  'a small piece: a remnant will do': 'peça pequena: um retalho resolve',
+  'Saved: look in your Downloads folder': 'Salvo: veja na pasta Downloads',
+  '{size} × WOF': '{size} × largura do tecido',
   'Side triangles': 'Triângulos laterais',
   'Corner triangles': 'Triângulos de canto',
 
@@ -44,7 +50,7 @@ export default {
   '{n} borders': '{n} barras',
   'finished {size}': 'pronto: {size}',
   'each piece shows fabric letter + block number . form (D2.3 = fabric D, block 2, form 3; S = sashing, B1 = border 1{more}). Double-click a block, the sashing or the borders above to see where they go in the quilt.':
-    'cada peça mostra a letra do tecido + número do bloco . forma (D2.3 = tecido D, bloco 2, forma 3; S = faixas, B1 = barra 1{more}). Clique duas vezes em um bloco, nas faixas ou nas barras acima para ver onde ficam no quilt.',
+    'cada peça mostra a letra do tecido + número do bloco . forma (D2.3 = tecido D, bloco 2, forma 3; AS.1 = tecido A, faixas; DB1.1 = tecido D, barra 1{more}). Clique duas vezes em um bloco, nas faixas ou nas barras acima para ver onde ficam no quilt.',
   ', T = setting triangles': ', T = triângulos laterais',
   'Block {n} · {label}': 'Bloco {n} · {label}',
   '{count} in the quilt, marked in orange · {cols} × {rows} blocks, {size}':
@@ -79,10 +85,10 @@ export default {
   Block: 'Bloco',
   '{finished} finished · {cut} with seam allowance': '{finished} pronto · {cut} com margem de costura',
   'Distinct blocks': 'Blocos diferentes',
-  'includes binding: {strips} strips {width} × WOF': 'inclui viés: {strips} tiras de {width} × LT',
+  'includes binding: {strips} strips {width} × WOF': 'inclui viés: {strips} tiras de {width} × largura do tecido',
   'buy ≈ {buy}': 'comprar ≈ {buy}',
   Backing: 'Forro',
-  '{n} width of fabric sewn together · buy ≈ {buy}': '{n} largura de tecido costurada · comprar ≈ {buy}',
+  '{n} width of fabric sewn together · buy ≈ {buy}': '{n} largura de tecido, sem emenda · comprar ≈ {buy}',
   '{n} widths of fabric sewn together · buy ≈ {buy}': '{n} larguras de tecido costuradas · comprar ≈ {buy}',
   Batting: 'Manta',
   'large block, {n} × {n} cells ({size})': 'bloco grande, {n} × {n} células ({size})',
@@ -121,7 +127,7 @@ export default {
   'Click to show or hide the cutting list · double-click to see border {n} in the whole quilt':
     'Clique para mostrar ou esconder a lista de corte · clique duas vezes para ver a barra {n} no quilt inteiro',
   'WOF = width of fabric: {width}, of which {usable} is usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}. Requirements add {extra} to straighten the edge; "buy" rounds up to {step}.':
-    'LT = largura do tecido: {width}, dos quais {usable} são aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}. As quantidades somam {extra} para acertar a beirada; "comprar" arredonda para cima até {step}.',
+    'Largura do tecido: {width}, dos quais {usable} são aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}. As quantidades somam {extra} para acertar a beirada; "comprar" arredonda para cima até {step}.',
   'to the nearest ⅛ inch': 'para o ⅛ de polegada mais próximo',
   'up to the whole millimetre': 'para cima, ao milímetro inteiro',
   '⅛ yard': '⅛ de jarda',
@@ -131,6 +137,7 @@ export default {
   // saving the PDF (pdf/download.js)
   'Drawing page {k} of {total}…': 'Desenhando a página {k} de {total}…',
   'quilt-cutting-guide-A4-{date}.pdf': 'guia-de-corte-A4-{date}.pdf',
+  '{name}-cutting-guide-A4-{date}.pdf': '{name}-guia-de-corte-A4-{date}.pdf',
   'Saving…': 'Salvando…',
   Sent: 'Enviado',
   Saved: 'Salvo',
@@ -152,7 +159,7 @@ export default {
   "Each piece is labelled fabric letter + block number + form: D2.3 is a piece of fabric D in block 2, in that block's third shape cut from fabric D. The letters are the fabrics listed above; pieces with the same label are cut identically.":
     'Cada peça é marcada com a letra do tecido + número do bloco + forma: D2.3 é uma peça do tecido D no bloco 2, na terceira forma desse bloco cortada do tecido D. As letras são os tecidos listados acima; peças com a mesma marca são cortadas iguais.',
   'WOF = width of fabric: {width}, {usable} usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}.':
-    'LT = largura do tecido: {width}, {usable} aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}.',
+    'Largura do tecido: {width}, {usable} aproveitáveis depois de aparar as ourelas. As medidas de corte incluem {seam} de margem de costura e são arredondadas {rounding}.',
   'Whole quilt': 'Quilt inteiro',
   'every piece with its ID': 'cada peça com seu ID',
   'Columns are numbered across the top and rows down the side. Each block piece is labelled with its fabric letter, the number of its block in this guide and its form (D2.3 = fabric D, block 2, form 3).':

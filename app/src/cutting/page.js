@@ -1,9 +1,9 @@
 // Cutting guide page.
 import './draw.js'; // load order: runs after cutting/draw
 import { cgHi, fabHi, lastPlan, setCgHi, setFabHi, setLastPlan } from '../render/hi-state.js';
-import { design } from '../core/store.js';
+import { design as current } from '../core/store.js';
 import { $, esc } from '../core/dom.js';
-import { dims, getUnit, len } from '../core/units.js';
+import { dims, exact, getUnit, len, sharesOf } from '../core/units.js';
 import { comma, t, tn } from '@quilt/shared/i18n.js';
 import { PATTERNS, partsOf } from '@quilt/shared/patterns.js';
 import { fabricById } from '../designer/fabric-library.js';
@@ -45,7 +45,10 @@ import {
 // The whole quilt as on the PDF's quilt page: blocks a little apart, each turned as designed,
 // every piece labelled with its ID, rows and columns numbered.
 // double-clicking a block opens the whole quilt in a pop-up with that block's squares highlighted
+// the quilt as the cutting guide works it out: in inches, from the inches typed (core/units.js exact)
+let design = current;
 function openQuiltPop(P, i) {
+  design = exact(current);
   const d = $('cg-pop'),
     b = P.blocks[i];
   $('cg-pop-title').textContent = b.corner ? b.label : t('Block {n} · {label}', { n: i + 1, label: b.label });
@@ -112,10 +115,14 @@ function cgCardBehaviour(div, key, pick, hint) {
     clearTimeout(clickT);
     pick();
   };
-  for (const el of [cv, div.querySelector('h3')]) {
-    el.addEventListener('click', onClick);
-    el.addEventListener('dblclick', onDbl);
-  }
+  cv.addEventListener('click', onClick);
+  cv.addEventListener('dblclick', onDbl);
+  // the title only opens and closes the list, at once: a second tap on it (thinking the first missed) must not turn
+  // into a double click that does something else
+  div.querySelector('h3')?.addEventListener('click', () => {
+    clearTimeout(clickT);
+    toggle();
+  });
   cv.tabIndex = 0;
   cv.setAttribute('role', 'button');
   cv.setAttribute('aria-expanded', String(cgOpen.has(key)));
@@ -128,6 +135,7 @@ function cgCardBehaviour(div, key, pick, hint) {
   cv.title = hint;
 }
 function openPartPop(kind) {
+  design = exact(current);
   const d = $('cg-pop'),
     q = quiltMm(design),
     nb = bordersOf(design).length,
@@ -186,7 +194,19 @@ function openPartPop(kind) {
   drawQuiltHi($('cg-pop-cv'), Math.min(1000, window.innerWidth - 80), window.innerHeight - 170, kind);
 }
 const cgOpen = new Set(); // blocks whose cutting list is open          // distinct block picked on the cutting guide (double-click), -1 = none
+/**
+ * The fabric the binding is cut from: the outer border's, the usual choice; without a border, the fabric the blocks
+ * use most (not the cream of the background), so it is one of the quilt's own fabrics. @param {any} d
+ */
+function bindingFabric(d) {
+  const outer = bordersOf(d).at(-1)?.fabrics?.[0];
+  if (outer) return outer;
+  const n = new Map();
+  for (const b of d.blocks || []) for (const f of b.fabrics || []) if (f !== 'b0') n.set(f, (n.get(f) || 0) + 1);
+  return [...n].sort((a, b) => b[1] - a[1])[0]?.[0] || 'b1';
+}
 function renderCut() {
+  design = exact(current);
   if (!design) return;
   // a mosaic: its shapes are one card of their own, and the whole quilt with every piece labelled is that card
   document.querySelector('#page-cut .cg-quilt').hidden = !!design.mosaic;
@@ -307,7 +327,7 @@ function renderCut() {
     seam: cutOpts.seam,
     fabricWidth: cutOpts.fabricWidth,
     selvage: cutOpts.selvage,
-    bindingFabric: 'b1',
+    bindingFabric: bindingFabric(design),
     bindingWidth: cutOpts.bindingWidth,
     partsOf,
     label: k => PATTERNS[k].label,
@@ -366,7 +386,7 @@ function renderCut() {
         t('includes binding: {strips} strips {width} × WOF', { strips: r.binding.strips, width: len(r.binding.width) }),
       );
     tr.innerHTML = `<td class="sw"></td><td class="letter">${r.letter}<span class="fname">${esc(fab.name)}</span></td>
-      <td class="req">${r.requirement}${r.buy ? `<small>${t('buy ≈ {buy}', { buy: r.buy })}</small>` : ''}${notes.length ? `<small>${notes.join(' · ')}</small>` : ''}</td>`;
+      <td class="req">${r.requirement}${r.buy ? `<small>${t('buy ≈ {buy}', { buy: r.buy })}</small>` : `<small>${t('a small piece: a remnant will do')}</small>`}${notes.length ? `<small>${notes.join(' · ')}</small>` : ''}</td>`;
     tr.querySelector('.sw').appendChild(swatchCanvas(fab));
     tb.appendChild(tr);
   }
@@ -386,7 +406,7 @@ function renderCut() {
     const rows = b.list
       .map(
         r =>
-          `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${Math.ceil(r.pieces / r.yield)}</td><td class="n">${Math.ceil((r.pieces * b.count) / r.yield)}</td></tr>`,
+          `<tr data-l="${r.letter}" data-f="${r.form}"><td class="l">${r.letter}${i + 1}.${r.form}</td><td>${r.how}</td><td class="n">${sharesOf(r.pieces / r.yield)}</td><td class="n">${Math.ceil((r.pieces * b.count) / r.yield)}</td></tr>`,
       )
       .join('');
     const meta = [esc(b.label)];
@@ -395,9 +415,13 @@ function renderCut() {
     meta.push(t('make {n}', { n: b.count }));
     if (mirroredCount(b))
       meta.push(t('{n} mirrored (cut their odd-shaped pieces with the template turned over)', { n: mirroredCount(b) }));
+    // a share such as ½ in "Per block" puzzles people: said once under the list
+    const shared = b.list.some(r => !Number.isInteger(r.pieces / r.yield))
+      ? `<p class="fine">${t('½ or ¼ per block: one square, cut in two or in four, gives pieces for more than one block.')}</p>`
+      : '';
     // pieced cornerstones are a block card too (their IDs carry its number), named for what they are
     div.innerHTML = `<h3>${b.mosaic ? t('Mosaic') : b.corner ? t('Cornerstone block') : t('Block {n}', { n: i + 1 })}</h3><p class="meta">${meta.join(' · ')}</p><div class="cg-art"><canvas aria-label="${t('Block {n}: {label}, pieces labelled with fabric letters', { n: i + 1, label: esc(b.label) })}"></canvas><span class="cg-hint" aria-hidden="true">${t('Click: cutting list · double-click: see it in the quilt')}</span></div>
-      <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>${t('Fabric')}</th><th>${t('Cut')}</th><th>${t('Per block')}</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      <div class="cg-list" id="cg-list-${i}"><div class="tablewrap"><table><thead><tr><th>${t('Fabric')}</th><th>${t('Cut')}</th><th>${t('Per block')}</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${shared}</div>`;
     box.appendChild(div);
     {
       const bc = div.querySelector('canvas');
@@ -613,9 +637,12 @@ function renderCut() {
   $('cg-note').textContent = t(
     'WOF = width of fabric: {width}, of which {usable} is usable after trimming the selvages. Cut sizes include a {seam} seam allowance and are rounded {rounding}. Requirements add {extra} to straighten the edge; "buy" rounds up to {step}.',
     {
-      width: inInches ? len(cutOpts.fabricWidth) : `${comma(cutOpts.fabricWidth / 10)} cm`,
+      // in inches with the centimetres too: the menu above, like the shops, says 150 cm
+      width: inInches
+        ? `${len(cutOpts.fabricWidth)} (${comma(cutOpts.fabricWidth / 10)} cm)`
+        : `${comma(cutOpts.fabricWidth / 10)} cm`,
       usable: inInches ? len(P.usable) : `${comma(P.usable / 10)} cm`,
-      seam: len(P.seam),
+      seam: getUnit() === 'in' ? len(P.seam) : `${comma(P.seam)} mm`, // 7.5 mm, not rounded to 8
       rounding: inInches ? t('to the nearest ⅛ inch') : t('up to the whole millimetre'),
       extra: len(50),
       step: inInches ? t('⅛ yard') : '5 cm',
@@ -656,7 +683,8 @@ function lightFabric(test, tr) {
 }
 function initCutUI() {
   $('cg-seam').addEventListener('change', e => {
-    cutOpts.seam = +e.target.value;
+    // ¼ in is 6.35 mm: the menu says 6.4, the sums use the quarter inch itself
+    cutOpts.seam = e.target.value === '6.4' ? 6.35 : +e.target.value;
     renderCut();
   });
   $('cg-width').addEventListener('change', e => {

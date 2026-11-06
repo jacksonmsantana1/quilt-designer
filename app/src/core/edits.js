@@ -122,6 +122,9 @@ function moveBorder(d, i, by) {
 function setBorderFabric(d, i, slot, fid) {
   const fb = (d.borders[i].fabrics || []).slice();
   while (fb.length <= slot) fb.push(fb[0] || 'b0');
+  // a plain strip's corner squares follow its fabric while they are the same one (not chosen apart): a new strip
+  // fabric with the old one left in the corners looked like a mistake
+  if (slot === 0 && d.borders[i].type === 'plain' && fb[1] === fb[0]) fb[1] = fid;
   fb[slot] = fid;
   return updateBorder(d, i, { fabrics: fb });
 }

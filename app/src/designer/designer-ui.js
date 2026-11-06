@@ -25,7 +25,7 @@ import {
   setMosaicTool,
 } from './ui-state.js';
 import { $ } from '../core/dom.js';
-import { fromInput, toInput } from '../core/units.js';
+import { fromInput, getUnit, len, roundLen, toInput } from '../core/units.js';
 import { state } from '../sim/config.js';
 import {
   anchorOf,
@@ -549,12 +549,22 @@ function initDesignerUI() {
   });
   const sizeChange = () => resizeTo(+$('dz-cols').value, +$('dz-rows').value);
   const blockSize = e => {
-    const v = fromInput(+e.target.value);
+    const box = e.target;
+    let v = fromInput(+box.value);
+    // a size typed in centimetres (25 for a 25 cm block) is read as such, and said so
+    if (getUnit() === 'mm' && v > 0 && v < 50 && v * 10 >= 50 && v * 10 <= 1000) {
+      v *= 10;
+      notify(t('{cm} cm is {mm} mm: the sizes here are in millimetres.', { cm: comma(v / 10), mm: v }));
+    }
     if (!(v >= 50 && v <= 1000)) {
-      e.target.value = String(toInput(design.blockMm));
+      // refused out loud, and ready for the next try: the old number back, selected
+      notify(t('A block can be from {min} to {max}.', { min: len(50), max: len(1000) }));
+      box.value = String(toInput(design.blockMm));
+      box.select();
       return;
     }
     dispatch(setBlockMm, v);
+    box.value = String(toInput(v)); // the box shows what was used (250 after "25 cm"), not what was typed
   };
   for (const id of ['dz-bmm3']) $(id).addEventListener('change', blockSize);
   $('dz-cols').addEventListener('change', sizeChange);
@@ -565,6 +575,38 @@ function initDesignerUI() {
         g = design.mosaic || design; // a mosaic: shapes across and down
       resizeTo(g.cols + (which === 'c' ? +d : 0), g.rows + (which === 'r' ? +d : 0));
     });
+  // of the blocks chosen, every other one (a chessboard), the one being edited among them: a second block can then be
+  // copied into half the quilt at once
+  // clicked again on the half it chose: the other half, for the second block
+  let altFrom = /** @type {{ all: Set<number>, kept: Set<number> } | null} */ (null);
+  $('dz-alternate').addEventListener('click', () => {
+    const same = (/** @type {Set<number>} */ a, /** @type {Set<number>} */ b) =>
+      a.size === b.size && [...a].every(i => b.has(i));
+    if (altFrom && same(selBlocks, altFrom.kept)) {
+      const from = altFrom;
+      const other = new Set([...from.all].filter(i => !from.kept.has(i) && design.blocks[i]?.under == null));
+      if (!other.size) return;
+      altFrom = { all: from.all, kept: other };
+      setFocusBlock([...other][0]);
+      setSelBlocks(other);
+      renderDesigner();
+      notify(t('Now the other half is chosen. Click a block pattern, or a block of your quilt, to put it in them.'));
+      return;
+    }
+    const at = i => Math.floor(i / design.cols) + (i % design.cols);
+    const keep = new Set(
+      [...selBlocks].filter(i => at(i) % 2 === at(focusBlock) % 2 && design.blocks[i]?.under == null),
+    );
+    if (keep.size === selBlocks.size || !keep.size) return;
+    altFrom = { all: new Set(selBlocks), kept: keep };
+    setSelBlocks(keep);
+    renderDesigner();
+    notify(
+      t(
+        'Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them. Click the button again for the other half.',
+      ),
+    );
+  });
   $('dz-reset').addEventListener('click', () => {
     if ($('dz-reset').dataset.armed !== '1') {
       $('dz-reset').dataset.armed = '1';
@@ -578,7 +620,7 @@ function initDesignerUI() {
     setMineCur(null);
     setSession('mineCur', undefined);
     timelines.remove(tlKeyFor(null));
-    replaceDesign(newDesign(), { timeline: null });
+    replaceDesign({ ...newDesign(), blockMm: roundLen(300) }, { timeline: null });
     $('dz-reset').dataset.armed = '';
     $('dz-reset').textContent = t('Start over');
   });

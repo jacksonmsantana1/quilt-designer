@@ -1,59 +1,152 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'Click the video to see it large.': 'Clique no vídeo para vê-lo grande.',
+  'Click anywhere to close the video': 'Clique em qualquer lugar para fechar o vídeo',
+  'That is another kind of border. Click <b>Plain strip</b>, please: the next steps are about it.':
+    'Essa é outra barra. Clique em <b>Barra lisa</b>, por favor: os próximos passos são sobre ela.',
+  'Keep your finger on the screen while you slide it: from one corner of the quilt to the opposite one.':
+    'Mantenha o dedo na tela enquanto desliza: de um canto do quilt até o canto oposto.',
+  'Keep the mouse button pressed while you move the mouse: press on one corner of the quilt and, without letting go, move to the opposite corner. Then let go.':
+    'Mantenha o botão do mouse apertado enquanto move o mouse: aperte em um canto do quilt e, sem soltar, vá até o canto oposto. Depois solte.',
+  'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and tap <b>OK</b> on the keyboard: the frame gets thinner, and the quilt a little smaller.':
+    'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e toque em <b>OK</b> no teclado: a moldura fica mais fina, e o quilt um pouco menor.',
+  'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. Each card says what to do, and what to tap is lit up. Nothing you do here can spoil anything.':
+    'Em cerca de quinze minutos você vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt clássico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Cada cartão diz o que fazer, e o que é para tocar fica destacado. Nada do que você fizer aqui estraga alguma coisa.',
+  'The other round buttons': 'Os outros botões redondos',
+  'Beside the quilt there are a few more, to try when you like:':
+    'Ao lado do quilt há mais alguns, para experimentar quando quiser:',
+  '<b>Undo</b> takes back the last change.': '<b>Desfazer</b> desfaz a última mudança.',
+  '<b>Turn over</b> shows the back of the quilt.': '<b>Virar</b> mostra o verso do quilt.',
+  '<b>Picture</b> makes a realistic photo of it.': '<b>Foto</b> faz uma foto realista dele.',
+  '<b>Share</b> shows it to other quilters.': '<b>Compartilhar</b> mostra o quilt para outras quilteiras.',
+  '<b>Symmetry</b> repeats each change on the other side of the quilt, like a mirror.':
+    '<b>Simetria</b> repete cada mudança do outro lado do quilt, como num espelho.',
+  '<b>Tutorial</b>, at the bottom left, starts this exercise again.':
+    '<b>Tutorial</b>, embaixo à esquerda, começa este exercício de novo.',
+  'Below the quilt, in <b>Block size</b>, type <b>12</b> and tap <b>OK</b> on the keyboard. The old number goes away by itself. Each block will be 12 inches when sewn.':
+    'Embaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e toque em <b>OK</b> no teclado. O número antigo sai sozinho. Cada bloco terá 12 polegadas depois de costurado.',
+  'Put your finger on one corner of the quilt and, without lifting it, <b>slide it to the opposite corner</b>. Every block it passes is chosen.':
+    'Ponha o dedo em um canto do quilt e, sem tirar, <b>deslize até o canto oposto</b>. Cada bloco por onde ele passar fica escolhido.',
+  'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Slide your finger on the picture</b> to walk around the bed. To come closer, spread two fingers on it.':
+    'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Deslize o dedo na imagem</b> para dar a volta na cama. Para chegar mais perto, abra dois dedos sobre ela.',
+  'Make the border narrower': 'Deixe a barra mais estreita',
+  'The border came 4 inches wide. In the <b>Borders</b> card, in the box with the <b>4</b>, type <b>3</b> and press <b>Enter</b>: the frame gets thinner, and the quilt a little smaller.':
+    'A barra veio com 4 polegadas de largura. No cartão <b>Barras</b>, na caixa com o <b>4</b>, digite <b>3</b> e aperte <b>Enter</b>: a moldura fica mais fina, e o quilt um pouco menor.',
+  'Type <b>3</b>, please, so that the quilt comes out like the one in the tutorial.':
+    'Digite <b>3</b>, por favor, para o quilt ficar igual ao do tutorial.',
+  'Choose the border fabric': 'Escolha o tecido da barra',
+  'Under the border, click <b>Fabric</b>: a list of fabrics opens. Click the one you like for the frame. The quilt changes at once; later you can change it as often as you like.':
+    'Embaixo da barra, clique em <b>Tecido</b>: abre uma lista de tecidos. Clique no que você gostar para a moldura. O quilt muda na hora; depois você pode trocar quantas vezes quiser.',
+  'Look around': 'Olhe em volta',
+  'The quilt falls on the bed the way real fabric does. At this size it is a small cover: it covers only part of a single bed. <b>Drag on the picture</b> with the mouse to walk around the bed, and turn the <b>mouse wheel</b> (on the touchpad of a laptop: slide two fingers up or down) to come closer.':
+    'O quilt cai na cama como um tecido de verdade. Neste tamanho ele é uma coberta pequena: cobre só parte de uma cama de solteiro. <b>Arraste na imagem</b> com o mouse para dar a volta na cama, e gire a <b>rodinha do mouse</b> (no touchpad do notebook: deslize dois dedos para cima ou para baixo) para chegar mais perto.',
+  'Try it on a table': 'Experimente em uma mesa',
+  'A small quilt also makes a lovely table cover. In the list at the top, the one with the name of the bed, choose <b>Square table, 4 seats</b>: the quilt falls again, on the table.':
+    'Um quilt pequeno também fica lindo como toalha de mesa. Na lista lá em cima, a que tem o nome da cama, escolha <b>Mesa quadrada, 4 lugares</b>: o quilt cai de novo, agora na mesa.',
+  'Click the <b>×</b> at the top left to go back to your quilt.':
+    'Clique no <b>×</b> no canto de cima, à esquerda, para voltar ao seu quilt.',
+  'Your shopping list': 'Sua lista de compras',
+  'This table is your shopping list. Each fabric has a letter, and beside it how much to buy, with a little extra for straightening the cut. The <b>binding</b>, the strip that closes the edge of the quilt, is cut from the border fabric and is already counted. Click <b>Next</b> when you have read it.':
+    'Esta tabela é a sua lista de compras. Cada tecido tem uma letra e, ao lado, quanto comprar, com uma sobra para acertar o corte. O <b>viés</b>, a tira que fecha a beirada do quilt, é cortado do tecido da barra e já está na conta. Clique em <b>Próximo</b> quando terminar de ler.',
+  Next: 'Próximo',
+  'The border pieces': 'As peças da barra',
+  'The sashing and the border have their own cards further down. Click <b>Border 1</b>, the highlighted title: it lists the strips to cut for the border. In a strip marked <b>{code}</b>, the first letter, <b>{letter}</b>, is its fabric in the shopping list; then <b>B1</b> means border 1; the last number is the piece. Then click <b>Next</b>.':
+    'As faixas e a barra têm cartões próprios mais abaixo. Clique em <b>Barra 1</b>, o título destacado: ele lista as tiras para cortar para a barra. Numa tira marcada <b>{code}</b>, a primeira letra, <b>{letter}</b>, é o tecido dela na lista de compras; depois, <b>B1</b> quer dizer barra 1; o último número é a peça. Depois clique em <b>Próximo</b>.',
+  'Take it to your sewing table': 'Leve para a mesa de costura',
+  'The <b>Download PDF (A4)</b> button saves all of this to print: the shopping list and every block with its pieces; shapes that a ruler cannot cut come with templates at real size. You can click it now, or later. Then click <b>Next</b>.':
+    'O botão <b>Baixar PDF (A4)</b> guarda tudo isto para imprimir: a lista de compras e cada bloco com as suas peças; as formas que não se cortam com régua vêm com moldes em tamanho real. Você pode clicar agora ou depois. Depois clique em <b>Próximo</b>.',
   // the guided tour
   'Guided tour': 'Tour guiado',
   'Step {n} of {all}': 'Passo {n} de {all}',
   'Show the instructions': 'Mostrar as instruções',
   'Fold the instructions': 'Recolher as instruções',
   'Welcome to Block & Bind!': 'Boas-vindas ao Block & Bind!',
-  'In about two minutes you will make a <b>quilt of three blocks</b> in the Quilt designer, change its pattern and fabrics and add a border. Only the button you need lights up at each step.':
-    'Em cerca de dois minutos você vai fazer um <b>quilt de três blocos</b> no Desenho de quilts, mudar o desenho e os tecidos e adicionar uma barra. Em cada passo, só o botão necessário acende.',
+  'In about fifteen minutes you will make a real <b>nine-patch quilt</b>, the classic first quilt: a block, sashing and a border, then what to cut, and the quilt on a bed. A short video shows each step, then it is your turn. Nothing you do here can spoil anything.':
+    'Em cerca de quinze minutos você vai fazer um <b>quilt nine patch</b> de verdade, o primeiro quilt clássico: um bloco, faixas e uma barra, depois o que cortar e o quilt em uma cama. Um vídeo curto mostra cada passo, e depois é a sua vez. Nada do que você fizer aqui estraga alguma coisa.',
   'Start the exercise': 'Começar o exercício',
   'Not now': 'Agora não',
-  'Fewer columns': 'Menos colunas',
-  'A new quilt starts with 5 × 5 blocks. Above the quilt, click the <b>−</b> next to <b>Columns</b> until there are <b>3</b> columns.':
-    'Um quilt novo começa com 5 × 5 blocos. Acima do quilt, clique no <b>−</b> ao lado de <b>Colunas</b> até ficarem <b>3</b> colunas.',
-  'Just one row': 'Só uma linha',
-  'Now click the <b>−</b> next to <b>Rows</b> until there is <b>1</b> row. Your quilt is now three blocks side by side.':
-    'Agora clique no <b>−</b> ao lado de <b>Linhas</b> até ficar <b>1</b> linha. Seu quilt agora tem três blocos lado a lado.',
+  'Make it three rows': 'Deixe com três linhas',
+  'A new quilt starts as one row of three blocks. Above the quilt, click the <b>+</b> next to <b>Rows</b> until there are <b>3</b> rows.':
+    'Um quilt novo começa com uma linha de três blocos. Acima do quilt, clique no <b>+</b> ao lado de <b>Linhas</b> até ter <b>3</b> linhas.',
+  'Measure in inches': 'Meça em polegadas',
+  'This exercise is in inches, like most quilt patterns. Above the quilt, click the <b>mm / in</b> switch. If you measure in centimetres, you can switch back to mm at the end, or at any time.':
+    'Este exercício é em polegadas, como a maioria dos moldes de quilt. Acima do quilt, clique no botão <b>mm / pol</b>. Se você mede em centímetros, pode voltar para mm no fim, ou quando quiser.',
+  'Choose the block size': 'Escolha o tamanho do bloco',
+  'Below the quilt, in <b>Block size</b>, type <b>12</b> and press <b>Enter</b>. The old number goes away by itself. Each block will be 12 inches when sewn.':
+    'Abaixo do quilt, em <b>Tamanho do bloco</b>, digite <b>12</b> e aperte <b>Enter</b>. O número antigo sai sozinho. Cada bloco terá 12 polegadas depois de costurado.',
+  'That is a different block. Watch the video again, and when it ends click <b>Nine patch</b>, which will light up.':
+    'Esse é outro bloco. Veja o vídeo de novo e, quando ele terminar, clique em <b>Nine patch</b>, que vai ficar destacado.',
+  'That is a different fabric. Watch the video again, and when it ends click <b>Mustard cotton</b>, which will light up.':
+    'Esse é outro tecido. Veja o vídeo de novo e, quando ele terminar, clique em <b>Algodão mostarda</b>, que vai ficar destacado.',
+  'That is a different block, and it would replace your work. Watch the video again, and when it ends click your <b>Nine patch</b>, which will light up.':
+    'Esse é outro bloco, e ele substituiria o seu trabalho. Veja o vídeo de novo e, quando ele terminar, clique no seu <b>Nine patch</b>, que vai ficar destacado.',
   'Open the middle block': 'Abra o bloco do meio',
-  '<b>Click the middle block</b> of your quilt. The side panel opens with its editor.':
-    '<b>Clique no bloco do meio</b> do seu quilt. O painel lateral abre com o editor dele.',
-  'Choose a pattern': 'Escolha um desenho',
-  'Under <b>Block pattern</b> at the end of the Block parts card, click <b>Pinwheel</b>.':
-    'Em <b>Desenho do bloco</b>, no fim do cartão Peças do bloco, clique em <b>Cata-vento</b>.',
-  'Pick a piece': 'Escolha uma peça',
-  'In the big picture of the block at the top of the side panel, <b>click one of the blades</b> of the pinwheel to select it.':
-    'Na imagem grande do bloco, no alto do painel lateral, <b>clique em uma das pás</b> do cata-vento para selecioná-la.',
-  'Give it a fabric': 'Escolha um tecido para ela',
-  'Now click a fabric under <b>Fabric for the selected parts</b>, for example <b>Mustard cotton</b> (any fabric different from the one it has). The piece changes right away.':
-    'Agora clique em um tecido em <b>Tecido das peças selecionadas</b>, por exemplo <b>Algodão mostarda</b> (qualquer tecido diferente do que ela tem). A peça muda na hora.',
-  'Select all three blocks': 'Selecione os três blocos',
-  'Press and <b>drag a rectangle</b> across the whole quilt, from one end to the other. Every block it touches is selected.':
-    'Clique e <b>arraste um retângulo</b> sobre o quilt inteiro, de uma ponta à outra. Todo bloco que ele tocar fica selecionado.',
+  '<b>Click the middle block</b> of your quilt. Your block then opens in the <b>Block parts</b> card.':
+    '<b>Clique no bloco do meio</b> do seu quilt. Aí o seu bloco abre no cartão <b>Peças do bloco</b>.',
+  'Choose the nine patch': 'Escolha o nine patch',
+  'Under <b>Block pattern</b>, click <b>Nine patch</b>: nine squares, the easiest block to sew.':
+    'Em <b>Desenho do bloco</b>, clique em <b>Nine patch</b>: nove quadrados, o bloco mais fácil de costurar.',
+  'Pick a square': 'Escolha um quadrado',
+  'In the big picture of the block, <b>click the square in the middle</b> to select it.':
+    'Na imagem grande do bloco, <b>clique no quadrado do meio</b> para selecioná-lo.',
+  'Give it a fabric': 'Dê um tecido a ele',
+  'Now click <b>Mustard cotton</b>, the highlighted fabric, to give it to that square.':
+    'Agora clique em <b>Algodão mostarda</b>, o tecido destacado, para colocá-lo nesse quadrado.',
+  'Select the whole quilt': 'Selecione o quilt inteiro',
+  'Press and hold the mouse on one corner of the quilt, and <b>drag to the opposite corner</b>. Every block it touches is selected.':
+    'Pressione e segure o mouse em um canto do quilt e <b>arraste até o canto oposto</b>. Todo bloco que ele tocar fica selecionado.',
   'Copy your block': 'Copie o seu bloco',
-  'In the side panel, under <b>Blocks in your quilt</b>, click the <b>Pinwheel</b>. All three blocks become a copy of it.':
-    'No painel lateral, em <b>Blocos do seu quilt</b>, clique no <b>Cata-vento</b>. Os três blocos viram uma cópia dele.',
-  'Close the side panel': 'Feche o painel lateral',
-  'Click the highlighted <b>round button</b> beside the quilt (Block parts) again to close the side panel and see the whole quilt.':
-    'Clique de novo no <b>botão redondo</b> destacado ao lado do quilt (Peças do bloco) para fechar o painel lateral e ver o quilt inteiro.',
-  'Go back in time': 'Volte no tempo',
-  'Changed your mind? Press the <b>←</b> arrow key on your keyboard. The timeline opens at the bottom of the page and steps back one change.':
-    'Mudou de ideia? Aperte a tecla de seta <b>←</b> no teclado. A linha do tempo abre na parte de baixo da página e volta uma alteração.',
-  'And forward again': 'E para a frente de novo',
-  'Now press the <b>→</b> arrow key to bring the change back. Later, double-click an empty part of the page to close the timeline.':
-    'Agora aperte a tecla de seta <b>→</b> para trazer a alteração de volta. Depois, clique duas vezes em uma parte vazia da página para fechar a linha do tempo.',
+  'Under <b>Blocks in your quilt</b>, click your <b>Nine patch</b>, the highlighted one. All nine blocks become a copy of it.':
+    'Em <b>Blocos do seu quilt</b>, clique no seu <b>Nine patch</b>, o que está destacado. Os nove blocos viram uma cópia dele.',
+  'Add sashing': 'Adicione faixas',
+  'Sashing is the strips between the blocks. Click the highlighted round button, <b>Sashing</b>.':
+    'Faixas são as tiras entre os blocos. Clique no botão redondo destacado, <b>Faixas</b>.',
+  'Try a narrow width': 'Experimente uma largura estreita',
+  'Click the highlighted width and watch the quilt: thin strips appear, with a small square where they meet, the cornerstone.':
+    'Clique na largura destacada e olhe o quilt: aparecem tiras finas, com um quadradinho onde elas se encontram, o quadrado de canto.',
+  'Choose the one for this quilt': 'Escolha a deste quilt',
+  'Now click this wider one, the one for this quilt: the strips grow, and so does the whole quilt. You can try any width on your own quilts.':
+    'Agora clique nesta mais larga, a deste quilt: as tiras crescem, e o quilt inteiro também. Nos seus quilts você pode experimentar qualquer largura.',
+  'That is a different width. Click the highlighted one.': 'Essa é outra largura. Clique na que está destacada.',
+  'Only the highlighted item works on this step. Click it to go on.':
+    'Neste passo, só o item destacado funciona. Clique nele para continuar.',
+  'See the sizes': 'Veja as medidas',
+  'Click <b>Block 1</b>, the highlighted title: the list of pieces to cut opens below, with each size. Each piece has a code: <b>A1.1</b> means fabric A, block 1, shape 1 (the letters are the fabrics listed above). Scroll down the page to read it all, then click <b>Next</b>.':
+    'Clique em <b>Bloco 1</b>, o título destacado: logo abaixo abre a lista das peças para cortar, com cada medida. Cada peça tem um código: <b>A1.1</b> quer dizer tecido A, bloco 1, forma 1 (as letras são os tecidos listados acima). Desça a página para ler tudo e depois clique em <b>Próximo</b>.',
+  'My first quilt': 'Meu primeiro quilt',
+  Finish: 'Concluir',
+  'Type <b>12</b>, please, so that the quilt comes out like the one in the videos.':
+    'Digite <b>12</b>, por favor, para o quilt sair igual ao dos vídeos.',
+  'Save your quilt': 'Salve o seu quilt',
+  'A quilt is only kept once you save it. Click the highlighted round button, <b>Save</b>.':
+    'Um quilt só fica guardado depois de salvo. Clique no botão redondo destacado, <b>Salvar</b>.',
+  'Give it a name': 'Dê um nome a ele',
+  'You can keep this name or type another. Then click <b>Save</b>.':
+    'Você pode deixar este nome ou digitar outro. Depois clique em <b>Salvar</b>.',
+  'That is another block. Click the block in the middle of the quilt.':
+    'Esse é outro bloco. Clique no bloco do meio do quilt.',
+  'That is another square. Click the square in the middle of the block.':
+    'Esse é outro quadrado. Clique no quadrado do meio do bloco.',
+  'That took only part of the quilt. Press on one corner and drag all the way to the opposite corner.':
+    'Isso pegou só uma parte do quilt. Pressione em um canto e arraste até o canto oposto.',
   'Open the borders': 'Abra as barras',
-  'Click the <b>Borders</b> round button beside the quilt — the one with a frame drawn on it.':
-    'Clique no botão redondo <b>Barras</b> ao lado do quilt — aquele com uma moldura desenhada.',
+  'A border finishes the edge. Click the highlighted round button, <b>Borders</b>.':
+    'A barra dá o acabamento da borda. Clique no botão redondo destacado, <b>Barras</b>.',
   'Add a border': 'Adicionar uma barra',
-  'In the <b>Borders</b> card, click <b>Piano keys</b> to frame your quilt.':
-    'No cartão <b>Barras</b>, clique em <b>Teclas de piano</b> para emoldurar o seu quilt.',
+  'In the <b>Borders</b> card, click <b>Plain strip</b> to frame your quilt.':
+    'No cartão <b>Barras</b>, clique em <b>Barra lisa</b> para emoldurar o seu quilt.',
+  'See what to cut': 'Veja o que cortar',
+  'Now open the <b>Cutting guide</b>: how much fabric to buy, and every piece to cut, already worked out. The fabric list also has the fabrics the sashing, the cornerstones and the border came with; you can change them in their own cards, under <b>Sashing</b> and <b>Borders</b>.':
+    'Agora abra o <b>Guia de corte</b>: quanto tecido comprar e cada peça para cortar, já calculados. A lista de tecidos também traz os tecidos que vieram com as faixas, os quadrados de canto e a barra; você pode trocá-los nos cartões deles, em <b>Faixas</b> e <b>Barras</b>.',
+  'See it on a bed': 'Veja na cama',
+  'Your quilt is saved: it is in <b>My designs</b>. Now see it on a bed. Click the highlighted round button, <b>On a bed</b>.':
+    'O seu quilt está salvo: ele está em <b>Meus projetos</b>. Agora veja o quilt em uma cama. Clique no botão redondo destacado, <b>Na cama</b>.',
+  'Back to your quilt': 'De volta ao seu quilt',
   'Well done!': 'Muito bem!',
-  'You made a three-block quilt, changed a block, copied it, used undo and redo and added a border. Every change also appears on the bed in <b>Simulation</b>. Keep this quilt, or go back to the one you had before. Restart the tour any time with <b>? Guided tour</b>.':
-    'Você fez um quilt de três blocos, mudou um bloco, copiou esse bloco, usou desfazer e refazer e adicionou uma barra. Toda alteração também aparece na cama em <b>Simulação</b>. Fique com este quilt ou volte para o que você tinha antes. Recomece o tour quando quiser em <b>? Tour guiado</b>.',
-  'Keep this quilt': 'Ficar com este quilt',
-  'Go back to my previous quilt': 'Voltar para o meu quilt anterior',
+  'You made your first quilt, and it is saved.<br>• To find it again: <b>My designs</b>, at the top.<br>• To start another: <b>New</b>.<br>• To measure in millimetres: the <b>mm / in</b> switch.':
+    'Você fez o seu primeiro quilt, e ele está salvo.<br>• Para achá-lo de novo: <b>Meus projetos</b>, lá em cima.<br>• Para começar outro: <b>Novo</b>.<br>• Para medir em milímetros: o botão <b>mm / pol</b>.',
+  'Save it in My designs': 'Salvar em Meus projetos',
+  'Discard this quilt': 'Não guardar este quilt',
 
   // the timeline
   Opened: 'Aberto',

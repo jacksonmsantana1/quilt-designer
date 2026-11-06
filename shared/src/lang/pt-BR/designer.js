@@ -1,5 +1,14 @@
 // Portuguese (Brazil): see ../pt-BR.js.
 export default {
+  'More fabrics': 'Mais tecidos',
+  'By colour': 'Por cor',
+  'Every other block is chosen. Now click a block pattern, or a block of your quilt, to put it in them. Click the button again for the other half.':
+    'Ficou escolhido um bloco sim, um não. Agora clique em um desenho de bloco, ou em um bloco do seu quilt, para colocá-lo neles. Clique no botão de novo para a outra metade.',
+  'Now the other half is chosen. Click a block pattern, or a block of your quilt, to put it in them.':
+    'Agora está escolhida a outra metade. Clique em um desenho de bloco, ou em um bloco do seu quilt, para colocá-lo neles.',
+  'A border can be from {min} to {max} wide.': 'Uma barra pode ter de {min} a {max} de largura.',
+  '{cm} cm is {mm} mm: the sizes here are in millimetres.': '{cm} cm são {mm} mm: aqui as medidas são em milímetros.',
+  'A block can be from {min} to {max}.': 'Um bloco pode ter de {min} a {max}.',
   // units (core/units.js, designer/units-ui.js)
   in: 'pol',
   yd: 'jd',
@@ -68,7 +77,7 @@ export default {
   '{n} border ({size})': '{n} barra ({size})',
   '{n} borders ({size})': '{n} barras ({size})',
   'finished quilt {size}': 'quilt pronto {size}',
-  'Select a square': 'Selecione um quadrado',
+  'Select a square': 'Para unir: selecione um quadrado',
   'Select a square of blocks to unite them: 2 × 2, 3 × 3 or 4 × 4':
     'Selecione um quadrado de blocos para uni-los: 2 × 2, 3 × 3 ou 4 × 4',
   'Up to 4 × 4': 'Até 4 × 4',

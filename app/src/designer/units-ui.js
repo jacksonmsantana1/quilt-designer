@@ -46,6 +46,21 @@ function relabelHints() {
 const VALUE = /** @type {PropertyDescriptor} */ (Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value'));
 /** @type {(() => void)[]} */
 const inchFields = [];
+/**
+ * A number box whose first digit after getting the focus replaces what is there. Moving in it first keeps it.
+ * @param {HTMLInputElement} el @param {() => void} [also] what else starts afresh
+ */
+function replaceOnTyping(el, also) {
+  let fresh = false;
+  el.addEventListener('focus', () => (fresh = true));
+  el.addEventListener('keydown', e => {
+    if (fresh && /^[0-9]$/.test(e.key)) {
+      el.value = '';
+      if (also) also();
+    }
+    fresh = false;
+  });
+}
 /** @param {HTMLInputElement} box */
 function inchPair(box) {
   if (box.dataset.inchPair) return;
@@ -88,6 +103,9 @@ function inchPair(box) {
       sync();
     },
   });
+  // typing into "11" would make 1112, which the box would refuse without a word: the first digit replaces it
+  replaceOnTyping(whole, () => (frac.value = '0'));
+  replaceOnTyping(box);
   const send = () => {
     VALUE.set.call(box, String((+whole.value || 0) + +frac.value / 8));
     box.dispatchEvent(new Event('change', { bubbles: true }));
@@ -123,6 +141,13 @@ onUnitChange(() => {
   } catch (e) {}
   show();
   inchFields.forEach(f => f()); // the pairs show or hide (their boxes are filled again just below)
+  // the seam allowance follows, from one unit's usual one to the other's: ¼ in for inches, 7.5 mm for millimetres
+  const seam = /** @type {HTMLSelectElement} */ ($('cg-seam')),
+    to = { in: ['7.5', '6.4'], mm: ['6.4', '7.5'] }[getUnit()];
+  if (seam.value === to[0]) {
+    seam.value = to[1];
+    seam.dispatchEvent(new Event('change'));
+  }
   if (!design) return;
   renderDesigner();
   if (state.page === 'cut') renderCut();

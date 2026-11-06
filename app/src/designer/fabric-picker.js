@@ -203,6 +203,8 @@ function floatButtons() {
     b.type = 'button';
     b.className = 'fab-more-btn fab-more-float';
     b.id = id;
+    // a name under it (set when shown), like the round buttons beside the quilt: a number or a colour wheel alone
+    // says little
     b.hidden = true;
     b.addEventListener('mouseenter', () => clearTimeout(float.timer)); // moving onto it keeps it
     b.addEventListener('mouseleave', hideFloatSoon);
@@ -255,7 +257,8 @@ addEventListener(
  */
 function showFloat(box, region) {
   const inline = inlineButtons(box);
-  if (!inline.length || matchMedia('(hover: none)').matches) return;
+  // (beside the tutorial's column there is no room outside the card: the row's own buttons show instead)
+  if (!inline.length || matchMedia('(hover: none)').matches || document.body.classList.contains('tour-docked')) return;
   const buttons = floatButtons();
   clearTimeout(float.timer);
   float.box = box;
@@ -267,17 +270,24 @@ function showFloat(box, region) {
   // no room on the left (a small window): over the row's right end, inside the card. Just outside its right edge they
   // fell under the next panel or off the page; the row scrolls, so the tile under them can still be reached
   if (left < 4) left = Math.min(row.right, innerWidth) - size - 6;
+  // nor on the round buttons beside the quilt (On a bed, Picture): just to their left then, over the quilt's edge,
+  // which is only looked at (inside the row they would cover fabrics)
+  const rail = document.querySelector('.rail:not(.rail-left)')?.getBoundingClientRect();
+  if (rail && rail.width && left < rail.right + 6 && left + size > rail.left - 6) left = rail.left - size - 8;
   for (const [n, b] of buttons.entries()) {
     const src = inline[n];
     b.hidden = !src;
     if (!src) continue;
     b.replaceChildren(...[...src.childNodes].map(c => c.cloneNode(true)));
     b.title = src.title;
+    // its name: the first opens the library of that row (blocks or fabrics), the second finds by colour
+    b.dataset.name =
+      n === 1 ? t('By colour') : box.closest('.pats, #dz-patterns') ? t('More blocks') : t('More fabrics');
     b.setAttribute('aria-label', src.getAttribute('aria-label') || '');
     b.style.left = left + 'px';
-    // the buttons together are centred on the row, the second just under the first
+    // the buttons together are centred on the row, the second under the first with room for the first one's name
     b.style.top =
-      row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 8) / 2 + n * (size + 8) + 'px';
+      row.top + row.height / 2 - (inline.length * size + (inline.length - 1) * 20) / 2 + n * (size + 20) + 'px';
   }
 }
 function hideFloat() {

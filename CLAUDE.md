@@ -35,6 +35,7 @@ npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e
 npm run dev -w @quilt/server         # API on :8787 (needs server/.env, see server/.env.example)
 npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabrics for user "seed" (sync as "seed")
 node app/tools/record-clips.mjs      # re-records the welcome cards' clips (app/assets/clips) from the real app; build first; needs ffmpeg, pdftoppm
+node app/tools/record-clips.mjs tutorial   # re-records the first-quilt tutorial's clips, in both languages, with the logo (CLIP_ONLY=sash,fabric: just those)
 ```
 
 Server tests and `app/tests/e2e/sync.spec.mjs` need PostgreSQL: `TEST_DATABASE_URL` (default
@@ -100,6 +101,13 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   IndexedDB database (`storage/pictures.js`), never synced; sharing a quilt sends its picture, or makes one and sends it
   when ready (`mine/community.js`). The page must stay open. Don't call `getProgramInfoLog` for the path tracer: three's
   shader check (`renderer.debug.checkShaderErrors`) holds the whole page up for ~15 s, hence off on the picture's renderer.
+- **The first-quilt tutorial** (`tour/tour.js`, offered once, when the first page closes): a real nine-patch quilt, from
+  a new quilt's one row to 3 × 3, in inches, with its block size, sashing (tried at other widths, to see the quilt
+  change) and a border, with a button to go back a step. A step that names a tile (`pick`) refuses the others, says
+  so and shows its video again; it teaches saving, and finishing keeps the inches. A step's short video (`assets/clips/tut_<en|pt>_<clip>.mp4`, loaded only then) plays once in
+  the card, and the sign lights the real button as it ends; every step is checked in the real app, and the button
+  works during the video. No video that loads: straight to the sign. A step's controls or look changing means
+  re-recording its clips. Screen and logo only, no voice, and not on phones (`IS_PHONE`: no tutorial).
 - **Page security**: `build.py` puts each CDN library's fingerprint in the import map (`tools/import-integrity.mjs`,
   from the same versions in node_modules, so template.html and package.json must agree) and writes `app/dist/_headers`,
   the host's security headers. Scripts run only by their fingerprint or from those packages, so no inline event

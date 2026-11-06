@@ -106,6 +106,9 @@ test('new design and undo', async ({ app, page }) => {
   await page.locator('[data-step="c:-1"]').click();
   await page.waitForTimeout(1500);
   await page.locator('#dz-new').click();
+  // the changed quilt isn't saved: asked first
+  await expect(page.locator('#leave-dlg')).toBeVisible();
+  await page.locator('#leave-drop').click();
   // every new design starts the same: three plain cream squares in a row, 300 mm
   const d = await app.current();
   expect([d.cols, d.rows, d.blockMm]).toEqual([3, 1, 300]);
@@ -126,4 +129,13 @@ test('one timeline step per edit; a held stepper is one step; undo puts it back'
   expect((await app.current()).rows).toBe(5);
   await page.keyboard.press('Control+z');
   expect((await app.current()).cols).toBe(5);
+});
+
+test('the round Undo button beside the quilt takes back the last change', async ({ app, page }) => {
+  const cols = (await app.current()).cols;
+  await page.locator('[data-step="c:-1"]').click();
+  expect((await app.current()).cols).toBe(cols - 1);
+  await expect(page.locator('#dz-undo')).toBeEnabled();
+  await page.locator('#dz-undo').click();
+  await expect.poll(async () => (await app.current()).cols).toBe(cols);
 });

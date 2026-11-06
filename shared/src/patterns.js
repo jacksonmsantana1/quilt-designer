@@ -868,7 +868,7 @@ const FAMILY = {
   Stars: ['ohio', 'sawstar', 'eightstar', 'fanstar'],
   'Nine patch': ['churn', 'dnine'],
   'Strips and logs': ['logcabin'],
-  'Your drawings': Object.keys(TRACED),
+  'Hand-drawn': Object.keys(TRACED),
 };
 for (const [family, keys] of Object.entries(FAMILY)) for (const k of keys) PATTERNS[k].family = family;
 for (const [key, def] of Object.entries(GRID_BLOCKS))

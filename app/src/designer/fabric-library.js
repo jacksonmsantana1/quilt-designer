@@ -156,7 +156,7 @@ function recentFabrics() {
 function noteRecent(id) {
   if (!byId.get(id) || byId.get(id).basic) return;
   try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(withRecent(recentFabrics(), id)));
+    localStorage.setItem(RECENT_KEY, JSON.stringify(withRecent(recentFabrics(), id, 12, false)));
   } catch (e) {}
 }
 

@@ -13,7 +13,7 @@ import { t, tn } from '@quilt/shared/i18n.js';
 //                          on the diagonal: 4 triangles per square
 // Cut sizes round UP to the whole millimetre. Fabric is cut in strips across the
 // width of fabric (WOF) and the strips are sub-cut.
-import { buyLen, dims, len } from '../core/units.js';
+import { buyLen, dims, getUnit, len } from '../core/units.js';
 
 const CG = (() => {
   const upmm = x => Math.ceil(x - 1e-6);
@@ -388,9 +388,17 @@ const CG = (() => {
       r.buy = r.small ? '' : metres(L);
     }
     result.sort((a, b) => a.letter.localeCompare(b.letter));
-    const backW = QW + 200,
-      backH = QH + 200,
-      widths = Math.ceil(Math.min(backW, backH) / usable);
+    // the backing: widths of fabric sewn side by side, running along the quilt or across it, whichever needs less
+    // fabric (a 66 × 78 in back: two widths across, 2 × 66 in, not two along, 2 × 78 in)
+    // 4 in (or 100 mm) more than the quilt all round, in the unit in use: 8 in, not 200 mm read as 7⅞
+    const backMore = getUnit() === 'in' ? 203.2 : 200,
+      backW = QW + backMore,
+      backH = QH + backMore,
+      long = Math.max(backW, backH),
+      short = Math.min(backW, backH),
+      along = Math.ceil(short / usable),
+      across = Math.ceil(long / usable),
+      [widths, pieceLen] = along * long <= across * short ? [along, long] : [across, short];
     return {
       blockW,
       blockH,
@@ -401,7 +409,7 @@ const CG = (() => {
       blocks,
       fabrics: result,
       sashing: sashList,
-      backing: { w: backW, h: backH, widths, buy: metres(widths * Math.max(backW, backH)) },
+      backing: { w: backW, h: backH, widths, buy: metres(widths * pieceLen) },
     };
   }
   /**

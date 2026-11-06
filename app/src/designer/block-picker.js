@@ -108,7 +108,7 @@ const FAMILIES = [
   'Stars',
   'Strips and logs',
   'Larger grids',
-  'Your drawings',
+  'Hand-drawn',
 ];
 // a search also finds a block by its English name and by its family as shown (`family` itself stays English: it is the
 // group's value)

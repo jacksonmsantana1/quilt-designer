@@ -73,13 +73,22 @@ function drawPartsEditor() {
   $('dz-blockname').textContent =
     t('{name} · block {cell}', { name: PATTERNS[b.pattern].label, cell: cellName(design, focusBlock) }) +
     (selBlocks.size > 1 ? ` · ${t('editing {n} blocks', { n: selBlocks.size })}` : '');
+  // "every other block" makes sense for several blocks of a straight quilt, not for one or for a quilt on point
+  if ($('dz-alt-row')) $('dz-alt-row').hidden = selBlocks.size < 3 || isOnPoint(design) || !!design.mosaic;
 }
 /** The list under "Block pattern" (designer/block-picker.js). */
 function drawPatternButtons() {
   drawPatternList();
 }
 function drawFabricPalette() {
-  for (const id of ['dz-fabrics', 'dz-fabrics2']) if ($(id)) drawPaletteInto($(id));
+  if ($('dz-fabrics')) drawPaletteInto($('dz-fabrics'));
+  // the fabric of the selected parts (of the whole block, when none is), not the last one used: it would look as
+  // if the block had a fabric it hasn't. Different fabrics: none marked.
+  if ($('dz-fabrics2')) {
+    const b = design && design.blocks[focusBlock],
+      used = b ? new Set(selParts.size ? [...selParts].map(i => b.fabrics[i]) : b.fabrics) : new Set();
+    drawPaletteInto($('dz-fabrics2'), used.size === 1 ? [...used][0] : '');
+  }
   if (design) {
     drawPaletteInto($('dz-backfabs'), design.backFabric);
     if ($('set-fabs')) drawPaletteInto($('set-fabs'), design.settingFabric || 'b0');

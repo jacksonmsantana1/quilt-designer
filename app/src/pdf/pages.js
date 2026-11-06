@@ -1,8 +1,9 @@
 // Cutting guide PDF: the A4 pages and the PDF writer.
 import '../sim/save-image.js'; // load order: runs after sim/save-image
 import { cgHi, fabHi, setCgHi, setFabHi } from '../render/hi-state.js';
-import { design } from '../core/store.js';
-import { dims, getUnit, len } from '../core/units.js';
+import { design as current, mineCur } from '../core/store.js';
+import { designs } from '../storage/repo.js';
+import { dims, exact, getUnit, len, sharesOf } from '../core/units.js';
 import { comma, t, tn } from '@quilt/shared/i18n.js';
 import { fabricById } from '../designer/fabric-library.js';
 import { BORDER_TYPES, bordersOf, isOnPoint, quiltMm, sashOf } from '@quilt/shared/geometry.js';
@@ -145,17 +146,20 @@ function pdfTableHeight(g, widths, rows, size = 3.6) {
 }
 // "6 × 8 blocks" or "6 × 8 blocks on point"
 const gridText = () => {
-  const grid = { cols: design.cols, rows: design.rows };
-  return isOnPoint(design) ? t('{cols} × {rows} blocks on point', grid) : t('{cols} × {rows} blocks', grid);
+  const grid = { cols: exact(current).cols, rows: exact(current).rows };
+  return isOnPoint(exact(current)) ? t('{cols} × {rows} blocks on point', grid) : t('{cols} × {rows} blocks', grid);
 };
 function pdfFabricPage(P, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12;
+  // the quilt's name on the first page, when it has one: a printed guide gets mixed up with others
+  const rec = mineCur ? designs.get(mineCur) : null;
   pdfHeader(
     g,
     P,
     t('Cutting guide'),
-    `${gridText()} · ${tn(P.blocks.length, '{n} distinct block', '{n} distinct blocks')}`,
+    // the name on the line below the title: a long one must not run into the quilt's sizes on the right
+    `${rec ? `${rec.name} · ` : ''}${gridText()} · ${tn(P.blocks.length, '{n} distinct block', '{n} distinct blocks')}`,
     1,
     pages,
   );
@@ -260,8 +264,8 @@ function pdfFabricPage(P, pages) {
 function pdfQuiltPage(P, page, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12,
-    s = sashOf(design),
-    nb = bordersOf(design).length;
+    s = sashOf(exact(current)),
+    nb = bordersOf(exact(current)).length;
   pdfHeader(
     g,
     P,
@@ -300,7 +304,7 @@ function pdfQuiltPage(P, page, pages) {
       'Columns are numbered across the top and rows down the side. Each block piece is labelled with its fabric letter, the number of its block in this guide and its form (D2.3 = fabric D, block 2, form 3).',
     ),
     ...(s.mm ? [t('Sashing pieces carry S (AS.1 = fabric A, sashing form 1).')] : []),
-    ...(isOnPoint(design) ? [t('Setting triangles carry T (AT.1 = fabric A, setting triangle form 1).')] : []),
+    ...(isOnPoint(exact(current)) ? [t('Setting triangles carry T (AT.1 = fabric A, setting triangle form 1).')] : []),
     ...(nb
       ? [
           t(
@@ -310,7 +314,7 @@ function pdfQuiltPage(P, page, pages) {
       : []),
     t('The pages that follow show each block{sashing}{setting}{borders} with their cutting lists.', {
       sashing: s.mm ? t(', the sashing') : '',
-      setting: isOnPoint(design) ? t(', the setting triangles') : '',
+      setting: isOnPoint(exact(current)) ? t(', the setting triangles') : '',
       borders: nb ? t(' and the borders') : '',
     }),
   ].join(' ');
@@ -324,7 +328,7 @@ function pdfQuiltPage(P, page, pages) {
 function pdfSashPage(P, page, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12,
-    s = sashOf(design),
+    s = sashOf(exact(current)),
     cuts = (P.sashing || []).filter(x => x.group === 'sash');
   pdfHeader(
     g,
@@ -424,9 +428,9 @@ function pdfSettingPage(P, page, pages) {
 function pdfBorderPage(P, bi, page, pages) {
   const [c, g] = pdfPageCanvas(),
     M = 12,
-    bs = bordersOf(design),
+    bs = bordersOf(exact(current)),
     bd = bs[bi],
-    q = quiltMm(design);
+    q = quiltMm(exact(current));
   const cuts = (P.sashing || []).filter(x => x.group === 'b' + bi);
   const where =
     bs.length > 1
@@ -501,7 +505,7 @@ function pdfBlockPage(P, b, i, page, pages) {
   const rows = b.list.map(r => [
     `${r.letter}${i + 1}.${r.form}`,
     plainHow(r.how),
-    Math.ceil(r.pieces / r.yield),
+    sharesOf(r.pieces / r.yield),
     Math.ceil((r.pieces * b.count) / r.yield),
   ]);
   const tH = pdfTableHeight(g, widths, rows);
