@@ -34,10 +34,19 @@ if (!process.argv.includes('--report')) {
   run('npm run coverage:e2e', path.join(ROOT, 'mobile'));
 }
 
-/** A source file's path from the repository's top folder: app/src/…, shared/src/…, server/src/…, mobile/src/… */
-const fromRoot = p => {
-  const m = /(?:^|\/)((?:app|shared|server|mobile)\/src\/.*)$/.exec(p.replace(/\\/g, '/').replace(/^file:\/\//, ''));
-  return m ? m[1] : p;
+/**
+ * A source file's path from the repository's top folder: app/src/…, shared/src/…, server/src/…, mobile/src/…. A
+ * bundle's source map names its own workspace's files from its build folder (`../src/x.js`): those belong to the
+ * phone app in its bundle (app.js) and to the web app in the page's.
+ * @param {string} p @param {{ distFile?: string }} [info]
+ */
+const fromRoot = (p, info = {}) => {
+  const clean = p.replace(/\\/g, '/').replace(/^file:\/\//, '');
+  const m = /(?:^|\/)((?:app|shared|server|mobile)\/src\/.*)$/.exec(clean);
+  if (m) return m[1];
+  const own = /^(?:\.\.\/)*src\/(.*)$/.exec(clean);
+  if (own) return `${/app\.js$/.test(info.distFile || '') ? 'mobile' : 'app'}/src/${own[1]}`;
+  return clean;
 };
 const SOURCE = /(?:^|\/)(app|shared|server|mobile)\/src\/.*\.js$/;
 
@@ -51,7 +60,7 @@ const mcr = MCR({
     if (u.startsWith('file://')) return SOURCE.test(u) && !u.includes('node_modules');
     return true; // browser entries were filtered when they were kept
   },
-  sourceFilter: p => SOURCE.test(fromRoot(p)) && !p.includes('node_modules') && !p.endsWith('.d.ts'),
+  sourceFilter: p => /(?:^|\/)src\/.*\.js$/.test(p) && !p.includes('node_modules') && !p.endsWith('.d.ts'),
   sourcePath: fromRoot,
   // the files no test loads, so they count as not run instead of being left out
   all: {
@@ -69,3 +78,27 @@ const s = results.summary;
 console.log(
   `\nAll tests: functions ${s.functions.pct}%  lines ${s.lines.pct}%  statements ${s.statements?.pct ?? '-'}%  branches ${s.branches.pct}%`,
 );
+
+// the bar the project keeps: at least 80% of the functions and of the lines of each part run in some test
+const LEAST = 80;
+const parts = {};
+for (const f of results.files || []) {
+  const part = /^(app|shared|server|mobile)\/src\//.exec(f.sourcePath || '')?.[1];
+  if (!part) continue;
+  const p = (parts[part] ??= { fc: 0, ft: 0, lc: 0, lt: 0 });
+  p.fc += f.summary.functions.covered;
+  p.ft += f.summary.functions.total;
+  p.lc += f.summary.lines.covered;
+  p.lt += f.summary.lines.total;
+}
+let short = false;
+for (const [part, p] of Object.entries(parts)) {
+  const fn = (100 * p.fc) / (p.ft || 1),
+    ln = (100 * p.lc) / (p.lt || 1),
+    low = fn < LEAST || ln < LEAST;
+  short ||= low;
+  console.log(
+    `${part.padEnd(7)} functions ${fn.toFixed(1)}%  lines ${ln.toFixed(1)}%${low ? `  (below ${LEAST}%)` : ''}`,
+  );
+}
+if (short) process.exitCode = 1;

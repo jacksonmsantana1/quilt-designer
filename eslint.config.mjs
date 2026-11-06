@@ -11,6 +11,8 @@ export default [
       'mobile/ios/**',
       'mobile/test-results/**',
       'app/coverage/**',
+      'mobile/coverage/**',
+      'coverage/**',
       'app/tests/legacy/**',
       'app/test-results/**',
       'app/*.js',

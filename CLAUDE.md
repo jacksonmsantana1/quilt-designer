@@ -32,6 +32,7 @@ npm run check              # prettier check, eslint, tsc (JSDoc types), unit tes
 npm run test:e2e           # Playwright browser tests of the app (build first; ~5 min; workers: 1), then the phone app's
 npm run dev -w @quilt/mobile         # the phone app on :8200, in a browser, with quilts from the live API
 npm run coverage:e2e -w @quilt/app   # browser-test coverage -> app/coverage/e2e/index.html
+npm run coverage                     # every test on every source file (unit + both apps' browser tests, ~15 min) -> coverage/all; fails below 80% of functions or lines in any part
 npm run dev -w @quilt/server         # API on :8787 (needs server/.env, see server/.env.example)
 npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabrics for user "seed" (sync as "seed")
 node app/tools/record-clips.mjs      # re-records the welcome cards' clips (app/assets/clips) from the real app; build first; needs ffmpeg, pdftoppm
