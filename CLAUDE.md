@@ -131,6 +131,10 @@ checks on every pull request and every change to main (`.github/workflows/ci.yml
   colours) is in its own database (`mobile/src/store.js`); folders show in the web library as groups
   (`designer/fabric-folders-state.js`). `build.mjs --dev-signin` makes the tests' build, which signs in by name; the
   scripts that make a real app don't use it. The page allows scripts only from itself, so Auth0's library is bundled.
+  A fabric photo of a cut piece of known size (Camera tab, `piece-size.js`) is framed live by the app's own camera
+  (`live-camera.js`, getUserMedia: the phone's camera app can't show a frame; Android needs the CAMERA permission),
+  cropped in its shape and kept with `cm` = the piece's width; the fabric's sheet corrects it (`repo.fabrics.resize`).
+  The browser tests use Chromium's made-up camera (playwright.config.mjs).
 - **Style**: Prettier (120 cols, single quotes). Comments say why in plain words. UI text is short and friendly.
 
 ## Server (server/)

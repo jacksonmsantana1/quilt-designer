@@ -118,7 +118,7 @@ test('a fabric, a folder, a note and a photo go from one phone to another throug
 
   await one.page.locator('#go-camera').click();
   const chooser2 = one.page.waitForEvent('filechooser');
-  await one.page.locator('#cam-quilt').click();
+  await one.page.locator('#cam-shoot').click();
   await (await chooser2).setFiles(await colourFile(one.page, 'teal'));
   await one.page.locator('#album-name').fill('Grandma’s quilt');
   await one.page.locator('dialog[open] button[type=submit]').click();

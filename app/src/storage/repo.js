@@ -328,6 +328,13 @@ function createRepo() {
       put('fabrics', id, { ...old, name, dirty: true, updatedAt: now(), rev: old.rev + 1 });
       changed('fabrics', id);
     },
+    /** Says how much cloth a fabric photo's width covers, in cm: the print's size on quilts. @param {string} id @param {number} cm */
+    resize(id, cm) {
+      const old = cache.fabrics.get(id);
+      if (!old || old.deleted || !(cm > 0) || old.cm === cm) return;
+      put('fabrics', id, { ...old, cm, dirty: true, updatedAt: now(), rev: old.rev + 1 });
+      changed('fabrics', id);
+    },
     /** Deletes a fabric photo (kept as a marker until the server has the deletion). @param {string} id */
     remove(id) {
       const old = cache.fabrics.get(id);

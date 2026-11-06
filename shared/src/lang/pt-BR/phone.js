@@ -90,8 +90,33 @@ export default {
   'A photo of a quilt': 'Uma foto de um quilt',
   'A photo of a real quilt': 'Uma foto de um quilt de verdade',
   'A photo of a fabric': 'Uma foto de um tecido',
-  'Crop it, and it sorts itself by colour.': 'Recorte, e ela se organiza sozinha por cor.',
-  'The photo keeps nothing about where it was taken.': 'A foto não guarda nada sobre onde foi tirada.',
+  'What is the photo of?': 'A foto é de quê?',
+  'A quilt': 'Um quilt',
+  'A fabric': 'Um tecido',
+  'Lay it flat, in daylight. The photo keeps nothing about where it was taken.':
+    'Estenda o quilt, com luz do dia. A foto não guarda nada sobre onde foi tirada.',
+  'Cut a piece, type its size, and frame it: it’s kept at its real size, and sorts itself by colour.':
+    'Corte um pedaço, digite o tamanho e enquadre: ele fica guardado no tamanho real, e se organiza sozinho por cor.',
+  'The size of the cut piece': 'O tamanho do pedaço cortado',
+  Height: 'Altura',
+  Unit: 'Unidade',
+  'Leave it empty for a photo of a whole fabric, without its size.':
+    'Deixe vazio para a foto de um tecido inteiro, sem o tamanho.',
+  'The camera wasn’t allowed, so the phone’s own camera opens instead.':
+    'A câmera não foi permitida, então abre a câmera do próprio celular.',
+  'Frame the piece': 'Enquadre o pedaço',
+  'Hold the phone flat over the piece, and fit its edges in the frame.':
+    'Segure o celular reto sobre o pedaço e encaixe as bordas dele no quadro.',
+  'Drag the frame, or its corner, to fit the edges of the piece.':
+    'Arraste o quadro, ou o canto dele, até as bordas do pedaço.',
+  '{w} × {h} cm': '{w} × {h} cm',
+  '{w} × {h} in': '{w} × {h} pol',
+  'Type the width and the height of the piece.': 'Digite a largura e a altura do pedaço.',
+  'A piece can be from 1 to 300 cm on each side.': 'Um pedaço pode ter de 1 a 300 cm de cada lado.',
+  'Its real size': 'O tamanho real',
+  'Its real size: {size}': 'Tamanho real: {size}',
+  'Its quilts show it at {size} now.': 'Agora os quilts mostram o tecido com {size}.',
+  '{n} waiting to upload': '{n} esperando para enviar',
   'Latest photos': 'Últimas fotos',
 
   // My fabrics

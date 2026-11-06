@@ -605,19 +605,257 @@ input[type='search'] {
   touch-action: none;
 }
 /* the camera tab, and photos */
-.cam-card {
+/* quilt or fabric, then one frame and one big button where the thumb is */
+.cam-kind {
+  display: flex;
   margin-bottom: 12px;
-  padding: 12px 14px 14px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--pic-bg);
+}
+.cam-kind button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--accent);
+  font: 700 0.95rem var(--font-body);
+}
+.cam-kind button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--panel);
+}
+.cam-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+  padding: 24px 28px;
+  border-radius: 16px;
   background: var(--panel);
-  border: 2px dashed var(--stitch);
+  text-align: center;
+}
+/* the four corners of a viewfinder: two short strokes at each */
+.cam-frame::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--accent), var(--accent)) top left / 24px 3px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) top left / 3px 24px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) top right / 24px 3px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) top right / 3px 24px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom left / 24px 3px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom left / 3px 24px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom right / 24px 3px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) bottom right / 3px 24px no-repeat;
+}
+.cam-icon {
+  color: var(--accent);
+}
+.cam-frame h2 {
+  margin: 6px 0 4px;
+  font: 600 1.1rem/1.25 var(--font-head);
+}
+.cam-frame .hint {
+  margin: 0;
+}
+.cam-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 12px 4px;
+}
+.cam-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 72px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 500 0.75rem var(--font-body);
+}
+.cam-pick svg {
+  box-sizing: content-box;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--accent);
+}
+.cam-shoot {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border: 5px solid var(--pic-bg);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--panel);
+}
+.cam-shoot:active,
+.cam-kind button:active {
+  transform: scale(0.96);
+}
+/* the cut piece: its shape in the frame, and its size typed under it */
+.cam-shape {
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: 3px;
+  background: var(--pic-bg);
+}
+.cam-shape span {
+  padding: 0 4px;
+  color: var(--accent);
+  font: 700 0.72rem var(--font-body);
+  white-space: nowrap;
+}
+.cam-size {
+  margin-top: 12px;
+  padding: 10px 14px 4px;
   border-radius: 14px;
+  background: var(--panel);
 }
-.cam-card h2 {
-  margin: 0 0 4px;
-  font: 600 1.05rem/1.25 var(--font-head);
+.cam-size label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
 }
-.cam-card .hint {
-  margin: 0 0 10px;
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.size-box {
+  width: 5.2em;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 1.1rem var(--font-body);
+  text-align: center;
+}
+.cam-unit {
+  display: flex;
+  margin-left: auto;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--pic-bg);
+}
+.cam-unit button {
+  min-width: 44px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--accent);
+  font: 700 0.9rem var(--font-body);
+}
+.cam-unit button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--panel);
+}
+.cam-size .hint {
+  margin: 6px 0;
+  font-size: 0.85rem;
+}
+.hint.warn {
+  color: var(--accent);
+}
+.hint.warn:empty {
+  display: none;
+}
+/* the camera inside the app: the picture, and the piece's frame over it */
+.sheet.live {
+  background: #000;
+  color: #fff;
+}
+.sheet.live[open] {
+  display: flex;
+  flex-direction: column;
+}
+.sheet.live .sheet-top {
+  background: #000;
+}
+.sheet.live .sheet-top .close {
+  color: #fff;
+}
+.sheet.live .sheet-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.live-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.live-stage video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.live-frame {
+  position: absolute;
+  border: 3px solid #fff;
+  border-radius: 4px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+/* inside the frame: above it, a short picture (a phone held sideways) would cut it off */
+.live-size {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  font: 700 0.85rem var(--font-body);
+  white-space: nowrap;
+}
+.live-hint {
+  margin: 10px 4px 0;
+  color: #ddd;
+  text-align: center;
+}
+.live-foot {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+.live-foot .cam-shoot {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.shutter-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.recent-head {
+  margin-top: 14px;
+}
+.recent-head h3 {
+  margin: 0;
+}
+.recent-head .hint {
+  color: var(--accent);
+  font-size: 0.8rem;
 }
 .shots {
   display: grid;
@@ -639,10 +877,18 @@ input[type='search'] {
   aspect-ratio: 1;
   object-fit: cover;
 }
-.shot .badge {
-  top: 4px;
-  left: 4px;
-  font-size: 0.62rem;
+/* waiting to upload: a dot, said in words over the photos */
+.shot .badge.wait {
+  top: 6px;
+  right: 6px;
+  left: auto;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: oklch(0.75 0.15 75);
+  font-size: 0;
 }
 canvas.large {
   display: block;

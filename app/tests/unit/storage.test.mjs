@@ -113,6 +113,25 @@ test('fabrics: the same image gets the same id once', async () => {
   assert.equal(repo.fabrics.list().length, 1);
 });
 
+test('fabrics: a measured size is kept and waits for the sync; a size that is no size changes nothing', async () => {
+  await repo.openStorage({ db: memoryDb(), legacy: null });
+  const { id } = await repo.fabrics.add(new Blob([new Uint8Array([9, 8, 7])], { type: 'image/jpeg' }), {
+    name: 'Piece',
+    cm: 30,
+  });
+  repo.fabrics.markSynced(id, repo.fabrics.get(id).rev, 1);
+  const rev = repo.fabrics.get(id).rev;
+  repo.fabrics.resize(id, 15);
+  assert.equal(repo.fabrics.get(id).cm, 15);
+  assert.equal(repo.fabrics.get(id).rev, rev + 1);
+  assert.equal(repo.fabrics.get(id).dirty, true);
+  repo.fabrics.resize(id, 15);
+  repo.fabrics.resize(id, 0);
+  repo.fabrics.resize(id, NaN);
+  assert.equal(repo.fabrics.get(id).rev, rev + 1);
+  assert.equal(repo.fabrics.get(id).cm, 15);
+});
+
 test('writes in one moment go to the database together, the last value of each record', async () => {
   const db = memoryDb(),
     batches = [];

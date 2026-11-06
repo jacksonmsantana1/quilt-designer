@@ -39,23 +39,45 @@
     <div class="chosen-bar" id="fab-chosen" hidden></div>
   </section>
   <section id="tab-camera" hidden>
-    <div class="cam-card">
-      <h2 id="cam-quilt-title"></h2>
-      <p class="hint" id="cam-quilt-hint"></p>
-      <div class="row">
-        <button type="button" class="btn solid" id="cam-quilt"></button>
-        <button type="button" class="btn" id="cam-quilt-pick"></button>
-      </div>
+    <div class="cam-kind" role="group" id="cam-kind">
+      <button type="button" id="cam-kind-quilt" aria-pressed="true"></button>
+      <button type="button" id="cam-kind-fabric" aria-pressed="false"></button>
     </div>
-    <div class="cam-card">
-      <h2 id="cam-fabric-title"></h2>
-      <p class="hint" id="cam-fabric-hint"></p>
-      <div class="row">
-        <button type="button" class="btn solid" id="cam-fabric"></button>
-        <button type="button" class="btn" id="cam-fabric-pick"></button>
-      </div>
+    <div class="cam-frame">
+      <svg class="cam-icon" id="cam-icon-quilt" viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><path d="M3 3h18v18H3zM3 12l9-9 9 9-9 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <svg class="cam-icon" id="cam-icon-fabric" viewBox="0 0 24 24" width="36" height="36" aria-hidden="true" hidden><path d="M4 6c5-3 11 3 16 0v14c-5 3-11-3-16 0zM4 13c5-3 11 3 16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <div class="cam-shape" id="cam-shape" hidden><span id="cam-shape-label"></span></div>
+      <h2 id="cam-title"></h2>
+      <p class="hint" id="cam-hint"></p>
     </div>
-    <h3 id="recent-title" hidden></h3>
+    <div class="cam-size" id="cam-size" hidden>
+      <label for="cam-w" id="cam-size-label"></label>
+      <div class="size-row">
+        <input type="text" inputmode="decimal" id="cam-w" class="size-box" maxlength="6" autocomplete="off">
+        <span aria-hidden="true">×</span>
+        <input type="text" inputmode="decimal" id="cam-h" class="size-box" maxlength="6" autocomplete="off">
+        <div class="cam-unit" role="group" id="cam-unit">
+          <button type="button" id="cam-unit-cm" aria-pressed="true">cm</button>
+          <button type="button" id="cam-unit-in" aria-pressed="false"></button>
+        </div>
+      </div>
+      <p class="hint warn" id="cam-size-said" role="status"></p>
+      <p class="hint" id="cam-size-hint"></p>
+    </div>
+    <div class="cam-actions">
+      <button type="button" class="cam-pick" id="cam-pick">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 16l5-5 4 4 3-3 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="16" cy="9" r="1.6" fill="currentColor"/></svg>
+        <span id="cam-pick-label"></span>
+      </button>
+      <button type="button" class="cam-shoot" id="cam-shoot">
+        <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      </button>
+      <span class="cam-pick" aria-hidden="true"></span>
+    </div>
+    <div class="row spread recent-head">
+      <h3 id="recent-title" hidden></h3>
+      <span class="hint" id="recent-wait" hidden></span>
+    </div>
     <div class="shots" id="recent"></div>
   </section>
 </main>

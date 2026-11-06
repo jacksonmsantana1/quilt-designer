@@ -6,7 +6,7 @@ import { test, expect, colourFile, FABRIC } from './fixture.mjs';
 async function photoOfNewQuilt(phone, name, file) {
   const { page } = phone;
   await phone.tab('camera');
-  await phone.pick(page.locator('#cam-quilt'), file);
+  await phone.pick(page.locator('#cam-shoot'), file);
   await page.locator('#album-name').fill(name);
   await page.locator('dialog[open] button[type=submit]').click();
   await expect(page.locator('.toast').last()).toContainText('Kept on this phone');
@@ -35,6 +35,7 @@ test('a photo with no design starts an album, kept on the phone, and goes up aft
   await photoOfNewQuilt(phone, 'Grandma’s quilt', await colourFile(page, 'teal'));
   await expect(page.locator('#recent .shot')).toHaveCount(1);
   await expect(page.locator('#recent .badge')).toHaveText('Waiting to upload');
+  await expect(page.locator('#recent-wait')).toHaveText('1 waiting to upload');
   await phone.tab('quilts');
   const pin = page.locator('#quilts-board .pin');
   await expect(pin.locator('.name')).toHaveText('Grandma’s quilt');
@@ -145,7 +146,7 @@ test('changing their mind in the file picker or the quilt question keeps nothing
   const { page } = phone;
   await phone.open();
   await phone.tab('camera');
-  await phone.pick(page.locator('#cam-quilt'), await colourFile(page, 'teal'));
+  await phone.pick(page.locator('#cam-shoot'), await colourFile(page, 'teal'));
   await page.locator('dialog[open] .close').click();
   await expect(page.locator('#recent .shot')).toHaveCount(0);
   await expect(page.locator('.toast')).toHaveCount(0);
@@ -155,18 +156,34 @@ test('an album’s next photo can go in the same album', async ({ phone }) => {
   const { page } = phone;
   await phone.open();
   await photoOfNewQuilt(phone, 'Grandma’s quilt', await colourFile(page, 'teal'));
-  await phone.pick(page.locator('#cam-quilt'), await colourFile(page, 'red'));
+  await phone.pick(page.locator('#cam-shoot'), await colourFile(page, 'red'));
   await page.getByRole('button', { name: 'Grandma’s quilt' }).click();
   await phone.tab('quilts');
   await expect(page.locator('#quilts-board .pin')).toHaveCount(1);
   await expect(page.locator('#quilts-board .pin .by')).toContainText('2 photos');
 });
 
+test('the switch says what the photo is of, and the same buttons take a fabric', async ({ phone }) => {
+  const { page } = phone;
+  await phone.open();
+  await phone.tab('camera');
+  await expect(page.locator('#cam-title')).toHaveText('A photo of a real quilt');
+  await expect(page.locator('#recent-wait')).toBeHidden();
+  await page.getByRole('button', { name: 'A fabric' }).click();
+  await expect(page.locator('#cam-kind-fabric')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#cam-kind-quilt')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#cam-title')).toHaveText('A photo of a fabric');
+  await expect(page.locator('#cam-shape')).toBeVisible(); // the cut piece's shape, 15 × 15 cm to begin with
+  await expect(page.locator('#cam-icon-quilt')).toBeHidden();
+  await phone.pick(page.locator('#cam-pick'), await colourFile(page, 'blue'));
+  await expect(page.locator('#crop-box')).toBeVisible();
+});
+
 test('a file that isn’t a picture is explained', async ({ phone }) => {
   const { page } = phone;
   await phone.open();
   await phone.tab('camera');
-  await phone.pick(page.locator('#cam-quilt'), {
+  await phone.pick(page.locator('#cam-shoot'), {
     name: 'notes.jpg',
     mimeType: 'image/jpeg',
     buffer: Buffer.from('not a picture'),
