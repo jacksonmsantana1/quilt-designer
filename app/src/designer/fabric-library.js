@@ -80,9 +80,21 @@ function tileSource(f) {
   }
   return [thumbs.get(f.id), THUMB];
 }
-/** A stored photo (kept here, or arrived from another device): into the fabric list, once. @param {{ id: string, name: string, cm: number, blob: Blob, createdAt?: number }} r */
+/**
+ * A stored photo (kept here, or arrived from another device): into the fabric list, once. One already listed takes its
+ * new name and size (renamed, or measured on the phone app).
+ * @param {{ id: string, name: string, cm: number, blob: Blob, createdAt?: number }} r @returns {boolean} its size changed
+ */
 function addStoredFabric(r) {
-  if (!byId.has(r.id)) put({ id: r.id, name: r.name, cm: r.cm, canvas: null, blob: r.blob, added: r.createdAt || 0 });
+  const had = byId.get(r.id);
+  if (!had) {
+    put({ id: r.id, name: r.name, cm: r.cm, canvas: null, blob: r.blob, added: r.createdAt || 0 });
+    return false;
+  }
+  const resized = had.cm !== r.cm;
+  had.name = r.name;
+  had.cm = r.cm;
+  return resized;
 }
 
 // called when pictures finish loading after something was already drawn with a stand-in (app/pages.js redraws)
@@ -90,6 +102,8 @@ const loadedListeners = [];
 let loadedSoon = false;
 /** @param {() => void} fn */
 const onFabricsLoaded = fn => loadedListeners.push(fn);
+/** A fabric's size changed: everything drawn with it is drawn again, as when a picture arrives. */
+const fabricsResized = () => loadedListeners.forEach(fn => fn());
 /**
  * Makes the pictures of these fabrics, if they aren't made yet. A photo the browser can't read any more is
  * left out of the lists and its parts show the first fabric.
@@ -205,6 +219,7 @@ export {
   fabricById,
   fabricLib,
   fabricPalette,
+  fabricsResized,
   initFabricLib,
   isFabric,
   listedFabrics,

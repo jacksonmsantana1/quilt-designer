@@ -10,7 +10,7 @@ import { signIn, signInToken, signOut, tokenMayGoTo } from '../storage/auth0.js'
 import { onChange, repo } from '../storage/repo.js';
 import { notify } from '../ui/notice.js';
 import { openDesign } from '../designer/dispatch.js';
-import { addStoredFabric } from '../designer/fabric-library.js';
+import { addStoredFabric, fabricsResized } from '../designer/fabric-library.js';
 import { setFolderLoader } from '../designer/fabric-folders-state.js';
 import { drawFabricPalette } from '../designer/parts-editor.js';
 import { adoptDesignId, mineSave, renderMine, startNew } from './my-designs.js';
@@ -148,12 +148,13 @@ async function run() {
 /** What arrived from other devices: into the fabric list, My designs, and the open quilt where safe. */
 async function fitIn(events) {
   let fabricsChanged = false,
+    resized = false,
     designsChanged = false;
   for (const e of events) {
     if (e.kind === 'fabric') {
       const f = repo.fabrics.get(e.id);
       if (f?.blob) {
-        addStoredFabric(f);
+        if (addStoredFabric(f)) resized = true;
         fabricsChanged = true;
       }
       continue;
@@ -172,6 +173,7 @@ async function fitIn(events) {
     else if (e.kind === 'design' && before?.id === e.id) openOrKeep(e);
   }
   if (fabricsChanged) drawFabricPalette();
+  if (resized) fabricsResized();
   if (designsChanged && state.page === 'mine') renderMine();
 }
 

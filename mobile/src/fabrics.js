@@ -62,8 +62,12 @@ async function ownOrLinked(f) {
 async function fabricsReady(design, photos = []) {
   await initFabrics();
   for (const p of photos) if (!byId.has(p.id)) byId.set(p.id, { cm: p.cm, canvas: null, url: p.url });
-  for (const r of repo.fabrics.list())
-    if (r.blob && !byId.has(r.id)) byId.set(r.id, { cm: r.cm, canvas: null, blob: r.blob });
+  for (const r of repo.fabrics.list()) {
+    const had = byId.get(r.id);
+    if (had)
+      had.cm = r.cm; // its size may have been corrected since
+    else if (r.blob) byId.set(r.id, { cm: r.cm, canvas: null, blob: r.blob });
+  }
   const jobs = [];
   for (const id of fabricIdsIn(design, s => byId.has(s))) {
     const f = byId.get(id);

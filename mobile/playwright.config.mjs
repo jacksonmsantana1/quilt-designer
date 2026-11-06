@@ -16,5 +16,8 @@ export default defineConfig({
     hasTouch: true,
     isMobile: true,
     actionTimeout: 15_000,
+    // the camera inside the app (live-camera.js): Chromium's made-up camera, allowed without asking
+    permissions: ['camera'],
+    launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
   },
 });

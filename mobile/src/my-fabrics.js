@@ -23,12 +23,13 @@ import {
   setNote,
 } from './organize.js';
 import { whenNear } from './quilt-card.js';
+import { fromCm, lastUnit, parseLength, short, sizeLabel, toCm, MAX_CM, MIN_CM } from './piece-size.js';
 import { get, put } from './store.js';
 import { $, ask, el, openSheet, pressable, say, shown } from './ui.js';
 
 const PAGE = 60,
   THUMB_PX = 200,
-  NEW_FABRIC_CM = 30; // a starting width; the real one is asked for when the fabric is used on a quilt
+  NEW_FABRIC_CM = 30; // a guess, for a photo of no measured piece; the fabric's sheet can correct it
 
 const FAMILY_NAMES = {
   red: t('Red'),
@@ -601,6 +602,67 @@ async function deleteFabric(it, s) {
   renderFabrics();
 }
 
+/**
+ * How big the cloth in a fabric's photo is: width × height, kept in step with the picture's shape. A changed size
+ * changes the print on every quilt that uses the fabric, here and, once synced, on the web.
+ * @param {Item} it
+ */
+function sizeField(it) {
+  const unit = lastUnit();
+  const box = id => el('input', { type: 'text', inputMode: 'decimal', id, class: 'size-box', maxLength: 6 });
+  const w = box('fabric-w'),
+    h = box('fabric-h'),
+    said = el('p', { class: 'hint', id: 'fabric-size-said', role: 'status' });
+  let aspect = 1;
+  const fill = () => {
+    const cm = repo.fabrics.get(it.id)?.cm || NEW_FABRIC_CM;
+    w.value = short(fromCm(cm, unit));
+    h.value = short(fromCm(cm / aspect, unit));
+  };
+  loadImage(it.blob)
+    .then(im => {
+      aspect = im.naturalWidth / im.naturalHeight;
+      fill();
+    })
+    .catch(() => fill());
+  fill();
+  const typed = (from, toWidth) => () => {
+    const v = parseLength(from.value);
+    const wCm = toCm(toWidth(v), unit);
+    if (!(v > 0) || wCm < MIN_CM || wCm > MAX_CM || wCm / aspect < MIN_CM || wCm / aspect > MAX_CM) {
+      said.textContent = t('A piece can be from 1 to 300 cm on each side.');
+      fill();
+      return;
+    }
+    repo.fabrics.resize(it.id, wCm);
+    fill(); // both boxes, in step with the picture's shape
+    said.textContent = t('Its quilts show it at {size} now.', { size: sizeLabel(wCm, wCm / aspect, unit) });
+    renderFabrics();
+  };
+  w.addEventListener(
+    'change',
+    typed(w, v => v),
+  );
+  h.addEventListener(
+    'change',
+    typed(h, v => v * aspect),
+  );
+  return el(
+    'div',
+    { class: 'field' },
+    el('span', { textContent: t('Its real size') }),
+    el(
+      'div',
+      { class: 'size-row' },
+      w,
+      el('span', { textContent: '×' }),
+      h,
+      el('span', { textContent: unit === 'in' ? t('in') : 'cm' }),
+    ),
+    said,
+  );
+}
+
 /** A fabric's sheet: its picture, its details and its folders. Details are kept as they're typed. @param {Item} it */
 function openFabric(it) {
   const mine = !!it.blob,
@@ -631,6 +693,7 @@ function openFabric(it) {
     renderFabrics();
   };
   for (const i of [name, amount, place]) i.addEventListener('change', keep);
+  const size = mine ? sizeField(it) : null;
   s.dialog.addEventListener('close', keep);
   const ticks = el('div', { class: 'ticks' });
   const fillTicks = () =>
@@ -667,6 +730,7 @@ function openFabric(it) {
     ...shown([
       el('div', { class: 'fab-large' }, picture(it)),
       field(t('Name'), name),
+      size,
       field(t('How much'), amount),
       field(t('Where it’s kept'), place),
       el('h3', { textContent: t('Folders') }),
@@ -685,23 +749,37 @@ function openFabric(it) {
 
 // ---- adding a fabric
 /**
- * Cropping: a square over the picture, moved by dragging and sized by its corner.
- * @param {Blob} blob @returns {Promise<Blob | null>} the cropped picture
+ * Cropping: a frame over the picture, moved by dragging and sized by its corner. It keeps its shape: a square, or the
+ * shape of the cut piece when its size is known (then the picture's width is the piece's width).
+ * @param {Blob} blob @param {{ aspect?: number, start?: { x: number, y: number, w: number, h: number } }} [o]
+ *   aspect: width / height; start: where the frame starts, in the picture's pixels (where it was framed live)
+ * @returns {Promise<Blob | null>} the cropped picture
  */
-async function crop(blob) {
+async function crop(blob, { aspect = 1, start: from0 } = {}) {
   const im = await loadImage(blob);
   return new Promise(done => {
     const s = openSheet(t('Crop to the fabric'), { full: true });
     let answer = null;
     s.dialog.addEventListener('close', () => done(answer));
     const stage = el('div', { class: 'crop-stage' }),
-      box = el('div', { class: 'crop-box', id: 'crop-box' }, el('div', { class: 'crop-corner', id: 'crop-corner' }));
+      // shown once it is placed on the picture: before that it has no size or place of its own
+      box = el(
+        'div',
+        { class: 'crop-box', id: 'crop-box', hidden: true },
+        el('div', { class: 'crop-corner', id: 'crop-corner' }),
+      );
     im.className = 'crop-img';
     im.alt = '';
     stage.append(im, box);
     s.body.append(
       stage,
-      el('p', { class: 'hint', textContent: t('Drag the square, or its corner, to frame only the fabric.') }),
+      el('p', {
+        class: 'hint',
+        textContent:
+          from0 || aspect !== 1
+            ? t('Drag the frame, or its corner, to fit the edges of the piece.')
+            : t('Drag the square, or its corner, to frame only the fabric.'),
+      }),
       el(
         'div',
         { class: 'sheet-foot' },
@@ -712,7 +790,7 @@ async function crop(blob) {
           textContent: t('Use this part'),
           onclick: async () => {
             const k = im.naturalWidth / im.clientWidth;
-            answer = await fabricPhoto(im, { x: pos.x * k, y: pos.y * k, w: pos.size * k, h: pos.size * k });
+            answer = await fabricPhoto(im, { x: pos.x * k, y: pos.y * k, w: pos.w * k, h: (pos.w / aspect) * k });
             s.close();
           },
         }),
@@ -720,16 +798,27 @@ async function crop(blob) {
     );
     const W = () => im.clientWidth,
       H = () => im.clientHeight;
-    const pos = { x: 0, y: 0, size: 0 };
+    const pos = { x: 0, y: 0, w: 0 };
     const show = () => {
+      box.hidden = false;
       box.style.left = `${pos.x}px`;
       box.style.top = `${pos.y}px`;
-      box.style.width = box.style.height = `${pos.size}px`;
+      box.style.width = `${pos.w}px`;
+      box.style.height = `${pos.w / aspect}px`;
     };
     const start = () => {
-      pos.size = Math.min(W(), H()) * 0.9;
-      pos.x = (W() - pos.size) / 2;
-      pos.y = (H() - pos.size) / 2;
+      const k = im.naturalWidth / W(),
+        most = Math.min(W(), H() * aspect);
+      if (from0) {
+        // where it was framed, kept inside the picture
+        pos.w = Math.max(40, Math.min(most, from0.w / k));
+        pos.x = Math.max(0, Math.min(W() - pos.w, from0.x / k));
+        pos.y = Math.max(0, Math.min(H() - pos.w / aspect, from0.y / k));
+      } else {
+        pos.w = most * 0.9;
+        pos.x = (W() - pos.w) / 2;
+        pos.y = (H() - pos.w / aspect) / 2;
+      }
       show();
     };
     const dragging = (node, move) => {
@@ -753,20 +842,23 @@ async function crop(blob) {
       });
     };
     dragging(box, (dx, dy, from) => {
-      pos.x = Math.max(0, Math.min(W() - pos.size, from.x + dx));
-      pos.y = Math.max(0, Math.min(H() - pos.size, from.y + dy));
+      pos.x = Math.max(0, Math.min(W() - pos.w, from.x + dx));
+      pos.y = Math.max(0, Math.min(H() - pos.w / aspect, from.y + dy));
     });
     dragging($('crop-corner'), (dx, dy, from) => {
-      const most = Math.min(W() - from.x, H() - from.y);
-      pos.size = Math.max(40, Math.min(most, from.size + Math.max(dx, dy)));
+      const most = Math.min(W() - from.x, (H() - from.y) * aspect);
+      pos.w = Math.max(40, Math.min(most, from.w + Math.max(dx, dy * aspect)));
     });
     if (im.complete) requestAnimationFrame(start);
     else im.addEventListener('load', start);
   });
 }
 
-/** After cropping: a name and the optional details. Saving straight away is the quick way. @param {Blob} blob */
-function detailsThenKeep(blob) {
+/**
+ * After cropping: a name and the optional details. Saving straight away is the quick way.
+ * @param {Blob} blob @param {{ cm?: number, aspect?: number }} [piece] a measured piece: the width of cloth the picture shows
+ */
+function detailsThenKeep(blob, piece = {}) {
   return new Promise(done => {
     const s = openSheet(t('Your new fabric'));
     const number = repo.fabrics.list().length + 1;
@@ -816,6 +908,14 @@ function detailsThenKeep(blob) {
     s.dialog.addEventListener('close', () => done());
     s.body.append(
       field(t('Name'), name),
+      piece.cm &&
+        el('p', {
+          class: 'hint',
+          id: 'new-size',
+          textContent: t('Its real size: {size}', {
+            size: sizeLabel(piece.cm, piece.cm / (piece.aspect || 1), lastUnit()),
+          }),
+        }),
       field(t('How much (you can leave this)'), amount),
       field(t('Where it’s kept (you can leave this)'), place),
       el('h3', { textContent: t('Folders') }),
@@ -831,7 +931,7 @@ function detailsThenKeep(blob) {
           onclick: async () => {
             const { id, isNew } = await repo.fabrics.add(blob, {
               name: name.value.trim() || t('Fabric {n}', { n: number }),
-              cm: NEW_FABRIC_CM,
+              cm: piece.cm || NEW_FABRIC_CM,
             });
             setNote(id, { amount: amount.value.trim(), place: place.value.trim() });
             for (const f of inFolders) addToFolder(f, [id]);
@@ -845,10 +945,14 @@ function detailsThenKeep(blob) {
   });
 }
 
-/** A picture becomes a fabric: crop, details, kept. @param {Blob} picture */
-async function addFabricFrom(picture) {
-  const cropped = await crop(picture);
-  if (cropped) await detailsThenKeep(cropped);
+/**
+ * A picture becomes a fabric: crop, details, kept.
+ * @param {Blob} picture @param {{ aspect?: number, start?: { x: number, y: number, w: number, h: number }, cm?: number }} [piece]
+ *   a cut piece of a known size: cropped in its shape, and kept at its real width
+ */
+async function addFabricFrom(picture, piece = {}) {
+  const cropped = await crop(picture, piece);
+  if (cropped) await detailsThenKeep(cropped, piece);
 }
 
 async function addNewFabric() {
