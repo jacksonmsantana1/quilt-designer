@@ -37,6 +37,7 @@ npm run seed -w @quilt/server        # dev only: 400 made-up + 100 museum fabric
 node app/tools/record-clips.mjs      # re-records the welcome cards' clips (app/assets/clips) from the real app; build first; needs ffmpeg, pdftoppm
 .\deploy.bat                         # Windows (runs deploy.ps1): the API, then the page, online (-DryRun: only checks)
 .\local.bat                          # Windows: the app on this computer (latest main, Docker, API :8787, page :8000)
+.\local-stop.bat                     # Windows: turns it all off again (Docker stopped, its data kept)
 node app/tools/record-clips.mjs tutorial   # re-records the first-quilt tutorial's clips, in both languages, with the logo (CLIP_ONLY=sash,fabric: just those)
 ```
 
