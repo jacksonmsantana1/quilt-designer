@@ -5,11 +5,14 @@ import MCR from 'monocart-coverage-reports';
 export const coverageOptions = {
   name: 'Browser tests',
   outputDir: './coverage/e2e',
-  reports: ['v8', 'console-summary', 'json-summary', 'lcovonly'],
+  // raw: kept for tools/coverage.mjs, which merges every kind of test into one report
+  reports: ['v8', 'console-summary', 'json-summary', 'lcovonly', 'raw'],
   // only the app bundle (the inline module script of the page), mapped back to src/ by its source map
   entryFilter: e => /^http:\/\/(x|localhost)\//.test(e.url) && (e.source || '').includes('sourceMappingURL=data:'),
   sourceFilter: p => p.includes('src/') && !p.includes('node_modules'),
-  sourcePath: p => p.replace(/^.*?src\//, 'src/'),
+  // from the repository's top folder: the bundle has both app/src and shared/src (the same names in both)
+  sourcePath: p =>
+    /shared\/src\//.test(p) ? p.replace(/^.*?shared\/src\//, 'shared/src/') : p.replace(/^.*?src\//, 'app/src/'),
   cleanCache: false,
 };
 

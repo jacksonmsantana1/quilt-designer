@@ -9,6 +9,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],
+  // COVERAGE=1 (build with an inline source map first): each test's JavaScript coverage, reported at the end
+  globalTeardown: process.env.COVERAGE ? './tests/coverage.mjs' : undefined,
   use: {
     locale: 'en-US',
     viewport: { width: 390, height: 844 },

@@ -5,6 +5,10 @@ import { test as base, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { defaultDesign } from '@quilt/shared/design.js';
+import MCR from 'monocart-coverage-reports';
+import { coverageOptions } from './coverage.mjs';
+
+const COVERAGE = !!process.env.COVERAGE;
 
 const DIST = path.resolve(import.meta.dirname, '../dist');
 export const FABRIC = path.resolve(import.meta.dirname, '../../app/assets/fabric/paisley.jpg');
@@ -205,6 +209,7 @@ export async function colourFile(page, colour, name = `${colour}.jpg`, w = 400, 
 export const test = base.extend({
   // the phone app's page with the stand-in server: phone.server decides what it answers
   phone: async ({ page }, use) => {
+    if (COVERAGE) await page.coverage.startJSCoverage({ resetOnNavigation: false });
     const errors = watch(page),
       server = standIn();
     await routes(page, (method, url, body, headers) => server.answer(method, url, body, headers), server.stored);
@@ -254,6 +259,7 @@ export const test = base.extend({
         await page.mouse.up();
       },
     });
+    if (COVERAGE) await MCR(coverageOptions).add(await page.coverage.stopJSCoverage());
     expect(errors, 'no errors in the page').toEqual([]);
     // a condition that left something out must not show as a word
     const words = await page.evaluate(() => document.body.innerText).catch(() => '');

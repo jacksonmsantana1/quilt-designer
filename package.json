@@ -9,13 +9,14 @@
   ],
   "scripts": {
     "build": "npm run build -w @quilt/app",
-    "format": "prettier --write \"mobile/src/**/*.js\" \"mobile/*.mjs\" \"mobile/tests/**/*.mjs\" \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
-    "format:check": "prettier --check \"mobile/src/**/*.js\" \"mobile/*.mjs\" \"mobile/tests/**/*.mjs\" \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\"",
-    "lint": "eslint app/src app/tests shared server mobile",
+    "format": "prettier --write \"mobile/src/**/*.js\" \"mobile/*.mjs\" \"mobile/tests/**/*.mjs\" \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\" \"tools/**/*.mjs\"",
+    "format:check": "prettier --check \"mobile/src/**/*.js\" \"mobile/*.mjs\" \"mobile/tests/**/*.mjs\" \"app/src/**/*.js\" \"app/tests/**/*.mjs\" \"shared/**/*.{js,mjs}\" \"server/**/*.js\" \"tools/**/*.mjs\"",
+    "lint": "eslint app/src app/tests shared server mobile tools",
     "typecheck": "tsc -p jsconfig.json",
     "test": "npm test -w @quilt/shared && npm test -w @quilt/app && npm test -w @quilt/server",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
-    "test:e2e": "npm run test:e2e -w @quilt/app && npm run test:e2e -w @quilt/mobile"
+    "test:e2e": "npm run test:e2e -w @quilt/app && npm run test:e2e -w @quilt/mobile",
+    "coverage": "node tools/coverage.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

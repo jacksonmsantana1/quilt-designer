@@ -7,6 +7,7 @@
     "build": "node build.mjs",
     "dev": "node dev.mjs",
     "test:e2e": "node build.mjs --dev-signin && playwright test",
+    "coverage:e2e": "rm -rf coverage/e2e && COVERAGE=1 node build.mjs --dev-signin && COVERAGE=1 playwright test; node build.mjs --dev-signin",
     "android": "node build.mjs && cap sync android && cap open android",
     "ios": "node build.mjs && cap sync ios && cap open ios"
   },

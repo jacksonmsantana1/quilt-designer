@@ -24,6 +24,8 @@ export async function buildApp(apiUrl = API_URL, devSignIn = DEV_SIGNIN) {
     outfile: path.join(OUT, 'app.js'),
     define: { __API_URL__: JSON.stringify(apiUrl), __DEV_SIGNIN__: JSON.stringify(devSignIn) },
     logLevel: 'warning',
+    // with COVERAGE=1, a source map inside the script, so the browser tests' coverage maps back to the files
+    sourcemap: process.env.COVERAGE ? 'inline' : false,
   });
   fs.copyFileSync(path.join(HERE, 'src/index.html'), path.join(OUT, 'index.html'));
   fs.copyFileSync(path.join(HERE, 'src/style.css'), path.join(OUT, 'style.css'));
